@@ -1,5 +1,5 @@
 import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
+import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
 
 import * as schema from "./schema";
 
@@ -15,3 +15,10 @@ const client = createClient({
 
 export const db = drizzle(client, { schema });
 export { schema };
+
+/**
+ * What the data layer accepts. Functions in `lib/data/` default to the shared
+ * `db` but take any handle of this type, so tests can hand them a throwaway
+ * in-memory database instead.
+ */
+export type Database = LibSQLDatabase<typeof schema>;

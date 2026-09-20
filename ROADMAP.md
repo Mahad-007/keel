@@ -9,7 +9,7 @@ Each task should land with tests where there is logic to test, and must leave
 
 ## Phase 1 — Clients and projects
 
-- [ ] **Day 01** — Client data layer in `lib/data/clients.ts`: create, get, list (excluding archived), update, archive. Generate ids with a small `lib/id.ts` helper. Cover every function with tests against an in-memory libSQL database.
+- [x] **Day 01** — Client data layer in `lib/data/clients.ts`: create, get, list (excluding archived), update, archive. Generate ids with a small `lib/id.ts` helper. Cover every function with tests against an in-memory libSQL database.
 - [ ] **Day 02** — Clients list page at `/clients`: server component reading the data layer, rendering a table of name, company, default rate, and created date. Include an empty state.
 - [ ] **Day 03** — New client form at `/clients/new` backed by a server action, with validation (name required, email shape, rate parsed via `parseCents`) and errors rendered inline.
 - [ ] **Day 04** — Client edit page and archive action. Archiving is a soft delete and must drop the client from the list without removing the row.
