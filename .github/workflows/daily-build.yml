@@ -149,3 +149,20 @@ jobs:
             --body "The daily run could not get \`$LABEL\` to a green build, so its changes were discarded and the task remains unchecked. Tomorrow's run will retry it.
 
           [Run log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+      # The step above only fires when the build went red. A run that dies
+      # earlier — expired token, npm registry outage, timeout — would otherwise
+      # fail silently, and nobody is watching until day 30.
+      - name: Report an aborted run
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "Daily build aborted — $(date -u +%Y-%m-%d)" \
+            --label "build-failure" \
+            --body "The daily run did not finish. This is not a failing test — the job itself stopped, so the usual causes are an expired \`CLAUDE_CODE_OAUTH_TOKEN\`, exhausted Claude quota, or an infrastructure blip.
+
+          The roadmap is untouched, so tomorrow's run retries the same task. If the token has expired, run \`claude setup-token\` and update the secret.
+
+          [Run log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
