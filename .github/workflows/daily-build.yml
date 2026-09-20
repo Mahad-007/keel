@@ -1,0 +1,151 @@
+name: Daily build
+
+on:
+  schedule:
+    # 05:23 UTC daily. Off the hour on purpose — scheduled workflows queue
+    # behind everyone else's :00 cron and get delayed.
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: daily-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Pick today's task
+        id: task
+        run: node scripts/next-task.js
+
+      - name: Stop if the roadmap is finished
+        if: steps.task.outputs.found != 'true'
+        run: echo "Nothing left to build." && exit 0
+
+      - name: Install Claude Code
+        if: steps.task.outputs.found == 'true'
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Implement
+        if: steps.task.outputs.found == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LABEL: ${{ steps.task.outputs.label }}
+          TASK: ${{ steps.task.outputs.task }}
+        run: |
+          cat > /tmp/prompt.md <<'INSTRUCTIONS'
+          Read CLAUDE.md first — it holds the conventions for this repo and
+          they are not optional.
+
+          Implement exactly the one task below. Not the next one, not a
+          refactor you noticed on the way, not scaffolding for later tasks.
+
+          Before you finish you must run `npm run build` and `npm test` and see
+          both pass. If either fails, fix it and run again. Nobody reviews this
+          before it ships, so a red build is the one outcome worse than doing
+          nothing.
+
+          Do not edit ROADMAP.md. Do not run git.
+          INSTRUCTIONS
+
+          { printf '\n## Task: %s\n\n%s\n' "$LABEL" "$TASK"; } >> /tmp/prompt.md
+
+          claude -p "$(cat /tmp/prompt.md)" \
+            --permission-mode bypassPermissions \
+            --model claude-opus-5 \
+            --output-format text
+
+      - name: Verify
+        id: verify
+        if: steps.task.outputs.found == 'true'
+        continue-on-error: true
+        run: npm run build && npm test
+
+      # One repair attempt in the same run. Most failures are a type error or a
+      # missing import, and fixing them now is far cheaper than losing the day.
+      - name: Repair
+        id: repair
+        if: steps.task.outputs.found == 'true' && steps.verify.outcome == 'failure'
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          claude -p "The build or tests are failing after your last change. Run
+          \`npm run build\` and \`npm test\`, read the errors, and fix them.
+          Change as little as possible — the goal is a green build, not a
+          redesign. Do not edit ROADMAP.md and do not run git." \
+            --permission-mode bypassPermissions \
+            --model claude-opus-5 \
+            --output-format text
+          npm run build && npm test
+
+      - name: Discard a failed day
+        if: >-
+          steps.task.outputs.found == 'true' &&
+          steps.verify.outcome == 'failure' &&
+          steps.repair.outcome == 'failure'
+        run: |
+          echo "::warning::build still failing — discarding today's changes"
+          git checkout -- .
+          git clean -fd
+
+      - name: Check off the task
+        if: >-
+          steps.task.outputs.found == 'true' &&
+          (steps.verify.outcome == 'success' || steps.repair.outcome == 'success')
+        run: node scripts/complete-task.js "${{ steps.task.outputs.line }}"
+
+      - name: Commit and push
+        id: push
+        if: >-
+          steps.task.outputs.found == 'true' &&
+          (steps.verify.outcome == 'success' || steps.repair.outcome == 'success')
+        env:
+          LABEL: ${{ steps.task.outputs.label }}
+          TASK: ${{ steps.task.outputs.task }}
+        run: |
+          # Author the commit as the repo owner so it counts as a contribution;
+          # a commit authored by github-actions[bot] does not.
+          git config user.name "Mahad Khalid Ghafoor"
+          git config user.email "mahadghafoor.07@gmail.com"
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "::warning::no changes produced — nothing to commit"
+            exit 0
+          fi
+
+          SUBJECT="$(printf '%s: %s' "$LABEL" "$TASK" | cut -c1-72)"
+          git commit -m "$SUBJECT" -m "$TASK" -m "Built autonomously from ROADMAP.md."
+          git push
+
+      - name: Report a failure
+        if: >-
+          steps.task.outputs.found == 'true' &&
+          steps.verify.outcome == 'failure' &&
+          steps.repair.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LABEL: ${{ steps.task.outputs.label }}
+        run: |
+          gh issue create \
+            --title "Autonomous build failed: $LABEL" \
+            --label "build-failure" \
+            --body "The daily run could not get \`$LABEL\` to a green build, so its changes were discarded and the task remains unchecked. Tomorrow's run will retry it.
+
+          [Run log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
