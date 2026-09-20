@@ -44,7 +44,7 @@ jobs:
       - name: Implement
         if: steps.task.outputs.found == 'true'
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           LABEL: ${{ steps.task.outputs.label }}
           TASK: ${{ steps.task.outputs.task }}
         run: |
@@ -83,7 +83,7 @@ jobs:
         if: steps.task.outputs.found == 'true' && steps.verify.outcome == 'failure'
         continue-on-error: true
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           claude -p "The build or tests are failing after your last change. Run
           \`npm run build\` and \`npm test\`, read the errors, and fix them.
