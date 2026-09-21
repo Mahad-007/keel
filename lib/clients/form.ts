@@ -16,12 +16,17 @@ import { optionalText, requiredText } from "@/lib/forms/text";
  * input cannot quietly stop being validated.
  */
 
+/**
+ * In the order the form lays the fields out, which is also the order errors
+ * are walked in: the cursor after a rejected submission has to land on the
+ * first problem the user would read, not the first one declared here.
+ */
 export const CLIENT_FIELD_NAMES = [
   "name",
-  "email",
   "company",
-  "notes",
+  "email",
   "defaultRate",
+  "notes",
 ] as const;
 
 export type ClientFieldName = (typeof CLIENT_FIELD_NAMES)[number];
@@ -47,10 +52,10 @@ export const CLIENT_FIELD_LIMITS = {
 
 export const EMPTY_CLIENT_FIELDS: ClientFormFields = {
   name: "",
-  email: "",
   company: "",
-  notes: "",
+  email: "",
   defaultRate: "",
+  notes: "",
 };
 
 export type ClientFormState = FormState<ClientFieldName>;

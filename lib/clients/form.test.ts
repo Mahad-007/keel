@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { firstErrorField, rejectedFormState } from "@/lib/forms/state";
+
 import {
   CLIENT_FIELD_LIMITS,
+  CLIENT_FIELD_NAMES,
   EMPTY_CLIENT_FIELDS,
   parseClientForm,
   readClientFields,
@@ -131,5 +134,31 @@ describe("readClientFields", () => {
       notes: "",
       defaultRate: "150",
     });
+  });
+});
+
+describe("CLIENT_FIELD_NAMES", () => {
+  // The form focuses `firstErrorField(state, CLIENT_FIELD_NAMES)` after a
+  // rejection. Walked in the wrong order it skips past an error the user can
+  // already see, so the order is behaviour, not bookkeeping.
+  it("walks errors in the order the form renders the fields", () => {
+    const errors = errorsFrom({
+      company: "a".repeat(121),
+      email: "nope",
+      notes: "b".repeat(2001),
+      defaultRate: "-1",
+    });
+    const state = rejectedFormState(EMPTY_CLIENT_FIELDS, errors);
+
+    expect(firstErrorField(state, CLIENT_FIELD_NAMES)).toBe("company");
+  });
+
+  it("puts the name above every other field", () => {
+    const state = rejectedFormState(
+      EMPTY_CLIENT_FIELDS,
+      errorsFrom({ name: "", email: "nope" }),
+    );
+
+    expect(firstErrorField(state, CLIENT_FIELD_NAMES)).toBe("name");
   });
 });
