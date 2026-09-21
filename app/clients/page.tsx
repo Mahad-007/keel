@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { listClients } from "@/lib/data/clients";
 import { formatDate } from "@/lib/dates";
@@ -21,15 +22,23 @@ export default async function ClientsPage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 font-sans">
-      <header className="border-b border-zinc-200 pb-4 dark:border-zinc-800">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Clients
-        </h1>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          {clients.length === 0
-            ? "Nobody on the books yet."
-            : `${clients.length} ${clients.length === 1 ? "client" : "clients"}. Archived clients keep their history but drop off this list.`}
-        </p>
+      <header className="flex items-start justify-between gap-6 border-b border-zinc-200 pb-4 dark:border-zinc-800">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+            Clients
+          </h1>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            {clients.length === 0
+              ? "Nobody on the books yet."
+              : `${clients.length} ${clients.length === 1 ? "client" : "clients"}. Archived clients keep their history but drop off this list.`}
+          </p>
+        </div>
+        <Link
+          href="/clients/new"
+          className="shrink-0 rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+        >
+          New client
+        </Link>
       </header>
 
       {clients.length === 0 ? <EmptyState /> : <ClientsTable clients={clients} />}
@@ -98,6 +107,12 @@ function EmptyState() {
         client, and a project&rsquo;s billing rate falls back to the client&rsquo;s
         default when it has no override of its own. Add one to get started.
       </p>
+      <Link
+        href="/clients/new"
+        className="mt-4 inline-block text-sm font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-600 dark:text-zinc-100 dark:hover:text-zinc-400"
+      >
+        Add your first client
+      </Link>
     </div>
   );
 }
