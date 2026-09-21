@@ -61,6 +61,12 @@ jobs:
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Implement
+        id: implement
+        # Quota exhaustion, a network drop, or a hang must not take the day's
+        # committed work with it. The step is allowed to fail; the steps below
+        # still verify, salvage and push whatever already landed.
+        continue-on-error: true
+        timeout-minutes: 120
         if: steps.task.outputs.found == 'true'
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -168,6 +174,7 @@ jobs:
       - name: Check off the milestone
         if: >-
           steps.task.outputs.found == 'true' &&
+          steps.implement.outcome == 'success' &&
           (steps.verify.outcome == 'success' || steps.repair.outcome == 'success')
         run: |
           node scripts/complete-task.js "${{ steps.task.outputs.line }}"
@@ -236,6 +243,24 @@ jobs:
             echo "::warning::vercel returned no deployment URL"
             exit 1
           fi
+
+      - name: Report a cut-short run
+        if: steps.task.outputs.found == 'true' && steps.implement.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LABEL: ${{ steps.task.outputs.label }}
+          COUNT: ${{ steps.push.outputs.commits }}
+        run: |
+          gh issue create \
+            --title "Run cut short partway through $LABEL" \
+            --label "build-failure" \
+            --body "The agent stopped before finishing \`$LABEL\` — most likely exhausted Claude quota, but a network drop or the 120-minute step timeout would look the same.
+
+          **${COUNT:-0} commits were verified and pushed.** The milestone is deliberately left unchecked, so the next run picks it up and continues rather than starting over.
+
+          If this repeats, the fix is to stop drawing on subscription quota: swap \`CLAUDE_CODE_OAUTH_TOKEN\` for an \`ANTHROPIC_API_KEY\` secret and change the two env references in this workflow.
+
+          [Run log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
 
       - name: Report a failed milestone
         if: >-
