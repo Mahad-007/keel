@@ -23,6 +23,12 @@ import { SubmitButton } from "./submit-button";
  * Validation is the server's, not the browser's — `noValidate` turns off the
  * native bubbles so there is exactly one set of rules, the one that also runs
  * when the request arrives from somewhere other than this form.
+ *
+ * No field carries an `autoComplete` hint. These are someone else's details,
+ * and every value the browser has stored under `name`, `organization` or
+ * `email` belongs to the person filling the form in — autofill here offers
+ * the wrong data, and offering it for both Name and Company writes the same
+ * string into two columns that mean different things.
  */
 export function NewClientForm() {
   const [state, formAction] = useActionState(
@@ -46,7 +52,6 @@ export function NewClientForm() {
         name="name"
         label="Name"
         hint="The person or business you invoice. Required."
-        autoComplete="organization"
         maxLength={CLIENT_FIELD_LIMITS.name}
         defaultValue={state.fields.name}
         error={state.errors.name}
@@ -55,7 +60,6 @@ export function NewClientForm() {
         name="company"
         label="Company"
         hint="Optional, when the name above is a person."
-        autoComplete="organization"
         maxLength={CLIENT_FIELD_LIMITS.company}
         defaultValue={state.fields.company}
         error={state.errors.company}
@@ -65,7 +69,6 @@ export function NewClientForm() {
         label="Email"
         type="email"
         inputMode="email"
-        autoComplete="email"
         maxLength={CLIENT_FIELD_LIMITS.email}
         defaultValue={state.fields.email}
         error={state.errors.email}
