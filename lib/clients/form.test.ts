@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CLIENT_FIELD_LIMITS,
   EMPTY_CLIENT_FIELDS,
   parseClientForm,
   readClientFields,
@@ -60,30 +61,22 @@ describe("parseClientForm", () => {
     expect(errorsFrom({ name: "   " })).toEqual({ name: "Name is required." });
   });
 
-  it("caps the name at 120 characters", () => {
-    expect(parseClientForm(fields({ name: "a".repeat(120) })).ok).toBe(true);
-    expect(errorsFrom({ name: "a".repeat(121) })).toEqual({
-      name: "Name must be 120 characters or fewer.",
+  it.each([
+    ["name", "Name"],
+    ["company", "Company"],
+    ["notes", "Notes"],
+  ] as const)("caps %s at the published limit", (field, label) => {
+    const max = CLIENT_FIELD_LIMITS[field];
+
+    expect(parseClientForm(fields({ [field]: "a".repeat(max) })).ok).toBe(true);
+    expect(errorsFrom({ [field]: "a".repeat(max + 1) })).toEqual({
+      [field]: `${label} must be ${max} characters or fewer.`,
     });
   });
 
   it("rejects an email that is not an address", () => {
     expect(errorsFrom({ email: "ada at example.com" })).toEqual({
       email: "Email does not look like an email address.",
-    });
-  });
-
-  it("caps the company at 120 characters", () => {
-    expect(parseClientForm(fields({ company: "a".repeat(120) })).ok).toBe(true);
-    expect(errorsFrom({ company: "a".repeat(121) })).toEqual({
-      company: "Company must be 120 characters or fewer.",
-    });
-  });
-
-  it("caps the notes at 2000 characters", () => {
-    expect(parseClientForm(fields({ notes: "a".repeat(2000) })).ok).toBe(true);
-    expect(errorsFrom({ notes: "a".repeat(2001) })).toEqual({
-      notes: "Notes must be 2000 characters or fewer.",
     });
   });
 

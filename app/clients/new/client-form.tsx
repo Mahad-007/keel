@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect } from "react";
 
 import {
+  CLIENT_FIELD_LIMITS,
   CLIENT_FIELD_NAMES,
   INITIAL_CLIENT_FORM_STATE,
 } from "@/lib/clients/form";
@@ -46,7 +47,7 @@ export function NewClientForm() {
         label="Name"
         hint="The person or business you invoice. Required."
         autoComplete="organization"
-        maxLength={120}
+        maxLength={CLIENT_FIELD_LIMITS.name}
         defaultValue={state.fields.name}
         error={state.errors.name}
       />
@@ -55,7 +56,7 @@ export function NewClientForm() {
         label="Company"
         hint="Optional, when the name above is a person."
         autoComplete="organization"
-        maxLength={120}
+        maxLength={CLIENT_FIELD_LIMITS.company}
         defaultValue={state.fields.company}
         error={state.errors.company}
       />
@@ -65,7 +66,7 @@ export function NewClientForm() {
         type="email"
         inputMode="email"
         autoComplete="email"
-        maxLength={254}
+        maxLength={CLIENT_FIELD_LIMITS.email}
         defaultValue={state.fields.email}
         error={state.errors.email}
       />
@@ -83,7 +84,7 @@ export function NewClientForm() {
         label="Notes"
         hint="Anything you want in front of you when this client emails."
         rows={4}
-        maxLength={2000}
+        maxLength={CLIENT_FIELD_LIMITS.notes}
         defaultValue={state.fields.notes}
         error={state.errors.notes}
       />

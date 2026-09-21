@@ -1,5 +1,5 @@
 import type { NewClientInput } from "@/lib/data/clients";
-import { optionalEmail } from "@/lib/forms/email";
+import { EMAIL_MAX_LENGTH, optionalEmail } from "@/lib/forms/email";
 import { readFields } from "@/lib/forms/form-data";
 import { optionalRateCents } from "@/lib/forms/rate";
 import { collect, type FieldErrors, type ParseResult } from "@/lib/forms/result";
@@ -31,10 +31,19 @@ export type ClientFormFields = Record<ClientFieldName, string>;
 
 export type ClientFieldErrors = FieldErrors<ClientFieldName>;
 
-/** Long enough for a real legal entity, short enough to fit a table cell. */
-const NAME_MAX = 120;
-const COMPANY_MAX = 120;
-const NOTES_MAX = 2000;
+/**
+ * How long each field may be. Exported because the inputs carry the same
+ * numbers as `maxLength`: two copies of "120" drift, and the day they do the
+ * browser stops someone at a length the validator would have accepted, or
+ * lets them type past one it rejects.
+ */
+export const CLIENT_FIELD_LIMITS = {
+  /** Long enough for a real legal entity, short enough to fit a table cell. */
+  name: 120,
+  company: 120,
+  email: EMAIL_MAX_LENGTH,
+  notes: 2000,
+} as const;
 
 export const EMPTY_CLIENT_FIELDS: ClientFormFields = {
   name: "",
@@ -61,10 +70,19 @@ export function parseClientForm(
   fields: ClientFormFields,
 ): ParseResult<NewClientInput, ClientFieldName> {
   const parsed = collect({
-    name: requiredText(fields.name, { label: "Name", max: NAME_MAX }),
+    name: requiredText(fields.name, {
+      label: "Name",
+      max: CLIENT_FIELD_LIMITS.name,
+    }),
     email: optionalEmail(fields.email),
-    company: optionalText(fields.company, { label: "Company", max: COMPANY_MAX }),
-    notes: optionalText(fields.notes, { label: "Notes", max: NOTES_MAX }),
+    company: optionalText(fields.company, {
+      label: "Company",
+      max: CLIENT_FIELD_LIMITS.company,
+    }),
+    notes: optionalText(fields.notes, {
+      label: "Notes",
+      max: CLIENT_FIELD_LIMITS.notes,
+    }),
     defaultRate: optionalRateCents(fields.defaultRate),
   });
 

@@ -12,7 +12,7 @@ import { optionalText } from "./text";
  */
 
 /** RFC 5321's limit on a complete address. */
-const MAX_LENGTH = 254;
+export const EMAIL_MAX_LENGTH = 254;
 
 const SHAPE = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 
@@ -20,7 +20,7 @@ export function optionalEmail(
   value: string,
   label = "Email",
 ): FieldResult<string | null> {
-  const text = optionalText(value, { label, max: MAX_LENGTH });
+  const text = optionalText(value, { label, max: EMAIL_MAX_LENGTH });
   if (!text.ok || text.value === null) return text;
 
   if (!SHAPE.test(text.value)) {
