@@ -41,12 +41,8 @@ export function failedFormState<K extends string>(
   return { fields, errors: {}, formError };
 }
 
-export function fieldErrorCount<K extends string>(state: FormState<K>): number {
+function fieldErrorCount<K extends string>(state: FormState<K>): number {
   return Object.keys(state.errors).length;
-}
-
-export function hasErrors<K extends string>(state: FormState<K>): boolean {
-  return state.formError !== null || fieldErrorCount(state) > 0;
 }
 
 /**

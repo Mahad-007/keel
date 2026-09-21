@@ -2,10 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   failedFormState,
-  fieldErrorCount,
   firstErrorField,
   formSummary,
-  hasErrors,
   initialFormState,
   rejectedFormState,
   type FormState,
@@ -18,7 +16,6 @@ describe("initialFormState", () => {
     const state = initialFormState(fields);
 
     expect(state).toEqual({ fields, errors: {}, formError: null });
-    expect(hasErrors(state)).toBe(false);
     expect(formSummary(state)).toBeNull();
   });
 });
@@ -30,7 +27,7 @@ describe("rejectedFormState", () => {
     expect(state.fields).toEqual(fields);
     expect(state.errors).toEqual({ email: "Not an address." });
     expect(state.formError).toBeNull();
-    expect(hasErrors(state)).toBe(true);
+    expect(formSummary(state)).toBe("Nothing was saved. One field needs fixing.");
   });
 });
 
@@ -39,8 +36,6 @@ describe("failedFormState", () => {
     const state = failedFormState(fields, "Could not save the client.");
 
     expect(state.errors).toEqual({});
-    expect(fieldErrorCount(state)).toBe(0);
-    expect(hasErrors(state)).toBe(true);
     expect(formSummary(state)).toBe("Could not save the client.");
   });
 });
