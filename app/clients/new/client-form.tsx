@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect } from "react";
 
 import {
@@ -89,6 +90,12 @@ export function NewClientForm() {
 
       <div className="flex items-center gap-3 pt-1">
         <SubmitButton pendingLabel="Saving…">Save client</SubmitButton>
+        <Link
+          href="/clients"
+          className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+        >
+          Cancel
+        </Link>
       </div>
     </form>
   );
