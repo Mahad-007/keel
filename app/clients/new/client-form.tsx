@@ -24,11 +24,12 @@ import { SubmitButton } from "./submit-button";
  * native bubbles so there is exactly one set of rules, the one that also runs
  * when the request arrives from somewhere other than this form.
  *
- * No field carries an `autoComplete` hint. These are someone else's details,
- * and every value the browser has stored under `name`, `organization` or
- * `email` belongs to the person filling the form in — autofill here offers
- * the wrong data, and offering it for both Name and Company writes the same
- * string into two columns that mean different things.
+ * Every field asks for `autoComplete="off"`, the fields' default. These are
+ * someone else's details, and what the browser has stored under `name`,
+ * `organization` or `email` belongs to whoever is filling the form in, so an
+ * autofill here is wrong by construction. Browsers honour `off` unevenly —
+ * the point is not to invite the suggestion in the first place, which naming
+ * the fields `organization` and `email` did.
  */
 export function NewClientForm() {
   const [state, formAction] = useActionState(

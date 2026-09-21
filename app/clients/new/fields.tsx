@@ -75,6 +75,7 @@ export type TextFieldProps = {
   defaultValue?: string;
   type?: "text" | "email";
   inputMode?: "text" | "email" | "decimal";
+  /** Defaults to `off`: these forms describe someone other than the user. */
   autoComplete?: string;
   placeholder?: string;
   maxLength?: number;
@@ -88,7 +89,7 @@ export function TextField({
   defaultValue,
   type = "text",
   inputMode,
-  autoComplete,
+  autoComplete = "off",
   placeholder,
   maxLength,
 }: TextFieldProps) {
@@ -138,6 +139,7 @@ export function TextAreaField({
         <textarea
           id={id}
           name={name}
+          autoComplete="off"
           rows={rows}
           maxLength={maxLength}
           defaultValue={defaultValue}
