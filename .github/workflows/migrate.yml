@@ -1,0 +1,55 @@
+name: Migrate
+
+# Applies the schema to the hosted database on demand, and reports what the
+# database actually contains afterwards. The daily build migrates on its own;
+# this exists for the first run and for verifying state without waiting a day.
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+
+      - name: Apply migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL is not set"
+            exit 1
+          fi
+          npm run db:migrate
+
+      - name: Report schema
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
+        run: |
+          cat > /tmp/schema.mjs <<'JS'
+          import { createClient } from "@libsql/client";
+          const c = createClient({
+            url: process.env.DATABASE_URL,
+            authToken: process.env.DATABASE_AUTH_TOKEN,
+          });
+          const t = await c.execute(
+            "select name from sqlite_master where type='table' order by name",
+          );
+          const names = t.rows.map((r) => r.name);
+          console.log("tables:", names.join(", ") || "(none)");
+          for (const n of names) {
+            const c2 = await c.execute(`select count(*) as n from "${n}"`);
+            console.log(`  ${n}: ${c2.rows[0].n} rows`);
+          }
+          JS
+          cp /tmp/schema.mjs ./schema-report.mjs
+          node ./schema-report.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+          rm -f ./schema-report.mjs
