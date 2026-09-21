@@ -3,6 +3,7 @@ import { optionalEmail } from "@/lib/forms/email";
 import { readFields } from "@/lib/forms/form-data";
 import { optionalRateCents } from "@/lib/forms/rate";
 import { collect, type FieldErrors, type ParseResult } from "@/lib/forms/result";
+import { initialFormState, type FormState } from "@/lib/forms/state";
 import { optionalText, requiredText } from "@/lib/forms/text";
 
 /**
@@ -42,6 +43,15 @@ export const EMPTY_CLIENT_FIELDS: ClientFormFields = {
   notes: "",
   defaultRate: "",
 };
+
+export type ClientFormState = FormState<ClientFieldName>;
+
+/**
+ * What the form starts from. Defined here rather than in the action file
+ * because a `"use server"` module may only export async functions.
+ */
+export const INITIAL_CLIENT_FORM_STATE: ClientFormState =
+  initialFormState(EMPTY_CLIENT_FIELDS);
 
 export function readClientFields(formData: FormData): ClientFormFields {
   return readFields(formData, CLIENT_FIELD_NAMES);
