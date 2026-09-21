@@ -32,6 +32,12 @@ bill for it.*
 
 https://keel-beige-seven.vercel.app — redeployed automatically after each day's commit.
 
+**Data pages return 500 in production until a hosted database is attached.**
+Vercel's filesystem is read-only, so the `file:./keel.db` fallback has nothing
+to open. Create a free [Turso](https://turso.tech) database and run
+`./scripts/set-vercel-db.sh <libsql-url> <auth-token>` to fix it. Local
+development and CI are unaffected — tests run against an in-memory database.
+
 ## Status
 
 Under construction, one increment per day, on the plan in
