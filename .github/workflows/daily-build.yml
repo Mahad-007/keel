@@ -134,6 +134,42 @@ jobs:
           git commit -m "$SUBJECT" -m "$TASK" -m "Built autonomously from ROADMAP.md."
           git push
 
+      # Deploys what was just pushed. This lives inside the build job on
+      # purpose: a push made with GITHUB_TOKEN does not trigger `on: push`
+      # workflows, so a standalone deploy workflow would never fire.
+      # Non-fatal — the commit has already landed, and a Vercel hiccup should
+      # not raise a false "build aborted" alarm.
+      - name: Deploy to Vercel
+        id: deploy
+        continue-on-error: true
+        if: >-
+          steps.task.outputs.found == 'true' &&
+          (steps.verify.outcome == 'success' || steps.repair.outcome == 'success')
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::warning::VERCEL_TOKEN not set — skipping deploy"
+            exit 0
+          fi
+          npm i -g vercel@latest >/dev/null 2>&1
+          # The CLI prints a JSON envelope, not a bare URL, so scrape the
+          # hostname rather than trusting the last line.
+          OUT="$(vercel deploy --prod --yes \
+                   --project keel \
+                   --scope mahad-khalid-ghafoors-projects \
+                   --token "$VERCEL_TOKEN" 2>&1)"
+          echo "$OUT" | tail -20
+          HOST="$(printf '%s' "$OUT" | grep -oE '[a-z0-9-]+\.vercel\.app' | head -1)"
+          if [ -n "$HOST" ]; then
+            echo "::notice::deployed https://$HOST"
+            echo "Deployed: https://$HOST" >> "$GITHUB_STEP_SUMMARY"
+            echo "Production: https://keel-beige-seven.vercel.app" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::vercel returned no deployment URL"
+            exit 1
+          fi
+
       - name: Report a failure
         if: >-
           steps.task.outputs.found == 'true' &&
