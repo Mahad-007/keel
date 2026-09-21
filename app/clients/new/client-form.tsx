@@ -6,6 +6,7 @@ import { INITIAL_CLIENT_FORM_STATE } from "@/lib/clients/form";
 
 import { createClientAction } from "./actions";
 import { TextAreaField, TextField } from "./fields";
+import { SubmitButton } from "./submit-button";
 
 /**
  * The only interactive piece of the page, and it is client-side for one
@@ -72,12 +73,7 @@ export function NewClientForm() {
       />
 
       <div className="flex items-center gap-3 pt-1">
-        <button
-          type="submit"
-          className="rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-        >
-          Save client
-        </button>
+        <SubmitButton pendingLabel="Saving…">Save client</SubmitButton>
       </div>
     </form>
   );
