@@ -50,6 +50,22 @@ export function hasErrors<K extends string>(state: FormState<K>): boolean {
 }
 
 /**
+ * The first field with an error, in the order the form lays them out rather
+ * than the order the errors happen to be keyed in. That ordering is the whole
+ * point: it is what lets the form move the cursor to the problem the user
+ * will reach first.
+ */
+export function firstErrorField<K extends string>(
+  state: FormState<K>,
+  order: readonly K[],
+): K | null {
+  for (const name of order) {
+    if (state.errors[name] !== undefined) return name;
+  }
+  return null;
+}
+
+/**
  * One sentence at the top of the form saying what happened, because the
  * field that failed may be scrolled off the screen. Null when there is
  * nothing to say, so the form renders no empty banner.
