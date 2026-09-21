@@ -6,6 +6,7 @@ import { INITIAL_CLIENT_FORM_STATE } from "@/lib/clients/form";
 
 import { createClientAction } from "./actions";
 import { TextAreaField, TextField } from "./fields";
+import { FormSummary } from "./form-summary";
 import { SubmitButton } from "./submit-button";
 
 /**
@@ -25,6 +26,7 @@ export function NewClientForm() {
 
   return (
     <form action={formAction} noValidate className="mt-8 flex flex-col gap-5">
+      <FormSummary state={state} />
       <TextField
         name="name"
         label="Name"
