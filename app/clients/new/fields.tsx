@@ -13,6 +13,11 @@ import type { ReactNode } from "react";
  * what is wrong with it, and the message is a sentence rather than a red ring.
  */
 
+/** The input's DOM id, shared with anything that needs to focus it. */
+export function fieldId(name: string): string {
+  return `field-${name}`;
+}
+
 type FieldShellProps = {
   name: string;
   label: string;
@@ -22,7 +27,7 @@ type FieldShellProps = {
 };
 
 function FieldShell({ name, label, hint, error, children }: FieldShellProps) {
-  const id = `field-${name}`;
+  const id = fieldId(name);
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const describedBy = [errorId, hintId].filter(Boolean).join(" ") || undefined;
