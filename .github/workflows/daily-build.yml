@@ -150,6 +150,14 @@ jobs:
           done
           git clean -fd
 
+      # An agent writing migrations unattended will eventually write a DROP.
+      # The free tier has no point-in-time recovery, so this blocks rather than
+      # warns; a genuinely intended drop carries an explicit marker.
+      - name: Guard against destructive migrations
+        id: guard
+        if: steps.task.outputs.found == 'true'
+        run: node scripts/check-migrations.js "${{ steps.base.outputs.sha }}"
+
       - name: Check off the milestone
         if: >-
           steps.task.outputs.found == 'true' &&
@@ -178,6 +186,21 @@ jobs:
             git log --format='- `%h` %s' "$BASE"..HEAD
           } >> "$GITHUB_STEP_SUMMARY"
           git push
+
+      - name: Apply migrations
+        id: migrate
+        continue-on-error: true
+        if: steps.task.outputs.found == 'true' && steps.push.outputs.commits != ''
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::warning::DATABASE_URL is not set — production has no tables, so every data page will 500"
+            exit 0
+          fi
+          npm run db:migrate
+          echo "Migrations applied" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Deploy to Vercel
         id: deploy
@@ -225,8 +248,23 @@ jobs:
 
       # Only fires when the job itself dies — expired token, exhausted quota,
       # infrastructure. Without it those failures are silent.
+      - name: Report a blocked migration
+        if: failure() && steps.guard.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LABEL: ${{ steps.task.outputs.label }}
+        run: |
+          gh issue create \
+            --title "Destructive migration blocked: $LABEL" \
+            --label "build-failure" \
+            --body "A migration generated during \`$LABEL\` drops a table or column. Nothing was pushed and nothing was applied to the database.
+
+          This needs a human. If the drop is intended, add a \`-- keel:allow-destructive <reason>\` line to the migration and re-run. If it is not, the milestone needs rethinking.
+
+          [Run log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
       - name: Report an aborted run
-        if: failure()
+        if: failure() && steps.guard.outcome != 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
