@@ -2,9 +2,9 @@ name: Daily build
 
 on:
   schedule:
-    # 05:23 UTC daily. Off the hour on purpose — scheduled workflows queue
-    # behind everyone else's :00 cron and get delayed.
-    - cron: "23 5 * * *"
+    # 04:00 Asia/Karachi. Pakistan is UTC+5 year-round with no DST, so that is
+    # 23:00 UTC the previous day.
+    - cron: "0 23 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -14,13 +14,19 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # A milestone is ~20 commits, each verified before it lands. That is slow
+    # by design, so the job needs real headroom.
+    timeout-minutes: 180
     permissions:
       contents: write
       issues: write
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: the salvage step below walks back commits, which a
+          # shallow clone cannot do.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -29,7 +35,15 @@ jobs:
 
       - run: npm ci
 
-      - name: Pick today's task
+      # The agent commits as it works, so its identity must be set before it
+      # runs. Authoring as the repo owner is also what makes these count as
+      # contributions — github-actions[bot] commits do not.
+      - name: Configure git identity
+        run: |
+          git config user.name "Mahad Khalid Ghafoor"
+          git config user.email "mahadghafoor.07@gmail.com"
+
+      - name: Pick today's milestone
         id: task
         run: node scripts/next-task.js
 
@@ -41,6 +55,11 @@ jobs:
         if: steps.task.outputs.found == 'true'
         run: npm install -g @anthropic-ai/claude-code
 
+      - name: Record starting point
+        id: base
+        if: steps.task.outputs.found == 'true'
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Implement
         if: steps.task.outputs.found == 'true'
         env:
@@ -49,21 +68,33 @@ jobs:
           TASK: ${{ steps.task.outputs.task }}
         run: |
           cat > /tmp/prompt.md <<'INSTRUCTIONS'
-          Read CLAUDE.md first — it holds the conventions for this repo and
-          they are not optional.
+          Read CLAUDE.md first, then the `daily-increment` skill in
+          .claude/skills/. They hold the conventions for this repo and they are
+          not optional.
 
-          Implement exactly the one task below. Not the next one, not a
-          refactor you noticed on the way, not scaffolding for later tasks.
+          Implement exactly the one milestone below — not the next one, not a
+          refactor you noticed along the way.
 
-          Before you finish you must run `npm run build` and `npm test` and see
-          both pass. If either fails, fix it and run again. Nobody reviews this
-          before it ships, so a red build is the one outcome worse than doing
-          nothing.
+          Decompose it into roughly 20 atomic commits and COMMIT AS YOU GO.
+          Run `npm run build` and `npm test` before every single commit; never
+          commit with either failing. Do not save the work for one commit at
+          the end — if this run is cut short, whatever you have committed is
+          what survives.
 
-          Do not edit ROADMAP.md. Do not run git.
+          Twenty is a target, not a quota. Real commits only: no
+          formatting-only changes, no comment touch-ups, no splitting one
+          coherent change to inflate the count. Five real commits beat twenty
+          padded ones.
+
+          Before your final commit, run /code-review on the day's diff and fix
+          what it finds. On any day touching authentication, sessions, or
+          user-scoped queries, run /security-review as well.
+
+          Do not edit ROADMAP.md. Do not push, branch, rebase, or amend —
+          commit to the current branch and let the workflow push.
           INSTRUCTIONS
 
-          { printf '\n## Task: %s\n\n%s\n' "$LABEL" "$TASK"; } >> /tmp/prompt.md
+          { printf '\n## Milestone: %s\n\n%s\n' "$LABEL" "$TASK"; } >> /tmp/prompt.md
 
           claude -p "$(cat /tmp/prompt.md)" \
             --permission-mode bypassPermissions \
@@ -76,8 +107,6 @@ jobs:
         continue-on-error: true
         run: npm run build && npm test
 
-      # One repair attempt in the same run. Most failures are a type error or a
-      # missing import, and fixing them now is far cheaper than losing the day.
       - name: Repair
         id: repair
         if: steps.task.outputs.found == 'true' && steps.verify.outcome == 'failure'
@@ -85,66 +114,75 @@ jobs:
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
-          claude -p "The build or tests are failing after your last change. Run
-          \`npm run build\` and \`npm test\`, read the errors, and fix them.
-          Change as little as possible — the goal is a green build, not a
-          redesign. Do not edit ROADMAP.md and do not run git." \
+          claude -p "The build or tests are failing. Run \`npm run build\` and
+          \`npm test\`, read the errors, and fix them with the smallest change
+          that works. Commit the fix. Do not edit ROADMAP.md, and do not push,
+          branch, rebase or amend." \
             --permission-mode bypassPermissions \
             --model claude-opus-5 \
             --output-format text
           npm run build && npm test
 
-      - name: Discard a failed day
+      # Rather than throwing away a whole day for one bad commit at the end,
+      # walk back one commit at a time until the tree is green again. Whatever
+      # was already good still ships.
+      - name: Salvage the green commits
+        id: salvage
         if: >-
           steps.task.outputs.found == 'true' &&
           steps.verify.outcome == 'failure' &&
           steps.repair.outcome == 'failure'
         run: |
-          echo "::warning::build still failing — discarding today's changes"
-          git checkout -- .
+          BASE="${{ steps.base.outputs.sha }}"
+          for _ in $(seq 1 10); do
+            AHEAD="$(git rev-list --count "$BASE"..HEAD)"
+            if [ "$AHEAD" -eq 0 ]; then
+              echo "::warning::nothing salvageable — back at the starting commit"
+              break
+            fi
+            if npm run build >/dev/null 2>&1 && npm test >/dev/null 2>&1; then
+              echo "::notice::green again with $AHEAD commit(s) kept"
+              echo "recovered=true" >> "$GITHUB_OUTPUT"
+              break
+            fi
+            echo "dropping $(git log -1 --format='%h %s')"
+            git reset --hard HEAD~1
+          done
           git clean -fd
 
-      - name: Check off the task
+      - name: Check off the milestone
         if: >-
           steps.task.outputs.found == 'true' &&
           (steps.verify.outcome == 'success' || steps.repair.outcome == 'success')
-        run: node scripts/complete-task.js "${{ steps.task.outputs.line }}"
-
-      - name: Commit and push
-        id: push
-        if: >-
-          steps.task.outputs.found == 'true' &&
-          (steps.verify.outcome == 'success' || steps.repair.outcome == 'success')
-        env:
-          LABEL: ${{ steps.task.outputs.label }}
-          TASK: ${{ steps.task.outputs.task }}
         run: |
-          # Author the commit as the repo owner so it counts as a contribution;
-          # a commit authored by github-actions[bot] does not.
-          git config user.name "Mahad Khalid Ghafoor"
-          git config user.email "mahadghafoor.07@gmail.com"
+          node scripts/complete-task.js "${{ steps.task.outputs.line }}"
+          git add ROADMAP.md
+          git commit -m "Mark ${{ steps.task.outputs.label }} complete"
 
-          git add -A
-          if git diff --cached --quiet; then
-            echo "::warning::no changes produced — nothing to commit"
+      - name: Push
+        id: push
+        if: steps.task.outputs.found == 'true'
+        run: |
+          BASE="${{ steps.base.outputs.sha }}"
+          COUNT="$(git rev-list --count "$BASE"..HEAD)"
+          if [ "$COUNT" -eq 0 ]; then
+            echo "::warning::no commits produced today"
             exit 0
           fi
-
-          SUBJECT="$(printf '%s: %s' "$LABEL" "$TASK" | cut -c1-72)"
-          git commit -m "$SUBJECT" -m "$TASK" -m "Built autonomously from ROADMAP.md."
+          echo "commits=$COUNT" >> "$GITHUB_OUTPUT"
+          {
+            echo "### ${{ steps.task.outputs.label }}"
+            echo
+            echo "**$COUNT commits**"
+            echo
+            git log --format='- `%h` %s' "$BASE"..HEAD
+          } >> "$GITHUB_STEP_SUMMARY"
           git push
 
-      # Deploys what was just pushed. This lives inside the build job on
-      # purpose: a push made with GITHUB_TOKEN does not trigger `on: push`
-      # workflows, so a standalone deploy workflow would never fire.
-      # Non-fatal — the commit has already landed, and a Vercel hiccup should
-      # not raise a false "build aborted" alarm.
       - name: Deploy to Vercel
         id: deploy
         continue-on-error: true
-        if: >-
-          steps.task.outputs.found == 'true' &&
-          (steps.verify.outcome == 'success' || steps.repair.outcome == 'success')
+        if: steps.task.outputs.found == 'true' && steps.push.outputs.commits != ''
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
@@ -164,13 +202,12 @@ jobs:
           if [ -n "$HOST" ]; then
             echo "::notice::deployed https://$HOST"
             echo "Deployed: https://$HOST" >> "$GITHUB_STEP_SUMMARY"
-            echo "Production: https://keel-beige-seven.vercel.app" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "::warning::vercel returned no deployment URL"
             exit 1
           fi
 
-      - name: Report a failure
+      - name: Report a failed milestone
         if: >-
           steps.task.outputs.found == 'true' &&
           steps.verify.outcome == 'failure' &&
@@ -180,15 +217,14 @@ jobs:
           LABEL: ${{ steps.task.outputs.label }}
         run: |
           gh issue create \
-            --title "Autonomous build failed: $LABEL" \
+            --title "Milestone left unfinished: $LABEL" \
             --label "build-failure" \
-            --body "The daily run could not get \`$LABEL\` to a green build, so its changes were discarded and the task remains unchecked. Tomorrow's run will retry it.
+            --body "The run could not get \`$LABEL\` to a green build. Commits that were already green have been kept and pushed; the rest were dropped. The milestone stays unchecked, so the next run retries it.
 
           [Run log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
 
-      # The step above only fires when the build went red. A run that dies
-      # earlier — expired token, npm registry outage, timeout — would otherwise
-      # fail silently, and nobody is watching until day 30.
+      # Only fires when the job itself dies — expired token, exhausted quota,
+      # infrastructure. Without it those failures are silent.
       - name: Report an aborted run
         if: failure()
         env:
@@ -199,6 +235,6 @@ jobs:
             --label "build-failure" \
             --body "The daily run did not finish. This is not a failing test — the job itself stopped, so the usual causes are an expired \`CLAUDE_CODE_OAUTH_TOKEN\`, exhausted Claude quota, or an infrastructure blip.
 
-          The roadmap is untouched, so tomorrow's run retries the same task. If the token has expired, run \`claude setup-token\` and update the secret.
+          The roadmap is untouched, so the next run retries the same milestone. If the token has expired, run \`claude setup-token\` and update the secret.
 
           [Run log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
