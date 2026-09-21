@@ -5,8 +5,9 @@ description: Decompose one Keel roadmap milestone into a sequence of atomic, ind
 
 # Daily increment
 
-A milestone is a day's work. This is how it becomes ~20 commits that each stand
-on their own.
+A milestone is a day's work. This is how it becomes ~50 commits that each stand
+on their own. The scope of the milestone does not change — only the grain at
+which it is committed.
 
 ## Plan before you write
 
@@ -16,15 +17,20 @@ if the run dies after commit 7, commits 1–7 are still coherent and shippable.
 
 Order that satisfies that property, most days:
 
-1. Schema change and its generated migration
-2. Types and pure helpers the rest will import
-3. Data-layer functions, each with its tests
-4. Business logic as pure functions, each with its tests
-5. Server actions and validation
-6. UI components, smallest first
-7. The page that assembles them
-8. Edge cases, empty states, error handling
-9. `/code-review` on the day's diff, then its fixes
+1. Schema change, then its generated migration
+2. Types and signatures, before the code that fills them in
+3. Pure helpers — each one its own commit, its tests the commit after
+4. Data-layer functions, one at a time, tests following each
+5. Business logic, one behaviour per commit
+6. Server actions, then validation rules one by one
+7. UI components — markup, then states, then wiring
+8. The page that assembles them
+9. Edge cases and empty states, one per commit
+10. `/code-review` on the day's diff, then each fix as its own commit
+
+At this grain most units are three commits: the signature, the implementation,
+the tests. That is the normal shape, not padding — each one is independently
+green and independently readable.
 
 ## The test for one commit
 
@@ -40,23 +46,30 @@ provided it compiles and is exercised by a test or a page.
 
 ## Verify before each commit
 
+Match the check to what changed, or fifty full Next.js builds will eat the day:
+
 ```
-npm run build && npm test
+npm run verify:fast   # lib/ or tests only — typecheck + vitest
+npm run verify        # app/, components/, config, schema — full build + tests
 ```
 
-Not at the end of the day — before each commit. This is slower and it is the
-whole point: it is what makes every commit independently trustworthy, and it
-is what stops one bad change from poisoning the remaining days.
+Always run the full `npm run verify` before the final commit of the day.
+
+Before each commit, not at the end of the day. That is slower and it is the
+whole point: it is what makes every commit independently trustworthy, and what
+stops one bad change from poisoning the remaining days.
 
 ## Counting honestly
 
-Twenty is the target because a real milestone genuinely decomposes into about
-that many units. It is not a quota to satisfy.
+Fifty is the shape a milestone takes when committed at a fine grain. It is not
+a quota to satisfy, and it is not a licence to take on more scope — the
+milestone is the same size it always was.
 
-If the work is done at 12 commits, the day is done at 12. If it needs 26, take
-26. **Never** manufacture a commit — no formatting-only changes, no comment
-touch-ups, no splitting a coherent change in half. Padding the count is worse
-than a short day, because it makes the history lie about what happened.
+If the work is genuinely done at 30 commits, the day is done at 30. If it takes
+60, take 60. **Never** manufacture a commit — no formatting-only changes, no
+comment touch-ups, no splitting one expression so that neither half means
+anything. Padding is worse than a short day, because it makes the history lie
+about what happened, and the history is the only record anyone will read.
 
 ## When blocked
 

@@ -75,16 +75,23 @@ jobs:
           Implement exactly the one milestone below — not the next one, not a
           refactor you noticed along the way.
 
-          Decompose it into roughly 20 atomic commits and COMMIT AS YOU GO.
-          Run `npm run build` and `npm test` before every single commit; never
-          commit with either failing. Do not save the work for one commit at
-          the end — if this run is cut short, whatever you have committed is
-          what survives.
+          Decompose it into roughly 50 atomic commits and COMMIT AS YOU GO.
+          Fifty does not mean more work — the milestone is exactly as large as
+          it reads. It means a finer grain: typically the signature, then the
+          implementation, then the tests, each its own commit.
 
-          Twenty is a target, not a quota. Real commits only: no
-          formatting-only changes, no comment touch-ups, no splitting one
-          coherent change to inflate the count. Five real commits beat twenty
-          padded ones.
+          Verify before every single commit, matching the check to what
+          changed: `npm run verify:fast` for lib/ or test-only changes,
+          `npm run verify` for anything touching app/, components/, config or
+          schema, and always `npm run verify` before your final commit. Never
+          commit with either failing.
+
+          Do not save work for one commit at the end — if this run is cut
+          short, whatever you have committed is what survives.
+
+          Fifty is a shape, not a quota. Real commits only: no formatting-only
+          changes, no comment touch-ups, no splitting one expression so neither
+          half means anything. Thirty real commits beat fifty padded ones.
 
           Before your final commit, run /code-review on the day's diff and fix
           what it finds. On any day touching authentication, sessions, or

@@ -7,50 +7,71 @@ build costs every remaining day, not just this one.
 
 ## The shape of a day
 
-One milestone from `ROADMAP.md`, decomposed into **roughly 20 atomic commits**.
-Twenty is a target, not a quota — a milestone that genuinely takes 14 commits
-takes 14. What is never acceptable is padding the count with commits that
-deliver nothing.
+One milestone from `ROADMAP.md`, decomposed into **roughly 50 atomic commits**.
 
-**You commit as you go.** Do not save everything for one commit at the end.
+Fifty does not mean fifty milestones' worth of work. **The scope of a day is
+unchanged** — the same milestone, committed at a finer grain. You are not
+delivering more; you are showing your work in smaller steps.
+
+**You commit as you go.** Do not save anything for one commit at the end.
 Work, commit, work, commit. If the run is cut short — quota, timeout, network —
 everything committed so far is preserved and tomorrow continues from there.
 
-### What an atomic commit is
+### How to reach fifty honestly
 
-A complete, working unit. The build passes and the tests pass **at that
-commit**, not merely at the end of the day. Typical shapes:
+The way to fifty is **finer decomposition, never invented work**. A unit that
+would previously have been one commit is usually three:
 
-- a schema change plus its generated migration
-- one data-layer function plus its tests
-- one pure function plus its tests
-- one component, wired and rendering
-- one server action plus its validation tests
-- a refactor that changes structure and nothing else
+1. the type or signature
+2. the implementation
+3. its tests
 
-### What an atomic commit is not
+Each is independently green, and each says something a reader can follow. Other
+legitimate splits:
+
+- one validator, one rule, one error message per commit — not a batch of them
+- a component's markup, then its states, then its wiring
+- one edge case handled per commit
+- a constant extracted, a name clarified, a helper pulled out — real refactors,
+  each on its own
+- one test case group at a time when a function has many behaviours
+
+### What still does not count
 
 - a README or comment touch-up with no code behind it
 - a formatting-only change made to inflate the count
 - "wip", "fixes", "more work", or any message that does not say what changed
-- a commit that leaves the build red, to be fixed in the next one
-- splitting one logical change across several commits purely to reach twenty
+- a commit that leaves the tree red, to be fixed in the next one
+- splitting a single expression across commits so neither half means anything
 
-Twenty real commits is the goal. **Five real commits beats twenty padded
-ones** — if you find yourself inventing work to hit the number, stop and commit
-what is genuinely done.
+**Thirty real commits beat fifty padded ones.** If you reach the end of the
+milestone at thirty, the day is done at thirty. Fifty is the shape to aim for,
+not a number to satisfy — a history that lies about what happened is worse than
+a short day.
+
+### Verifying before each commit
+
+Running the full Next.js build fifty times is slow and mostly wasteful, so
+match the check to what changed:
+
+- touched only `lib/`, or only tests → `npm run verify:fast` (typecheck + tests)
+- touched `app/`, `components/`, config, or schema → `npm run verify`
+- **always `npm run verify` before your final commit of the day**
+
+Never commit with either failing.
 
 ### Commit messages
 
 Imperative subject under 72 characters, saying what changed and why it matters.
-`Add scope creep classifier with burn-versus-completion cases` — not
-`update lib`. A body is worth writing whenever the reasoning is not obvious
-from the diff.
+`Reject client emails with no domain part` — not `update lib`. At this grain the
+message is doing real work: it is the only thing distinguishing fifty small
+commits from noise.
 
 ## The rules that matter
 
-1. **`npm run build` and `npm test` must pass before every commit.** Run them.
-   Never commit red.
+1. **Verify before every commit** — `verify:fast` or `verify` per the rule
+   above, and a full `verify` before the last commit of the day. Never commit
+   red.
 2. **Do exactly one roadmap milestone.** Don't run ahead — later milestones
    depend on decisions made in earlier ones.
 3. **Don't touch `ROADMAP.md`.** The workflow ticks the box for you.

@@ -10,7 +10,10 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run build && npm test",
+    "verify:fast": "tsc --noEmit && vitest run"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
