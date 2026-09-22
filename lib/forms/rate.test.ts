@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { MAX_RATE_CENTS, optionalRateCents } from "./rate";
+import { MAX_RATE_CENTS, optionalRateCents, rateInput } from "./rate";
 
 function rejection(input: string, label?: string): string {
   const result = optionalRateCents(input, label);
@@ -54,5 +54,25 @@ describe("optionalRateCents", () => {
     expect(rejection("abc", "Rate override")).toBe(
       "Rate override must be an amount, like 150 or 150.00.",
     );
+  });
+});
+
+describe("rateInput", () => {
+  it("shows a set rate as an editable amount", () => {
+    expect(rateInput(15000)).toBe("150.00");
+    expect(rateInput(13745)).toBe("137.45");
+  });
+
+  it("shows an unset rate as a blank field, not as zero", () => {
+    expect(rateInput(0)).toBe("");
+  });
+
+  it("round-trips every rate the field accepts", () => {
+    for (const cents of [0, 1, 100, 15000, MAX_RATE_CENTS]) {
+      expect(optionalRateCents(rateInput(cents))).toEqual({
+        ok: true,
+        value: cents,
+      });
+    }
   });
 });
