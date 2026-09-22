@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 
-import { archiveClient } from "@/lib/data/clients";
+import { archiveClient, unarchiveClient } from "@/lib/data/clients";
 
 /**
  * Archiving and restoring a client. Neither takes a form: the id is bound by
@@ -27,6 +27,21 @@ export async function archiveClientAction(id: string): Promise<void> {
   // The page was rendered from a row that has since been deleted outright.
   // Saying so beats redirecting to a list and implying it worked.
   if (archived === null) notFound();
+
+  revalidatePath("/clients");
+  revalidatePath("/clients/archived");
+  redirect("/clients");
+}
+
+/**
+ * The way back. Redirects to the active list rather than staying on the
+ * archive, because the question the user has after pressing Restore is "is it
+ * back?" — and the answer is the list it is back on.
+ */
+export async function unarchiveClientAction(id: string): Promise<void> {
+  const restored = await unarchiveClient(id);
+
+  if (restored === null) notFound();
 
   revalidatePath("/clients");
   revalidatePath("/clients/archived");
