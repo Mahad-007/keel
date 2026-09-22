@@ -29,14 +29,20 @@ export default async function EditClientPage({
   // and the page says so rather than pretending the client is gone.
   if (client === null) notFound();
 
+  // Every way off this page leads to the list the client is actually on.
+  // Offering "Clients" to an archived client is a link to a page it is
+  // missing from, which reads as though the archive lost it.
+  const archived = client.archivedAt !== null;
+  const listHref = archived ? "/clients/archived" : "/clients";
+
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-6 py-12 font-sans">
       <header className="border-b border-zinc-200 pb-4 dark:border-zinc-800">
         <Link
-          href="/clients"
+          href={listHref}
           className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
         >
-          Clients
+          {archived ? "Archived clients" : "Clients"}
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
           {client.name}
@@ -48,7 +54,7 @@ export default async function EditClientPage({
         {/* Said here as well as beside the restore button, because the button
             is below the form and this is the part that changes what the page
             means: edits to an archived client are still edits nobody sees. */}
-        {client.archivedAt === null ? null : (
+        {!archived ? null : (
           <p className="mt-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
             Archived — this client is not on the client list. You can still
             edit it, and restore it at the bottom of this page.
@@ -59,6 +65,7 @@ export default async function EditClientPage({
       <EditClientForm
         clientId={client.id}
         initialState={clientFormStateFor(client)}
+        cancelHref={listHref}
       />
 
       <ArchiveSection client={client} />

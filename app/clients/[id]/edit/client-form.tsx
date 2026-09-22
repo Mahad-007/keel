@@ -24,9 +24,12 @@ import { updateClientAction } from "./actions";
 export function EditClientForm({
   clientId,
   initialState,
+  cancelHref,
 }: {
   clientId: string;
   initialState: ClientFormState;
+  /** The list this client is on — which is not `/clients` once it is archived. */
+  cancelHref: string;
 }) {
   const save = useMemo(
     () => updateClientAction.bind(null, clientId),
@@ -44,7 +47,7 @@ export function EditClientForm({
       <div className="flex items-center gap-3 pt-1">
         <SubmitButton pendingLabel="Saving…">Save changes</SubmitButton>
         <Link
-          href="/clients"
+          href={cancelHref}
           className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
         >
           Cancel
