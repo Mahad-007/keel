@@ -7,6 +7,7 @@ import {
   archiveClient,
   createClient,
   getClient,
+  listArchivedClients,
   listClients,
   unarchiveClient,
   updateClient,
@@ -17,6 +18,14 @@ let db: Database;
 beforeEach(async () => {
   db = await createTestDb();
 });
+
+/**
+ * Archive timestamps come from the wall clock, so two archives in the same
+ * millisecond would tie and the ordering test would pass or fail by luck.
+ */
+function tick(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 2));
+}
 
 describe("createClient", () => {
   it("stores the client and hands back the saved row", async () => {
@@ -277,5 +286,46 @@ describe("unarchiveClient", () => {
 
     expect(archived?.archivedAt).not.toBeNull();
     expect(await listClients(db)).toEqual([]);
+  });
+});
+
+describe("listArchivedClients", () => {
+  it("is empty when nothing has been archived", async () => {
+    await createClient({ name: "Active" }, db);
+
+    expect(await listArchivedClients(db)).toEqual([]);
+  });
+
+  it("holds exactly the clients the active list does not", async () => {
+    const active = await createClient({ name: "Active" }, db);
+    const archived = await createClient({ name: "Archived" }, db);
+    await archiveClient(archived.id, db);
+
+    expect((await listArchivedClients(db)).map((c) => c.id)).toEqual([
+      archived.id,
+    ]);
+    expect((await listClients(db)).map((c) => c.id)).toEqual([active.id]);
+  });
+
+  it("puts the most recently archived first", async () => {
+    const first = await createClient({ name: "First Out" }, db);
+    const second = await createClient({ name: "Second Out" }, db);
+
+    await archiveClient(first.id, db);
+    await tick();
+    await archiveClient(second.id, db);
+
+    expect((await listArchivedClients(db)).map((c) => c.name)).toEqual([
+      "Second Out",
+      "First Out",
+    ]);
+  });
+
+  it("drops a client again once it is restored", async () => {
+    const client = await createClient({ name: "Restored" }, db);
+    await archiveClient(client.id, db);
+    await unarchiveClient(client.id, db);
+
+    expect(await listArchivedClients(db)).toEqual([]);
   });
 });
