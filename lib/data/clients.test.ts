@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { createTestDb } from "@/lib/db/testing";
 import type { Database } from "@/lib/db";
+import { clients } from "@/lib/db/schema";
 
 import {
   archiveClient,
@@ -327,5 +328,73 @@ describe("listArchivedClients", () => {
     await unarchiveClient(client.id, db);
 
     expect(await listArchivedClients(db)).toEqual([]);
+  });
+});
+
+/**
+ * The promise soft delete makes, checked against the table rather than
+ * against the functions that are supposed to honour it: archiving takes a
+ * client off the list and changes nothing else about the row.
+ */
+describe("archiving as a soft delete", () => {
+  /** Straight at the table, deliberately bypassing the data layer. */
+  function allRows() {
+    return db.select().from(clients);
+  }
+
+  it("keeps the row in the table after it leaves the list", async () => {
+    const client = await createClient({ name: "Still A Row" }, db);
+
+    await archiveClient(client.id, db);
+
+    expect(await listClients(db)).toEqual([]);
+    expect((await allRows()).map((c) => c.id)).toEqual([client.id]);
+  });
+
+  it("changes only archivedAt and updatedAt", async () => {
+    const client = await createClient(
+      {
+        name: "Unchanged",
+        email: "unchanged@example.com",
+        company: "Unchanged Ltd",
+        notes: "Keep this.",
+        defaultRateCents: 12500,
+      },
+      db,
+    );
+
+    const archived = await archiveClient(client.id, db);
+
+    expect(archived).toEqual({
+      ...client,
+      archivedAt: archived!.archivedAt,
+      updatedAt: archived!.updatedAt,
+    });
+    expect(archived!.archivedAt).not.toBeNull();
+  });
+
+  it("leaves the table the same size through archive and restore", async () => {
+    const client = await createClient({ name: "Round Trip" }, db);
+    expect(await allRows()).toHaveLength(1);
+
+    await archiveClient(client.id, db);
+    expect(await allRows()).toHaveLength(1);
+
+    await unarchiveClient(client.id, db);
+    expect(await allRows()).toHaveLength(1);
+    expect(await listClients(db)).toHaveLength(1);
+  });
+
+  it("restores the row to exactly what the list held before", async () => {
+    const client = await createClient({ name: "Identical" }, db);
+
+    await archiveClient(client.id, db);
+    const restored = await unarchiveClient(client.id, db);
+
+    expect(restored).toEqual({
+      ...client,
+      updatedAt: restored!.updatedAt,
+    });
+    expect(await listClients(db)).toEqual([restored]);
   });
 });
