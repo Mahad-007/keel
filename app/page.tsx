@@ -1,69 +1,103 @@
-import Image from "next/image";
+import type { Metadata } from "next";
+import Link from "next/link";
+
+import { readProgress } from "@/lib/progress";
+
+/**
+ * Statically rendered, so the roadmap is read on the builder rather than per
+ * request. Every deploy refreshes the numbers; nothing here touches the
+ * database.
+ */
+export const dynamic = "force-static";
+
+export const metadata: Metadata = {
+  title: "Keel — know a project is going over while you can still bill for it",
+  description:
+    "An operations system for independent studios, built around the gap between what you contracted to deliver and what you are actually delivering.",
+};
+
+const BUILT: { href: string; name: string; note: string }[] = [
+  { href: "/clients", name: "Clients", note: "Everyone on the books, with their default rate." },
+  { href: "/clients/new", name: "Add a client", note: "Name, company, contact, hourly rate." },
+  { href: "/clients/archived", name: "Archive", note: "Past clients, kept with their history intact." },
+];
 
 export default function Home() {
+  const { done, total, next } = readProgress();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+    <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 font-sans">
+      <header className="border-b border-zinc-200 pb-8 dark:border-zinc-800">
+        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          Keel
+        </h1>
+        <p className="mt-2 max-w-2xl text-zinc-600 dark:text-zinc-400">
+          An operations system for independent studios, built around one idea
+          most project tools miss: scope is a contract, and it leaks.
+        </p>
+      </header>
+
+      <section className="mt-10 max-w-2xl space-y-4 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+        <p>
+          Studios rarely lose money on work they priced wrong. They lose it on
+          work they priced correctly and then quietly over-delivered — the extra
+          revision, the quick call, the feature that was never in the statement
+          of work. Each is small enough to absorb, and together they turn a
+          profitable engagement into a break-even one.
+        </p>
+        <p>
+          Keel watches the gap between what you contracted to deliver and what
+          you are actually delivering, and flags a project while you can still
+          do something about it.
+        </p>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          Built so far
+        </h2>
+        <ul className="mt-4 divide-y divide-zinc-200 border-y border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+          {BUILT.map((page) => (
+            <li key={page.href} className="py-3">
+              <Link
+                href={page.href}
+                className="font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-600 dark:text-zinc-100 dark:hover:text-zinc-400"
+              >
+                {page.name}
+              </Link>
+              <p className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">
+                {page.note}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="mt-12 rounded border border-zinc-200 p-5 dark:border-zinc-800">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          Under construction
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+          Keel is being built one milestone a day, unattended, by Claude Code
+          running in GitHub Actions. <strong>{done} of {total}</strong>{" "}
+          milestones are done.
+          {next ? (
+            <> Next up is {next.label}: {next.summary.toLowerCase()}.</>
+          ) : (
+            <> The roadmap is complete.</>
+          )}{" "}
+          The scope tracking this page describes is the second half of that
+          plan, so it is not here yet — what exists today is the client book.
+        </p>
+        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="https://github.com/Mahad-007/keel"
+            className="underline underline-offset-4 hover:text-zinc-900 dark:hover:text-zinc-100"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
+            Source and roadmap on GitHub
           </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        </p>
+      </section>
+    </main>
   );
 }
