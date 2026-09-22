@@ -2,12 +2,15 @@ import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { archiveClient } from "@/lib/data/clients";
+import { archiveClient, unarchiveClient } from "@/lib/data/clients";
 import type { Client } from "@/lib/db/schema";
 
-import { archiveClientAction } from "./actions";
+import { archiveClientAction, unarchiveClientAction } from "./actions";
 
-vi.mock("@/lib/data/clients", () => ({ archiveClient: vi.fn() }));
+vi.mock("@/lib/data/clients", () => ({
+  archiveClient: vi.fn(),
+  unarchiveClient: vi.fn(),
+}));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
@@ -82,6 +85,49 @@ describe("archiveClientAction", () => {
     vi.mocked(archiveClient).mockRejectedValue(new Error("database is locked"));
 
     await expect(archiveClientAction(CLIENT_ID)).rejects.toThrow(
+      "database is locked",
+    );
+
+    expect(redirect).not.toHaveBeenCalled();
+  });
+});
+
+describe("unarchiveClientAction", () => {
+  it("restores the bound client and shows the list it is back on", async () => {
+    vi.mocked(unarchiveClient).mockResolvedValue(client());
+
+    await expect(unarchiveClientAction(CLIENT_ID)).rejects.toThrow(
+      "NEXT_REDIRECT:/clients",
+    );
+
+    expect(unarchiveClient).toHaveBeenCalledWith(CLIENT_ID);
+  });
+
+  it("revalidates both lists the client moved between", async () => {
+    vi.mocked(unarchiveClient).mockResolvedValue(client());
+
+    await expect(unarchiveClientAction(CLIENT_ID)).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+
+    expect(revalidatePath).toHaveBeenCalledWith("/clients");
+    expect(revalidatePath).toHaveBeenCalledWith("/clients/archived");
+  });
+
+  it("is a not-found rather than a silent success for an unknown client", async () => {
+    vi.mocked(unarchiveClient).mockResolvedValue(null);
+
+    await expect(unarchiveClientAction("cli_nope")).rejects.toThrow(
+      "NEXT_NOT_FOUND",
+    );
+
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("lets a write failure surface instead of reporting success", async () => {
+    vi.mocked(unarchiveClient).mockRejectedValue(new Error("database is locked"));
+
+    await expect(unarchiveClientAction(CLIENT_ID)).rejects.toThrow(
       "database is locked",
     );
 
