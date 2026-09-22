@@ -33,12 +33,20 @@ export default async function ClientsPage() {
               : `${clients.length} ${clients.length === 1 ? "client" : "clients"}. Archived clients keep their history but drop off this list.`}
           </p>
         </div>
-        <Link
-          href="/clients/new"
-          className="shrink-0 rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-        >
-          New client
-        </Link>
+        <div className="flex shrink-0 items-center gap-4">
+          <Link
+            href="/clients/archived"
+            className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Archived
+          </Link>
+          <Link
+            href="/clients/new"
+            className="rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          >
+            New client
+          </Link>
+        </div>
       </header>
 
       {clients.length === 0 ? <EmptyState /> : <ClientsTable clients={clients} />}
