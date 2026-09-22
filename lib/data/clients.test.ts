@@ -205,6 +205,17 @@ describe("updateClient", () => {
     expect(await updateClient("cli_nope", { name: "Ghost" }, db)).toBeNull();
     expect(await updateClient("cli_nope", {}, db)).toBeNull();
   });
+
+  it("edits an archived client without quietly restoring it", async () => {
+    const client = await createClient({ name: "Typo Here" }, db);
+    const archived = await archiveClient(client.id, db);
+
+    const updated = await updateClient(client.id, { name: "Typo Fixed" }, db);
+
+    expect(updated?.name).toBe("Typo Fixed");
+    expect(updated?.archivedAt).toBe(archived?.archivedAt);
+    expect(await listClients(db)).toEqual([]);
+  });
 });
 
 describe("archiveClient", () => {
