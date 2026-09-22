@@ -116,3 +116,13 @@ export function clientFormFields(client: Client): ClientFormFields {
     notes: client.notes ?? "",
   };
 }
+
+/**
+ * What the edit form starts from: the stored client, nothing wrong with it
+ * yet. The new form's equivalent is `INITIAL_CLIENT_FORM_STATE` — a constant,
+ * because a blank form is the same every time, and a function here because an
+ * edit form is not.
+ */
+export function clientFormStateFor(client: Client): ClientFormState {
+  return initialFormState(clientFormFields(client));
+}

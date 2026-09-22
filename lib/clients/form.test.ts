@@ -5,6 +5,7 @@ import { firstErrorField, rejectedFormState } from "@/lib/forms/state";
 
 import {
   clientFormFields,
+  clientFormStateFor,
   CLIENT_FIELD_LIMITS,
   CLIENT_FIELD_NAMES,
   EMPTY_CLIENT_FIELDS,
@@ -242,5 +243,15 @@ describe("clientFormFields", () => {
         defaultRateCents: 0,
       },
     });
+  });
+});
+
+describe("clientFormStateFor", () => {
+  it("starts an edit form prefilled and with nothing flagged", () => {
+    const state = clientFormStateFor(client());
+
+    expect(state.fields.name).toBe("Ada Lovelace");
+    expect(state.errors).toEqual({});
+    expect(state.formError).toBeNull();
   });
 });
