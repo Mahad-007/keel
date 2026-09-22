@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import { clients, type Client } from "@/lib/db/schema";
@@ -132,6 +132,27 @@ export async function archiveClient(
     .update(clients)
     .set({ archivedAt: now, updatedAt: now })
     .where(and(eq(clients.id, id), isNull(clients.archivedAt)))
+    .returning();
+  return row ?? getClient(id, database);
+}
+
+/**
+ * The inverse of `archiveClient`, and the reason archiving is safe: the row
+ * never left the table, so restoring one is a cleared column rather than a
+ * recreated client with a new id and a lost history.
+ *
+ * Restoring a client that is not archived changes nothing and returns the row
+ * as it stands, so a double-submitted restore cannot bump `updatedAt` twice.
+ */
+export async function unarchiveClient(
+  id: string,
+  database: Database = db,
+): Promise<Client | null> {
+  const now = new Date().toISOString();
+  const [row] = await database
+    .update(clients)
+    .set({ archivedAt: null, updatedAt: now })
+    .where(and(eq(clients.id, id), isNotNull(clients.archivedAt)))
     .returning();
   return row ?? getClient(id, database);
 }
