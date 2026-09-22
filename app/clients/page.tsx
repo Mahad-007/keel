@@ -72,7 +72,12 @@ function ClientsTable({ clients }: { clients: Client[] }) {
             className="border-b border-zinc-100 dark:border-zinc-900"
           >
             <td className="py-2.5 pr-6 font-medium text-zinc-900 dark:text-zinc-100">
-              {client.name}
+              <Link
+                href={`/clients/${client.id}/edit`}
+                className="underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-900 dark:decoration-zinc-700 dark:hover:decoration-zinc-100"
+              >
+                {client.name}
+              </Link>
             </td>
             <td className="py-2.5 pr-6 text-zinc-700 dark:text-zinc-300">
               {client.company ?? (
