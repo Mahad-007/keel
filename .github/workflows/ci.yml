@@ -1,0 +1,24 @@
+name: CI
+
+# Catches at commit time what would otherwise surface as a mysterious failure
+# in the middle of a 50-commit autonomous run.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Workflows reference scripts that exist and are committed
+        run: node scripts/check-workflow-refs.js
+      - name: Typecheck, test, build
+        run: npm run verify

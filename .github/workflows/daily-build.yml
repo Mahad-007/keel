@@ -43,6 +43,9 @@ jobs:
           git config user.name "Mahad Khalid Ghafoor"
           git config user.email "mahadghafoor.07@gmail.com"
 
+      - name: Check workflow integrity
+        run: node scripts/check-workflow-refs.js
+
       - name: Pick today's milestone
         id: task
         run: node scripts/next-task.js
@@ -168,8 +171,27 @@ jobs:
       # warns; a genuinely intended drop carries an explicit marker.
       - name: Guard against destructive migrations
         id: guard
+        continue-on-error: true
         if: steps.task.outputs.found == 'true'
         run: node scripts/check-migrations.js "${{ steps.base.outputs.sha }}"
+
+      # The code is verified and worth keeping; only the schema change is in
+      # question. Leave a sentinel so no later run quietly applies it, and let
+      # the commits ship.
+      - name: Hold back the database
+        if: steps.task.outputs.found == 'true' && steps.guard.outcome == 'failure'
+        run: |
+          {
+            echo "A migration generated during ${{ steps.task.outputs.label }} drops a table or"
+            echo "column without a keel:allow-destructive marker."
+            echo
+            echo "Migrations and deploys are paused while this file exists."
+            echo "Review the migration in drizzle/. If the drop is intended, add"
+            echo "  -- keel:allow-destructive <reason>"
+            echo "to it, delete this file, and run the Migrate workflow."
+          } > drizzle/.needs-review
+          git add drizzle/.needs-review
+          git commit -m "Pause migrations: ${{ steps.task.outputs.label }} needs review"
 
       - name: Check off the milestone
         if: >-
@@ -213,6 +235,10 @@ jobs:
             echo "::warning::DATABASE_URL is not set — production has no tables, so every data page will 500"
             exit 0
           fi
+          if [ -f drizzle/.needs-review ]; then
+            echo "::warning::paused — drizzle/.needs-review is present"
+            exit 0
+          fi
           npm run db:migrate
           echo "Migrations applied" >> "$GITHUB_STEP_SUMMARY"
 
@@ -225,6 +251,10 @@ jobs:
         run: |
           if [ -z "$VERCEL_TOKEN" ]; then
             echo "::warning::VERCEL_TOKEN not set — skipping deploy"
+            exit 0
+          fi
+          if [ -f drizzle/.needs-review ]; then
+            echo "::warning::paused — drizzle/.needs-review is present"
             exit 0
           fi
           npm i -g vercel@latest >/dev/null 2>&1
@@ -281,7 +311,7 @@ jobs:
       # Only fires when the job itself dies — expired token, exhausted quota,
       # infrastructure. Without it those failures are silent.
       - name: Report a blocked migration
-        if: failure() && steps.guard.outcome == 'failure'
+        if: steps.task.outputs.found == 'true' && steps.guard.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
           LABEL: ${{ steps.task.outputs.label }}
@@ -289,9 +319,11 @@ jobs:
           gh issue create \
             --title "Destructive migration blocked: $LABEL" \
             --label "build-failure" \
-            --body "A migration generated during \`$LABEL\` drops a table or column. Nothing was pushed and nothing was applied to the database.
+            --body "A migration generated during \`$LABEL\` drops a table or column without a marker.
 
-          This needs a human. If the drop is intended, add a \`-- keel:allow-destructive <reason>\` line to the migration and re-run. If it is not, the milestone needs rethinking.
+          **The code was verified and pushed** — only the database change is held back. \`drizzle/.needs-review\` is now committed, and migrations and deploys stay paused while it exists, so no later run can apply this quietly.
+
+          To resolve: read the migration in \`drizzle/\`. If the drop is intended, add \`-- keel:allow-destructive <reason>\` to it, delete \`drizzle/.needs-review\`, and run the Migrate workflow. If it is not intended, revert the migration instead.
 
           [Run log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
 
