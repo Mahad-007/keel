@@ -1,6 +1,7 @@
+import { formatDate } from "@/lib/dates";
 import type { Client } from "@/lib/db/schema";
 
-import { archiveClientAction } from "../../actions";
+import { archiveClientAction, unarchiveClientAction } from "../../actions";
 import { SubmitButton } from "../../submit-button";
 
 /**
@@ -12,6 +13,10 @@ import { SubmitButton } from "../../submit-button";
  * teaches people to dismiss confirmations in front of irreversible ones.
  */
 export function ArchiveSection({ client }: { client: Client }) {
+  if (client.archivedAt !== null) {
+    return <RestoreSection client={client} archivedAt={client.archivedAt} />;
+  }
+
   return (
     <section className="mt-12 border-t border-zinc-200 pt-6 dark:border-zinc-800">
       <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -25,6 +30,40 @@ export function ArchiveSection({ client }: { client: Client }) {
       <form action={archiveClientAction.bind(null, client.id)} className="mt-3">
         <SubmitButton variant="secondary" pendingLabel="Archiving…">
           Archive client
+        </SubmitButton>
+      </form>
+    </section>
+  );
+}
+
+/**
+ * The same section for a client that is already archived. An archived client
+ * is still editable — the row is still there, and correcting a typo on it
+ * should not require restoring it first — so this says what its state is and
+ * offers the one thing the page is missing: a way back.
+ */
+function RestoreSection({
+  client,
+  archivedAt,
+}: {
+  client: Client;
+  archivedAt: string;
+}) {
+  return (
+    <section className="mt-12 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+      <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+        Archived {formatDate(archivedAt)}
+      </h2>
+      <p className="mt-1 max-w-prose text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+        {client.name} is off the client list. The row and everything hanging
+        off it are untouched, and restoring puts it back exactly as it was.
+      </p>
+      <form
+        action={unarchiveClientAction.bind(null, client.id)}
+        className="mt-3"
+      >
+        <SubmitButton variant="secondary" pendingLabel="Restoring…">
+          Restore client
         </SubmitButton>
       </form>
     </section>
