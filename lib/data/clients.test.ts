@@ -8,6 +8,7 @@ import {
   createClient,
   getClient,
   listClients,
+  unarchiveClient,
   updateClient,
 } from "./clients";
 
@@ -228,5 +229,53 @@ describe("archiveClient", () => {
 
   it("returns null for an unknown client", async () => {
     expect(await archiveClient("cli_nope", db)).toBeNull();
+  });
+});
+
+describe("unarchiveClient", () => {
+  it("clears archivedAt and puts the client back on the list", async () => {
+    const client = await createClient({ name: "Back In Touch" }, db);
+    await archiveClient(client.id, db);
+
+    const restored = await unarchiveClient(client.id, db);
+
+    expect(restored?.archivedAt).toBeNull();
+    expect((await listClients(db)).map((c) => c.id)).toEqual([client.id]);
+  });
+
+  it("restores the client under its original id and details", async () => {
+    const client = await createClient(
+      { name: "Same Client", email: "same@example.com", defaultRateCents: 9900 },
+      db,
+    );
+    await archiveClient(client.id, db);
+
+    const restored = await unarchiveClient(client.id, db);
+
+    expect(restored?.id).toBe(client.id);
+    expect(restored?.email).toBe("same@example.com");
+    expect(restored?.defaultRateCents).toBe(9900);
+    expect(restored?.createdAt).toBe(client.createdAt);
+  });
+
+  it("leaves a client that was never archived untouched", async () => {
+    const client = await createClient({ name: "Never Left" }, db);
+
+    expect(await unarchiveClient(client.id, db)).toEqual(client);
+  });
+
+  it("returns null for an unknown client", async () => {
+    expect(await unarchiveClient("cli_nope", db)).toBeNull();
+  });
+
+  it("can be archived again after being restored", async () => {
+    const client = await createClient({ name: "Round Trip" }, db);
+
+    await archiveClient(client.id, db);
+    await unarchiveClient(client.id, db);
+    const archived = await archiveClient(client.id, db);
+
+    expect(archived?.archivedAt).not.toBeNull();
+    expect(await listClients(db)).toEqual([]);
   });
 });
