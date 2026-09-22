@@ -1,4 +1,4 @@
-import { formatCents, parseCents } from "@/lib/money";
+import { centsToInput, formatCents, parseCents } from "@/lib/money";
 
 import { invalid, valid, type FieldResult } from "./result";
 
@@ -32,4 +32,14 @@ export function optionalRateCents(
     return invalid(`${label} must be ${formatCents(MAX_RATE_CENTS)} or less.`);
   }
   return valid(cents);
+}
+
+/**
+ * The inverse, for prefilling the field when editing an existing row. Zero is
+ * "not set yet", and the form says that with a blank input rather than with
+ * `0.00` — otherwise every edit of a rate-less client offers to save a rate of
+ * nothing as though it were a deliberate figure.
+ */
+export function rateInput(cents: number): string {
+  return cents === 0 ? "" : centsToInput(cents);
 }
