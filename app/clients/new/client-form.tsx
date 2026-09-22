@@ -4,13 +4,13 @@ import Link from "next/link";
 import { useActionState, useEffect } from "react";
 
 import {
-  CLIENT_FIELD_LIMITS,
   CLIENT_FIELD_NAMES,
   INITIAL_CLIENT_FORM_STATE,
 } from "@/lib/clients/form";
 import { firstErrorField } from "@/lib/forms/state";
 
-import { fieldId, TextAreaField, TextField } from "../fields";
+import { ClientFields } from "../client-fields";
+import { fieldId } from "../fields";
 import { FormSummary } from "../form-summary";
 import { SubmitButton } from "../submit-button";
 import { createClientAction } from "./actions";
@@ -49,49 +49,7 @@ export function NewClientForm() {
   return (
     <form action={formAction} noValidate className="mt-8 flex flex-col gap-5">
       <FormSummary state={state} />
-      <TextField
-        name="name"
-        label="Name"
-        hint="The person or business you invoice. Required."
-        maxLength={CLIENT_FIELD_LIMITS.name}
-        defaultValue={state.fields.name}
-        error={state.errors.name}
-      />
-      <TextField
-        name="company"
-        label="Company"
-        hint="Optional, when the name above is a person."
-        maxLength={CLIENT_FIELD_LIMITS.company}
-        defaultValue={state.fields.company}
-        error={state.errors.company}
-      />
-      <TextField
-        name="email"
-        label="Email"
-        type="email"
-        inputMode="email"
-        maxLength={CLIENT_FIELD_LIMITS.email}
-        defaultValue={state.fields.email}
-        error={state.errors.email}
-      />
-      <TextField
-        name="defaultRate"
-        label="Default rate"
-        hint="Per hour. Projects can override it; leave blank if you bill by the project."
-        inputMode="decimal"
-        placeholder="150.00"
-        defaultValue={state.fields.defaultRate}
-        error={state.errors.defaultRate}
-      />
-      <TextAreaField
-        name="notes"
-        label="Notes"
-        hint="Anything you want in front of you when this client emails."
-        rows={4}
-        maxLength={CLIENT_FIELD_LIMITS.notes}
-        defaultValue={state.fields.notes}
-        error={state.errors.notes}
-      />
+      <ClientFields state={state} />
 
       <div className="flex items-center gap-3 pt-1">
         <SubmitButton pendingLabel="Saving…">Save client</SubmitButton>
