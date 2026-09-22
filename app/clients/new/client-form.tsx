@@ -1,18 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect } from "react";
+import { useActionState } from "react";
 
 import {
   CLIENT_FIELD_NAMES,
   INITIAL_CLIENT_FORM_STATE,
 } from "@/lib/clients/form";
-import { firstErrorField } from "@/lib/forms/state";
 
 import { ClientFields } from "../client-fields";
-import { fieldId } from "../fields";
 import { FormSummary } from "../form-summary";
 import { SubmitButton } from "../submit-button";
+import { useFirstErrorFocus } from "../use-first-error-focus";
 import { createClientAction } from "./actions";
 
 /**
@@ -37,14 +36,7 @@ export function NewClientForm() {
     INITIAL_CLIENT_FORM_STATE,
   );
 
-  // A rejected submission puts the cursor on the first field that needs
-  // fixing. Without it the page looks unchanged from the keyboard: focus is
-  // still on the save button, and the messages are wherever they are.
-  useEffect(() => {
-    const name = firstErrorField(state, CLIENT_FIELD_NAMES);
-    if (name === null) return;
-    document.getElementById(fieldId(name))?.focus();
-  }, [state]);
+  useFirstErrorFocus(state, CLIENT_FIELD_NAMES);
 
   return (
     <form action={formAction} noValidate className="mt-8 flex flex-col gap-5">
