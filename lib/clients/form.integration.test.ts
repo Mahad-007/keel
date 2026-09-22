@@ -1,10 +1,20 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { createClient, listClients } from "@/lib/data/clients";
+import {
+  createClient,
+  getClient,
+  listClients,
+  updateClient,
+} from "@/lib/data/clients";
 import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 
-import { EMPTY_CLIENT_FIELDS, parseClientForm, type ClientFormFields } from "./form";
+import {
+  clientFormFields,
+  EMPTY_CLIENT_FIELDS,
+  parseClientForm,
+  type ClientFormFields,
+} from "./form";
 
 /**
  * The seam between the form and the data layer. Both sides validate — the
@@ -82,5 +92,68 @@ describe("a form the validator accepts", () => {
 
     expect(second.id).not.toBe(first.id);
     expect(await listClients(db)).toHaveLength(2);
+  });
+});
+
+describe("editing a stored client", () => {
+  /** What the edit page does: read the row, fill the form, submit, write. */
+  async function edit(id: string, typed: Partial<ClientFormFields>) {
+    const stored = await getClient(id, db);
+    if (stored === null) throw new Error(`no client ${id}`);
+
+    const parsed = parseClientForm({ ...clientFormFields(stored), ...typed });
+    if (!parsed.ok) {
+      throw new Error(`expected valid fields: ${JSON.stringify(parsed.errors)}`);
+    }
+    return updateClient(id, parsed.value, db);
+  }
+
+  it("writes the same row back when nothing is typed", async () => {
+    const saved = await save({
+      email: "ada@example.com",
+      company: "Analytical Engines",
+      notes: "Pays on time.",
+      defaultRate: "$150.00",
+    });
+
+    const updated = await edit(saved.id, {});
+
+    expect(updated).toEqual({ ...saved, updatedAt: updated!.updatedAt });
+  });
+
+  it("writes only the field that changed", async () => {
+    const saved = await save({ email: "ada@example.com", defaultRate: "150" });
+
+    const updated = await edit(saved.id, { name: "Ada King" });
+
+    expect(updated?.name).toBe("Ada King");
+    expect(updated?.email).toBe("ada@example.com");
+    expect(updated?.defaultRateCents).toBe(15000);
+  });
+
+  it("clears an optional field emptied in the form back to NULL", async () => {
+    const saved = await save({ email: "ada@example.com", notes: "Stale." });
+
+    const updated = await edit(saved.id, { email: "", notes: "  " });
+
+    expect(updated?.email).toBeNull();
+    expect(updated?.notes).toBeNull();
+  });
+
+  it("unsets a rate cleared in the form back to zero", async () => {
+    const saved = await save({ defaultRate: "150" });
+
+    const updated = await edit(saved.id, { defaultRate: "" });
+
+    expect(updated?.defaultRateCents).toBe(0);
+  });
+
+  it("keeps the client on the list under the same id", async () => {
+    const saved = await save({});
+
+    const updated = await edit(saved.id, { name: "Renamed" });
+
+    expect(updated?.id).toBe(saved.id);
+    expect(await listClients(db)).toEqual([updated]);
   });
 });
