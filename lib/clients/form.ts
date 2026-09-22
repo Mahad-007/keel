@@ -1,7 +1,8 @@
 import type { NewClientInput } from "@/lib/data/clients";
+import type { Client } from "@/lib/db/schema";
 import { EMAIL_MAX_LENGTH, optionalEmail } from "@/lib/forms/email";
 import { readFields } from "@/lib/forms/form-data";
-import { optionalRateCents } from "@/lib/forms/rate";
+import { optionalRateCents, rateInput } from "@/lib/forms/rate";
 import { collect, type FieldErrors, type ParseResult } from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
 import { optionalText, requiredText } from "@/lib/forms/text";
@@ -95,4 +96,23 @@ export function parseClientForm(
 
   const { defaultRate, ...rest } = parsed.value;
   return { ok: true, value: { ...rest, defaultRateCents: defaultRate } };
+}
+
+/**
+ * An existing client as the fields that describe it. The edit form starts
+ * from what is stored, and every value here is a string the validators accept
+ * back unchanged — so opening a client and saving it untouched writes the same
+ * row, rather than quietly normalising it into something else.
+ *
+ * A NULL column is a blank input, not the word "null": absence looks the same
+ * on the way in as it does on the way out.
+ */
+export function clientFormFields(client: Client): ClientFormFields {
+  return {
+    name: client.name,
+    company: client.company ?? "",
+    email: client.email ?? "",
+    defaultRate: rateInput(client.defaultRateCents),
+    notes: client.notes ?? "",
+  };
 }
