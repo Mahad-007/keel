@@ -18,8 +18,9 @@ import { updateClientAction } from "./actions";
  * through the URL, which on an edit form means without losing the edit.
  *
  * The client's id is bound to the action here rather than carried in a hidden
- * input. The form then has no field naming the row it overwrites, so there is
- * nothing to tamper with.
+ * input, so the form has no field naming the row it overwrites. Whether that
+ * row is the submitter's to write is the action's question, not this
+ * component's — see `updateClientAction`.
  */
 export function EditClientForm({
   clientId,

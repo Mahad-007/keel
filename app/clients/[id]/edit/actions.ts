@@ -15,10 +15,15 @@ import { failedFormState, rejectedFormState } from "@/lib/forms/state";
  * Saving an edit. The same four steps as creating a client — read, validate,
  * write, leave — over a row that already exists.
  *
- * The id is bound by the page that rendered the form, not read out of the
- * submission. A hidden input naming the row to overwrite is a field the
- * browser will send back with whatever it is given, and "which client am I
- * editing" is not the submitter's to decide.
+ * The id is bound by the page that rendered the form rather than carried in a
+ * hidden input, so no field of the form names the row it overwrites and a
+ * renamed or injected input cannot retarget the save.
+ *
+ * That is tidiness, not a permission check: a server action is a POST
+ * endpoint, and a crafted request can pass whatever id it likes. Nothing is
+ * lost by that today — there are no accounts, so every client is already
+ * every visitor's to edit — but the check that makes this id *theirs* belongs
+ * here, inside the action, when Phase 8 adds accounts.
  */
 export async function updateClientAction(
   id: string,
