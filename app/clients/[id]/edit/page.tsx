@@ -45,6 +45,15 @@ export default async function EditClientPage({
           Changing the default rate affects projects that have no rate of their
           own, from now on. Work already logged keeps the rate it was billed at.
         </p>
+        {/* Said here as well as beside the restore button, because the button
+            is below the form and this is the part that changes what the page
+            means: edits to an archived client are still edits nobody sees. */}
+        {client.archivedAt === null ? null : (
+          <p className="mt-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+            Archived — this client is not on the client list. You can still
+            edit it, and restore it at the bottom of this page.
+          </p>
+        )}
       </header>
 
       <EditClientForm
