@@ -1,4 +1,4 @@
-import { and, asc, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import { clients, type Client } from "@/lib/db/schema";
@@ -90,6 +90,21 @@ export async function listClients(database: Database = db): Promise<Client[]> {
     .from(clients)
     .where(isNull(clients.archivedAt))
     .orderBy(sql`lower(${clients.name})`, asc(clients.createdAt));
+}
+
+/**
+ * The other half of the list: archived clients only, most recently archived
+ * first. Somewhere has to show these, or a client archived by mistake is
+ * unreachable from the UI even though the row is still there.
+ */
+export async function listArchivedClients(
+  database: Database = db,
+): Promise<Client[]> {
+  return database
+    .select()
+    .from(clients)
+    .where(isNotNull(clients.archivedAt))
+    .orderBy(desc(clients.archivedAt), sql`lower(${clients.name})`);
 }
 
 /** Returns the updated row, or null if there is no client with that id. */
