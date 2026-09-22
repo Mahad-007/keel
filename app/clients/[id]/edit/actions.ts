@@ -51,9 +51,15 @@ export async function updateClientAction(
     );
   }
 
+  // Back to whichever list the client is actually on. Sending an archived
+  // client to `/clients` — the list that by definition excludes it — makes a
+  // save that worked look like one that was thrown away.
+  const list = saved.archivedAt === null ? "/clients" : "/clients/archived";
+
   // Outside the try: `redirect` signals by throwing, and catching it here
   // would turn a successful save into a "could not save" message.
   revalidatePath("/clients");
+  revalidatePath("/clients/archived");
   revalidatePath(`/clients/${id}/edit`);
-  redirect("/clients");
+  redirect(list);
 }

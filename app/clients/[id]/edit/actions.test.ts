@@ -68,11 +68,30 @@ describe("updateClientAction", () => {
     expect(redirect).toHaveBeenCalledWith("/clients");
   });
 
-  it("revalidates both the list and the page that was edited", async () => {
+  it("revalidates both lists and the page that was edited", async () => {
     await expect(save({ name: "Ada King" })).rejects.toThrow("NEXT_REDIRECT");
 
     expect(revalidatePath).toHaveBeenCalledWith("/clients");
+    expect(revalidatePath).toHaveBeenCalledWith("/clients/archived");
     expect(revalidatePath).toHaveBeenCalledWith(`/clients/${CLIENT_ID}/edit`);
+  });
+
+  it("returns an archived client to the archive, not the active list", async () => {
+    saved.mockResolvedValue({
+      id: CLIENT_ID,
+      name: "Ada King",
+      email: null,
+      company: null,
+      notes: null,
+      defaultRateCents: 0,
+      archivedAt: "2026-09-22T09:00:00.000Z",
+      createdAt: "2026-09-21T09:00:00.000Z",
+      updatedAt: "2026-09-22T09:00:00.000Z",
+    });
+
+    await expect(save({ name: "Ada King" })).rejects.toThrow(
+      "NEXT_REDIRECT:/clients/archived",
+    );
   });
 
   it("returns field errors and writes nothing when validation fails", async () => {
