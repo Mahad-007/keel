@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 
 /**
- * The labelled inputs the client form is built from. Presentational and
+ * The labelled inputs the client forms are built from. Presentational and
  * server-rendered: they hold no state, they just wire a label, a hint, and an
  * error message to one input and say so in the markup.
  *
- * Day 005 lifts these into `components/form/` once a second form exists to
- * share them. Until then they live beside the only form that uses them.
+ * Day 005 lifts these into `components/form/`, where a form other than a
+ * client's can reach them. Until then they sit one level above the routes
+ * that use them, which is as far as they need to travel to be shared.
  *
  * The error is announced, not merely coloured: `aria-invalid` and
  * `aria-describedby` mean a screen reader reaches the input already knowing

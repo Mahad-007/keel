@@ -10,10 +10,10 @@ import {
 } from "@/lib/clients/form";
 import { firstErrorField } from "@/lib/forms/state";
 
+import { fieldId, TextAreaField, TextField } from "../fields";
+import { FormSummary } from "../form-summary";
+import { SubmitButton } from "../submit-button";
 import { createClientAction } from "./actions";
-import { fieldId, TextAreaField, TextField } from "./fields";
-import { FormSummary } from "./form-summary";
-import { SubmitButton } from "./submit-button";
 
 /**
  * The only interactive piece of the page, and it is client-side for one
