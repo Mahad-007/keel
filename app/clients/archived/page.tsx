@@ -40,7 +40,11 @@ export default async function ArchivedClientsPage() {
         </p>
       </header>
 
-      <ArchivedTable clients={clients} />
+      {clients.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <ArchivedTable clients={clients} />
+      )}
     </main>
   );
 }
@@ -97,5 +101,29 @@ function ArchivedTable({ clients }: { clients: Client[] }) {
         ))}
       </tbody>
     </table>
+  );
+}
+
+/**
+ * An empty archive is the normal state, not a problem, so this says so
+ * plainly rather than inviting the user to go and archive somebody.
+ */
+function EmptyState() {
+  return (
+    <div className="mt-6 rounded border border-dashed border-zinc-300 px-6 py-10 dark:border-zinc-700">
+      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+        Nothing archived.
+      </p>
+      <p className="mt-1 max-w-prose text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+        Clients you archive from their edit page end up here, and stay here
+        until you restore them.
+      </p>
+      <Link
+        href="/clients"
+        className="mt-4 inline-block text-sm font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-600 dark:text-zinc-100 dark:hover:text-zinc-400"
+      >
+        Back to clients
+      </Link>
+    </div>
   );
 }
