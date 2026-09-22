@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { clientFormStateFor } from "@/lib/clients/form";
 import { getClient } from "@/lib/data/clients";
 
+import { ArchiveSection } from "./archive-section";
 import { EditClientForm } from "./client-form";
 
 /**
@@ -50,6 +51,8 @@ export default async function EditClientPage({
         clientId={client.id}
         initialState={clientFormStateFor(client)}
       />
+
+      <ArchiveSection client={client} />
     </main>
   );
 }
