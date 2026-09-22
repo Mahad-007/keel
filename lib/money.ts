@@ -24,3 +24,19 @@ export function parseCents(input: string): number {
 export function costOfMinutes(minutes: number, rateCents: number): number {
   return Math.round((minutes / 60) * rateCents);
 }
+
+/**
+ * The inverse of `parseCents`, for putting a stored amount back into a form
+ * input. Plain digits and a decimal point — no currency symbol, no thousands
+ * separators — so what comes out goes back in through `parseCents` unchanged.
+ * `formatCents` is for reading a number; this is for editing one.
+ */
+export function centsToInput(cents: number): string {
+  if (!Number.isInteger(cents)) {
+    throw new Error(`not a whole number of cents: ${cents}`);
+  }
+  const magnitude = Math.abs(cents);
+  const sign = cents < 0 ? "-" : "";
+  const fraction = String(magnitude % 100).padStart(2, "0");
+  return `${sign}${Math.trunc(magnitude / 100)}.${fraction}`;
+}
