@@ -26,21 +26,31 @@ export function SubmitButton({
   children,
   pendingLabel,
   variant = "primary",
+  subject,
 }: {
   children: string;
   pendingLabel: string;
   variant?: keyof typeof VARIANTS;
+  /**
+   * What the button acts on, for a button whose meaning comes from the row it
+   * sits in. A table of "Restore" buttons reads as one repeated control to
+   * anyone who cannot see which line they are on; naming the subject makes
+   * each one "Restore Ada Lovelace" without widening the column.
+   */
+  subject?: string;
 }) {
   const { pending } = useFormStatus();
+  const label = pending ? pendingLabel : children;
 
   return (
     <button
       type="submit"
       disabled={pending}
       aria-disabled={pending}
+      aria-label={subject === undefined ? undefined : `${label} ${subject}`}
       className={`rounded px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60 ${VARIANTS[variant]}`}
     >
-      {pending ? pendingLabel : children}
+      {label}
     </button>
   );
 }

@@ -92,7 +92,11 @@ function ArchivedTable({ clients }: { clients: Client[] }) {
             </td>
             <td className="py-2.5 text-right">
               <form action={unarchiveClientAction.bind(null, client.id)}>
-                <SubmitButton variant="secondary" pendingLabel="Restoring…">
+                <SubmitButton
+                  variant="secondary"
+                  pendingLabel="Restoring…"
+                  subject={client.name}
+                >
                   Restore
                 </SubmitButton>
               </form>
