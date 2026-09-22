@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import type { Client } from "@/lib/db/schema";
 import { firstErrorField, rejectedFormState } from "@/lib/forms/state";
 
 import {
+  clientFormFields,
   CLIENT_FIELD_LIMITS,
   CLIENT_FIELD_NAMES,
   EMPTY_CLIENT_FIELDS,
@@ -160,5 +162,85 @@ describe("CLIENT_FIELD_NAMES", () => {
     );
 
     expect(firstErrorField(state, CLIENT_FIELD_NAMES)).toBe("name");
+  });
+});
+
+function client(overrides: Partial<Client> = {}): Client {
+  return {
+    id: "cli_test",
+    name: "Ada Lovelace",
+    email: "ada@example.com",
+    company: "Analytical Engines",
+    notes: "Pays on time.",
+    defaultRateCents: 15000,
+    archivedAt: null,
+    createdAt: "2026-09-21T09:00:00.000Z",
+    updatedAt: "2026-09-21T09:00:00.000Z",
+    ...overrides,
+  };
+}
+
+describe("clientFormFields", () => {
+  it("fills every field from the stored client", () => {
+    expect(clientFormFields(client())).toEqual({
+      name: "Ada Lovelace",
+      email: "ada@example.com",
+      company: "Analytical Engines",
+      notes: "Pays on time.",
+      defaultRate: "150.00",
+    });
+  });
+
+  it("shows a NULL column as a blank input", () => {
+    expect(
+      clientFormFields(client({ email: null, company: null, notes: null })),
+    ).toMatchObject({ email: "", company: "", notes: "" });
+  });
+
+  it("shows an unset rate as a blank input rather than 0.00", () => {
+    expect(clientFormFields(client({ defaultRateCents: 0 })).defaultRate).toBe("");
+  });
+
+  it("covers exactly the fields the form renders", () => {
+    expect(Object.keys(clientFormFields(client())).sort()).toEqual(
+      [...CLIENT_FIELD_NAMES].sort(),
+    );
+  });
+
+  it("re-parses to the values it came from, so a no-op edit is a no-op", () => {
+    const stored = client();
+
+    const reparsed = parseClientForm(clientFormFields(stored));
+
+    expect(reparsed).toEqual({
+      ok: true,
+      value: {
+        name: stored.name,
+        email: stored.email,
+        company: stored.company,
+        notes: stored.notes,
+        defaultRateCents: stored.defaultRateCents,
+      },
+    });
+  });
+
+  it("re-parses an all-blank client back to the same absences", () => {
+    const stored = client({
+      email: null,
+      company: null,
+      notes: null,
+      defaultRateCents: 0,
+    });
+
+    expect(parseClientForm(clientFormFields(stored))).toEqual({
+      ok: true,
+      value: {
+        name: stored.name,
+        email: null,
+        company: null,
+        notes: null,
+        defaultRateCents: 0,
+      },
+    });
   });
 });
