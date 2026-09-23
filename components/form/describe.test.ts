@@ -21,6 +21,16 @@ describe("describeField", () => {
       false,
     );
   });
+
+  it("describes a field by its hint when nothing is wrong", () => {
+    const description = describeField({ name: "name", hint: "Required." });
+
+    expect(description.hint).toEqual({
+      id: fieldHintId("name"),
+      text: "Required.",
+    });
+    expect(description.describedBy).toBe(fieldHintId("name"));
+  });
 });
 
 describe("describeField with an error", () => {
