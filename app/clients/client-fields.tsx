@@ -1,6 +1,5 @@
+import { TextAreaField, TextField } from "@/components/form";
 import { CLIENT_FIELD_LIMITS, type ClientFormState } from "@/lib/clients/form";
-
-import { TextAreaField, TextField } from "./fields";
 
 /**
  * The five fields that describe a client, in the order the form lays them
