@@ -17,5 +17,10 @@ export { TextField, type TextFieldProps } from "./text-field";
 export { useFirstErrorFocus } from "./use-first-error-focus";
 export { useFormPending } from "./use-form-pending";
 
+export {
+  controlAttributes,
+  controlClassName,
+  type ControlAttributes,
+} from "./control";
 export { describeField, type FieldDescription } from "./describe";
 export { fieldErrorId, fieldHintId, fieldId } from "./ids";
