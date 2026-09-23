@@ -22,3 +22,28 @@ describe("describeField", () => {
     );
   });
 });
+
+describe("describeField with an error", () => {
+  it("marks the control invalid", () => {
+    expect(describeField({ name: "email", error: "Bad." }).invalid).toBe(true);
+  });
+
+  it("points the control at the message", () => {
+    const description = describeField({ name: "email", error: "Bad." });
+
+    expect(description.errorId).toBe(fieldErrorId("email"));
+    expect(description.describedBy).toBe(fieldErrorId("email"));
+  });
+
+  it("reads the error before the hint", () => {
+    const description = describeField({
+      name: "email",
+      hint: "Optional.",
+      error: "Bad.",
+    });
+
+    expect(description.describedBy).toBe(
+      `${fieldErrorId("email")} ${fieldHintId("email")}`,
+    );
+  });
+});
