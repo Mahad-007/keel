@@ -1,6 +1,6 @@
 "use client";
 
-import { submitLabel } from "./submit-label";
+import { submitAriaLabel, submitLabel } from "./submit-label";
 import { useFormPending } from "./use-form-pending";
 
 /**
@@ -33,12 +33,19 @@ export type SubmitButtonProps = {
   /** What the button says once it has been pressed: "Saving…". */
   pendingLabel: string;
   variant?: SubmitButtonVariant;
+  /**
+   * What this button acts on, for a button whose meaning comes from the row
+   * it sits in. A table of "Restore" buttons reads as one repeated control to
+   * anyone who cannot see which line they are on.
+   */
+  subject?: string;
 };
 
 export function SubmitButton({
   children,
   pendingLabel,
   variant = "primary",
+  subject,
 }: SubmitButtonProps) {
   const pending = useFormPending();
   const label = submitLabel(children, pendingLabel, pending);
@@ -48,6 +55,7 @@ export function SubmitButton({
       type="submit"
       disabled={pending}
       aria-disabled={pending}
+      aria-label={submitAriaLabel(label, subject)}
       className={`rounded px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60 ${VARIANTS[variant]}`}
     >
       {label}
