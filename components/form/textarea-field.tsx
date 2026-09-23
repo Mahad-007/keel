@@ -1,4 +1,4 @@
-import { controlClassName } from "./control";
+import { controlAttributes } from "./control";
 import { Field } from "./field";
 
 /**
@@ -30,17 +30,14 @@ export function TextAreaField({
 }: TextAreaFieldProps) {
   return (
     <Field name={name} label={label} hint={hint} error={error}>
-      {({ id, describedBy, invalid }) => (
+      {(description) => (
         <textarea
-          id={id}
+          {...controlAttributes(description)}
           name={name}
           autoComplete="off"
           rows={rows}
           maxLength={maxLength}
           defaultValue={defaultValue}
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          className={controlClassName(invalid)}
         />
       )}
     </Field>

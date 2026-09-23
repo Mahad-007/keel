@@ -1,4 +1,4 @@
-import { controlClassName } from "./control";
+import { controlAttributes } from "./control";
 import { Field } from "./field";
 
 /**
@@ -40,9 +40,9 @@ export function TextField({
 }: TextFieldProps) {
   return (
     <Field name={name} label={label} hint={hint} error={error}>
-      {({ id, describedBy, invalid }) => (
+      {(description) => (
         <input
-          id={id}
+          {...controlAttributes(description)}
           name={name}
           type={type}
           inputMode={inputMode}
@@ -50,9 +50,6 @@ export function TextField({
           placeholder={placeholder}
           maxLength={maxLength}
           defaultValue={defaultValue}
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          className={controlClassName(invalid)}
         />
       )}
     </Field>
