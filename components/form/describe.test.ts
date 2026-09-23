@@ -47,3 +47,23 @@ describe("describeField with an error", () => {
     );
   });
 });
+
+describe("describeField with a blank message", () => {
+  it("leaves a field with an empty error valid", () => {
+    const description = describeField({ name: "name", error: "" });
+
+    expect(description.invalid).toBe(false);
+    expect(description.errorId).toBeUndefined();
+  });
+
+  it("ignores a whitespace-only error", () => {
+    expect(describeField({ name: "name", error: "   " }).invalid).toBe(false);
+  });
+
+  it("does not describe a field by an empty hint", () => {
+    const description = describeField({ name: "name", hint: "" });
+
+    expect(description.hintId).toBeUndefined();
+    expect(description.describedBy).toBeUndefined();
+  });
+});

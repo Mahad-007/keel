@@ -27,13 +27,23 @@ export type FieldDescriptionInput = {
   error?: string;
 };
 
+/**
+ * A message worth rendering. An empty or whitespace-only string reaches here
+ * whenever a caller writes `error={state.errors[name] ?? ""}`, and treating it
+ * as a message would put a red border on a control with nothing beneath it to
+ * say why — the one state a form must never be in.
+ */
+function present(message: string | undefined): boolean {
+  return message !== undefined && message.trim() !== "";
+}
+
 export function describeField({
   name,
   hint,
   error,
 }: FieldDescriptionInput): FieldDescription {
-  const hintId = hint === undefined ? undefined : fieldHintId(name);
-  const errorId = error === undefined ? undefined : fieldErrorId(name);
+  const hintId = present(hint) ? fieldHintId(name) : undefined;
+  const errorId = present(error) ? fieldErrorId(name) : undefined;
 
   // The error comes first: a screen reader reads the description in order,
   // and the problem matters more than the advice that failed to prevent it.
