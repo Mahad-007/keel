@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useActionState, useMemo } from "react";
 
+import {
+  FormSummary,
+  SubmitButton,
+  useFirstErrorFocus,
+} from "@/components/form";
 import { CLIENT_FIELD_NAMES, type ClientFormState } from "@/lib/clients/form";
 
 import { ClientFields } from "../../client-fields";
-import { FormSummary } from "../../form-summary";
-import { SubmitButton } from "../../submit-button";
-import { useFirstErrorFocus } from "../../use-first-error-focus";
 import { updateClientAction } from "./actions";
 
 /**
