@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 
 import { describeField, type FieldDescription } from "./describe";
+import { FieldError } from "./field-error";
+import { FieldHint } from "./field-hint";
 
 /**
  * A label above a control, and the accessible wiring between them.
@@ -33,6 +35,14 @@ export function Field({ name, label, hint, error, children }: FieldProps) {
         {label}
       </label>
       {children(description)}
+      {description.error === null ? null : (
+        <FieldError id={description.error.id}>
+          {description.error.text}
+        </FieldError>
+      )}
+      {description.hint === null ? null : (
+        <FieldHint id={description.hint.id}>{description.hint.text}</FieldHint>
+      )}
     </div>
   );
 }
