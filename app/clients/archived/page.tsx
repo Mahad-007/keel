@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { SubmitButton } from "@/components/form";
 import { listArchivedClients } from "@/lib/data/clients";
 import { formatDate } from "@/lib/dates";
 import type { Client } from "@/lib/db/schema";
 
 import { unarchiveClientAction } from "../actions";
-import { SubmitButton } from "../submit-button";
 
 /**
  * Read at request time for the same reason the active list is: a client
