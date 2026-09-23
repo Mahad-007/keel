@@ -8,6 +8,8 @@
  * inside the JSX is what makes it testable.
  */
 
+import { readableMessage } from "@/lib/forms/message";
+
 import { fieldErrorId, fieldHintId, fieldId } from "./ids";
 
 /**
@@ -39,15 +41,16 @@ export type FieldDescriptionInput = {
 };
 
 /**
- * A message worth rendering. An empty or whitespace-only string reaches here
- * whenever a caller writes `error={state.errors[name] ?? ""}`, and treating it
- * as a message would put a red border on a control with nothing beneath it to
- * say why — the one state a form must never be in.
+ * A message worth rendering, under the id that announces it. An empty or
+ * whitespace-only string reaches here whenever a caller writes
+ * `error={state.errors[name] ?? ""}`, and treating it as a message would put a
+ * red border on a control with nothing beneath it to say why — the one state a
+ * form must never be in. `readableMessage` is the same rule the form summary
+ * counts by, so the two cannot disagree about whether a field is in trouble.
  */
 function message(text: string | undefined, id: string): FieldMessage | null {
-  const trimmed = text?.trim() ?? "";
-  if (trimmed === "") return null;
-  return { id, text: trimmed };
+  const readable = readableMessage(text);
+  return readable === null ? null : { id, text: readable };
 }
 
 export function describeField({
