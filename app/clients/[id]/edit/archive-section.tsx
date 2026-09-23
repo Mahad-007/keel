@@ -1,8 +1,8 @@
+import { SubmitButton } from "@/components/form";
 import { formatDate } from "@/lib/dates";
 import type { Client } from "@/lib/db/schema";
 
 import { archiveClientAction, unarchiveClientAction } from "../../actions";
-import { SubmitButton } from "../../submit-button";
 
 /**
  * The end of the edit page: taking a client off the list.
