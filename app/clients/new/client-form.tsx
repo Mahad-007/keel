@@ -4,14 +4,16 @@ import Link from "next/link";
 import { useActionState } from "react";
 
 import {
+  FormSummary,
+  SubmitButton,
+  useFirstErrorFocus,
+} from "@/components/form";
+import {
   CLIENT_FIELD_NAMES,
   INITIAL_CLIENT_FORM_STATE,
 } from "@/lib/clients/form";
 
 import { ClientFields } from "../client-fields";
-import { FormSummary } from "../form-summary";
-import { SubmitButton } from "../submit-button";
-import { useFirstErrorFocus } from "../use-first-error-focus";
 import { createClientAction } from "./actions";
 
 /**
