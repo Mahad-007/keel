@@ -1,3 +1,5 @@
+import type { FieldDescription } from "./describe";
+
 /**
  * The look every form control shares, in one place so an input and a textarea
  * on the same form cannot drift into two different boxes.
@@ -16,4 +18,33 @@ const BORDER = {
 
 export function controlClassName(invalid: boolean): string {
   return `${BASE} ${invalid ? BORDER.invalid : BORDER.valid}`;
+}
+
+/**
+ * Everything a control needs from the field around it, in one object to
+ * spread. Four attributes repeated per control type is four chances to forget
+ * one, and the one that gets forgotten is never the visible one.
+ *
+ * `aria-invalid` is undefined rather than false on a good field: React drops
+ * an undefined attribute, and `aria-invalid="false"` on every input on the
+ * page is noise a screen reader has to read past.
+ */
+export type ControlAttributes = {
+  readonly id: string;
+  readonly className: string;
+  readonly "aria-invalid": true | undefined;
+  readonly "aria-describedby": string | undefined;
+};
+
+export function controlAttributes({
+  id,
+  describedBy,
+  invalid,
+}: FieldDescription): ControlAttributes {
+  return {
+    id,
+    className: controlClassName(invalid),
+    "aria-invalid": invalid || undefined,
+    "aria-describedby": describedBy,
+  };
 }
