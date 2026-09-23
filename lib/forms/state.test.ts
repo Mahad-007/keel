@@ -110,3 +110,30 @@ describe("firstErrorField", () => {
     expect(firstErrorField(state, order)).toBeNull();
   });
 });
+
+describe("an error with no message", () => {
+  const state: FormState<"name" | "email"> = {
+    fields,
+    errors: { name: "", email: "   " },
+    formError: null,
+  };
+
+  it("is not counted as a field needing fixing", () => {
+    expect(formSummary(state)).toBeNull();
+  });
+
+  it("does not pull the cursor onto a field showing nothing", () => {
+    expect(firstErrorField(state, ["name", "email"])).toBeNull();
+  });
+
+  it("does not hide a real error behind it", () => {
+    const mixed: FormState<"name" | "email"> = {
+      fields,
+      errors: { name: "", email: "Not an address." },
+      formError: null,
+    };
+
+    expect(firstErrorField(mixed, ["name", "email"])).toBe("email");
+    expect(formSummary(mixed)).toBe("Nothing was saved. One field needs fixing.");
+  });
+});

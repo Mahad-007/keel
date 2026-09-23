@@ -1,3 +1,4 @@
+import { readableMessage } from "./message";
 import type { FieldErrors } from "./result";
 
 /**
@@ -41,8 +42,18 @@ export function failedFormState<K extends string>(
   return { fields, errors: {}, formError };
 }
 
+/**
+ * A field is only in trouble if there is a sentence to show under it. An
+ * empty message is counted nowhere, so the summary, the focus hook and the
+ * field itself agree about how many things are wrong.
+ */
+function hasError<K extends string>(state: FormState<K>, name: K): boolean {
+  return readableMessage(state.errors[name]) !== null;
+}
+
 function fieldErrorCount<K extends string>(state: FormState<K>): number {
-  return Object.keys(state.errors).length;
+  const names = Object.keys(state.errors) as K[];
+  return names.filter((name) => hasError(state, name)).length;
 }
 
 /**
@@ -56,7 +67,7 @@ export function firstErrorField<K extends string>(
   order: readonly K[],
 ): K | null {
   for (const name of order) {
-    if (state.errors[name] !== undefined) return name;
+    if (hasError(state, name)) return name;
   }
   return null;
 }
