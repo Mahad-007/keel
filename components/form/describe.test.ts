@@ -12,8 +12,8 @@ describe("describeField", () => {
     const description = describeField({ name: "name" });
 
     expect(description.describedBy).toBeUndefined();
-    expect(description.hintId).toBeUndefined();
-    expect(description.errorId).toBeUndefined();
+    expect(description.hint).toBeNull();
+    expect(description.error).toBeNull();
   });
 
   it("leaves a field with no error valid", () => {
@@ -31,7 +31,7 @@ describe("describeField with an error", () => {
   it("points the control at the message", () => {
     const description = describeField({ name: "email", error: "Bad." });
 
-    expect(description.errorId).toBe(fieldErrorId("email"));
+    expect(description.error).toEqual({ id: fieldErrorId("email"), text: "Bad." });
     expect(description.describedBy).toBe(fieldErrorId("email"));
   });
 
@@ -53,17 +53,23 @@ describe("describeField with a blank message", () => {
     const description = describeField({ name: "name", error: "" });
 
     expect(description.invalid).toBe(false);
-    expect(description.errorId).toBeUndefined();
+    expect(description.error).toBeNull();
   });
 
   it("ignores a whitespace-only error", () => {
     expect(describeField({ name: "name", error: "   " }).invalid).toBe(false);
   });
 
+  it("hands back the message without its surrounding whitespace", () => {
+    expect(describeField({ name: "name", error: "  Required.  " }).error).toEqual(
+      { id: fieldErrorId("name"), text: "Required." },
+    );
+  });
+
   it("does not describe a field by an empty hint", () => {
     const description = describeField({ name: "name", hint: "" });
 
-    expect(description.hintId).toBeUndefined();
+    expect(description.hint).toBeNull();
     expect(description.describedBy).toBeUndefined();
   });
 });
