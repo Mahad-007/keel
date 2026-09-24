@@ -4,6 +4,7 @@ import {
   DEFAULT_PROJECT_STATUS,
   PROJECT_STATUSES,
   isProjectStatus,
+  parseProjectStatus,
 } from "./status";
 
 describe("isProjectStatus", () => {
@@ -34,5 +35,32 @@ describe("isProjectStatus", () => {
 
   it("agrees that the default is a real status", () => {
     expect(isProjectStatus(DEFAULT_PROJECT_STATUS)).toBe(true);
+  });
+});
+
+describe("parseProjectStatus", () => {
+  it("hands back each valid status unchanged", () => {
+    for (const status of PROJECT_STATUSES) {
+      expect(parseProjectStatus(status)).toBe(status);
+    }
+  });
+
+  it("throws on anything else", () => {
+    expect(() => parseProjectStatus("archived")).toThrow(
+      /unknown project status/,
+    );
+    expect(() => parseProjectStatus(undefined)).toThrow(
+      /unknown project status/,
+    );
+  });
+
+  it("lists the alternatives in the message", () => {
+    expect(() => parseProjectStatus("live")).toThrow(
+      /draft, active, paused, closed/,
+    );
+  });
+
+  it("quotes the offending value so a blank one is visible", () => {
+    expect(() => parseProjectStatus(" ")).toThrow(/" "/);
   });
 });
