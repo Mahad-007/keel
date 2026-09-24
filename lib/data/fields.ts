@@ -28,3 +28,18 @@ export function optionalText(value: string | null | undefined): string | null {
   const trimmed = value.trim();
   return trimmed === "" ? null : trimmed;
 }
+
+/**
+ * A money column: whole cents, never negative. Fractional cents mean a float
+ * got into a currency value somewhere upstream, which is worth stopping at the
+ * column rather than discovering in an invoice total.
+ */
+export function wholeCents(value: number, field: string): number {
+  if (!Number.isInteger(value)) {
+    throw new Error(`${field} must be whole cents, got ${value}`);
+  }
+  if (value < 0) {
+    throw new Error(`${field} cannot be negative, got ${value}`);
+  }
+  return value;
+}
