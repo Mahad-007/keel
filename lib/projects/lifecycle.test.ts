@@ -58,3 +58,45 @@ describe("lifecycleStamps on pausing", () => {
     expect(lifecycleStamps(DRAFT, "paused", NOW).startedAt).toBeNull();
   });
 });
+
+describe("lifecycleStamps on closing", () => {
+  it("stamps the close when a running project closes", () => {
+    const active: ProjectLifecycle = {
+      status: "active",
+      startedAt: EARLIER,
+      closedAt: null,
+    };
+
+    expect(lifecycleStamps(active, "closed", NOW)).toEqual({
+      startedAt: EARLIER,
+      closedAt: NOW,
+    });
+  });
+
+  it("keeps the first close time when an already-closed project is re-closed", () => {
+    const closed: ProjectLifecycle = {
+      status: "closed",
+      startedAt: EARLIER,
+      closedAt: EARLIER,
+    };
+
+    expect(lifecycleStamps(closed, "closed", NOW).closedAt).toBe(EARLIER);
+  });
+
+  it("closes a draft that never ran without giving it a start date", () => {
+    expect(lifecycleStamps(DRAFT, "closed", NOW)).toEqual({
+      startedAt: null,
+      closedAt: NOW,
+    });
+  });
+
+  it("stamps a close for a closed row that somehow has no close time", () => {
+    const closed: ProjectLifecycle = {
+      status: "closed",
+      startedAt: EARLIER,
+      closedAt: null,
+    };
+
+    expect(lifecycleStamps(closed, "closed", NOW).closedAt).toBe(NOW);
+  });
+});
