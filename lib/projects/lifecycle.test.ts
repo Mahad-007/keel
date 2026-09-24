@@ -39,3 +39,22 @@ describe("lifecycleStamps on activation", () => {
     expect(lifecycleStamps(active, "active", NOW).startedAt).toBe(EARLIER);
   });
 });
+
+describe("lifecycleStamps on pausing", () => {
+  it("leaves the start alone when a running project pauses", () => {
+    const active: ProjectLifecycle = {
+      status: "active",
+      startedAt: EARLIER,
+      closedAt: null,
+    };
+
+    expect(lifecycleStamps(active, "paused", NOW)).toEqual({
+      startedAt: EARLIER,
+      closedAt: null,
+    });
+  });
+
+  it("does not invent a start for a draft that was never active", () => {
+    expect(lifecycleStamps(DRAFT, "paused", NOW).startedAt).toBeNull();
+  });
+});
