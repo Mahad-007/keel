@@ -17,3 +17,14 @@ export function requiredText(value: string, field: string): string {
   if (trimmed === "") throw new Error(`${field} is required`);
   return trimmed;
 }
+
+/**
+ * A nullable column. Absent, null, and blank all collapse to NULL, so that
+ * "no value" has exactly one representation in the database and a query for it
+ * does not have to test for `''` as well.
+ */
+export function optionalText(value: string | null | undefined): string | null {
+  if (value === undefined || value === null) return null;
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
