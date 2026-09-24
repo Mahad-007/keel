@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { optionalText, requiredText, wholeCents } from "./fields";
+import {
+  optionalCents,
+  optionalText,
+  requiredText,
+  wholeCents,
+} from "./fields";
 
 describe("requiredText", () => {
   it("returns the value with surrounding whitespace removed", () => {
@@ -76,5 +81,22 @@ describe("wholeCents", () => {
     expect(() => wholeCents(Number.POSITIVE_INFINITY, "contract value")).toThrow(
       /whole cents/,
     );
+  });
+});
+
+describe("optionalCents", () => {
+  it("passes an amount through the same checks as a required one", () => {
+    expect(optionalCents(9900, "rate override")).toBe(9900);
+    expect(() => optionalCents(99.5, "rate override")).toThrow(/whole cents/);
+    expect(() => optionalCents(-5, "rate override")).toThrow(/negative/);
+  });
+
+  it("treats undefined and null as no override at all", () => {
+    expect(optionalCents(undefined, "rate override")).toBeNull();
+    expect(optionalCents(null, "rate override")).toBeNull();
+  });
+
+  it("keeps a deliberate zero, which is not the same as no override", () => {
+    expect(optionalCents(0, "rate override")).toBe(0);
   });
 });
