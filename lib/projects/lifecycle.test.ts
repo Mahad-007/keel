@@ -100,3 +100,50 @@ describe("lifecycleStamps on closing", () => {
     expect(lifecycleStamps(closed, "closed", NOW).closedAt).toBe(NOW);
   });
 });
+
+describe("lifecycleStamps on reopening", () => {
+  it("clears the close when a closed project goes active again", () => {
+    const closed: ProjectLifecycle = {
+      status: "closed",
+      startedAt: EARLIER,
+      closedAt: EARLIER,
+    };
+
+    expect(lifecycleStamps(closed, "active", NOW)).toEqual({
+      startedAt: EARLIER,
+      closedAt: null,
+    });
+  });
+
+  it("clears the close when a closed project is parked as paused", () => {
+    const closed: ProjectLifecycle = {
+      status: "closed",
+      startedAt: EARLIER,
+      closedAt: EARLIER,
+    };
+
+    expect(lifecycleStamps(closed, "paused", NOW).closedAt).toBeNull();
+  });
+});
+
+describe("lifecycleStamps on returning to draft", () => {
+  it("clears both stamps, because a draft has not happened yet", () => {
+    const closed: ProjectLifecycle = {
+      status: "closed",
+      startedAt: EARLIER,
+      closedAt: NOW,
+    };
+
+    expect(lifecycleStamps(closed, "draft", NOW)).toEqual({
+      startedAt: null,
+      closedAt: null,
+    });
+  });
+
+  it("leaves an untouched draft untouched", () => {
+    expect(lifecycleStamps(DRAFT, "draft", NOW)).toEqual({
+      startedAt: null,
+      closedAt: null,
+    });
+  });
+});
