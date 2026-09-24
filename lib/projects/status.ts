@@ -30,3 +30,17 @@ export function isProjectStatus(value: unknown): value is ProjectStatus {
     (PROJECT_STATUSES as readonly string[]).includes(value)
   );
 }
+
+/**
+ * The strict form, for callers with nowhere sensible to fall back to — the
+ * data layer writing a status column. The message lists the alternatives,
+ * because the usual cause is a typo and the usual reader is a developer.
+ */
+export function parseProjectStatus(value: unknown): ProjectStatus {
+  if (!isProjectStatus(value)) {
+    throw new Error(
+      `unknown project status: ${JSON.stringify(value)} (expected one of ${PROJECT_STATUSES.join(", ")})`,
+    );
+  }
+  return value;
+}
