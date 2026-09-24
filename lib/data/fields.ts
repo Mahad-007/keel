@@ -43,3 +43,17 @@ export function wholeCents(value: number, field: string): number {
   }
   return value;
 }
+
+/**
+ * A nullable money column, for an amount that has a meaning when absent —
+ * a project's rate override, where NULL is "use the client's default" and 0 is
+ * the deliberate choice to bill nothing. The two are not the same, so a blank
+ * override must not collapse to zero the way blank text collapses to NULL.
+ */
+export function optionalCents(
+  value: number | null | undefined,
+  field: string,
+): number | null {
+  if (value === undefined || value === null) return null;
+  return wholeCents(value, field);
+}
