@@ -4,6 +4,8 @@ import { db, type Database } from "@/lib/db";
 import { clients, type Client } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
 
+import { optionalText, requiredText, wholeCents } from "./fields";
+
 /**
  * Data access for the `clients` table. Plain async functions: pages and server
  * actions call these, and nothing outside this file touches Drizzle for a
@@ -25,29 +27,6 @@ export type NewClientInput = {
 /** Only the fields present are written, so a patch can touch one column. */
 export type ClientPatch = Partial<NewClientInput>;
 
-function requiredText(value: string, field: string): string {
-  const trimmed = value.trim();
-  if (trimmed === "") throw new Error(`client ${field} is required`);
-  return trimmed;
-}
-
-/** Blank optional fields are stored as NULL, never as an empty string. */
-function optionalText(value: string | null | undefined): string | null {
-  if (value === undefined || value === null) return null;
-  const trimmed = value.trim();
-  return trimmed === "" ? null : trimmed;
-}
-
-function rateCents(value: number): number {
-  if (!Number.isInteger(value)) {
-    throw new Error(`default rate must be whole cents, got ${value}`);
-  }
-  if (value < 0) {
-    throw new Error(`default rate cannot be negative, got ${value}`);
-  }
-  return value;
-}
-
 export async function createClient(
   input: NewClientInput,
   database: Database = db,
@@ -57,11 +36,11 @@ export async function createClient(
     .insert(clients)
     .values({
       id: newId("cli"),
-      name: requiredText(input.name, "name"),
+      name: requiredText(input.name, "client name"),
       email: optionalText(input.email),
       company: optionalText(input.company),
       notes: optionalText(input.notes),
-      defaultRateCents: rateCents(input.defaultRateCents ?? 0),
+      defaultRateCents: wholeCents(input.defaultRateCents ?? 0, "client default rate"),
       archivedAt: null,
       createdAt: now,
       updatedAt: now,
@@ -114,12 +93,15 @@ export async function updateClient(
   database: Database = db,
 ): Promise<Client | null> {
   const values: Partial<typeof clients.$inferInsert> = {};
-  if (patch.name !== undefined) values.name = requiredText(patch.name, "name");
+  if (patch.name !== undefined) values.name = requiredText(patch.name, "client name");
   if (patch.email !== undefined) values.email = optionalText(patch.email);
   if (patch.company !== undefined) values.company = optionalText(patch.company);
   if (patch.notes !== undefined) values.notes = optionalText(patch.notes);
   if (patch.defaultRateCents !== undefined) {
-    values.defaultRateCents = rateCents(patch.defaultRateCents);
+    values.defaultRateCents = wholeCents(
+      patch.defaultRateCents,
+      "client default rate",
+    );
   }
 
   if (Object.keys(values).length === 0) return getClient(id, database);
