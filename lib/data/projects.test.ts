@@ -7,6 +7,7 @@ import { createTestDb } from "@/lib/db/testing";
 import { createClient } from "./clients";
 import {
   createProject,
+  deleteProject,
   getProject,
   listProjects,
   listProjectsForClient,
@@ -476,5 +477,48 @@ describe("updateProject on the client", () => {
     await expect(
       updateProject(project.id, { clientId: "  " }, db),
     ).rejects.toThrow(/project client/);
+  });
+});
+
+describe("deleteProject", () => {
+  it("hands back the row it removed", async () => {
+    const project = await createProject(
+      { clientId, name: "Typo", contractValueCents: 100_000 },
+      db,
+    );
+
+    expect(await deleteProject(project.id, db)).toEqual(project);
+  });
+
+  it("takes the project off both lists", async () => {
+    const project = await createProject({ clientId, name: "Mistake" }, db);
+
+    await deleteProject(project.id, db);
+
+    expect(await listProjects(db)).toEqual([]);
+    expect(await listProjectsForClient(clientId, db)).toEqual([]);
+    expect(await getProject(project.id, db)).toBeNull();
+  });
+
+  it("leaves the client and its other projects alone", async () => {
+    const kept = await createProject({ clientId, name: "Real work" }, db);
+    const doomed = await createProject({ clientId, name: "Duplicate" }, db);
+
+    await deleteProject(doomed.id, db);
+
+    expect((await listProjectsForClient(clientId, db)).map((p) => p.id)).toEqual(
+      [kept.id],
+    );
+  });
+
+  it("returns null for a project that does not exist", async () => {
+    expect(await deleteProject("prj_nope", db)).toBeNull();
+  });
+
+  it("is safe to repeat, the second call finding nothing to delete", async () => {
+    const project = await createProject({ clientId, name: "Once" }, db);
+
+    expect(await deleteProject(project.id, db)).not.toBeNull();
+    expect(await deleteProject(project.id, db)).toBeNull();
   });
 });
