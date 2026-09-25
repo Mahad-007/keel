@@ -1,3 +1,5 @@
+import { eq } from "drizzle-orm";
+
 import { db, type Database } from "@/lib/db";
 import { projects, type Project } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
@@ -61,4 +63,17 @@ export async function createProject(
     })
     .returning();
   return row;
+}
+
+/** One project by id, or null if there is no project with that id. */
+export async function getProject(
+  id: string,
+  database: Database = db,
+): Promise<Project | null> {
+  const [row] = await database
+    .select()
+    .from(projects)
+    .where(eq(projects.id, id))
+    .limit(1);
+  return row ?? null;
 }
