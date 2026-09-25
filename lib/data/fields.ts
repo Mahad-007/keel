@@ -33,9 +33,14 @@ export function optionalText(value: string | null | undefined): string | null {
  * A money column: whole cents, never negative. Fractional cents mean a float
  * got into a currency value somewhere upstream, which is worth stopping at the
  * column rather than discovering in an invoice total.
+ *
+ * "Whole" means safely whole: past 2^53 an integer is no longer exact, and such
+ * a value is written to SQLite before the driver fails decoding it back, leaving
+ * a row that every later read of the table throws on. The guard is the only
+ * place that can catch it, so it catches the whole range and not just fractions.
  */
 export function wholeCents(value: number, field: string): number {
-  if (!Number.isInteger(value)) {
+  if (!Number.isSafeInteger(value)) {
     throw new Error(`${field} must be whole cents, got ${value}`);
   }
   if (value < 0) {
