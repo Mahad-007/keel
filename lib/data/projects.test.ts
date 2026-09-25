@@ -338,3 +338,91 @@ describe("updateProject on the rate override", () => {
     expect(updated?.rateCents).toBe(0);
   });
 });
+
+describe("updateProject on the status", () => {
+  it("dates the start when a draft is activated", async () => {
+    const project = await createProject({ clientId, name: "Kickoff" }, db);
+
+    const updated = await updateProject(project.id, { status: "active" }, db);
+
+    expect(updated?.status).toBe("active");
+    expect(updated?.startedAt).not.toBeNull();
+  });
+
+  it("keeps the original start across a pause and a resume", async () => {
+    const project = await createProject(
+      { clientId, name: "Stop start", status: "active" },
+      db,
+    );
+
+    await updateProject(project.id, { status: "paused" }, db);
+    const resumed = await updateProject(project.id, { status: "active" }, db);
+
+    expect(resumed?.startedAt).toBe(project.startedAt);
+  });
+
+  it("dates the close when the work is finished", async () => {
+    const project = await createProject(
+      { clientId, name: "Wrapping up", status: "active" },
+      db,
+    );
+
+    const closed = await updateProject(project.id, { status: "closed" }, db);
+
+    expect(closed?.closedAt).not.toBeNull();
+    expect(closed?.startedAt).toBe(project.startedAt);
+  });
+
+  it("clears the close date when a closed project reopens", async () => {
+    const project = await createProject(
+      { clientId, name: "Round two", status: "active" },
+      db,
+    );
+    await updateProject(project.id, { status: "closed" }, db);
+
+    const reopened = await updateProject(project.id, { status: "active" }, db);
+
+    expect(reopened?.closedAt).toBeNull();
+    expect(reopened?.startedAt).toBe(project.startedAt);
+  });
+
+  it("clears both dates when a project is put back to draft", async () => {
+    const project = await createProject(
+      { clientId, name: "Never mind", status: "active" },
+      db,
+    );
+    await updateProject(project.id, { status: "closed" }, db);
+
+    const drafted = await updateProject(project.id, { status: "draft" }, db);
+
+    expect(drafted?.startedAt).toBeNull();
+    expect(drafted?.closedAt).toBeNull();
+  });
+
+  it("keeps the first close date when a closed project is closed again", async () => {
+    const project = await createProject(
+      { clientId, name: "Twice done", status: "closed" },
+      db,
+    );
+    await tick();
+
+    const again = await updateProject(project.id, { status: "closed" }, db);
+
+    expect(again?.closedAt).toBe(project.closedAt);
+  });
+
+  it("refuses a status outside the four and writes nothing", async () => {
+    const project = await createProject({ clientId, name: "Valid" }, db);
+
+    await expect(
+      updateProject(project.id, { status: "archived" as ProjectStatus }, db),
+    ).rejects.toThrow(/unknown project status/);
+    expect(await getProject(project.id, db)).toEqual(project);
+  });
+
+  it("returns null when the project to re-status does not exist", async () => {
+    expect(
+      await updateProject("prj_nope", { status: "active" }, db),
+    ).toBeNull();
+  });
+});
