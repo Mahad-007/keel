@@ -426,3 +426,35 @@ describe("updateProject on the status", () => {
     ).toBeNull();
   });
 });
+
+describe("updateProject on the client", () => {
+  it("moves the project onto the other client's list", async () => {
+    const other = await createClient({ name: "Beacon Ltd" }, db);
+    const project = await createProject({ clientId, name: "Misfiled" }, db);
+
+    const moved = await updateProject(project.id, { clientId: other.id }, db);
+
+    expect(moved?.clientId).toBe(other.id);
+    expect(await listProjectsForClient(clientId, db)).toEqual([]);
+    expect((await listProjectsForClient(other.id, db)).map((p) => p.id)).toEqual(
+      [project.id],
+    );
+  });
+
+  it("refuses a client that does not exist and writes nothing", async () => {
+    const project = await createProject({ clientId, name: "Stays put" }, db);
+
+    await expect(
+      updateProject(project.id, { clientId: "cli_nope" }, db),
+    ).rejects.toThrow(/no client with id cli_nope/);
+    expect(await getProject(project.id, db)).toEqual(project);
+  });
+
+  it("refuses to unhook a project from any client at all", async () => {
+    const project = await createProject({ clientId, name: "Attached" }, db);
+
+    await expect(
+      updateProject(project.id, { clientId: "  " }, db),
+    ).rejects.toThrow(/project client/);
+  });
+});
