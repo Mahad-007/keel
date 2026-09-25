@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import type { Database } from "@/lib/db";
+import type { ProjectStatus } from "@/lib/projects/status";
 import { createTestDb } from "@/lib/db/testing";
 
 import { createClient } from "./clients";
@@ -82,6 +83,15 @@ describe("createProject", () => {
     await expect(
       createProject({ clientId, name: "Odd override", rateCents: 99.9 }, db),
     ).rejects.toThrow(/whole cents/);
+  });
+
+  it("refuses a status outside the four the schema allows", async () => {
+    await expect(
+      createProject(
+        { clientId, name: "Archived?", status: "archived" as ProjectStatus },
+        db,
+      ),
+    ).rejects.toThrow(/unknown project status/);
   });
 
   it("gives every project a distinct id", async () => {
