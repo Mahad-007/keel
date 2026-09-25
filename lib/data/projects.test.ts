@@ -291,6 +291,26 @@ describe("updateProject", () => {
     expect(await updateProject("prj_nope", {}, db)).toBeNull();
   });
 
+  it("rejects an invalid patch without writing any of it", async () => {
+    const project = await createProject(
+      { clientId, name: "Valid", contractValueCents: 400_000 },
+      db,
+    );
+
+    await expect(
+      updateProject(project.id, { name: "  " }, db),
+    ).rejects.toThrow(/project name/);
+    await expect(
+      updateProject(
+        project.id,
+        { name: "Renamed", contractValueCents: -5 },
+        db,
+      ),
+    ).rejects.toThrow(/negative/);
+
+    expect(await getProject(project.id, db)).toEqual(project);
+  });
+
   it("moves updatedAt forward without touching createdAt", async () => {
     const project = await createProject({ clientId, name: "Touch" }, db);
     await tick();
