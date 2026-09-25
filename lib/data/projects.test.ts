@@ -60,6 +60,30 @@ describe("createProject", () => {
     expect(project.rateCents).toBe(0);
   });
 
+  it("trims the name and refuses one that is only whitespace", async () => {
+    const project = await createProject(
+      { clientId, name: "  Brand refresh  " },
+      db,
+    );
+    expect(project.name).toBe("Brand refresh");
+
+    await expect(
+      createProject({ clientId, name: "   " }, db),
+    ).rejects.toThrow(/project name/);
+  });
+
+  it("refuses money that is not whole, non-negative cents", async () => {
+    await expect(
+      createProject({ clientId, name: "Fractional", contractValueCents: 1.5 }, db),
+    ).rejects.toThrow(/whole cents/);
+    await expect(
+      createProject({ clientId, name: "Negative", contractValueCents: -1 }, db),
+    ).rejects.toThrow(/negative/);
+    await expect(
+      createProject({ clientId, name: "Odd override", rateCents: 99.9 }, db),
+    ).rejects.toThrow(/whole cents/);
+  });
+
   it("gives every project a distinct id", async () => {
     const a = await createProject({ clientId, name: "One" }, db);
     const b = await createProject({ clientId, name: "Two" }, db);
