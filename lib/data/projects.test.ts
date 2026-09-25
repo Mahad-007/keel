@@ -10,6 +10,7 @@ import {
   getProject,
   listProjects,
   listProjectsForClient,
+  updateProject,
 } from "./projects";
 
 let db: Database;
@@ -240,5 +241,52 @@ describe("listProjectsForClient", () => {
 
   it("is empty for a client that does not exist, rather than throwing", async () => {
     expect(await listProjectsForClient("cli_nope", db)).toEqual([]);
+  });
+});
+
+describe("updateProject", () => {
+  it("changes only the fields in the patch", async () => {
+    const project = await createProject(
+      {
+        clientId,
+        name: "Before",
+        contractValueCents: 800_000,
+        rateCents: 12_000,
+      },
+      db,
+    );
+
+    const updated = await updateProject(project.id, { name: "After" }, db);
+
+    expect(updated?.name).toBe("After");
+    expect(updated?.contractValueCents).toBe(800_000);
+    expect(updated?.rateCents).toBe(12_000);
+    expect(updated?.clientId).toBe(clientId);
+    expect(updated?.createdAt).toBe(project.createdAt);
+  });
+
+  it("raises the contract value when more work is agreed", async () => {
+    const project = await createProject(
+      { clientId, name: "Growing", contractValueCents: 500_000 },
+      db,
+    );
+
+    const updated = await updateProject(
+      project.id,
+      { contractValueCents: 750_000 },
+      db,
+    );
+
+    expect(updated?.contractValueCents).toBe(750_000);
+  });
+
+  it("moves updatedAt forward without touching createdAt", async () => {
+    const project = await createProject({ clientId, name: "Touch" }, db);
+    await tick();
+
+    const updated = await updateProject(project.id, { name: "Touched" }, db);
+
+    expect(updated!.updatedAt > project.updatedAt).toBe(true);
+    expect(updated?.createdAt).toBe(project.createdAt);
   });
 });
