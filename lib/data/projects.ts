@@ -172,6 +172,15 @@ export async function updateProject(
     values.rateCents = optionalCents(patch.rateCents, "project rate override");
   }
 
+  /**
+   * Reassigning a project is rare but real — work set up under the wrong client,
+   * or a client that turned out to be two. It goes through the same existence
+   * check as creating one, so a patch cannot orphan a row that was fine.
+   */
+  if (patch.clientId !== undefined) {
+    values.clientId = await requireClient(patch.clientId, database);
+  }
+
   if (patch.status !== undefined) {
     const status = parseProjectStatus(patch.status);
     const current = await getProject(id, database);
