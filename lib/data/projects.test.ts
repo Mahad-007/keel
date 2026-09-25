@@ -36,6 +36,30 @@ describe("createProject", () => {
     expect(project.rateCents).toBe(15_000);
   });
 
+  it("defaults a project to a draft with nothing agreed yet", async () => {
+    const project = await createProject({ clientId, name: "Sketch" }, db);
+
+    expect(project.status).toBe("draft");
+    expect(project.contractValueCents).toBe(0);
+    expect(project.startedAt).toBeNull();
+    expect(project.closedAt).toBeNull();
+  });
+
+  it("leaves the rate override null rather than zero when absent", async () => {
+    const project = await createProject({ clientId, name: "Client rate" }, db);
+
+    expect(project.rateCents).toBeNull();
+  });
+
+  it("keeps a deliberate zero override distinct from no override", async () => {
+    const project = await createProject(
+      { clientId, name: "Pro bono", rateCents: 0 },
+      db,
+    );
+
+    expect(project.rateCents).toBe(0);
+  });
+
   it("gives every project a distinct id", async () => {
     const a = await createProject({ clientId, name: "One" }, db);
     const b = await createProject({ clientId, name: "Two" }, db);
