@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import { clients, projects, type Project } from "@/lib/db/schema";
@@ -105,4 +105,17 @@ export async function getProject(
     .where(eq(projects.id, id))
     .limit(1);
   return row ?? null;
+}
+
+/**
+ * Every project, newest first — unlike clients, which read alphabetically. A
+ * project list is a list of current work, and the thing just set up is the
+ * thing being looked for. The id breaks ties, because two projects created in
+ * the same millisecond would otherwise come back in an arbitrary order.
+ */
+export async function listProjects(database: Database = db): Promise<Project[]> {
+  return database
+    .select()
+    .from(projects)
+    .orderBy(desc(projects.createdAt), desc(projects.id));
 }
