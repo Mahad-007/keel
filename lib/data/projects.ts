@@ -74,18 +74,28 @@ export async function createProject(
     status,
     now,
   );
+  /**
+   * Everything that can be checked without a query is checked first, so the
+   * common mistake — a blank name, a fractional amount — costs no round trip
+   * and the client lookup only happens for a project that is otherwise valid.
+   */
+  const name = requiredText(input.name, "project name");
+  const contractValueCents = wholeCents(
+    input.contractValueCents ?? 0,
+    "project contract value",
+  );
+  const rateCents = optionalCents(input.rateCents, "project rate override");
+  const clientId = await requireClient(input.clientId, database);
+
   const [row] = await database
     .insert(projects)
     .values({
       id: newId("prj"),
-      clientId: await requireClient(input.clientId, database),
-      name: requiredText(input.name, "project name"),
+      clientId,
+      name,
       status,
-      contractValueCents: wholeCents(
-        input.contractValueCents ?? 0,
-        "project contract value",
-      ),
-      rateCents: optionalCents(input.rateCents, "project rate override"),
+      contractValueCents,
+      rateCents,
       ...stamps,
       createdAt: now,
       updatedAt: now,
