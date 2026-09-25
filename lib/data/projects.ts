@@ -141,3 +141,39 @@ export async function listProjectsForClient(
     .where(eq(projects.clientId, clientId))
     .orderBy(...NEWEST_FIRST);
 }
+
+/**
+ * Applies the fields present in the patch and returns the updated row, or null
+ * if there is no project with that id. An empty patch is a no-op rather than a
+ * write, so a form that was submitted without a change does not bump
+ * `updatedAt` and reorder somebody's list.
+ */
+export async function updateProject(
+  id: string,
+  patch: ProjectPatch,
+  database: Database = db,
+): Promise<Project | null> {
+  const values: Partial<typeof projects.$inferInsert> = {};
+  if (patch.name !== undefined) {
+    values.name = requiredText(patch.name, "project name");
+  }
+  if (patch.contractValueCents !== undefined) {
+    values.contractValueCents = wholeCents(
+      patch.contractValueCents,
+      "project contract value",
+    );
+  }
+  if (patch.rateCents !== undefined) {
+    values.rateCents = optionalCents(patch.rateCents, "project rate override");
+  }
+
+  if (Object.keys(values).length === 0) return getProject(id, database);
+
+  values.updatedAt = new Date().toISOString();
+  const [row] = await database
+    .update(projects)
+    .set(values)
+    .where(eq(projects.id, id))
+    .returning();
+  return row ?? null;
+}
