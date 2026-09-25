@@ -119,3 +119,19 @@ export async function listProjects(database: Database = db): Promise<Project[]> 
     .from(projects)
     .orderBy(desc(projects.createdAt), desc(projects.id));
 }
+
+/**
+ * One client's projects, newest first. Its own function rather than a filter
+ * the caller applies, so the query uses the `projects_client_id_idx` index and
+ * a client page does not read every project in the database to show three.
+ */
+export async function listProjectsForClient(
+  clientId: string,
+  database: Database = db,
+): Promise<Project[]> {
+  return database
+    .select()
+    .from(projects)
+    .where(eq(projects.clientId, clientId))
+    .orderBy(desc(projects.createdAt), desc(projects.id));
+}
