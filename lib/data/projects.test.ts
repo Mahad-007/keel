@@ -100,6 +100,20 @@ describe("createProject", () => {
     ).rejects.toThrow(/whole cents/);
   });
 
+  it("refuses a contract value too large to be stored exactly", async () => {
+    await expect(
+      createProject(
+        {
+          clientId,
+          name: "Fortune",
+          contractValueCents: Number.MAX_SAFE_INTEGER + 2,
+        },
+        db,
+      ),
+    ).rejects.toThrow(/whole cents/);
+    expect(await listProjects(db)).toEqual([]);
+  });
+
   it("refuses a status outside the four the schema allows", async () => {
     await expect(
       createProject(
