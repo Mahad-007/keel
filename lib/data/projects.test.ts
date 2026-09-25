@@ -5,7 +5,12 @@ import type { ProjectStatus } from "@/lib/projects/status";
 import { createTestDb } from "@/lib/db/testing";
 
 import { createClient } from "./clients";
-import { createProject, getProject, listProjects } from "./projects";
+import {
+  createProject,
+  getProject,
+  listProjects,
+  listProjectsForClient,
+} from "./projects";
 
 let db: Database;
 /** Every project needs a client, so each test starts with one to hang off. */
@@ -203,5 +208,37 @@ describe("listProjects", () => {
     await createProject({ clientId, name: "Done", status: "closed" }, db);
 
     expect((await listProjects(db)).map((p) => p.name)).toEqual(["Done"]);
+  });
+});
+
+describe("listProjectsForClient", () => {
+  it("holds only that client's projects", async () => {
+    const other = await createClient({ name: "Beacon Ltd" }, db);
+    const ours = await createProject({ clientId, name: "Ours" }, db);
+    await createProject({ clientId: other.id, name: "Theirs" }, db);
+
+    expect((await listProjectsForClient(clientId, db)).map((p) => p.id)).toEqual(
+      [ours.id],
+    );
+  });
+
+  it("puts the most recent of them first", async () => {
+    await createProject({ clientId, name: "Old work" }, db);
+    await tick();
+    await createProject({ clientId, name: "New work" }, db);
+
+    expect(
+      (await listProjectsForClient(clientId, db)).map((p) => p.name),
+    ).toEqual(["New work", "Old work"]);
+  });
+
+  it("is empty for a client with no projects yet", async () => {
+    const quiet = await createClient({ name: "Quiet Co" }, db);
+
+    expect(await listProjectsForClient(quiet.id, db)).toEqual([]);
+  });
+
+  it("is empty for a client that does not exist, rather than throwing", async () => {
+    expect(await listProjectsForClient("cli_nope", db)).toEqual([]);
   });
 });
