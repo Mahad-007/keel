@@ -1,4 +1,13 @@
-import type { ProjectStatus } from "@/lib/projects/status";
+import { db, type Database } from "@/lib/db";
+import { projects, type Project } from "@/lib/db/schema";
+import { newId } from "@/lib/id";
+import {
+  DEFAULT_PROJECT_STATUS,
+  parseProjectStatus,
+  type ProjectStatus,
+} from "@/lib/projects/status";
+
+import { optionalCents, requiredText, wholeCents } from "./fields";
 
 /**
  * Data access for the `projects` table. Plain async functions, one optional
@@ -27,3 +36,29 @@ export type NewProjectInput = {
  * status the project moves to, not set by hand.
  */
 export type ProjectPatch = Partial<NewProjectInput>;
+
+export async function createProject(
+  input: NewProjectInput,
+  database: Database = db,
+): Promise<Project> {
+  const now = new Date().toISOString();
+  const [row] = await database
+    .insert(projects)
+    .values({
+      id: newId("prj"),
+      clientId: requiredText(input.clientId, "project client"),
+      name: requiredText(input.name, "project name"),
+      status: parseProjectStatus(input.status ?? DEFAULT_PROJECT_STATUS),
+      contractValueCents: wholeCents(
+        input.contractValueCents ?? 0,
+        "project contract value",
+      ),
+      rateCents: optionalCents(input.rateCents, "project rate override"),
+      startedAt: null,
+      closedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+  return row;
+}
