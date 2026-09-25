@@ -147,12 +147,17 @@ export async function listProjectsForClient(
  * if there is no project with that id. An empty patch is a no-op rather than a
  * write, so a form that was submitted without a change does not bump
  * `updatedAt` and reorder somebody's list.
+ *
+ * A status in the patch also rewrites `startedAt` and `closedAt`, through the
+ * same rule `createProject` uses: the two dates are derived from the status a
+ * project moves to, never set by a caller.
  */
 export async function updateProject(
   id: string,
   patch: ProjectPatch,
   database: Database = db,
 ): Promise<Project | null> {
+  const now = new Date().toISOString();
   const values: Partial<typeof projects.$inferInsert> = {};
   if (patch.name !== undefined) {
     values.name = requiredText(patch.name, "project name");
@@ -167,9 +172,17 @@ export async function updateProject(
     values.rateCents = optionalCents(patch.rateCents, "project rate override");
   }
 
+  if (patch.status !== undefined) {
+    const status = parseProjectStatus(patch.status);
+    const current = await getProject(id, database);
+    if (!current) return null;
+    values.status = status;
+    Object.assign(values, lifecycleStamps(current, status, now));
+  }
+
   if (Object.keys(values).length === 0) return getProject(id, database);
 
-  values.updatedAt = new Date().toISOString();
+  values.updatedAt = now;
   const [row] = await database
     .update(projects)
     .set(values)
