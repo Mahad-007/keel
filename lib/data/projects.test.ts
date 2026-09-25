@@ -106,6 +106,37 @@ describe("createProject", () => {
     ).rejects.toThrow(/project client/);
   });
 
+  it("dates the start of a project created as active", async () => {
+    const project = await createProject(
+      { clientId, name: "Started today", status: "active" },
+      db,
+    );
+
+    expect(project.startedAt).not.toBeNull();
+    expect(project.startedAt).toBe(new Date(project.startedAt!).toISOString());
+    expect(project.closedAt).toBeNull();
+  });
+
+  it("dates the close of an engagement recorded after it ended", async () => {
+    const project = await createProject(
+      { clientId, name: "Historic", status: "closed" },
+      db,
+    );
+
+    expect(project.closedAt).not.toBeNull();
+    expect(project.startedAt).toBeNull();
+  });
+
+  it("gives a paused project neither date, having never run", async () => {
+    const project = await createProject(
+      { clientId, name: "On hold", status: "paused" },
+      db,
+    );
+
+    expect(project.startedAt).toBeNull();
+    expect(project.closedAt).toBeNull();
+  });
+
   it("gives every project a distinct id", async () => {
     const a = await createProject({ clientId, name: "One" }, db);
     const b = await createProject({ clientId, name: "Two" }, db);
