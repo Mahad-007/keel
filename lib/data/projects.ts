@@ -108,16 +108,22 @@ export async function getProject(
 }
 
 /**
+ * The order every project list uses: newest first, with the id breaking ties
+ * so that two projects created in the same millisecond do not come back in an
+ * arbitrary order. One constant, so the lists cannot drift apart.
+ */
+const NEWEST_FIRST = [desc(projects.createdAt), desc(projects.id)] as const;
+
+/**
  * Every project, newest first — unlike clients, which read alphabetically. A
  * project list is a list of current work, and the thing just set up is the
- * thing being looked for. The id breaks ties, because two projects created in
- * the same millisecond would otherwise come back in an arbitrary order.
+ * thing being looked for.
  */
 export async function listProjects(database: Database = db): Promise<Project[]> {
   return database
     .select()
     .from(projects)
-    .orderBy(desc(projects.createdAt), desc(projects.id));
+    .orderBy(...NEWEST_FIRST);
 }
 
 /**
@@ -133,5 +139,5 @@ export async function listProjectsForClient(
     .select()
     .from(projects)
     .where(eq(projects.clientId, clientId))
-    .orderBy(desc(projects.createdAt), desc(projects.id));
+    .orderBy(...NEWEST_FIRST);
 }
