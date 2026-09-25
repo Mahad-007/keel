@@ -74,6 +74,19 @@ describe("wholeCents", () => {
     );
   });
 
+  it("refuses an amount past the exact integer range", () => {
+    expect(() => wholeCents(Number.MAX_SAFE_INTEGER + 2, "contract value")).toThrow(
+      /whole cents/,
+    );
+    expect(() => wholeCents(1e20, "contract value")).toThrow(/whole cents/);
+  });
+
+  it("accepts the largest amount that is still exact", () => {
+    expect(wholeCents(Number.MAX_SAFE_INTEGER, "contract value")).toBe(
+      Number.MAX_SAFE_INTEGER,
+    );
+  });
+
   it("refuses NaN and infinity rather than storing them", () => {
     expect(() => wholeCents(Number.NaN, "contract value")).toThrow(
       /whole cents/,
