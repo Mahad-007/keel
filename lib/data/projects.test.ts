@@ -4,7 +4,7 @@ import type { Database } from "@/lib/db";
 import type { ProjectStatus } from "@/lib/projects/status";
 import { createTestDb } from "@/lib/db/testing";
 
-import { createClient } from "./clients";
+import { archiveClient, createClient } from "./clients";
 import {
   createProject,
   deleteProject,
@@ -520,5 +520,34 @@ describe("deleteProject", () => {
 
     expect(await deleteProject(project.id, db)).not.toBeNull();
     expect(await deleteProject(project.id, db)).toBeNull();
+  });
+});
+
+/**
+ * Archiving a client is a soft delete, so their projects keep pointing at a row
+ * that is still there. Nothing about a project changes when its client is
+ * archived — the work happened, and its record has to stay readable.
+ */
+describe("projects of an archived client", () => {
+  it("stay exactly as they were", async () => {
+    const project = await createProject(
+      { clientId, name: "Finished work", status: "closed" },
+      db,
+    );
+
+    await archiveClient(clientId, db);
+
+    expect(await getProject(project.id, db)).toEqual(project);
+    expect((await listProjectsForClient(clientId, db)).map((p) => p.id)).toEqual(
+      [project.id],
+    );
+  });
+
+  it("can still be created, because the client row is still there", async () => {
+    await archiveClient(clientId, db);
+
+    const project = await createProject({ clientId, name: "Late arrival" }, db);
+
+    expect(project.clientId).toBe(clientId);
   });
 });
