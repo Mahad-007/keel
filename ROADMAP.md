@@ -16,7 +16,7 @@ as an atomic commit and what does not.
 - [x] **Day 003** — New client form at `/clients/new` backed by a server action: field-level validation, `parseCents` for the rate, inline error rendering, redirect on success, and tests for every validation branch.
 - [x] **Day 004** — Client edit page and soft-delete archive action, with an unarchive path and tests proving archived clients leave the list without leaving the table.
 - [x] **Day 005** — Shared form primitives in `components/form/`: labelled input, field error, submit button with pending state, and a `useFormStatus` wrapper. Retrofit the client forms onto them.
-- [ ] **Day 006** — `projects` table and data layer: clientId, name, status (`draft`/`active`/`paused`/`closed`), contractValueCents, rateCents override, startedAt, closedAt. Full CRUD with tests.
+- [x] **Day 006** — `projects` table and data layer: clientId, name, status (`draft`/`active`/`paused`/`closed`), contractValueCents, rateCents override, startedAt, closedAt. Full CRUD with tests.
 - [ ] **Day 007** — Projects list at `/projects` with the client name joined in, status filter, and a sortable created/updated column.
 - [ ] **Day 008** — Project detail shell at `/projects/[id]`: header with client link, status badge, contract value, and a tabbed layout the later phases fill in.
 - [ ] **Day 009** — New and edit project forms with a client picker, contract value input, and optional rate override, sharing the Day 005 primitives.
