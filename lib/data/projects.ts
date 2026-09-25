@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, type Database } from "@/lib/db";
 import { clients, projects, type Project } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
+import { lifecycleStamps } from "@/lib/projects/lifecycle";
 import {
   DEFAULT_PROJECT_STATUS,
   parseProjectStatus,
@@ -61,20 +62,31 @@ export async function createProject(
   database: Database = db,
 ): Promise<Project> {
   const now = new Date().toISOString();
+  const status = parseProjectStatus(input.status ?? DEFAULT_PROJECT_STATUS);
+  /**
+   * A project created straight into `active` did begin, and one created as
+   * `closed` — an engagement recorded after the fact — did end. Deriving both
+   * from the same rule the updates use keeps a back-filled row indistinguishable
+   * from one that walked through the statuses.
+   */
+  const stamps = lifecycleStamps(
+    { status: DEFAULT_PROJECT_STATUS, startedAt: null, closedAt: null },
+    status,
+    now,
+  );
   const [row] = await database
     .insert(projects)
     .values({
       id: newId("prj"),
       clientId: await requireClient(input.clientId, database),
       name: requiredText(input.name, "project name"),
-      status: parseProjectStatus(input.status ?? DEFAULT_PROJECT_STATUS),
+      status,
       contractValueCents: wholeCents(
         input.contractValueCents ?? 0,
         "project contract value",
       ),
       rateCents: optionalCents(input.rateCents, "project rate override"),
-      startedAt: null,
-      closedAt: null,
+      ...stamps,
       createdAt: now,
       updatedAt: now,
     })
