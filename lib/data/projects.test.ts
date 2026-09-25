@@ -4,7 +4,7 @@ import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 
 import { createClient } from "./clients";
-import { createProject } from "./projects";
+import { createProject, getProject } from "./projects";
 
 let db: Database;
 /** Every project needs a client, so each test starts with one to hang off. */
@@ -72,5 +72,20 @@ describe("createProject", () => {
 
     expect(project.createdAt).toBe(new Date(project.createdAt).toISOString());
     expect(project.updatedAt).toBe(project.createdAt);
+  });
+});
+
+describe("getProject", () => {
+  it("finds the row the create call returned", async () => {
+    const project = await createProject(
+      { clientId, name: "Findable", contractValueCents: 500_000 },
+      db,
+    );
+
+    expect(await getProject(project.id, db)).toEqual(project);
+  });
+
+  it("returns null for an id that was never issued", async () => {
+    expect(await getProject("prj_nope", db)).toBeNull();
   });
 });
