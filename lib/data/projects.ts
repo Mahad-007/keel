@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
-import { projects, type Project } from "@/lib/db/schema";
+import { clients, projects, type Project } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
 import {
   DEFAULT_PROJECT_STATUS,
@@ -39,6 +39,23 @@ export type NewProjectInput = {
  */
 export type ProjectPatch = Partial<NewProjectInput>;
 
+/**
+ * A project without a client is not a project, and the foreign key would stop
+ * one anyway — but it would stop it with a constraint error naming a column.
+ * Checking here means the caller gets a message naming the id it passed, which
+ * is the one thing that tells them what went wrong.
+ */
+async function requireClient(id: string, database: Database): Promise<string> {
+  const clientId = requiredText(id, "project client");
+  const [row] = await database
+    .select({ id: clients.id })
+    .from(clients)
+    .where(eq(clients.id, clientId))
+    .limit(1);
+  if (!row) throw new Error(`no client with id ${clientId}`);
+  return row.id;
+}
+
 export async function createProject(
   input: NewProjectInput,
   database: Database = db,
@@ -48,7 +65,7 @@ export async function createProject(
     .insert(projects)
     .values({
       id: newId("prj"),
-      clientId: requiredText(input.clientId, "project client"),
+      clientId: await requireClient(input.clientId, database),
       name: requiredText(input.name, "project name"),
       status: parseProjectStatus(input.status ?? DEFAULT_PROJECT_STATUS),
       contractValueCents: wholeCents(
