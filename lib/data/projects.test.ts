@@ -301,3 +301,40 @@ describe("updateProject", () => {
     expect(updated?.createdAt).toBe(project.createdAt);
   });
 });
+
+/**
+ * The rate override is the one nullable money column in the table, and the
+ * difference between its three states is a billing decision: null defers to
+ * the client, zero bills nothing, and a figure overrides.
+ */
+describe("updateProject on the rate override", () => {
+  it("sets an override on a project that was billing at the client rate", async () => {
+    const project = await createProject({ clientId, name: "Standard" }, db);
+
+    const updated = await updateProject(project.id, { rateCents: 18_000 }, db);
+
+    expect(updated?.rateCents).toBe(18_000);
+  });
+
+  it("clears an override back to the client's rate", async () => {
+    const project = await createProject(
+      { clientId, name: "Overridden", rateCents: 18_000 },
+      db,
+    );
+
+    const updated = await updateProject(project.id, { rateCents: null }, db);
+
+    expect(updated?.rateCents).toBeNull();
+  });
+
+  it("keeps an override of zero rather than reading it as absent", async () => {
+    const project = await createProject(
+      { clientId, name: "Goodwill", rateCents: 18_000 },
+      db,
+    );
+
+    const updated = await updateProject(project.id, { rateCents: 0 }, db);
+
+    expect(updated?.rateCents).toBe(0);
+  });
+});
