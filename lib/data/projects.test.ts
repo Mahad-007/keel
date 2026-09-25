@@ -94,6 +94,18 @@ describe("createProject", () => {
     ).rejects.toThrow(/unknown project status/);
   });
 
+  it("refuses a project hung off a client that does not exist", async () => {
+    await expect(
+      createProject({ clientId: "cli_nope", name: "Orphan" }, db),
+    ).rejects.toThrow(/no client with id cli_nope/);
+  });
+
+  it("refuses a project with no client at all", async () => {
+    await expect(
+      createProject({ clientId: "  ", name: "Unattached" }, db),
+    ).rejects.toThrow(/project client/);
+  });
+
   it("gives every project a distinct id", async () => {
     const a = await createProject({ clientId, name: "One" }, db);
     const b = await createProject({ clientId, name: "Two" }, db);
