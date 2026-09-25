@@ -5,11 +5,19 @@ import type { ProjectStatus } from "@/lib/projects/status";
 import { createTestDb } from "@/lib/db/testing";
 
 import { createClient } from "./clients";
-import { createProject, getProject } from "./projects";
+import { createProject, getProject, listProjects } from "./projects";
 
 let db: Database;
 /** Every project needs a client, so each test starts with one to hang off. */
 let clientId: string;
+
+/**
+ * `createdAt` comes from the wall clock, so two projects created in the same
+ * millisecond would tie and an ordering test would pass or fail by luck.
+ */
+function tick(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 2));
+}
 
 beforeEach(async () => {
   db = await createTestDb();
@@ -164,5 +172,36 @@ describe("getProject", () => {
 
   it("returns null for an id that was never issued", async () => {
     expect(await getProject("prj_nope", db)).toBeNull();
+  });
+});
+
+describe("listProjects", () => {
+  it("is empty before anything is created", async () => {
+    expect(await listProjects(db)).toEqual([]);
+  });
+
+  it("puts the most recently created project first", async () => {
+    await createProject({ clientId, name: "First" }, db);
+    await tick();
+    await createProject({ clientId, name: "Second" }, db);
+
+    expect((await listProjects(db)).map((p) => p.name)).toEqual([
+      "Second",
+      "First",
+    ]);
+  });
+
+  it("holds projects for every client, not one", async () => {
+    const other = await createClient({ name: "Beacon Ltd" }, db);
+    await createProject({ clientId, name: "Ours" }, db);
+    await createProject({ clientId: other.id, name: "Theirs" }, db);
+
+    expect(await listProjects(db)).toHaveLength(2);
+  });
+
+  it("includes closed projects, which are still part of the record", async () => {
+    await createProject({ clientId, name: "Done", status: "closed" }, db);
+
+    expect((await listProjects(db)).map((p) => p.name)).toEqual(["Done"]);
   });
 });
