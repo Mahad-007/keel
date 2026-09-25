@@ -199,3 +199,23 @@ export async function updateProject(
     .returning();
   return row ?? null;
 }
+
+/**
+ * Removes the row and returns it, or null if there was no project with that id.
+ *
+ * A project is deleted outright rather than archived the way a client is: the
+ * way to retire an engagement that happened is to close it, which keeps its
+ * time and its history, so the only reason left to delete one is that it should
+ * never have existed. Nothing is gained by keeping that row, and a mistyped
+ * project lingering in every list is the cost of pretending otherwise.
+ */
+export async function deleteProject(
+  id: string,
+  database: Database = db,
+): Promise<Project | null> {
+  const [row] = await database
+    .delete(projects)
+    .where(eq(projects.id, id))
+    .returning();
+  return row ?? null;
+}
