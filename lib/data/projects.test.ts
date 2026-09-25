@@ -280,6 +280,17 @@ describe("updateProject", () => {
     expect(updated?.contractValueCents).toBe(750_000);
   });
 
+  it("leaves the row untouched when the patch is empty", async () => {
+    const project = await createProject({ clientId, name: "Unchanged" }, db);
+
+    expect(await updateProject(project.id, {}, db)).toEqual(project);
+  });
+
+  it("returns null for a project that does not exist", async () => {
+    expect(await updateProject("prj_nope", { name: "Ghost" }, db)).toBeNull();
+    expect(await updateProject("prj_nope", {}, db)).toBeNull();
+  });
+
   it("moves updatedAt forward without touching createdAt", async () => {
     const project = await createProject({ clientId, name: "Touch" }, db);
     await tick();
