@@ -4,6 +4,7 @@ import { db, type Database } from "@/lib/db";
 import { clients, projects, type Project } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
 import { lifecycleStamps } from "@/lib/projects/lifecycle";
+import { DEFAULT_PROJECT_SORT, type ProjectSort } from "@/lib/projects/sort";
 import {
   DEFAULT_PROJECT_STATUS,
   parseProjectStatus,
@@ -245,4 +246,14 @@ export async function deleteProject(
 export type ProjectListRow = Project & {
   clientName: string;
   clientArchivedAt: string | null;
+};
+
+/**
+ * What a list page asks for: the status to restrict to, if any, and the order
+ * to return. Both optional, and the defaults are the ones the plain
+ * `listProjects` already uses — every project, newest first.
+ */
+export type ProjectListQuery = {
+  status?: ProjectStatus;
+  sort?: ProjectSort;
 };
