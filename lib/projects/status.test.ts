@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PROJECT_STATUS,
   PROJECT_STATUSES,
+  PROJECT_STATUS_LABELS,
   isProjectStatus,
   parseProjectStatus,
+  projectStatusLabel,
 } from "./status";
 
 describe("isProjectStatus", () => {
@@ -62,5 +64,19 @@ describe("parseProjectStatus", () => {
 
   it("quotes the offending value so a blank one is visible", () => {
     expect(() => parseProjectStatus(" ")).toThrow(/" "/);
+  });
+});
+
+describe("projectStatusLabel", () => {
+  it("labels every status the schema allows", () => {
+    for (const status of PROJECT_STATUSES) {
+      expect(projectStatusLabel(status)).toBe(PROJECT_STATUS_LABELS[status]);
+      expect(projectStatusLabel(status)).not.toBe("");
+    }
+  });
+
+  it("gives each status a distinct label", () => {
+    const labels = PROJECT_STATUSES.map(projectStatusLabel);
+    expect(new Set(labels).size).toBe(PROJECT_STATUSES.length);
   });
 });
