@@ -35,6 +35,12 @@ export default async function ClientsPage() {
         </div>
         <div className="flex shrink-0 items-center gap-4">
           <Link
+            href="/projects"
+            className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Projects
+          </Link>
+          <Link
             href="/clients/archived"
             className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
           >
