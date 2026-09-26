@@ -44,3 +44,20 @@ export function parseProjectStatus(value: unknown): ProjectStatus {
   }
   return value;
 }
+
+/**
+ * How each status is written in the UI. A record rather than a capitalisation
+ * of the stored value, so the column names and the words a person reads can
+ * move independently — and so adding a status without deciding what to call it
+ * fails to compile.
+ */
+export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
+  draft: "Draft",
+  active: "Active",
+  paused: "Paused",
+  closed: "Closed",
+};
+
+export function projectStatusLabel(status: ProjectStatus): string {
+  return PROJECT_STATUS_LABELS[status];
+}
