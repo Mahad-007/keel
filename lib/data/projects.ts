@@ -7,6 +7,7 @@ import { lifecycleStamps } from "@/lib/projects/lifecycle";
 import { DEFAULT_PROJECT_SORT, type ProjectSort } from "@/lib/projects/sort";
 import {
   DEFAULT_PROJECT_STATUS,
+  isProjectStatus,
   parseProjectStatus,
   type ProjectStatus,
 } from "@/lib/projects/status";
@@ -315,6 +316,12 @@ function noProjects(): ProjectStatusCounts {
  *
  * Statuses with nothing in them do not come back from a `GROUP BY`, so the
  * result starts at zero everywhere and the query fills in what it finds.
+ *
+ * SQLite does not enforce the status enum — the column is plain TEXT and the
+ * four values are a type-level promise — so a hand-edited row can hold anything.
+ * Such a row is left out of the tab counts rather than throwing: it still
+ * appears in the unfiltered table, and a slightly low count is a far better
+ * failure than a 500 that hides every project on the page.
  */
 export async function countProjectsByStatus(
   database: Database = db,
@@ -326,7 +333,8 @@ export async function countProjectsByStatus(
 
   const counts = noProjects();
   for (const row of rows) {
-    counts[parseProjectStatus(row.status)] = Number(row.total);
+    if (!isProjectStatus(row.status)) continue;
+    counts[row.status] = Number(row.total);
   }
   return counts;
 }
