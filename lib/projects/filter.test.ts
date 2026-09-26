@@ -6,8 +6,9 @@ import {
   filteredStatus,
   isProjectStatusFilter,
   parseProjectStatusFilter,
+  projectStatusFilterLabel,
 } from "./filter";
-import { PROJECT_STATUSES } from "./status";
+import { PROJECT_STATUSES, projectStatusLabel } from "./status";
 
 describe("PROJECT_STATUS_FILTERS", () => {
   it("offers every status plus the unfiltered option, and nothing else", () => {
@@ -57,5 +58,22 @@ describe("filteredStatus", () => {
 
   it("turns the unfiltered option into no restriction at all", () => {
     expect(filteredStatus(ALL_STATUSES)).toBeUndefined();
+  });
+});
+
+describe("projectStatusFilterLabel", () => {
+  it("names all of what the unfiltered tab shows", () => {
+    expect(projectStatusFilterLabel(ALL_STATUSES)).toBe("All projects");
+  });
+
+  it("reuses the status label for the rest", () => {
+    for (const status of PROJECT_STATUSES) {
+      expect(projectStatusFilterLabel(status)).toBe(projectStatusLabel(status));
+    }
+  });
+
+  it("labels every tab distinctly, so no two read the same", () => {
+    const labels = PROJECT_STATUS_FILTERS.map(projectStatusFilterLabel);
+    expect(new Set(labels).size).toBe(PROJECT_STATUS_FILTERS.length);
   });
 });
