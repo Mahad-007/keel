@@ -52,3 +52,14 @@ export function isSortDirection(value: unknown): value is SortDirection {
     (SORT_DIRECTIONS as readonly string[]).includes(value)
   );
 }
+
+/** A column and the direction it runs in: everything ordering a query needs. */
+export type ProjectSort = {
+  column: ProjectSortColumn;
+  direction: SortDirection;
+};
+
+export const DEFAULT_PROJECT_SORT: ProjectSort = {
+  column: DEFAULT_PROJECT_SORT_COLUMN,
+  direction: DEFAULT_SORT_DIRECTION,
+};
