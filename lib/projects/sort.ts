@@ -28,3 +28,19 @@ export function isProjectSortColumn(value: unknown): value is ProjectSortColumn 
     (PROJECT_SORT_COLUMNS as readonly string[]).includes(value)
   );
 }
+
+/**
+ * Which way a column runs. `desc` first everywhere: a date column read
+ * ascending starts at the oldest row, which is almost never the row anybody
+ * opened the list to find.
+ */
+export const SORT_DIRECTIONS = ["desc", "asc"] as const;
+
+export type SortDirection = (typeof SORT_DIRECTIONS)[number];
+
+export const DEFAULT_SORT_DIRECTION: SortDirection = "desc";
+
+/** The other direction, for a header that has been clicked twice. */
+export function oppositeDirection(direction: SortDirection): SortDirection {
+  return direction === "desc" ? "asc" : "desc";
+}
