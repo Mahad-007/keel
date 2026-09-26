@@ -7,6 +7,7 @@ import {
   isProjectStatus,
   parseProjectStatus,
   projectStatusLabel,
+  type ProjectStatus,
 } from "./status";
 
 describe("isProjectStatus", () => {
@@ -78,5 +79,13 @@ describe("projectStatusLabel", () => {
   it("gives each status a distinct label", () => {
     const labels = PROJECT_STATUSES.map(projectStatusLabel);
     expect(new Set(labels).size).toBe(PROJECT_STATUSES.length);
+  });
+});
+
+describe("projectStatusLabel on a row outside the enum", () => {
+  it("shows the stored value rather than an empty cell", () => {
+    // Reachable only by hand-editing the database: the column is plain TEXT.
+    const corrupt = "mothballed" as ProjectStatus;
+    expect(projectStatusLabel(corrupt)).toBe("mothballed");
   });
 });
