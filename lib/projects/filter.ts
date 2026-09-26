@@ -96,3 +96,23 @@ export function describeNoMatches(status: ProjectStatus, total: number): string 
   }
   return `There are ${total} projects on the books, none of them ${label}.`;
 }
+
+/**
+ * The line under the heading: how much of the book the table is showing.
+ *
+ * With no filter it is just a count. With one, it is a fraction, because the
+ * useful fact then is not how many rows are on screen but how many are not —
+ * a reader who forgets the filter is set will otherwise read four rows as the
+ * whole business.
+ */
+export function describeProjectsShown(
+  filter: ProjectStatusFilter,
+  shown: number,
+  total: number,
+): string {
+  if (total === 0) return "Nothing on the books yet.";
+  if (filter === ALL_STATUSES) {
+    return total === 1 ? "One project on the books." : `${total} projects on the books.`;
+  }
+  return `${shown} of ${total} projects on the books.`;
+}
