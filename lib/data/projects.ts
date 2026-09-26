@@ -1,4 +1,4 @@
-import { asc, desc, eq, getTableColumns } from "drizzle-orm";
+import { asc, count, desc, eq, getTableColumns } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import { clients, projects, type Project } from "@/lib/db/schema";
@@ -303,4 +303,30 @@ export type ProjectStatusCounts = Record<ProjectStatus, number>;
 /** A count of zero for every status, before the query fills any of them in. */
 function noProjects(): ProjectStatusCounts {
   return { draft: 0, active: 0, paused: 0, closed: 0 };
+}
+
+/**
+ * How many projects are in each status, in one grouped query.
+ *
+ * The filter tabs need this: a tab that says how many projects it would show
+ * saves a click into an empty list, and a filter row with no numbers on it
+ * makes the reader guess where the work is. Counting in SQL rather than by
+ * reading every row keeps that cheap as the table grows.
+ *
+ * Statuses with nothing in them do not come back from a `GROUP BY`, so the
+ * result starts at zero everywhere and the query fills in what it finds.
+ */
+export async function countProjectsByStatus(
+  database: Database = db,
+): Promise<ProjectStatusCounts> {
+  const rows = await database
+    .select({ status: projects.status, total: count() })
+    .from(projects)
+    .groupBy(projects.status);
+
+  const counts = noProjects();
+  for (const row of rows) {
+    counts[parseProjectStatus(row.status)] = Number(row.total);
+  }
+  return counts;
 }
