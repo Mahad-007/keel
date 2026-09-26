@@ -64,6 +64,16 @@ export function ProjectsTable({
               >
                 {project.clientName}
               </Link>
+              {/*
+                An archived client keeps their projects — the work happened —
+                but the name on its own would read as a live client. Saying so
+                here explains why they are missing from /clients.
+              */}
+              {project.clientArchivedAt !== null && (
+                <span className="ml-1.5 text-xs text-zinc-500 dark:text-zinc-500">
+                  (archived)
+                </span>
+              )}
             </td>
             <td className="py-2.5 pr-6 text-zinc-700 dark:text-zinc-300">
               {projectStatusLabel(project.status)}
