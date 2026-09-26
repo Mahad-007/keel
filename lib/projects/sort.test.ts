@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ariaSortFor,
   type ProjectSort,
   PROJECT_SORT_COLUMNS,
   SORT_DIRECTIONS,
@@ -88,5 +89,31 @@ describe("sortByColumn", () => {
     const current: ProjectSort = { column: "created", direction: "desc" };
     sortByColumn(current, "updated");
     expect(current).toEqual({ column: "created", direction: "desc" });
+  });
+});
+
+describe("ariaSortFor", () => {
+  it("uses the long spellings the attribute expects", () => {
+    const sort: ProjectSort = { column: "updated", direction: "asc" };
+    expect(ariaSortFor(sort, "updated")).toBe("ascending");
+    expect(ariaSortFor({ ...sort, direction: "desc" }, "updated")).toBe(
+      "descending",
+    );
+  });
+
+  it("leaves every other column unsorted", () => {
+    const sort: ProjectSort = { column: "updated", direction: "desc" };
+    expect(ariaSortFor(sort, "created")).toBe("none");
+  });
+
+  it("marks exactly one column for any sort the list can hold", () => {
+    for (const column of PROJECT_SORT_COLUMNS) {
+      for (const direction of SORT_DIRECTIONS) {
+        const marked = PROJECT_SORT_COLUMNS.filter(
+          (candidate) => ariaSortFor({ column, direction }, candidate) !== "none",
+        );
+        expect(marked).toEqual([column]);
+      }
+    }
   });
 });
