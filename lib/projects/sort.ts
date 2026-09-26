@@ -16,3 +16,15 @@ export type ProjectSortColumn = (typeof PROJECT_SORT_COLUMNS)[number];
 
 /** Newest engagement first: the same order the unsorted data layer uses. */
 export const DEFAULT_PROJECT_SORT_COLUMN: ProjectSortColumn = "created";
+
+/**
+ * Narrows a search param to a sort column. A URL is user input — hand-edited,
+ * stale after a rename, or truncated by something in between — so the list has
+ * to be able to ask whether a value is one of ours before it trusts it.
+ */
+export function isProjectSortColumn(value: unknown): value is ProjectSortColumn {
+  return (
+    typeof value === "string" &&
+    (PROJECT_SORT_COLUMNS as readonly string[]).includes(value)
+  );
+}
