@@ -80,3 +80,19 @@ export function filterCount(
   if (filter !== ALL_STATUSES) return counts[filter];
   return PROJECT_STATUSES.reduce((total, status) => total + counts[status], 0);
 }
+
+/**
+ * Why a filtered list came back empty, in a sentence.
+ *
+ * An empty table is ambiguous: it could mean there is no work, or it could mean
+ * the filter is hiding all of it. Those call for completely different reactions
+ * from the reader, so the empty state says which one it is and how many
+ * projects the filter is holding back.
+ */
+export function describeNoMatches(status: ProjectStatus, total: number): string {
+  const label = projectStatusLabel(status).toLowerCase();
+  if (total === 1) {
+    return `There is one project on the books, and it is not ${label}.`;
+  }
+  return `There are ${total} projects on the books, none of them ${label}.`;
+}
