@@ -17,3 +17,24 @@ export const PROJECT_STATUS_FILTERS = [
 ] as const satisfies readonly ProjectStatusFilter[];
 
 export const DEFAULT_PROJECT_STATUS_FILTER: ProjectStatusFilter = ALL_STATUSES;
+
+export function isProjectStatusFilter(
+  value: unknown,
+): value is ProjectStatusFilter {
+  return (
+    typeof value === "string" &&
+    (PROJECT_STATUS_FILTERS as readonly string[]).includes(value)
+  );
+}
+
+/**
+ * A `?status=` param narrowed to a filter, falling back to showing everything.
+ *
+ * Falling back rather than erroring is the right call for a list: a stale
+ * bookmark or a typo should show the projects, not a 500. The status is the
+ * whole point of the page, so nothing is lost by showing more than was asked
+ * for — and the filter row makes plain which one is actually in effect.
+ */
+export function parseProjectStatusFilter(value: unknown): ProjectStatusFilter {
+  return isProjectStatusFilter(value) ? value : DEFAULT_PROJECT_STATUS_FILTER;
+}
