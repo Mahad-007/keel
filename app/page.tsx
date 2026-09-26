@@ -20,6 +20,7 @@ const BUILT: { href: string; name: string; note: string }[] = [
   { href: "/clients", name: "Clients", note: "Everyone on the books, with their default rate." },
   { href: "/clients/new", name: "Add a client", note: "Name, company, contact, hourly rate." },
   { href: "/clients/archived", name: "Archive", note: "Past clients, kept with their history intact." },
+  { href: "/projects", name: "Projects", note: "Every engagement, filterable by status and sortable by date." },
 ];
 
 export default function Home() {
