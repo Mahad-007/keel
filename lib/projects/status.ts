@@ -58,6 +58,14 @@ export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
   closed: "Closed",
 };
 
+/**
+ * The label for a status, falling back to the stored value itself.
+ *
+ * The column is plain TEXT in SQLite, so the four values are a type-level
+ * promise a hand-edited row can break. Without the fallback such a row renders
+ * an empty Status cell, which reads as missing data; showing the raw value says
+ * what is actually in the database.
+ */
 export function projectStatusLabel(status: ProjectStatus): string {
-  return PROJECT_STATUS_LABELS[status];
+  return PROJECT_STATUS_LABELS[status] ?? status;
 }
