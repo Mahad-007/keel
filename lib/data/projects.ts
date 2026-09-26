@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq, getTableColumns } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import { clients, projects, type Project } from "@/lib/db/schema";
@@ -257,3 +257,42 @@ export type ProjectListQuery = {
   status?: ProjectStatus;
   sort?: ProjectSort;
 };
+
+/** The project column each sort column in the URL actually orders by. */
+const SORT_COLUMNS = {
+  created: projects.createdAt,
+  updated: projects.updatedAt,
+} as const;
+
+/**
+ * The list the projects page renders: every project, or one status of them,
+ * with the client name joined in and ordered by the column asked for.
+ *
+ * The id is always the tiebreaker, in the same direction as the sort. Two
+ * projects created in the same second would otherwise come back in whatever
+ * order SQLite felt like, which reads as rows shuffling between reloads.
+ *
+ * The join is inner rather than left: the foreign key and `requireClient` both
+ * guarantee a client exists, so a left join would only add a null case that
+ * cannot happen and that every caller would then have to handle.
+ */
+export async function listProjectsWithClient(
+  query: ProjectListQuery = {},
+  database: Database = db,
+): Promise<ProjectListRow[]> {
+  const { column, direction } = query.sort ?? DEFAULT_PROJECT_SORT;
+  const order = direction === "asc" ? asc : desc;
+
+  return database
+    .select({
+      ...getTableColumns(projects),
+      clientName: clients.name,
+      clientArchivedAt: clients.archivedAt,
+    })
+    .from(projects)
+    .innerJoin(clients, eq(clients.id, projects.clientId))
+    .where(
+      query.status === undefined ? undefined : eq(projects.status, query.status),
+    )
+    .orderBy(order(SORT_COLUMNS[column]), order(projects.id));
+}
