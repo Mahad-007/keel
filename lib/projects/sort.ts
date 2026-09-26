@@ -82,3 +82,18 @@ export function sortByColumn(
   }
   return { column, direction: oppositeDirection(current.direction) };
 }
+
+/**
+ * What `aria-sort` should say on a given column's header.
+ *
+ * The attribute takes the long spellings, not ours, and it belongs on exactly
+ * one header at a time — a table claiming two sorted columns tells a screen
+ * reader something the rows do not bear out.
+ */
+export function ariaSortFor(
+  sort: ProjectSort,
+  column: ProjectSortColumn,
+): "ascending" | "descending" | "none" {
+  if (sort.column !== column) return "none";
+  return sort.direction === "asc" ? "ascending" : "descending";
+}
