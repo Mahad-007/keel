@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  PROJECT_SORT_COLUMN_LABELS,
+  PROJECT_SORT_COLUMN_PHRASES,
   ariaSortFor,
+  describeSortLink,
   type ProjectSort,
   PROJECT_SORT_COLUMNS,
   SORT_DIRECTIONS,
@@ -113,6 +116,40 @@ describe("ariaSortFor", () => {
           (candidate) => ariaSortFor({ column, direction }, candidate) !== "none",
         );
         expect(marked).toEqual([column]);
+      }
+    }
+  });
+});
+
+describe("sort column wording", () => {
+  it("labels and phrases every column", () => {
+    for (const column of PROJECT_SORT_COLUMNS) {
+      expect(PROJECT_SORT_COLUMN_LABELS[column]).not.toBe("");
+      expect(PROJECT_SORT_COLUMN_PHRASES[column]).not.toBe("");
+    }
+  });
+});
+
+describe("describeSortLink", () => {
+  it("describes the order the click lands on, not the current one", () => {
+    expect(
+      describeSortLink({ column: "created", direction: "desc" }, "created"),
+    ).toBe("Sort by date created, oldest first");
+  });
+
+  it("describes a new column as starting newest first", () => {
+    expect(
+      describeSortLink({ column: "created", direction: "asc" }, "updated"),
+    ).toBe("Sort by date last updated, newest first");
+  });
+
+  it("gives every header on the table a distinct description", () => {
+    for (const column of PROJECT_SORT_COLUMNS) {
+      for (const direction of SORT_DIRECTIONS) {
+        const descriptions = PROJECT_SORT_COLUMNS.map((candidate) =>
+          describeSortLink({ column, direction }, candidate),
+        );
+        expect(new Set(descriptions).size).toBe(PROJECT_SORT_COLUMNS.length);
       }
     }
   });
