@@ -113,3 +113,20 @@ export const PROJECT_SORT_COLUMN_PHRASES: Record<ProjectSortColumn, string> = {
   created: "date created",
   updated: "date last updated",
 };
+
+/**
+ * What following a column header link will do, as a sentence.
+ *
+ * The visible header says "Created"; on its own that is the name of a column,
+ * not of an action, so a screen reader reaching the link is told the column
+ * name and nothing about what activating it changes. This spells out the order
+ * the click lands on — including that clicking the sorted column reverses it.
+ */
+export function describeSortLink(
+  current: ProjectSort,
+  column: ProjectSortColumn,
+): string {
+  const next = sortByColumn(current, column);
+  const order = next.direction === "asc" ? "oldest first" : "newest first";
+  return `Sort by ${PROJECT_SORT_COLUMN_PHRASES[column]}, ${order}`;
+}
