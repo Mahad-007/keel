@@ -69,3 +69,29 @@ export function parseProjectsQuery(params: SearchParams): ProjectsQuery {
     },
   };
 }
+
+/** Where the list lives, so no link has to spell the path out. */
+export const PROJECTS_PATH = "/projects";
+
+/**
+ * The URL for a query, leaving out anything that is already the default.
+ *
+ * Omitting defaults means the list has exactly one canonical address —
+ * `/projects` — rather than four that render the same table. That matters for
+ * marking the current filter tab, where comparing hrefs is how a link knows it
+ * points at where you already are.
+ */
+export function projectsHref(query: ProjectsQuery): string {
+  const params = new URLSearchParams();
+  if (query.status !== DEFAULT_PROJECT_STATUS_FILTER) {
+    params.set(STATUS_PARAM, query.status);
+  }
+  if (query.sort.column !== DEFAULT_PROJECT_SORT_COLUMN) {
+    params.set(SORT_PARAM, query.sort.column);
+  }
+  if (query.sort.direction !== DEFAULT_SORT_DIRECTION) {
+    params.set(DIRECTION_PARAM, query.sort.direction);
+  }
+  const search = params.toString();
+  return search === "" ? PROJECTS_PATH : `${PROJECTS_PATH}?${search}`;
+}
