@@ -4,6 +4,7 @@ import {
   ALL_STATUSES,
   PROJECT_STATUS_FILTERS,
   describeNoMatches,
+  describeProjectsShown,
   filterCount,
   filteredStatus,
   isProjectStatusFilter,
@@ -133,5 +134,37 @@ describe("describeNoMatches", () => {
     for (const status of PROJECT_STATUSES) {
       expect(describeNoMatches(status, 2).endsWith(".")).toBe(true);
     }
+  });
+});
+
+describe("describeProjectsShown", () => {
+  it("counts the whole book when nothing is filtered", () => {
+    expect(describeProjectsShown(ALL_STATUSES, 7, 7)).toBe(
+      "7 projects on the books.",
+    );
+  });
+
+  it("does not say \"1 projects\" for a single project", () => {
+    expect(describeProjectsShown(ALL_STATUSES, 1, 1)).toBe(
+      "One project on the books.",
+    );
+  });
+
+  it("gives a fraction under a filter, so the hidden rows are visible", () => {
+    expect(describeProjectsShown("active", 2, 7)).toBe(
+      "2 of 7 projects on the books.",
+    );
+  });
+
+  it("says the book is empty whatever the filter", () => {
+    for (const filter of PROJECT_STATUS_FILTERS) {
+      expect(describeProjectsShown(filter, 0, 0)).toBe("Nothing on the books yet.");
+    }
+  });
+
+  it("still gives a fraction when the filter matched nothing", () => {
+    expect(describeProjectsShown("paused", 0, 4)).toBe(
+      "0 of 4 projects on the books.",
+    );
   });
 });
