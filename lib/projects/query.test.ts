@@ -7,6 +7,8 @@ import {
   PROJECTS_PATH,
   parseProjectsQuery,
   projectsHref,
+  withSortColumn,
+  withStatus,
 } from "./query";
 
 describe("parseProjectsQuery", () => {
@@ -109,5 +111,46 @@ describe("projectsHref", () => {
         }
       }
     }
+  });
+});
+
+describe("withStatus", () => {
+  it("keeps the sort the reader chose", () => {
+    const query = {
+      status: "all" as const,
+      sort: { column: "updated" as const, direction: "asc" as const },
+    };
+    expect(withStatus(query, "active")).toEqual({
+      status: "active",
+      sort: { column: "updated", direction: "asc" },
+    });
+  });
+
+  it("leads back to the bare path when the filter is cleared", () => {
+    const query = parseProjectsQuery({ status: "closed" });
+    expect(projectsHref(withStatus(query, "all"))).toBe(PROJECTS_PATH);
+  });
+});
+
+describe("withSortColumn", () => {
+  it("keeps the filter while reversing the sorted column", () => {
+    const query = parseProjectsQuery({ status: "active" });
+    expect(projectsHref(withSortColumn(query, "created"))).toBe(
+      "/projects?status=active&direction=asc",
+    );
+  });
+
+  it("moves to a new column at newest-first", () => {
+    const query = parseProjectsQuery({ status: "active", direction: "asc" });
+    expect(projectsHref(withSortColumn(query, "updated"))).toBe(
+      "/projects?status=active&sort=updated",
+    );
+  });
+
+  it("returns to the query it started from when clicked twice", () => {
+    const query = parseProjectsQuery({ sort: "updated" });
+    expect(withSortColumn(withSortColumn(query, "updated"), "updated")).toEqual(
+      query,
+    );
   });
 });
