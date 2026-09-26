@@ -44,3 +44,11 @@ export const DEFAULT_SORT_DIRECTION: SortDirection = "desc";
 export function oppositeDirection(direction: SortDirection): SortDirection {
   return direction === "desc" ? "asc" : "desc";
 }
+
+/** The same narrowing for `?direction=`, which arrives the same way. */
+export function isSortDirection(value: unknown): value is SortDirection {
+  return (
+    typeof value === "string" &&
+    (SORT_DIRECTIONS as readonly string[]).includes(value)
+  );
+}
