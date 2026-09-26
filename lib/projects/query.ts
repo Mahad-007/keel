@@ -27,3 +27,18 @@ export const DEFAULT_PROJECTS_QUERY: ProjectsQuery = {
 export const STATUS_PARAM = "status";
 export const SORT_PARAM = "sort";
 export const DIRECTION_PARAM = "direction";
+
+/**
+ * The shape Next hands a page: a repeated param arrives as an array, and an
+ * absent one as `undefined`.
+ */
+export type SearchParams = Record<string, string | string[] | undefined>;
+
+/**
+ * The first value of a param. `?status=active&status=closed` is not a thing the
+ * list can mean, and the choice of which one to honour matters less than making
+ * it the same choice every time.
+ */
+function firstValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
