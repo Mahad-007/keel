@@ -95,3 +95,15 @@ export function projectsHref(query: ProjectsQuery): string {
   const search = params.toString();
   return search === "" ? PROJECTS_PATH : `${PROJECTS_PATH}?${search}`;
 }
+
+/**
+ * The same query with a different status filter. Changing the filter keeps the
+ * sort: someone who has ordered the list by last touched and then narrows to
+ * the active projects wants that ordering, not a reset.
+ */
+export function withStatus(
+  query: ProjectsQuery,
+  status: ProjectStatusFilter,
+): ProjectsQuery {
+  return { ...query, status };
+}
