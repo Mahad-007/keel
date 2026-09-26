@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import type { Database } from "@/lib/db";
@@ -866,5 +866,45 @@ describe("countProjectsByStatus after a status change", () => {
     await deleteProject(project.id, db);
 
     expect((await countProjectsByStatus(db)).paused).toBe(0);
+  });
+});
+
+describe("a project row with a status outside the enum", () => {
+  /**
+   * The column is plain TEXT, so this is reachable by hand-editing the database
+   * or by a migration that adds a status the code does not know yet. Written
+   * with raw SQL because the typed API cannot express it — which is the point.
+   */
+  async function corruptTheStatus(id: string): Promise<void> {
+    await db.run(sql`update projects set status = 'mothballed' where id = ${id}`);
+  }
+
+  it("is counted nowhere rather than throwing", async () => {
+    const project = await createProject({ clientId, name: "Odd one" }, db);
+    await corruptTheStatus(project.id);
+
+    expect(await countProjectsByStatus(db)).toEqual({
+      draft: 0,
+      active: 0,
+      paused: 0,
+      closed: 0,
+    });
+  });
+
+  it("leaves the other statuses counted correctly", async () => {
+    const odd = await createProject({ clientId, name: "Odd one" }, db);
+    await createProject({ clientId, name: "Normal", status: "active" }, db);
+    await corruptTheStatus(odd.id);
+
+    expect((await countProjectsByStatus(db)).active).toBe(1);
+  });
+
+  it("still shows up on the unfiltered list, so nothing is hidden", async () => {
+    const project = await createProject({ clientId, name: "Odd one" }, db);
+    await corruptTheStatus(project.id);
+
+    const rows = await listProjectsWithClient({}, db);
+
+    expect(rows.map((row) => row.name)).toEqual(["Odd one"]);
   });
 });
