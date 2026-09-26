@@ -1,6 +1,8 @@
+import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import type { Database } from "@/lib/db";
+import { projects } from "@/lib/db/schema";
 import type { ProjectStatus } from "@/lib/projects/status";
 import { createTestDb } from "@/lib/db/testing";
 
@@ -725,5 +727,54 @@ describe("listProjectsWithClient ordering", () => {
       "Third",
       "First, revised",
     ]);
+  });
+});
+
+describe("listProjectsWithClient ties", () => {
+  /**
+   * Two projects stamped with the same instant. Written through Drizzle rather
+   * than the data layer because the data layer takes its timestamps from the
+   * wall clock, and a tie that only sometimes happens is a test that only
+   * sometimes tests anything.
+   */
+  async function twoAtTheSameInstant(): Promise<void> {
+    const stamp = "2026-03-01T09:00:00.000Z";
+    for (const name of ["Alpha", "Beta"]) {
+      const project = await createProject({ clientId, name }, db);
+      await db
+        .update(projects)
+        .set({ createdAt: stamp, updatedAt: stamp })
+        .where(eq(projects.id, project.id));
+    }
+  }
+
+  it("breaks a created tie on the id, descending with the sort", async () => {
+    await twoAtTheSameInstant();
+
+    const rows = await listProjectsWithClient({}, db);
+    const ids = rows.map((row) => row.id);
+
+    expect(ids).toEqual([...ids].sort().reverse());
+  });
+
+  it("breaks the same tie the other way when ascending", async () => {
+    await twoAtTheSameInstant();
+
+    const rows = await listProjectsWithClient(
+      { sort: { column: "created", direction: "asc" } },
+      db,
+    );
+    const ids = rows.map((row) => row.id);
+
+    expect(ids).toEqual([...ids].sort());
+  });
+
+  it("orders identically on repeated reads of a tied list", async () => {
+    await twoAtTheSameInstant();
+
+    const first = await listProjectsWithClient({ sort: { column: "updated", direction: "desc" } }, db);
+    const second = await listProjectsWithClient({ sort: { column: "updated", direction: "desc" } }, db);
+
+    expect(first.map((row) => row.id)).toEqual(second.map((row) => row.id));
   });
 });
