@@ -97,3 +97,19 @@ export function ariaSortFor(
   if (sort.column !== column) return "none";
   return sort.direction === "asc" ? "ascending" : "descending";
 }
+
+/** The word in the column header. */
+export const PROJECT_SORT_COLUMN_LABELS: Record<ProjectSortColumn, string> = {
+  created: "Created",
+  updated: "Updated",
+};
+
+/**
+ * The same column named in a sentence. "Created" works as a header because the
+ * column of dates underneath it supplies the rest; a link's accessible name has
+ * no such help and has to say what the date is.
+ */
+export const PROJECT_SORT_COLUMN_PHRASES: Record<ProjectSortColumn, string> = {
+  created: "date created",
+  updated: "date last updated",
+};
