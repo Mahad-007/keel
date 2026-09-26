@@ -63,3 +63,22 @@ export const DEFAULT_PROJECT_SORT: ProjectSort = {
   column: DEFAULT_PROJECT_SORT_COLUMN,
   direction: DEFAULT_SORT_DIRECTION,
 };
+
+/**
+ * What clicking a column header should sort by.
+ *
+ * Clicking the column already sorted on reverses it — that is what a second
+ * click means everywhere. Clicking a different column moves to it in the
+ * default direction rather than carrying the old one over: an ascending
+ * `created` followed by a click on `updated` should not land you on the
+ * least-recently-touched project, which is not what the click asked for.
+ */
+export function sortByColumn(
+  current: ProjectSort,
+  column: ProjectSortColumn,
+): ProjectSort {
+  if (current.column !== column) {
+    return { column, direction: DEFAULT_SORT_DIRECTION };
+  }
+  return { column, direction: oppositeDirection(current.direction) };
+}
