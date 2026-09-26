@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { ProjectListRow } from "@/lib/data/projects";
+import { formatCents } from "@/lib/money";
 import { projectStatusLabel } from "@/lib/projects/status";
 
 /**
@@ -28,6 +29,9 @@ export function ProjectsTable({
           <th scope="col" className="py-2 pr-6 font-medium">
             Status
           </th>
+          <th scope="col" className="py-2 pr-6 text-right font-medium">
+            Contract value
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -49,6 +53,13 @@ export function ProjectsTable({
             </td>
             <td className="py-2.5 pr-6 text-zinc-700 dark:text-zinc-300">
               {projectStatusLabel(project.status)}
+            </td>
+            <td className="py-2.5 pr-6 text-right tabular-nums text-zinc-700 dark:text-zinc-300">
+              {project.contractValueCents === 0 ? (
+                <span className="text-zinc-400 dark:text-zinc-600">Not set</span>
+              ) : (
+                formatCents(project.contractValueCents)
+              )}
             </td>
           </tr>
         ))}
