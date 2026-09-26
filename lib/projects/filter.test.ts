@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   ALL_STATUSES,
   PROJECT_STATUS_FILTERS,
+  filteredStatus,
   isProjectStatusFilter,
   parseProjectStatusFilter,
 } from "./filter";
@@ -44,5 +45,17 @@ describe("parseProjectStatusFilter", () => {
     expect(parseProjectStatusFilter("")).toBe(ALL_STATUSES);
     expect(parseProjectStatusFilter("closd")).toBe(ALL_STATUSES);
     expect(parseProjectStatusFilter(["active"])).toBe(ALL_STATUSES);
+  });
+});
+
+describe("filteredStatus", () => {
+  it("hands each status straight through", () => {
+    for (const status of PROJECT_STATUSES) {
+      expect(filteredStatus(status)).toBe(status);
+    }
+  });
+
+  it("turns the unfiltered option into no restriction at all", () => {
+    expect(filteredStatus(ALL_STATUSES)).toBeUndefined();
   });
 });
