@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   ALL_STATUSES,
   PROJECT_STATUS_FILTERS,
+  filterCount,
   filteredStatus,
   isProjectStatusFilter,
   parseProjectStatusFilter,
@@ -75,5 +76,33 @@ describe("projectStatusFilterLabel", () => {
   it("labels every tab distinctly, so no two read the same", () => {
     const labels = PROJECT_STATUS_FILTERS.map(projectStatusFilterLabel);
     expect(new Set(labels).size).toBe(PROJECT_STATUS_FILTERS.length);
+  });
+});
+
+describe("filterCount", () => {
+  const counts = { draft: 2, active: 5, paused: 0, closed: 3 };
+
+  it("reads a status count straight off the record", () => {
+    expect(filterCount(counts, "active")).toBe(5);
+    expect(filterCount(counts, "paused")).toBe(0);
+  });
+
+  it("sums every status for the unfiltered tab", () => {
+    expect(filterCount(counts, ALL_STATUSES)).toBe(10);
+  });
+
+  it("is zero everywhere when there are no projects", () => {
+    const empty = { draft: 0, active: 0, paused: 0, closed: 0 };
+    for (const filter of PROJECT_STATUS_FILTERS) {
+      expect(filterCount(empty, filter)).toBe(0);
+    }
+  });
+
+  it("adds up to the unfiltered tab across the status tabs", () => {
+    const perStatus = PROJECT_STATUSES.reduce(
+      (total, status) => total + filterCount(counts, status),
+      0,
+    );
+    expect(perStatus).toBe(filterCount(counts, ALL_STATUSES));
   });
 });
