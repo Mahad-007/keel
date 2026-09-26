@@ -38,3 +38,17 @@ export function isProjectStatusFilter(
 export function parseProjectStatusFilter(value: unknown): ProjectStatusFilter {
   return isProjectStatusFilter(value) ? value : DEFAULT_PROJECT_STATUS_FILTER;
 }
+
+/**
+ * The filter as the data layer wants it: a status to restrict to, or
+ * `undefined` for no restriction.
+ *
+ * `all` is a fact about the UI — a tab that has to be nameable and linkable —
+ * and the query has no use for it. Translating here keeps the sentinel out of
+ * `lib/data/`, where a status column holding the string "all" would be a bug.
+ */
+export function filteredStatus(
+  filter: ProjectStatusFilter,
+): ProjectStatus | undefined {
+  return filter === ALL_STATUSES ? undefined : filter;
+}
