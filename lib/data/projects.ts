@@ -296,3 +296,11 @@ export async function listProjectsWithClient(
     )
     .orderBy(order(SORT_COLUMNS[column]), order(projects.id));
 }
+
+/** How many projects sit in each status. Every status is present, even at zero. */
+export type ProjectStatusCounts = Record<ProjectStatus, number>;
+
+/** A count of zero for every status, before the query fills any of them in. */
+function noProjects(): ProjectStatusCounts {
+  return { draft: 0, active: 0, paused: 0, closed: 0 };
+}
