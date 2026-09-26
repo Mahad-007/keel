@@ -167,4 +167,13 @@ describe("describeProjectsShown", () => {
       "0 of 4 projects on the books.",
     );
   });
+
+  it("keeps the noun singular when the whole book is one project", () => {
+    expect(describeProjectsShown("active", 1, 1)).toBe(
+      "1 of 1 project on the books.",
+    );
+    expect(describeProjectsShown("paused", 0, 1)).toBe(
+      "0 of 1 project on the books.",
+    );
+  });
 });
