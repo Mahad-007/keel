@@ -845,3 +845,26 @@ describe("countProjectsByStatus", () => {
     expect(counts.paused).toBe(0);
   });
 });
+
+describe("countProjectsByStatus after a status change", () => {
+  it("moves a project from its old status to its new one", async () => {
+    const project = await createProject({ clientId, name: "Agreed" }, db);
+
+    await updateProject(project.id, { status: "active" }, db);
+
+    const counts = await countProjectsByStatus(db);
+    expect(counts.draft).toBe(0);
+    expect(counts.active).toBe(1);
+  });
+
+  it("stops counting a project that was deleted", async () => {
+    const project = await createProject(
+      { clientId, name: "Mistake", status: "paused" },
+      db,
+    );
+
+    await deleteProject(project.id, db);
+
+    expect((await countProjectsByStatus(db)).paused).toBe(0);
+  });
+});
