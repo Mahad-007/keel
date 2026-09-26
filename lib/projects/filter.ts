@@ -114,5 +114,6 @@ export function describeProjectsShown(
   if (filter === ALL_STATUSES) {
     return total === 1 ? "One project on the books." : `${total} projects on the books.`;
   }
-  return `${shown} of ${total} projects on the books.`;
+  const noun = total === 1 ? "project" : "projects";
+  return `${shown} of ${total} ${noun} on the books.`;
 }
