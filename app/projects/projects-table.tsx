@@ -1,8 +1,13 @@
 import Link from "next/link";
 
 import type { ProjectListRow } from "@/lib/data/projects";
+import { formatDate } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
+import type { ProjectsQuery } from "@/lib/projects/query";
+import { PROJECT_SORT_COLUMN_LABELS } from "@/lib/projects/sort";
 import { projectStatusLabel } from "@/lib/projects/status";
+
+import { SortableHeader } from "./sortable-header";
 
 /**
  * The projects list itself.
@@ -13,8 +18,11 @@ import { projectStatusLabel } from "@/lib/projects/status";
  */
 export function ProjectsTable({
   projects,
+  query,
 }: {
   projects: ProjectListRow[];
+  /** The current query, so the two date headers can link to the next sort. */
+  query: ProjectsQuery;
 }) {
   return (
     <table className="mt-4 w-full border-collapse text-sm">
@@ -32,6 +40,12 @@ export function ProjectsTable({
           <th scope="col" className="py-2 pr-6 text-right font-medium">
             Contract value
           </th>
+          <SortableHeader query={query} column="created" className="pr-6 text-right">
+            {PROJECT_SORT_COLUMN_LABELS.created}
+          </SortableHeader>
+          <SortableHeader query={query} column="updated" className="text-right">
+            {PROJECT_SORT_COLUMN_LABELS.updated}
+          </SortableHeader>
         </tr>
       </thead>
       <tbody>
@@ -60,6 +74,12 @@ export function ProjectsTable({
               ) : (
                 formatCents(project.contractValueCents)
               )}
+            </td>
+            <td className="py-2.5 pr-6 text-right tabular-nums text-zinc-600 dark:text-zinc-400">
+              {formatDate(project.createdAt)}
+            </td>
+            <td className="py-2.5 text-right tabular-nums text-zinc-600 dark:text-zinc-400">
+              {formatDate(project.updatedAt)}
             </td>
           </tr>
         ))}
