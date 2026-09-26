@@ -11,6 +11,7 @@ import {
   getProject,
   listProjects,
   listProjectsForClient,
+  listProjectsWithClient,
   updateProject,
 } from "./projects";
 
@@ -563,5 +564,46 @@ describe("projects of an archived client", () => {
     const project = await createProject({ clientId, name: "Late arrival" }, db);
 
     expect(project.clientId).toBe(clientId);
+  });
+});
+
+describe("listProjectsWithClient", () => {
+  it("spells out the client every project belongs to", async () => {
+    const other = await createClient({ name: "Beam Ltd" }, db);
+    await createProject({ clientId, name: "Anvil site" }, db);
+    await tick();
+    await createProject({ clientId: other.id, name: "Beam app" }, db);
+
+    const rows = await listProjectsWithClient({}, db);
+
+    expect(rows.map((row) => [row.name, row.clientName])).toEqual([
+      ["Beam app", "Beam Ltd"],
+      ["Anvil site", "Anvil Co"],
+    ]);
+  });
+
+  it("carries every project column through the join", async () => {
+    const project = await createProject(
+      {
+        clientId,
+        name: "Website rebuild",
+        status: "active",
+        contractValueCents: 1_200_000,
+        rateCents: 15_000,
+      },
+      db,
+    );
+
+    const [row] = await listProjectsWithClient({}, db);
+
+    expect(row).toEqual({
+      ...project,
+      clientName: "Anvil Co",
+      clientArchivedAt: null,
+    });
+  });
+
+  it("returns nothing at all when there are no projects", async () => {
+    expect(await listProjectsWithClient({}, db)).toEqual([]);
   });
 });
