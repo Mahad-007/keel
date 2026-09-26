@@ -9,7 +9,9 @@ import {
   DEFAULT_SORT_DIRECTION,
   isProjectSortColumn,
   isSortDirection,
+  sortByColumn,
   type ProjectSort,
+  type ProjectSortColumn,
 } from "./sort";
 
 /**
@@ -106,4 +108,17 @@ export function withStatus(
   status: ProjectStatusFilter,
 ): ProjectsQuery {
   return { ...query, status };
+}
+
+/**
+ * The same query sorted by a column, which is what a header link points at:
+ * the filter is untouched, and clicking the column already sorted on reverses
+ * it. The rule itself lives in `sort.ts`; this only keeps the rest of the query
+ * along for the ride.
+ */
+export function withSortColumn(
+  query: ProjectsQuery,
+  column: ProjectSortColumn,
+): ProjectsQuery {
+  return { ...query, sort: sortByColumn(query.sort, column) };
 }
