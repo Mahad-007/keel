@@ -1,4 +1,8 @@
-import { PROJECT_STATUSES, type ProjectStatus } from "./status";
+import {
+  PROJECT_STATUSES,
+  projectStatusLabel,
+  type ProjectStatus,
+} from "./status";
 
 /**
  * The status filter on the projects list is a status plus one more option:
@@ -51,4 +55,13 @@ export function filteredStatus(
   filter: ProjectStatusFilter,
 ): ProjectStatus | undefined {
   return filter === ALL_STATUSES ? undefined : filter;
+}
+
+/**
+ * The word on a filter tab. The statuses use their own label; the unfiltered
+ * option says "All projects" rather than "All", because the tabs sit under a
+ * heading and "All" on its own leaves the reader to guess all of what.
+ */
+export function projectStatusFilterLabel(filter: ProjectStatusFilter): string {
+  return filter === ALL_STATUSES ? "All projects" : projectStatusLabel(filter);
 }
