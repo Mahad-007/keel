@@ -8,6 +8,7 @@ import { createTestDb } from "@/lib/db/testing";
 
 import { archiveClient, createClient } from "./clients";
 import {
+  countProjectsByStatus,
   createProject,
   deleteProject,
   getProject,
@@ -804,5 +805,43 @@ describe("listProjectsWithClient and archived clients", () => {
       ["Beam Ltd", false],
       ["Anvil Co", true],
     ]);
+  });
+});
+
+describe("countProjectsByStatus", () => {
+  it("counts zero of everything on an empty table", async () => {
+    expect(await countProjectsByStatus(db)).toEqual({
+      draft: 0,
+      active: 0,
+      paused: 0,
+      closed: 0,
+    });
+  });
+
+  it("counts the projects in each status", async () => {
+    await createProject({ clientId, name: "One", status: "active" }, db);
+    await createProject({ clientId, name: "Two", status: "active" }, db);
+    await createProject({ clientId, name: "Three", status: "closed" }, db);
+
+    expect(await countProjectsByStatus(db)).toEqual({
+      draft: 0,
+      active: 2,
+      paused: 0,
+      closed: 1,
+    });
+  });
+
+  it("keeps a status at zero rather than leaving it out", async () => {
+    await createProject({ clientId, name: "Only draft" }, db);
+
+    const counts = await countProjectsByStatus(db);
+
+    expect(Object.keys(counts).sort()).toEqual([
+      "active",
+      "closed",
+      "draft",
+      "paused",
+    ]);
+    expect(counts.paused).toBe(0);
   });
 });
