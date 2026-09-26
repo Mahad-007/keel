@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_PROJECTS_QUERY, parseProjectsQuery } from "./query";
+import { PROJECT_STATUS_FILTERS } from "./filter";
+import { PROJECT_SORT_COLUMNS, SORT_DIRECTIONS } from "./sort";
+import {
+  DEFAULT_PROJECTS_QUERY,
+  PROJECTS_PATH,
+  parseProjectsQuery,
+  projectsHref,
+} from "./query";
 
 describe("parseProjectsQuery", () => {
   it("reads a fully specified query", () => {
@@ -65,5 +72,42 @@ describe("parseProjectsQuery with junk params", () => {
     expect(parseProjectsQuery({ status: ["nope", "active"] })).toEqual(
       DEFAULT_PROJECTS_QUERY,
     );
+  });
+});
+
+describe("projectsHref", () => {
+  it("is the bare path for the default list", () => {
+    expect(projectsHref(DEFAULT_PROJECTS_QUERY)).toBe(PROJECTS_PATH);
+  });
+
+  it("names only the params that differ from the default", () => {
+    expect(
+      projectsHref({ status: "active", sort: { column: "created", direction: "desc" } }),
+    ).toBe("/projects?status=active");
+    expect(
+      projectsHref({ status: "all", sort: { column: "updated", direction: "desc" } }),
+    ).toBe("/projects?sort=updated");
+    expect(
+      projectsHref({ status: "all", sort: { column: "created", direction: "asc" } }),
+    ).toBe("/projects?direction=asc");
+  });
+
+  it("names all three when all three differ", () => {
+    expect(
+      projectsHref({ status: "closed", sort: { column: "updated", direction: "asc" } }),
+    ).toBe("/projects?status=closed&sort=updated&direction=asc");
+  });
+
+  it("round-trips every query the list can hold", () => {
+    for (const status of PROJECT_STATUS_FILTERS) {
+      for (const column of PROJECT_SORT_COLUMNS) {
+        for (const direction of SORT_DIRECTIONS) {
+          const query = { status, sort: { column, direction } };
+          const search = new URL(projectsHref(query), "https://keel.test")
+            .searchParams;
+          expect(parseProjectsQuery(Object.fromEntries(search))).toEqual(query);
+        }
+      }
+    }
   });
 });
