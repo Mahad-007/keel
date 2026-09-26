@@ -652,3 +652,78 @@ describe("listProjectsWithClient filtered by status", () => {
     ]);
   });
 });
+
+describe("listProjectsWithClient ordering", () => {
+  /**
+   * Three projects created in a known order, with the oldest then touched so
+   * that created order and updated order genuinely disagree — otherwise a sort
+   * by the wrong column passes.
+   */
+  async function threeInOrder(): Promise<string[]> {
+    const first = await createProject({ clientId, name: "First" }, db);
+    await tick();
+    const second = await createProject({ clientId, name: "Second" }, db);
+    await tick();
+    const third = await createProject({ clientId, name: "Third" }, db);
+    await tick();
+    await updateProject(first.id, { name: "First, revised" }, db);
+    return [first.id, second.id, third.id];
+  }
+
+  it("defaults to newest created first", async () => {
+    await threeInOrder();
+
+    const rows = await listProjectsWithClient({}, db);
+
+    expect(rows.map((row) => row.name)).toEqual([
+      "Third",
+      "Second",
+      "First, revised",
+    ]);
+  });
+
+  it("reads oldest created first when asked to ascend", async () => {
+    await threeInOrder();
+
+    const rows = await listProjectsWithClient(
+      { sort: { column: "created", direction: "asc" } },
+      db,
+    );
+
+    expect(rows.map((row) => row.name)).toEqual([
+      "First, revised",
+      "Second",
+      "Third",
+    ]);
+  });
+
+  it("puts the most recently touched project first when sorting by updated", async () => {
+    await threeInOrder();
+
+    const rows = await listProjectsWithClient(
+      { sort: { column: "updated", direction: "desc" } },
+      db,
+    );
+
+    expect(rows.map((row) => row.name)).toEqual([
+      "First, revised",
+      "Third",
+      "Second",
+    ]);
+  });
+
+  it("puts the stalest project first when sorting by updated ascending", async () => {
+    await threeInOrder();
+
+    const rows = await listProjectsWithClient(
+      { sort: { column: "updated", direction: "asc" } },
+      db,
+    );
+
+    expect(rows.map((row) => row.name)).toEqual([
+      "Second",
+      "Third",
+      "First, revised",
+    ]);
+  });
+});
