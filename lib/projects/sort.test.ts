@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  type ProjectSort,
   PROJECT_SORT_COLUMNS,
   SORT_DIRECTIONS,
   isProjectSortColumn,
   isSortDirection,
   oppositeDirection,
+  sortByColumn,
 } from "./sort";
 
 describe("isProjectSortColumn", () => {
@@ -60,5 +62,31 @@ describe("oppositeDirection", () => {
     for (const direction of SORT_DIRECTIONS) {
       expect(oppositeDirection(oppositeDirection(direction))).toBe(direction);
     }
+  });
+});
+
+describe("sortByColumn", () => {
+  it("reverses the column that is already sorted on", () => {
+    expect(sortByColumn({ column: "created", direction: "desc" }, "created")).toEqual({
+      column: "created",
+      direction: "asc",
+    });
+    expect(sortByColumn({ column: "created", direction: "asc" }, "created")).toEqual({
+      column: "created",
+      direction: "desc",
+    });
+  });
+
+  it("starts a different column at newest-first", () => {
+    expect(sortByColumn({ column: "created", direction: "asc" }, "updated")).toEqual({
+      column: "updated",
+      direction: "desc",
+    });
+  });
+
+  it("does not mutate the sort it was given", () => {
+    const current: ProjectSort = { column: "created", direction: "desc" };
+    sortByColumn(current, "updated");
+    expect(current).toEqual({ column: "created", direction: "desc" });
   });
 });
