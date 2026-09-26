@@ -65,3 +65,18 @@ export function filteredStatus(
 export function projectStatusFilterLabel(filter: ProjectStatusFilter): string {
   return filter === ALL_STATUSES ? "All projects" : projectStatusLabel(filter);
 }
+
+/**
+ * How many projects a filter tab would show, given a count per status.
+ *
+ * The unfiltered tab is the sum rather than a separate query: the per-status
+ * counts already account for every project, and asking the database twice for
+ * the same number invites the two answers to disagree.
+ */
+export function filterCount(
+  counts: Record<ProjectStatus, number>,
+  filter: ProjectStatusFilter,
+): number {
+  if (filter !== ALL_STATUSES) return counts[filter];
+  return PROJECT_STATUSES.reduce((total, status) => total + counts[status], 0);
+}
