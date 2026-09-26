@@ -607,3 +607,48 @@ describe("listProjectsWithClient", () => {
     expect(await listProjectsWithClient({}, db)).toEqual([]);
   });
 });
+
+describe("listProjectsWithClient filtered by status", () => {
+  /** One project per status, so a filter can be checked to pick out exactly one. */
+  async function oneOfEachStatus(): Promise<void> {
+    for (const status of ["draft", "active", "paused", "closed"] as const) {
+      await createProject({ clientId, name: `A ${status} one`, status }, db);
+      await tick();
+    }
+  }
+
+  it("returns only the projects in the status asked for", async () => {
+    await oneOfEachStatus();
+
+    const rows = await listProjectsWithClient({ status: "paused" }, db);
+
+    expect(rows.map((row) => row.name)).toEqual(["A paused one"]);
+  });
+
+  it("returns every status when none is asked for", async () => {
+    await oneOfEachStatus();
+
+    const rows = await listProjectsWithClient({}, db);
+
+    expect(rows).toHaveLength(4);
+  });
+
+  it("returns an empty list for a status nothing is in", async () => {
+    await createProject({ clientId, name: "Only a draft" }, db);
+
+    expect(await listProjectsWithClient({ status: "closed" }, db)).toEqual([]);
+  });
+
+  it("keeps the join and the ordering while filtering", async () => {
+    await createProject({ clientId, name: "First", status: "active" }, db);
+    await tick();
+    await createProject({ clientId, name: "Second", status: "active" }, db);
+
+    const rows = await listProjectsWithClient({ status: "active" }, db);
+
+    expect(rows.map((row) => [row.name, row.clientName])).toEqual([
+      ["Second", "Anvil Co"],
+      ["First", "Anvil Co"],
+    ]);
+  });
+});
