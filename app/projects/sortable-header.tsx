@@ -6,7 +6,11 @@ import {
   withSortColumn,
   type ProjectsQuery,
 } from "@/lib/projects/query";
-import { ariaSortFor, type ProjectSortColumn } from "@/lib/projects/sort";
+import {
+  ariaSortFor,
+  describeSortLink,
+  type ProjectSortColumn,
+} from "@/lib/projects/sort";
 
 /**
  * Which way the sorted column runs, shown as an arrow rather than a shaded
@@ -45,6 +49,8 @@ export function SortableHeader({
     >
       <Link
         href={projectsHref(withSortColumn(query, column))}
+        title={describeSortLink(query.sort, column)}
+        aria-label={describeSortLink(query.sort, column)}
         className="inline-flex items-center gap-1 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
       >
         {children}
