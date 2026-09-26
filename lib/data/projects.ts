@@ -229,3 +229,20 @@ export async function deleteProject(
     .returning();
   return row ?? null;
 }
+
+/**
+ * A project row with the client it belongs to spelled out.
+ *
+ * A list of projects that shows a `clientId` is unreadable, and a page that
+ * fetches the client for each row to fix that is a query per project. The join
+ * belongs in the query, so the extra columns belong on the row type.
+ *
+ * `clientArchivedAt` rides along because archiving a client does not delete
+ * their projects: the engagement still happened, and the list has to be able to
+ * say the client is off the books rather than quietly showing a live-looking
+ * name.
+ */
+export type ProjectListRow = Project & {
+  clientName: string;
+  clientArchivedAt: string | null;
+};
