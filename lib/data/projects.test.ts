@@ -778,3 +778,31 @@ describe("listProjectsWithClient ties", () => {
     expect(first.map((row) => row.id)).toEqual(second.map((row) => row.id));
   });
 });
+
+describe("listProjectsWithClient and archived clients", () => {
+  it("keeps the projects of a client who has left the books", async () => {
+    await createProject({ clientId, name: "Work that happened" }, db);
+    await archiveClient(clientId, db);
+
+    const rows = await listProjectsWithClient({}, db);
+
+    expect(rows.map((row) => row.name)).toEqual(["Work that happened"]);
+  });
+
+  it("reports when the joined client is archived, so the list can say so", async () => {
+    const other = await createClient({ name: "Beam Ltd" }, db);
+    await createProject({ clientId, name: "Anvil site" }, db);
+    await tick();
+    await createProject({ clientId: other.id, name: "Beam app" }, db);
+    await archiveClient(other.id, db);
+
+    const rows = await listProjectsWithClient({}, db);
+
+    expect(
+      rows.map((row) => [row.clientName, row.clientArchivedAt === null]),
+    ).toEqual([
+      ["Beam Ltd", false],
+      ["Anvil Co", true],
+    ]);
+  });
+});
