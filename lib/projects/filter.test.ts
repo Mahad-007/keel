@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   ALL_STATUSES,
   PROJECT_STATUS_FILTERS,
+  describeNoMatches,
   filterCount,
   filteredStatus,
   isProjectStatusFilter,
@@ -104,5 +105,33 @@ describe("filterCount", () => {
       0,
     );
     expect(perStatus).toBe(filterCount(counts, ALL_STATUSES));
+  });
+});
+
+describe("describeNoMatches", () => {
+  it("counts the projects the filter is holding back", () => {
+    expect(describeNoMatches("paused", 4)).toBe(
+      "There are 4 projects on the books, none of them paused.",
+    );
+  });
+
+  it("does not say \"1 projects\" when there is only one", () => {
+    expect(describeNoMatches("closed", 1)).toBe(
+      "There is one project on the books, and it is not closed.",
+    );
+  });
+
+  it("names the status in the words the filter tab used", () => {
+    for (const status of PROJECT_STATUSES) {
+      expect(describeNoMatches(status, 3).toLowerCase()).toContain(
+        projectStatusLabel(status).toLowerCase(),
+      );
+    }
+  });
+
+  it("ends in a full stop for every status", () => {
+    for (const status of PROJECT_STATUSES) {
+      expect(describeNoMatches(status, 2).endsWith(".")).toBe(true);
+    }
   });
 });
