@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  describeRateOverride,
   parseProjectTabParam,
   projectPath,
   projectTabHref,
@@ -64,5 +65,26 @@ describe("parseProjectTabParam", () => {
       const params = Object.fromEntries(new URLSearchParams(query));
       expect(parseProjectTabParam(params)).toBe(tab);
     }
+  });
+});
+
+describe("describeRateOverride", () => {
+  it("names the amount an override bills at", () => {
+    expect(describeRateOverride(15_000)).toBe(
+      "$150.00/hr, overriding the client's default.",
+    );
+  });
+
+  it("says an absent override defers to the client", () => {
+    expect(describeRateOverride(null)).toMatch(/client's default rate/);
+  });
+
+  it("tells a zero override apart from an absent one", () => {
+    expect(describeRateOverride(0)).not.toBe(describeRateOverride(null));
+    expect(describeRateOverride(0)).not.toContain("$0.00");
+  });
+
+  it("never renders a rate the project does not have", () => {
+    expect(describeRateOverride(null)).not.toContain("$");
   });
 });
