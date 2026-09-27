@@ -252,6 +252,36 @@ export type ProjectWithClient = Project & {
 };
 
 /**
+ * One project with its client's name, or null if there is no project with that
+ * id — what the project page reads.
+ *
+ * Its own query rather than `getProject` followed by `getClient`: the page
+ * cannot render a header without both, so two sequential round trips would be
+ * two waits for one screen, and a project whose client vanished between them
+ * would be a state the page has no way to show.
+ *
+ * The join is inner for the same reason the list's is: the foreign key
+ * guarantees the client row exists, so a left join would add a null case that
+ * cannot happen and that the page would then have to render something for.
+ */
+export async function getProjectWithClient(
+  id: string,
+  database: Database = db,
+): Promise<ProjectWithClient | null> {
+  const [row] = await database
+    .select({
+      ...getTableColumns(projects),
+      clientName: clients.name,
+      clientArchivedAt: clients.archivedAt,
+    })
+    .from(projects)
+    .innerJoin(clients, eq(clients.id, projects.clientId))
+    .where(eq(projects.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
+/**
  * What a list page asks for: the status to restrict to, if any, and the order
  * to return. Both optional, and the defaults are the ones the plain
  * `listProjects` already uses — every project, newest first.
