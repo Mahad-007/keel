@@ -92,6 +92,16 @@ export function describeProjectLifecycle(project: ProjectLifecycle): string {
         : `Paused, having started ${formatDate(started)}.`;
     case "closed":
       return describeClosed(started, closed);
+    default:
+      /**
+       * The status column is plain TEXT in SQLite, so the four values are a
+       * type-level promise a hand-edited row can break. Without this branch
+       * such a row returns undefined and the header renders a blank line
+       * where its sentence should be — the one failure that tells the reader
+       * nothing at all. Naming the value says what is actually stored, the
+       * same way the status label and the badge do.
+       */
+      return `Status "${String(project.status)}" is not one a project can be in.`;
   }
 }
 
