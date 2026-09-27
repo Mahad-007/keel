@@ -181,3 +181,64 @@ describe("describeProjectLifecycle while a project is open", () => {
     expect(describeProjectLifecycle(DRAFT)).not.toMatch(/\d{4}/);
   });
 });
+
+describe("describeProjectLifecycle once a project is closed", () => {
+  it("gives the span a closed project ran over", () => {
+    expect(
+      describeProjectLifecycle({
+        status: "closed",
+        startedAt: EARLIER,
+        closedAt: NOW,
+      }),
+    ).toBe("Ran from Mar 1, 2026 to Sep 24, 2026.");
+  });
+
+  it("gives only the close date for a project that never started", () => {
+    expect(
+      describeProjectLifecycle({
+        status: "closed",
+        startedAt: null,
+        closedAt: NOW,
+      }),
+    ).toBe("Closed Sep 24, 2026.");
+  });
+});
+
+describe("describeProjectLifecycle on a row written by hand", () => {
+  it("still says a project is closed with no close date to show", () => {
+    expect(
+      describeProjectLifecycle({
+        status: "closed",
+        startedAt: EARLIER,
+        closedAt: null,
+      }),
+    ).toBe("Closed.");
+  });
+
+  it("still says an active project is running with no start date", () => {
+    expect(
+      describeProjectLifecycle({
+        status: "active",
+        startedAt: null,
+        closedAt: null,
+      }),
+    ).toBe("Running.");
+  });
+
+  it("returns a sentence for every status, whatever the dates", () => {
+    const statuses = ["draft", "active", "paused", "closed"] as const;
+    for (const status of statuses) {
+      for (const startedAt of [null, EARLIER]) {
+        for (const closedAt of [null, NOW]) {
+          const sentence = describeProjectLifecycle({
+            status,
+            startedAt,
+            closedAt,
+          });
+          expect(sentence).toMatch(/\.$/);
+          expect(sentence).not.toContain("null");
+        }
+      }
+    }
+  });
+});
