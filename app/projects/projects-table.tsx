@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import type { ProjectWithClient } from "@/lib/data/projects";
 import { formatDate } from "@/lib/dates";
+import { projectPath } from "@/lib/projects/detail";
 import type { ProjectsQuery } from "@/lib/projects/query";
 import { PROJECT_SORT_COLUMN_LABELS } from "@/lib/projects/sort";
 import { projectStatusLabel } from "@/lib/projects/status";
@@ -13,8 +14,9 @@ import { SortableHeader } from "./sortable-header";
  * The projects list itself.
  *
  * A table, because every column here is a fact worth comparing down the page:
- * which client, what state, how much was agreed, when it last moved. The
- * project name is not a link yet — there is no project page to send it to.
+ * which client, what state, how much was agreed, when it last moved. The name
+ * is the way in to the project itself, which is where everything that is not
+ * comparable across projects lives.
  */
 export function ProjectsTable({
   projects,
@@ -55,7 +57,12 @@ export function ProjectsTable({
             className="border-b border-zinc-100 dark:border-zinc-900"
           >
             <td className="py-2.5 pr-6 font-medium text-zinc-900 dark:text-zinc-100">
-              {project.name}
+              <Link
+                href={projectPath(project.id)}
+                className="underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-900 dark:decoration-zinc-700 dark:hover:decoration-zinc-100"
+              >
+                {project.name}
+              </Link>
             </td>
             <td className="py-2.5 pr-6 text-zinc-700 dark:text-zinc-300">
               <Link
