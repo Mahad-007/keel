@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { lifecycleStamps, type ProjectLifecycle } from "./lifecycle";
+import {
+  describeProjectLifecycle,
+  lifecycleStamps,
+  type ProjectLifecycle,
+} from "./lifecycle";
 
 const DRAFT: ProjectLifecycle = {
   status: "draft",
@@ -145,5 +149,35 @@ describe("lifecycleStamps on returning to draft", () => {
       startedAt: null,
       closedAt: null,
     });
+  });
+});
+
+describe("describeProjectLifecycle while a project is open", () => {
+  it("says a draft has not started", () => {
+    expect(describeProjectLifecycle(DRAFT)).toBe("Not started — still a draft.");
+  });
+
+  it("dates an active project from when the work began", () => {
+    expect(
+      describeProjectLifecycle({
+        status: "active",
+        startedAt: EARLIER,
+        closedAt: null,
+      }),
+    ).toBe("Running since Mar 1, 2026.");
+  });
+
+  it("keeps the start date on a paused project", () => {
+    expect(
+      describeProjectLifecycle({
+        status: "paused",
+        startedAt: EARLIER,
+        closedAt: null,
+      }),
+    ).toBe("Paused, having started Mar 1, 2026.");
+  });
+
+  it("says nothing about a date a draft does not have", () => {
+    expect(describeProjectLifecycle(DRAFT)).not.toMatch(/\d{4}/);
   });
 });
