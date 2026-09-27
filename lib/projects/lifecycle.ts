@@ -1,3 +1,5 @@
+import { formatDate } from "@/lib/dates";
+
 import type { ProjectStatus } from "./status";
 
 /**
@@ -59,4 +61,48 @@ function closedAtFor(
   if (next !== "closed") return null;
   if (current.status === "closed") return current.closedAt ?? now;
   return now;
+}
+
+/**
+ * The two dates read back as a sentence, for the project header.
+ *
+ * A header showing `startedAt` and `closedAt` as two labelled cells makes the
+ * reader assemble the story themselves, and leaves the empty ones ambiguous —
+ * a blank start date on a paused project could mean "never started" or "we
+ * lost the date". One sentence says which, and says nothing at all about dates
+ * the project does not have.
+ *
+ * The status leads, because it is the thing that is true now; the dates are
+ * how it got there.
+ */
+export function describeProjectLifecycle(project: ProjectLifecycle): string {
+  const started = project.startedAt;
+  const closed = project.closedAt;
+
+  switch (project.status) {
+    case "draft":
+      return "Not started — still a draft.";
+    case "active":
+      return started === null
+        ? "Running."
+        : `Running since ${formatDate(started)}.`;
+    case "paused":
+      return started === null
+        ? "Paused."
+        : `Paused, having started ${formatDate(started)}.`;
+    case "closed":
+      return describeClosed(started, closed);
+  }
+}
+
+/**
+ * A closed project is the one case with two dates worth having, and the span
+ * between them is the fact somebody is actually after. Either date may be
+ * missing on a row that was written by hand, so each is mentioned only if it
+ * is there.
+ */
+function describeClosed(started: string | null, closed: string | null): string {
+  if (closed === null) return "Closed.";
+  if (started === null) return `Closed ${formatDate(closed)}.`;
+  return `Ran from ${formatDate(started)} to ${formatDate(closed)}.`;
 }
