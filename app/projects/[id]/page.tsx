@@ -5,6 +5,7 @@ import { parseProjectTabParam } from "@/lib/projects/detail";
 
 import { ProjectHeader } from "./project-header";
 import { ProjectTabs } from "./project-tabs";
+import { UnbuiltTabPanel } from "./unbuilt-panel";
 
 /**
  * Read at request time. A project is the page most likely to be open while
@@ -30,6 +31,7 @@ export default async function ProjectPage({
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 font-sans">
       <ProjectHeader project={project} />
       <ProjectTabs projectId={project.id} current={tab} />
+      <UnbuiltTabPanel tab={tab} />
     </main>
   );
 }
