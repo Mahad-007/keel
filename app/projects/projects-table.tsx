@@ -2,11 +2,11 @@ import Link from "next/link";
 
 import type { ProjectWithClient } from "@/lib/data/projects";
 import { formatDate } from "@/lib/dates";
-import { formatCents } from "@/lib/money";
 import type { ProjectsQuery } from "@/lib/projects/query";
 import { PROJECT_SORT_COLUMN_LABELS } from "@/lib/projects/sort";
 import { projectStatusLabel } from "@/lib/projects/status";
 
+import { ContractValue } from "./contract-value";
 import { SortableHeader } from "./sortable-header";
 
 /**
@@ -79,11 +79,7 @@ export function ProjectsTable({
               {projectStatusLabel(project.status)}
             </td>
             <td className="py-2.5 pr-6 text-right tabular-nums text-zinc-700 dark:text-zinc-300">
-              {project.contractValueCents === 0 ? (
-                <span className="text-zinc-400 dark:text-zinc-600">Not set</span>
-              ) : (
-                formatCents(project.contractValueCents)
-              )}
+              <ContractValue cents={project.contractValueCents} />
             </td>
             <td className="py-2.5 pr-6 text-right tabular-nums text-zinc-600 dark:text-zinc-400">
               {formatDate(project.createdAt)}
