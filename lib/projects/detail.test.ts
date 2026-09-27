@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { projectPath, projectTabHref } from "./detail";
+import {
+  parseProjectTabParam,
+  projectPath,
+  projectTabHref,
+} from "./detail";
 import { DEFAULT_PROJECT_TAB, PROJECT_TABS } from "./tabs";
 
 describe("projectPath", () => {
@@ -34,5 +38,31 @@ describe("projectTabHref", () => {
   it("gives each tab a distinct address", () => {
     const hrefs = PROJECT_TABS.map((tab) => projectTabHref("prj_1", tab));
     expect(new Set(hrefs).size).toBe(PROJECT_TABS.length);
+  });
+});
+
+describe("parseProjectTabParam", () => {
+  it("reads the tab the URL asked for", () => {
+    expect(parseProjectTabParam({ tab: "time" })).toBe("time");
+  });
+
+  it("falls back to the default when no tab is named", () => {
+    expect(parseProjectTabParam({})).toBe(DEFAULT_PROJECT_TAB);
+  });
+
+  it("falls back rather than failing on a tab that does not exist", () => {
+    expect(parseProjectTabParam({ tab: "burn" })).toBe(DEFAULT_PROJECT_TAB);
+  });
+
+  it("takes the first of a repeated tab param", () => {
+    expect(parseProjectTabParam({ tab: ["scope", "invoices"] })).toBe("scope");
+  });
+
+  it("round-trips every tab through its own href", () => {
+    for (const tab of PROJECT_TABS) {
+      const query = projectTabHref("prj_1", tab).split("?")[1] ?? "";
+      const params = Object.fromEntries(new URLSearchParams(query));
+      expect(parseProjectTabParam(params)).toBe(tab);
+    }
   });
 });
