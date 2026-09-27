@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getProjectWithClient } from "@/lib/data/projects";
 import { parseProjectTabParam } from "@/lib/projects/detail";
 
+import { OverviewPanel } from "./overview-panel";
 import { ProjectHeader } from "./project-header";
 import { ProjectTabs } from "./project-tabs";
 import { UnbuiltTabPanel } from "./unbuilt-panel";
@@ -31,7 +32,16 @@ export default async function ProjectPage({
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 font-sans">
       <ProjectHeader project={project} />
       <ProjectTabs projectId={project.id} current={tab} />
-      <UnbuiltTabPanel tab={tab} />
+      {/*
+        Overview is the only tab with anything behind it today. The other four
+        say so themselves rather than rendering an empty box, and each one drops
+        out of here as the phase that builds it lands.
+      */}
+      {tab === "overview" ? (
+        <OverviewPanel project={project} />
+      ) : (
+        <UnbuiltTabPanel tab={tab} />
+      )}
     </main>
   );
 }
