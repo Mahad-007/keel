@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { ProjectWithClient } from "@/lib/data/projects";
+import { describeProjectLifecycle } from "@/lib/projects/lifecycle";
 
 import { ContractValue } from "../contract-value";
 import { ProjectStatusBadge } from "../status-badge";
@@ -59,6 +60,14 @@ export function ProjectHeader({ project }: { project: ProjectWithClient }) {
           </dl>
         </div>
       </div>
+      {/*
+        The badge says which state the project is in; this says since when, and
+        it is the half a reader actually acts on. "Paused" alone is a fact;
+        "paused, having started in March" is a reason to go and do something.
+      */}
+      <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+        {describeProjectLifecycle(project)}
+      </p>
     </header>
   );
 }
