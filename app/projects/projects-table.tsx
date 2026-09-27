@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import type { ProjectListRow } from "@/lib/data/projects";
+import type { ProjectWithClient } from "@/lib/data/projects";
 import { formatDate } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
 import type { ProjectsQuery } from "@/lib/projects/query";
@@ -20,7 +20,7 @@ export function ProjectsTable({
   projects,
   query,
 }: {
-  projects: ProjectListRow[];
+  projects: ProjectWithClient[];
   /** The current query, so the two date headers can link to the next sort. */
   query: ProjectsQuery;
 }) {

@@ -237,14 +237,16 @@ export async function deleteProject(
  *
  * A list of projects that shows a `clientId` is unreadable, and a page that
  * fetches the client for each row to fix that is a query per project. The join
- * belongs in the query, so the extra columns belong on the row type.
+ * belongs in the query, so the extra columns belong on the row type. The
+ * detail page needs exactly the same three facts as the list, so it is one
+ * type rather than two that would drift.
  *
  * `clientArchivedAt` rides along because archiving a client does not delete
  * their projects: the engagement still happened, and the list has to be able to
  * say the client is off the books rather than quietly showing a live-looking
  * name.
  */
-export type ProjectListRow = Project & {
+export type ProjectWithClient = Project & {
   clientName: string;
   clientArchivedAt: string | null;
 };
@@ -280,7 +282,7 @@ const SORT_COLUMNS = {
 export async function listProjectsWithClient(
   query: ProjectListQuery = {},
   database: Database = db,
-): Promise<ProjectListRow[]> {
+): Promise<ProjectWithClient[]> {
   const { column, direction } = query.sort ?? DEFAULT_PROJECT_SORT;
   const order = direction === "asc" ? asc : desc;
 
