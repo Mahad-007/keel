@@ -68,6 +68,19 @@ export function ProjectHeader({ project }: { project: ProjectWithClient }) {
       <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
         {describeProjectLifecycle(project)}
       </p>
+      {/*
+        Archiving a client hides them from the client list but leaves their
+        projects alone, so the client link above points somewhere the reader
+        cannot otherwise reach. Saying so here stops that reading as a broken
+        link, and stops the project reading as live work for a live client.
+      */}
+      {project.clientArchivedAt === null ? null : (
+        <p className="mt-2 max-w-prose text-sm text-zinc-600 dark:text-zinc-400">
+          {project.clientName} is archived and no longer on the client list.
+          This project is not: closing the book on a client does not undo the
+          work that was done for them.
+        </p>
+      )}
     </header>
   );
 }
