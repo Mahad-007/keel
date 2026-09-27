@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import type { ProjectWithClient } from "@/lib/data/projects";
 
+import { ContractValue } from "../contract-value";
 import { ProjectStatusBadge } from "../status-badge";
 
 /**
@@ -42,6 +43,20 @@ export function ProjectHeader({ project }: { project: ProjectWithClient }) {
         </div>
         <div className="shrink-0 pt-1 text-right">
           <ProjectStatusBadge status={project.status} />
+          {/*
+            The contract value is the number every later phase is measured
+            against — burn, creep, what a change order is worth — so it belongs
+            in the header rather than a tab, where it stays on screen whichever
+            tab is open.
+          */}
+          <dl className="mt-3">
+            <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              Contract value
+            </dt>
+            <dd className="mt-0.5 text-lg tabular-nums text-zinc-900 dark:text-zinc-100">
+              <ContractValue cents={project.contractValueCents} />
+            </dd>
+          </dl>
         </div>
       </div>
     </header>
