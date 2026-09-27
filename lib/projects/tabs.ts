@@ -60,3 +60,25 @@ export const PROJECT_TAB_LABELS: Record<ProjectTab, string> = {
   changes: "Change orders",
   invoices: "Invoices",
 };
+
+/**
+ * What each tab is for, in a sentence.
+ *
+ * Four of the five are empty until later phases fill them in, and an empty
+ * panel under a bare heading tells a reader nothing — least of all whether the
+ * section is empty because there is no data or because there is no feature.
+ * Saying what belongs there answers that, and the sentences stay useful after
+ * the sections are built: they are the description of the tab, not an apology
+ * for it.
+ */
+export const PROJECT_TAB_SUMMARIES: Record<ProjectTab, string> = {
+  overview:
+    "The facts on record for this engagement: who it is for, what state it is in, and what was agreed.",
+  scope:
+    "The deliverables agreed for this project, what each was estimated at, and how that compares to the contract value.",
+  time: "Every minute logged against this project, grouped by day and attributed to the deliverable it went into.",
+  changes:
+    "Change orders raised when the work outgrew what was agreed, and whether the client accepted them.",
+  invoices:
+    "What has been billed out of this project, what is still unbilled, and what is outstanding.",
+};
