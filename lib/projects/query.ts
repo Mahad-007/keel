@@ -48,8 +48,14 @@ export type SearchParams = Record<string, string | string[] | undefined>;
  * The first value of a param. `?status=active&status=closed` is not a thing the
  * list can mean, and the choice of which one to honour matters less than making
  * it the same choice every time.
+ *
+ * Exported because the project detail page reads a `?tab=` param the same way,
+ * and two parsers disagreeing about which of a repeated param wins is the kind
+ * of difference nobody notices until a URL behaves differently in two places.
  */
-function firstValue(value: string | string[] | undefined): string | undefined {
+export function firstParam(
+  value: string | string[] | undefined,
+): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
@@ -60,11 +66,11 @@ function firstValue(value: string | string[] | undefined): string | undefined {
  * in one place is still a request for the rest of what it asks.
  */
 export function parseProjectsQuery(params: SearchParams): ProjectsQuery {
-  const column = firstValue(params[SORT_PARAM]);
-  const direction = firstValue(params[DIRECTION_PARAM]);
+  const column = firstParam(params[SORT_PARAM]);
+  const direction = firstParam(params[DIRECTION_PARAM]);
 
   return {
-    status: parseProjectStatusFilter(firstValue(params[STATUS_PARAM])),
+    status: parseProjectStatusFilter(firstParam(params[STATUS_PARAM])),
     sort: {
       column: isProjectSortColumn(column) ? column : DEFAULT_PROJECT_SORT_COLUMN,
       direction: isSortDirection(direction) ? direction : DEFAULT_SORT_DIRECTION,
