@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import type { ProjectWithClient } from "@/lib/data/projects";
 import { describeProjectLifecycle } from "@/lib/projects/lifecycle";
+import { PROJECTS_PATH } from "@/lib/projects/query";
 
 import { ContractValue } from "../contract-value";
 import { ProjectStatusBadge } from "../status-badge";
@@ -22,7 +23,7 @@ export function ProjectHeader({ project }: { project: ProjectWithClient }) {
   return (
     <header className="border-b border-zinc-200 pb-5 dark:border-zinc-800">
       <Link
-        href="/projects"
+        href={PROJECTS_PATH}
         className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
       >
         Projects
