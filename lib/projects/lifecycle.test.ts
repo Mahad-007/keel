@@ -225,6 +225,17 @@ describe("describeProjectLifecycle on a row written by hand", () => {
     ).toBe("Running.");
   });
 
+  it("names a status outside the enum rather than going blank", () => {
+    const sentence = describeProjectLifecycle({
+      status: "archived" as ProjectLifecycle["status"],
+      startedAt: EARLIER,
+      closedAt: null,
+    });
+
+    expect(sentence).toContain("archived");
+    expect(sentence).toMatch(/\.$/);
+  });
+
   it("returns a sentence for every status, whatever the dates", () => {
     const statuses = ["draft", "active", "paused", "closed"] as const;
     for (const status of statuses) {
