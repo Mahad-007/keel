@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 
 import { getProjectWithClient } from "@/lib/data/projects";
+import { parseProjectTabParam } from "@/lib/projects/detail";
 
 import { ProjectHeader } from "./project-header";
+import { ProjectTabs } from "./project-tabs";
 
 /**
  * Read at request time. A project is the page most likely to be open while
@@ -13,6 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ProjectPage({
   params,
+  searchParams,
 }: PageProps<"/projects/[id]">) {
   const { id } = await params;
   const project = await getProjectWithClient(id);
@@ -21,9 +24,12 @@ export default async function ProjectPage({
   // the row is gone for good — there is no archive to send the reader to.
   if (project === null) notFound();
 
+  const tab = parseProjectTabParam(await searchParams);
+
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 font-sans">
       <ProjectHeader project={project} />
+      <ProjectTabs projectId={project.id} current={tab} />
     </main>
   );
 }
