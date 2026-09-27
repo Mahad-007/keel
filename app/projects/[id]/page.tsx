@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { getProjectWithClient } from "@/lib/data/projects";
 import { parseProjectTabParam } from "@/lib/projects/detail";
+import { PROJECT_TAB_LABELS } from "@/lib/projects/tabs";
 
 import { OverviewPanel } from "./overview-panel";
 import { ProjectHeader } from "./project-header";
@@ -14,6 +15,9 @@ import { UnbuiltTabPanel } from "./unbuilt-panel";
  * show a contract value that had already moved.
  */
 export const dynamic = "force-dynamic";
+
+/** Ties the panel below the tabs to the heading that names it. */
+const TAB_HEADING_ID = "project-tab-heading";
 
 export default async function ProjectPage({
   params,
@@ -37,11 +41,22 @@ export default async function ProjectPage({
         say so themselves rather than rendering an empty box, and each one drops
         out of here as the phase that builds it lands.
       */}
-      {tab === "overview" ? (
-        <OverviewPanel project={project} />
-      ) : (
-        <UnbuiltTabPanel tab={tab} />
-      )}
+      <section aria-labelledby={TAB_HEADING_ID}>
+        {/*
+          The tab row is a set of links, so nothing in the markup otherwise says
+          which one the content below belongs to. A heading does, and keeping it
+          visually hidden avoids repeating on screen the word that is already
+          underlined an inch above it.
+        */}
+        <h2 id={TAB_HEADING_ID} className="sr-only">
+          {PROJECT_TAB_LABELS[tab]}
+        </h2>
+        {tab === "overview" ? (
+          <OverviewPanel project={project} />
+        ) : (
+          <UnbuiltTabPanel tab={tab} />
+        )}
+      </section>
     </main>
   );
 }
