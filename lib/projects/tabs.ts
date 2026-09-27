@@ -47,3 +47,16 @@ export function isProjectTab(value: unknown): value is ProjectTab {
 export function parseProjectTab(value: unknown): ProjectTab {
   return isProjectTab(value) ? value : DEFAULT_PROJECT_TAB;
 }
+
+/**
+ * The word on each tab. A record rather than a capitalisation of the key, so
+ * `changes` can read as "Change orders" — the thing it holds — and so adding a
+ * tab without deciding what to call it fails to compile.
+ */
+export const PROJECT_TAB_LABELS: Record<ProjectTab, string> = {
+  overview: "Overview",
+  scope: "Scope",
+  time: "Time",
+  changes: "Change orders",
+  invoices: "Invoices",
+};
