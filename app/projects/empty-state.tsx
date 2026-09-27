@@ -1,42 +1,7 @@
-import Link from "next/link";
-import type { ReactNode } from "react";
-
 import { describeNoMatches } from "@/lib/projects/filter";
 import { projectStatusLabel, type ProjectStatus } from "@/lib/projects/status";
 
-/**
- * The shape both empty states share: a dashed panel, a heading that names the
- * situation, a paragraph or two explaining it, and one way out. Shared so the
- * two states can differ in what they say without also drifting in how they
- * look — a page where the empty panels are subtly different sizes reads as a
- * mistake.
- */
-function EmptyPanel({
-  heading,
-  action,
-  children,
-}: {
-  heading: string;
-  action: { href: string; label: string };
-  children: ReactNode;
-}) {
-  return (
-    <div className="mt-4 rounded border border-dashed border-zinc-300 px-6 py-10 dark:border-zinc-700">
-      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-        {heading}
-      </p>
-      <div className="mt-1 max-w-prose space-y-3 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-        {children}
-      </div>
-      <Link
-        href={action.href}
-        className="mt-4 inline-block text-sm font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-600 dark:text-zinc-100 dark:hover:text-zinc-400"
-      >
-        {action.label}
-      </Link>
-    </div>
-  );
-}
+import { EmptyPanel } from "./empty-panel";
 
 /**
  * Nothing in the table because there is nothing in the database.
