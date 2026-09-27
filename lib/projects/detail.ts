@@ -1,4 +1,5 @@
 import { PROJECTS_PATH } from "./query";
+import { DEFAULT_PROJECT_TAB, type ProjectTab } from "./tabs";
 
 /**
  * Where a project's own page lives, and how the tab on it is addressed.
@@ -21,4 +22,18 @@ export const TAB_PARAM = "tab";
  */
 export function projectPath(id: string): string {
   return `${PROJECTS_PATH}/${encodeURIComponent(id)}`;
+}
+
+/**
+ * The address of one tab of one project.
+ *
+ * The default tab is left out of the URL, so a project has exactly one
+ * canonical address — `/projects/prj_x`, not that plus `?tab=overview`
+ * rendering the same page. The tab row marks the current tab by comparing
+ * hrefs, and two spellings of the same place would leave nothing marked.
+ */
+export function projectTabHref(id: string, tab: ProjectTab): string {
+  const path = projectPath(id);
+  if (tab === DEFAULT_PROJECT_TAB) return path;
+  return `${path}?${TAB_PARAM}=${encodeURIComponent(tab)}`;
 }
