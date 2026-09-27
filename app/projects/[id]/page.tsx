@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 
 import { getProjectWithClient } from "@/lib/data/projects";
 import { parseProjectTabParam } from "@/lib/projects/detail";
@@ -19,12 +21,32 @@ export const dynamic = "force-dynamic";
 /** Ties the panel below the tabs to the heading that names it. */
 const TAB_HEADING_ID = "project-tab-heading";
 
+/**
+ * The page and its title both need the project, and Next calls
+ * `generateMetadata` and the component separately. `cache` makes the second
+ * call of a request a lookup rather than a second round trip — and guarantees
+ * the two agree, so the tab cannot end up titled after a name the body no
+ * longer shows.
+ */
+const loadProject = cache(getProjectWithClient);
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/projects/[id]">): Promise<Metadata> {
+  const { id } = await params;
+  const project = await loadProject(id);
+  // A browser tab is often the only thing distinguishing two open projects, so
+  // the name leads and the product name follows, as everywhere else.
+  if (project === null) return { title: "No such project · Keel" };
+  return { title: `${project.name} · Keel` };
+}
+
 export default async function ProjectPage({
   params,
   searchParams,
 }: PageProps<"/projects/[id]">) {
   const { id } = await params;
-  const project = await getProjectWithClient(id);
+  const project = await loadProject(id);
 
   // Projects are deleted outright rather than archived, so a missing id means
   // the row is gone for good — there is no archive to send the reader to.
