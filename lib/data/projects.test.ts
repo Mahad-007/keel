@@ -12,6 +12,7 @@ import {
   createProject,
   deleteProject,
   getProject,
+  getProjectWithClient,
   listProjects,
   listProjectsForClient,
   listProjectsWithClient,
@@ -567,6 +568,51 @@ describe("projects of an archived client", () => {
     const project = await createProject({ clientId, name: "Late arrival" }, db);
 
     expect(project.clientId).toBe(clientId);
+  });
+});
+
+describe("getProjectWithClient", () => {
+  it("returns the project with its client's name attached", async () => {
+    const project = await createProject(
+      {
+        clientId,
+        name: "Website rebuild",
+        status: "active",
+        contractValueCents: 1_200_000,
+        rateCents: 15_000,
+      },
+      db,
+    );
+
+    expect(await getProjectWithClient(project.id, db)).toEqual({
+      ...project,
+      clientName: "Anvil Co",
+      clientArchivedAt: null,
+    });
+  });
+
+  it("returns null for an id no project has", async () => {
+    expect(await getProjectWithClient("prj_nope", db)).toBeNull();
+  });
+
+  it("picks out the one project asked for, not the newest", async () => {
+    const first = await createProject({ clientId, name: "First" }, db);
+    await tick();
+    await createProject({ clientId, name: "Second" }, db);
+
+    const row = await getProjectWithClient(first.id, db);
+
+    expect(row?.name).toBe("First");
+  });
+
+  it("still finds a project whose client has been archived", async () => {
+    const project = await createProject({ clientId, name: "Old job" }, db);
+    await archiveClient(clientId, db);
+
+    const row = await getProjectWithClient(project.id, db);
+
+    expect(row?.clientName).toBe("Anvil Co");
+    expect(row?.clientArchivedAt).not.toBeNull();
   });
 });
 
