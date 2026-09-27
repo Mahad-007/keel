@@ -1,3 +1,5 @@
+import { formatCents } from "@/lib/money";
+
 import { firstParam, PROJECTS_PATH, type SearchParams } from "./query";
 import {
   DEFAULT_PROJECT_TAB,
@@ -6,7 +8,8 @@ import {
 } from "./tabs";
 
 /**
- * Where a project's own page lives, and how the tab on it is addressed.
+ * What the project detail page needs that is not a database read: where it
+ * lives, how its tabs are addressed, and the sentences it puts on screen.
  *
  * The same reasoning as the list: the tab is in the URL rather than in
  * component state, so a tab is a link — shareable, bookmarkable, survives a
@@ -51,4 +54,23 @@ export function projectTabHref(id: string, tab: ProjectTab): string {
  */
 export function parseProjectTabParam(params: SearchParams): ProjectTab {
   return parseProjectTab(firstParam(params[TAB_PARAM]));
+}
+
+/**
+ * What a project's rate override means, in words.
+ *
+ * Three cases, and the difference between two of them is the whole reason the
+ * column is nullable: NULL is "bill this at whatever the client bills at", and
+ * zero is "bill this at nothing". Printing `$0.00/hr` for both would collapse a
+ * deliberate decision into a missing one, and printing nothing for NULL leaves
+ * the reader unsure whether the rate is inherited or lost.
+ */
+export function describeRateOverride(rateCents: number | null): string {
+  if (rateCents === null) {
+    return "No override — bills at the client's default rate.";
+  }
+  if (rateCents === 0) {
+    return "Overridden to nothing — this project does not bill by the hour.";
+  }
+  return `${formatCents(rateCents)}/hr, overriding the client's default.`;
 }
