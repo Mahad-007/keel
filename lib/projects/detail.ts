@@ -1,5 +1,9 @@
-import { PROJECTS_PATH } from "./query";
-import { DEFAULT_PROJECT_TAB, type ProjectTab } from "./tabs";
+import { firstParam, PROJECTS_PATH, type SearchParams } from "./query";
+import {
+  DEFAULT_PROJECT_TAB,
+  parseProjectTab,
+  type ProjectTab,
+} from "./tabs";
 
 /**
  * Where a project's own page lives, and how the tab on it is addressed.
@@ -36,4 +40,15 @@ export function projectTabHref(id: string, tab: ProjectTab): string {
   const path = projectPath(id);
   if (tab === DEFAULT_PROJECT_TAB) return path;
   return `${path}?${TAB_PARAM}=${encodeURIComponent(tab)}`;
+}
+
+/**
+ * Which tab a request is asking for, out of the page's search params.
+ *
+ * Anything unrecognised lands on the default rather than 404ing: the project
+ * exists, and refusing to show it because one query param is stale would throw
+ * away the part of the URL that matters for the part that does not.
+ */
+export function parseProjectTabParam(params: SearchParams): ProjectTab {
+  return parseProjectTab(firstParam(params[TAB_PARAM]));
 }
