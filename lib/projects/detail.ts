@@ -32,6 +32,15 @@ export function projectPath(id: string): string {
 }
 
 /**
+ * The address of one project's edit form. A suffix on the project's own path
+ * rather than a second spelling of it, so an id that needs escaping is escaped
+ * once, in one place.
+ */
+export function projectEditPath(id: string): string {
+  return `${projectPath(id)}/edit`;
+}
+
+/**
  * The address of one tab of one project.
  *
  * The default tab is left out of the URL, so a project has exactly one

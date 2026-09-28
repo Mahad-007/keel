@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   describeRateOverride,
   parseProjectTabParam,
+  projectEditPath,
   projectPath,
   projectTabHref,
 } from "./detail";
@@ -16,6 +17,16 @@ describe("projectPath", () => {
   it("escapes an id that would otherwise change the path", () => {
     expect(projectPath("a/b")).toBe("/projects/a%2Fb");
     expect(projectPath("a?b=1")).toBe("/projects/a%3Fb%3D1");
+  });
+});
+
+describe("projectEditPath", () => {
+  it("hangs the form off the project's own page", () => {
+    expect(projectEditPath("prj_abc123")).toBe("/projects/prj_abc123/edit");
+  });
+
+  it("escapes the id exactly once, the way the project path does", () => {
+    expect(projectEditPath("a/b")).toBe("/projects/a%2Fb/edit");
   });
 });
 
