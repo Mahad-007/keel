@@ -1,4 +1,5 @@
 import type { NewProjectInput } from "@/lib/data/projects";
+import { optionalAmountCents } from "@/lib/forms/amount";
 import { requiredChoice } from "@/lib/forms/choice";
 import { readFields } from "@/lib/forms/form-data";
 import { collect, type FieldErrors, type ParseResult } from "@/lib/forms/result";
@@ -78,7 +79,10 @@ export function readProjectFields(formData: FormData): ProjectFormFields {
  * project row is made of, which the data layer accepts whole as a new project
  * or as a patch to an existing one.
  */
-export type ProjectFormValue = Pick<NewProjectInput, "clientId" | "name">;
+export type ProjectFormValue = Pick<
+  NewProjectInput,
+  "clientId" | "name" | "contractValueCents"
+>;
 
 /**
  * `clientIds` is the set the form actually offered. Validating against it
@@ -101,10 +105,14 @@ export function parseProjectForm(
       label: "Name",
       max: PROJECT_FIELD_LIMITS.name,
     }),
+    contractValue: optionalAmountCents(fields.contractValue),
   });
 
   if (!parsed.ok) return parsed;
 
-  const { client, name } = parsed.value;
-  return { ok: true, value: { clientId: client, name } };
+  const { client, name, contractValue } = parsed.value;
+  return {
+    ok: true,
+    value: { clientId: client, name, contractValueCents: contractValue },
+  };
 }
