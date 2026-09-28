@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Client } from "@/lib/db/schema";
 
-import { clientOptionLabel } from "./options";
+import { clientOptionLabel, clientOptions } from "./options";
 
 function client(fields: Partial<Client> = {}): Client {
   return {
@@ -37,5 +37,23 @@ describe("clientOptionLabel", () => {
 
   it("ignores a company of nothing but whitespace", () => {
     expect(clientOptionLabel(client({ company: "   " }))).toBe("Ada Lovelace");
+  });
+});
+
+describe("clientOptions", () => {
+  it("offers every client it is given, in the order given", () => {
+    const options = clientOptions([
+      client({ id: "cli_ada", name: "Ada Lovelace" }),
+      client({ id: "cli_grace", name: "Grace Hopper", company: "UNIVAC" }),
+    ]);
+
+    expect(options).toEqual([
+      { id: "cli_ada", label: "Ada Lovelace", archived: false },
+      { id: "cli_grace", label: "Grace Hopper — UNIVAC", archived: false },
+    ]);
+  });
+
+  it("offers nothing when there are no clients", () => {
+    expect(clientOptions([])).toEqual([]);
   });
 });
