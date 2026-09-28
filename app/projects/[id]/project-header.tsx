@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { ProjectWithClient } from "@/lib/data/projects";
+import { projectEditPath } from "@/lib/projects/detail";
 import { describeProjectLifecycle } from "@/lib/projects/lifecycle";
 import { PROJECTS_PATH } from "@/lib/projects/query";
 
@@ -22,12 +23,26 @@ import { ProjectStatusBadge } from "../status-badge";
 export function ProjectHeader({ project }: { project: ProjectWithClient }) {
   return (
     <header className="border-b border-zinc-200 pb-5 dark:border-zinc-800">
-      <Link
-        href={PROJECTS_PATH}
-        className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-      >
-        Projects
-      </Link>
+      {/*
+        The way back and the way in, on one line above the name. Editing is a
+        link rather than a button because it leads to a form rather than
+        changing anything, and it sits up here rather than next to the contract
+        value so that it does not read as editing that one figure.
+      */}
+      <div className="flex items-baseline justify-between gap-6">
+        <Link
+          href={PROJECTS_PATH}
+          className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+        >
+          Projects
+        </Link>
+        <Link
+          href={projectEditPath(project.id)}
+          className="text-sm font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-600 dark:text-zinc-100 dark:hover:text-zinc-400"
+        >
+          Edit project
+        </Link>
+      </div>
       <div className="mt-2 flex items-start justify-between gap-6">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
