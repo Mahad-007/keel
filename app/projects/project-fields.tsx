@@ -1,5 +1,8 @@
 import { SelectField, TextField } from "@/components/form";
-import type { ClientOption } from "@/lib/clients/options";
+import {
+  describeArchivedOption,
+  type ClientOption,
+} from "@/lib/clients/options";
 import {
   preselectedClientId,
   PROJECT_FIELD_LIMITS,
@@ -16,6 +19,10 @@ import {
  * values and the messages always travel together — the state *is* what a field
  * needs to render itself.
  */
+/** What the picker always says, before anything unusual about the options. */
+const CLIENT_HINT =
+  "Who the work is for. Every project hangs off one client, and it bills at their default rate unless it overrides it below.";
+
 export function ProjectFields({
   state,
   clients,
@@ -24,12 +31,14 @@ export function ProjectFields({
   /** The clients this form may file the project under, already labelled. */
   clients: readonly ClientOption[];
 }) {
+  const archived = describeArchivedOption(clients);
+
   return (
     <>
       <SelectField
         name="client"
         label="Client"
-        hint="Who the work is for. Every project hangs off one client, and it bills at their default rate unless it overrides it below."
+        hint={archived === null ? CLIENT_HINT : `${CLIENT_HINT} ${archived}`}
         placeholder="Choose a client"
         options={clients.map((client) => ({
           value: client.id,
