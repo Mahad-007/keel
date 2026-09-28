@@ -115,3 +115,24 @@ describe("a project form that is rejected", () => {
     expect(created).not.toHaveBeenCalled();
   });
 });
+
+describe("a project that cannot be written", () => {
+  it("says nothing was saved and keeps the form filled in", async () => {
+    created.mockRejectedValue(new Error("database is locked"));
+    const values = {
+      client: "cli_ada",
+      name: "Engine rewrite",
+      contractValue: "12000",
+      rateOverride: "180",
+    };
+
+    const state = await save(values);
+
+    expect(state.formError).toBe(
+      "Could not save the project. Nothing was written — try again.",
+    );
+    expect(state.errors).toEqual({});
+    expect(state.fields).toEqual(values);
+    expect(redirect).not.toHaveBeenCalled();
+  });
+});
