@@ -1,6 +1,10 @@
 import { SelectField, TextField } from "@/components/form";
 import type { ClientOption } from "@/lib/clients/options";
-import { PROJECT_FIELD_LIMITS, type ProjectFormState } from "@/lib/projects/form";
+import {
+  preselectedClientId,
+  PROJECT_FIELD_LIMITS,
+  type ProjectFormState,
+} from "@/lib/projects/form";
 
 /**
  * The four fields that describe a project, in the order the form lays them
@@ -31,7 +35,7 @@ export function ProjectFields({
           value: client.id,
           label: client.label,
         }))}
-        defaultValue={state.fields.client}
+        defaultValue={preselectedClientId(state, clients)}
         error={state.errors.client}
       />
       <TextField
