@@ -1,8 +1,9 @@
 import type { NewProjectInput } from "@/lib/data/projects";
-import { optionalAmountCents } from "@/lib/forms/amount";
+import type { Project } from "@/lib/db/schema";
+import { amountInput, optionalAmountCents } from "@/lib/forms/amount";
 import { requiredChoice } from "@/lib/forms/choice";
 import { readFields } from "@/lib/forms/form-data";
-import { overrideRateCents } from "@/lib/forms/rate";
+import { overrideRateCents, rateOverrideInput } from "@/lib/forms/rate";
 import { collect, type FieldErrors, type ParseResult } from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
 import { requiredText } from "@/lib/forms/text";
@@ -125,4 +126,34 @@ export function parseProjectForm(
       rateCents: rateOverride,
     },
   };
+}
+
+/**
+ * An existing project as the fields that describe it. The edit form starts
+ * from what is stored, and every value here is a string the validators accept
+ * back unchanged — so opening a project and saving it untouched writes the
+ * same row rather than quietly normalising it into something else.
+ *
+ * The two money fields both render absence as an empty box, but they mean
+ * different things by it, which is why they go through different functions: a
+ * contract value of zero is one nobody has agreed, and a rate override of zero
+ * is one somebody chose.
+ */
+export function projectFormFields(project: Project): ProjectFormFields {
+  return {
+    client: project.clientId,
+    name: project.name,
+    contractValue: amountInput(project.contractValueCents),
+    rateOverride: rateOverrideInput(project.rateCents),
+  };
+}
+
+/**
+ * What the edit form starts from: the stored project, nothing wrong with it
+ * yet. The new form's equivalent is `INITIAL_PROJECT_FORM_STATE` — a constant,
+ * because a blank form is the same every time, and a function here because an
+ * edit form is not.
+ */
+export function projectFormStateFor(project: Project): ProjectFormState {
+  return initialFormState(projectFormFields(project));
 }
