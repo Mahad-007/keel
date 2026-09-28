@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 
+import type { Project } from "@/lib/db/schema";
+
 import {
   EMPTY_PROJECT_FIELDS,
   INITIAL_PROJECT_FORM_STATE,
   PROJECT_FIELD_NAMES,
   parseProjectForm,
+  projectFormFields,
+  projectFormStateFor,
   readProjectFields,
   type ProjectFormFields,
 } from "./form";
@@ -176,5 +180,70 @@ describe("a form with several problems", () => {
       "client",
       "name",
     ]);
+  });
+});
+
+function project(fields: Partial<Project> = {}): Project {
+  return {
+    id: "prj_engine",
+    clientId: "cli_ada",
+    name: "Engine rewrite",
+    status: "active",
+    contractValueCents: 1_200_000,
+    rateCents: 18000,
+    startedAt: "2026-09-01T09:00:00.000Z",
+    closedAt: null,
+    createdAt: "2026-09-01T09:00:00.000Z",
+    updatedAt: "2026-09-01T09:00:00.000Z",
+    ...fields,
+  };
+}
+
+describe("projectFormFields", () => {
+  it("prefills every field from the stored row", () => {
+    expect(projectFormFields(project())).toEqual({
+      client: "cli_ada",
+      name: "Engine rewrite",
+      contractValue: "12000.00",
+      rateOverride: "180.00",
+    });
+  });
+
+  it("offers an unagreed contract value as a blank box, not as zero", () => {
+    expect(projectFormFields(project({ contractValueCents: 0 })).contractValue).toBe("");
+  });
+
+  it("offers no override as blank and an override of zero as a figure", () => {
+    expect(projectFormFields(project({ rateCents: null })).rateOverride).toBe("");
+    expect(projectFormFields(project({ rateCents: 0 })).rateOverride).toBe("0.00");
+  });
+
+  it("round-trips a project through the form without changing it", () => {
+    for (const stored of [
+      project(),
+      project({ contractValueCents: 0, rateCents: null }),
+      project({ rateCents: 0 }),
+    ]) {
+      const result = parseProjectForm(projectFormFields(stored), [stored.clientId]);
+      expect(result).toEqual({
+        ok: true,
+        value: {
+          clientId: stored.clientId,
+          name: stored.name,
+          contractValueCents: stored.contractValueCents,
+          rateCents: stored.rateCents,
+        },
+      });
+    }
+  });
+});
+
+describe("projectFormStateFor", () => {
+  it("is the stored project with nothing wrong with it yet", () => {
+    expect(projectFormStateFor(project())).toEqual({
+      fields: projectFormFields(project()),
+      errors: {},
+      formError: null,
+    });
   });
 });
