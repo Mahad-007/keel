@@ -57,3 +57,40 @@ describe("clientOptions", () => {
     expect(clientOptions([])).toEqual([]);
   });
 });
+
+describe("the client a project is already on", () => {
+  const active = [client({ id: "cli_ada", name: "Ada Lovelace" })];
+
+  it("is offered last, labelled, when they have been archived", () => {
+    const current = client({
+      id: "cli_grace",
+      name: "Grace Hopper",
+      archivedAt: "2026-09-10T09:00:00.000Z",
+    });
+
+    expect(clientOptions(active, current)).toEqual([
+      { id: "cli_ada", label: "Ada Lovelace", archived: false },
+      { id: "cli_grace", label: "Grace Hopper (archived)", archived: true },
+    ]);
+  });
+
+  it("is not offered twice when they are still on the list", () => {
+    expect(clientOptions(active, active[0])).toEqual([
+      { id: "cli_ada", label: "Ada Lovelace", archived: false },
+    ]);
+  });
+
+  it("is the only option when every other client is archived", () => {
+    const current = client({ id: "cli_grace", name: "Grace Hopper", archivedAt: "2026-09-10T09:00:00.000Z" });
+    expect(clientOptions([], current)).toEqual([
+      { id: "cli_grace", label: "Grace Hopper (archived)", archived: true },
+    ]);
+  });
+
+  it("goes unlabelled when it is missing for some reason other than the archive", () => {
+    const current = client({ id: "cli_grace", name: "Grace Hopper" });
+    expect(clientOptions([], current)).toEqual([
+      { id: "cli_grace", label: "Grace Hopper", archived: false },
+    ]);
+  });
+});
