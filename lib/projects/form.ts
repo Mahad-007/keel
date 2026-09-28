@@ -2,6 +2,7 @@ import type { NewProjectInput } from "@/lib/data/projects";
 import { optionalAmountCents } from "@/lib/forms/amount";
 import { requiredChoice } from "@/lib/forms/choice";
 import { readFields } from "@/lib/forms/form-data";
+import { overrideRateCents } from "@/lib/forms/rate";
 import { collect, type FieldErrors, type ParseResult } from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
 import { requiredText } from "@/lib/forms/text";
@@ -81,7 +82,7 @@ export function readProjectFields(formData: FormData): ProjectFormFields {
  */
 export type ProjectFormValue = Pick<
   NewProjectInput,
-  "clientId" | "name" | "contractValueCents"
+  "clientId" | "name" | "contractValueCents" | "rateCents"
 >;
 
 /**
@@ -106,13 +107,22 @@ export function parseProjectForm(
       max: PROJECT_FIELD_LIMITS.name,
     }),
     contractValue: optionalAmountCents(fields.contractValue),
+    rateOverride: overrideRateCents(fields.rateOverride),
   });
 
   if (!parsed.ok) return parsed;
 
-  const { client, name, contractValue } = parsed.value;
+  const { client, name, contractValue, rateOverride } = parsed.value;
   return {
     ok: true,
-    value: { clientId: client, name, contractValueCents: contractValue },
+    value: {
+      clientId: client,
+      name,
+      contractValueCents: contractValue,
+      // Null rather than absent, so an edit that clears the override writes
+      // NULL instead of leaving the old figure in place: the data layer reads
+      // an absent key as "do not touch this column".
+      rateCents: rateOverride,
+    },
   };
 }
