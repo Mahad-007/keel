@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { Client } from "@/lib/db/schema";
 
-import { clientOptionLabel, clientOptions } from "./options";
+import {
+  clientOptionLabel,
+  clientOptions,
+  describeArchivedOption,
+} from "./options";
 
 function client(fields: Partial<Client> = {}): Client {
   return {
@@ -92,5 +96,19 @@ describe("the client a project is already on", () => {
     expect(clientOptions([], current)).toEqual([
       { id: "cli_grace", label: "Grace Hopper", archived: false },
     ]);
+  });
+});
+
+describe("describeArchivedOption", () => {
+  const ada = { id: "cli_ada", label: "Ada Lovelace", archived: false };
+
+  it("says nothing when every option is a client on the books", () => {
+    expect(describeArchivedOption([ada])).toBeNull();
+    expect(describeArchivedOption([])).toBeNull();
+  });
+
+  it("explains the odd one out when there is one", () => {
+    const gone = { id: "cli_grace", label: "Grace Hopper (archived)", archived: true };
+    expect(describeArchivedOption([ada, gone])).toContain("already filed under them");
   });
 });
