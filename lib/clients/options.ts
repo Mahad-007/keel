@@ -71,3 +71,19 @@ export function clientOptions(
     },
   ];
 }
+
+/**
+ * The sentence a picker needs when one of its options is a client who is no
+ * longer on the books, or null when none of them is.
+ *
+ * Without it the "(archived)" option is a puzzle: the reader knows the client
+ * book does not list that client, and here they are in a list of clients. The
+ * answer is that the project is already theirs, and that is worth a sentence
+ * rather than leaving someone to conclude the archive is leaking.
+ */
+export function describeArchivedOption(
+  options: readonly ClientOption[],
+): string | null {
+  if (!options.some((option) => option.archived)) return null;
+  return "One option is an archived client, offered because this project is already filed under them; moving it away takes them off the list.";
+}
