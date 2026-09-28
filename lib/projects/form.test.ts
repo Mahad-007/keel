@@ -7,6 +7,7 @@ import {
   INITIAL_PROJECT_FORM_STATE,
   PROJECT_FIELD_NAMES,
   parseProjectForm,
+  preselectedClientId,
   projectFormFields,
   projectFormStateFor,
   readProjectFields,
@@ -245,5 +246,36 @@ describe("projectFormStateFor", () => {
       errors: {},
       formError: null,
     });
+  });
+});
+
+describe("preselectedClientId", () => {
+  const ada = { id: "cli_ada", label: "Ada Lovelace", archived: false };
+  const grace = { id: "cli_grace", label: "Grace Hopper", archived: false };
+
+  it("picks the only client there is, on a form nobody has filled in", () => {
+    expect(preselectedClientId(INITIAL_PROJECT_FORM_STATE, [ada])).toBe("cli_ada");
+  });
+
+  it("picks nobody when there is more than one client to choose between", () => {
+    expect(preselectedClientId(INITIAL_PROJECT_FORM_STATE, [ada, grace])).toBe("");
+  });
+
+  it("picks nobody when there are no clients at all", () => {
+    expect(preselectedClientId(INITIAL_PROJECT_FORM_STATE, [])).toBe("");
+  });
+
+  it("keeps what the form is already holding", () => {
+    const state = projectFormStateFor(project({ clientId: "cli_grace" }));
+    expect(preselectedClientId(state, [ada, grace])).toBe("cli_grace");
+  });
+
+  it("leaves a picker the user was told to fill in empty", () => {
+    const state = {
+      fields: EMPTY_PROJECT_FIELDS,
+      errors: { client: "Client is required." },
+      formError: null,
+    };
+    expect(preselectedClientId(state, [ada])).toBe("");
   });
 });

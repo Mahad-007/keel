@@ -1,3 +1,4 @@
+import type { ClientOption } from "@/lib/clients/options";
 import type { NewProjectInput } from "@/lib/data/projects";
 import type { Project } from "@/lib/db/schema";
 import { amountInput, optionalAmountCents } from "@/lib/forms/amount";
@@ -156,4 +157,26 @@ export function projectFormFields(project: Project): ProjectFormFields {
  */
 export function projectFormStateFor(project: Project): ProjectFormState {
   return initialFormState(projectFormFields(project));
+}
+
+/**
+ * Which client the picker starts on.
+ *
+ * Normally that is whatever the form is holding: blank on a new project, the
+ * stored client on an edit, the submitted one after a rejection. The exception
+ * is somebody's first project, when there is exactly one client to file it
+ * under — asking them to pick from a list of one is a click that cannot go
+ * wrong and cannot go right either.
+ *
+ * A rejected picker is left alone. The reader has just been told to choose a
+ * client, and filling the field in for them under that message would make the
+ * message look wrong.
+ */
+export function preselectedClientId(
+  state: ProjectFormState,
+  clients: readonly ClientOption[],
+): string {
+  if (state.fields.client !== "") return state.fields.client;
+  if (state.errors.client !== undefined) return "";
+  return clients.length === 1 ? clients[0].id : "";
 }
