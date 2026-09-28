@@ -1,6 +1,9 @@
+import type { NewProjectInput } from "@/lib/data/projects";
+import { requiredChoice } from "@/lib/forms/choice";
 import { readFields } from "@/lib/forms/form-data";
+import { collect, type FieldErrors, type ParseResult } from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
-import type { FieldErrors } from "@/lib/forms/result";
+import { requiredText } from "@/lib/forms/text";
 
 /**
  * The project form, from submitted strings to something the data layer will
@@ -68,4 +71,40 @@ export const INITIAL_PROJECT_FORM_STATE: ProjectFormState =
 
 export function readProjectFields(formData: FormData): ProjectFormFields {
   return readFields(formData, PROJECT_FIELD_NAMES);
+}
+
+/**
+ * What the form yields once every field is good: exactly the columns a
+ * project row is made of, which the data layer accepts whole as a new project
+ * or as a patch to an existing one.
+ */
+export type ProjectFormValue = Pick<NewProjectInput, "clientId" | "name">;
+
+/**
+ * `clientIds` is the set the form actually offered. Validating against it
+ * rather than against "some row exists" is what stops a submission naming a
+ * client the picker never showed — and it means the id reaching the data
+ * layer has already been proven to be one of them.
+ */
+export function parseProjectForm(
+  fields: ProjectFormFields,
+  clientIds: readonly string[],
+): ParseResult<ProjectFormValue, ProjectFieldName> {
+  const parsed = collect({
+    client: requiredChoice(fields.client, clientIds, {
+      label: "Client",
+      // The likeliest cause is a page left open while the client was
+      // archived, not a typo, so the message says what to do about it.
+      unknown: "That client is not one you can pick. Choose another.",
+    }),
+    name: requiredText(fields.name, {
+      label: "Name",
+      max: PROJECT_FIELD_LIMITS.name,
+    }),
+  });
+
+  if (!parsed.ok) return parsed;
+
+  const { client, name } = parsed.value;
+  return { ok: true, value: { clientId: client, name } };
 }
