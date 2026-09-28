@@ -11,6 +11,11 @@ export { Field, type FieldProps } from "./field";
 export { FieldError } from "./field-error";
 export { FieldHint } from "./field-hint";
 export { FormSummary } from "./form-summary";
+export {
+  SelectField,
+  type SelectFieldProps,
+  type SelectOption,
+} from "./select-field";
 export { SubmitButton, type SubmitButtonProps } from "./submit-button";
 export { TextAreaField, type TextAreaFieldProps } from "./textarea-field";
 export { TextField, type TextFieldProps } from "./text-field";
