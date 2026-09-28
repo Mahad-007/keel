@@ -30,3 +30,16 @@ export function clientOptionLabel(client: Client): string {
   if (company === "" || company === client.name.trim()) return client.name;
   return `${client.name} — ${company}`;
 }
+
+/**
+ * The options a project form offers, in the order the client list is already
+ * read in — alphabetical. A picker sorted differently from the list it stands
+ * for is a picker people scroll twice.
+ */
+export function clientOptions(clients: readonly Client[]): ClientOption[] {
+  return clients.map((client) => ({
+    id: client.id,
+    label: clientOptionLabel(client),
+    archived: false,
+  }));
+}
