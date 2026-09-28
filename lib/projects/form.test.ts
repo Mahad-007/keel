@@ -110,3 +110,27 @@ describe("a project's name", () => {
     expect(parse({ name: "x".repeat(120) }).ok).toBe(true);
   });
 });
+
+describe("a project's contract value", () => {
+  it("becomes whole cents", () => {
+    const result = parse({ contractValue: "$12,000.50" });
+    expect(result.ok && result.value.contractValueCents).toBe(1_200_050);
+  });
+
+  it("is zero when nobody has agreed one yet", () => {
+    const result = parse({ contractValue: "" });
+    expect(result.ok && result.value.contractValueCents).toBe(0);
+  });
+
+  it("is rejected when it is not an amount", () => {
+    expect(errors({ contractValue: "twelve grand" }).contractValue).toBe(
+      "Contract value must be an amount, like 150 or 150.00.",
+    );
+  });
+
+  it("is rejected when it is negative", () => {
+    expect(errors({ contractValue: "-12000" }).contractValue).toBe(
+      "Contract value cannot be negative.",
+    );
+  });
+});
