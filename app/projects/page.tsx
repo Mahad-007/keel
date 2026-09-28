@@ -12,6 +12,7 @@ import {
   filteredStatus,
 } from "@/lib/projects/filter";
 import {
+  NEW_PROJECT_PATH,
   parseProjectsQuery,
   projectsHref,
   withStatus,
@@ -63,12 +64,20 @@ export default async function ProjectsPage({
             {describeProjectsShown(query.status, projects.length, total)}
           </p>
         </div>
-        <Link
-          href="/clients"
-          className="shrink-0 text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
-          Clients
-        </Link>
+        <div className="flex shrink-0 items-center gap-4">
+          <Link
+            href="/clients"
+            className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Clients
+          </Link>
+          <Link
+            href={NEW_PROJECT_PATH}
+            className="rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          >
+            New project
+          </Link>
+        </div>
       </header>
 
       <StatusFilter query={query} counts={counts} />

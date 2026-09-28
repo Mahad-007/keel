@@ -82,6 +82,13 @@ export function parseProjectsQuery(params: SearchParams): ProjectsQuery {
 export const PROJECTS_PATH = "/projects";
 
 /**
+ * Where a project is created. Beside the list's own path because the two are
+ * read together — every way in to the form is a link from a page that also
+ * links to the list.
+ */
+export const NEW_PROJECT_PATH = `${PROJECTS_PATH}/new`;
+
+/**
  * The URL for a query, leaving out anything that is already the default.
  *
  * Omitting defaults means the list has exactly one canonical address —
