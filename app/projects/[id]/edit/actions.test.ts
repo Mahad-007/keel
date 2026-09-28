@@ -107,3 +107,60 @@ describe("updateProjectAction", () => {
     expect(saved.mock.calls[0][1]).not.toHaveProperty("status");
   });
 });
+
+describe("an edit that cannot be saved", () => {
+  it("returns field errors and writes nothing", async () => {
+    const state = await edit({ name: "", contractValue: "-1" });
+
+    expect(state.errors).toEqual({
+      name: "Name is required.",
+      contractValue: "Contract value cannot be negative.",
+    });
+    expect(state.fields.contractValue).toBe("-1");
+    expect(saved).not.toHaveBeenCalled();
+  });
+
+  it("refuses to move the project to a client the picker did not offer", async () => {
+    const state = await edit({ client: "cli_nobody" });
+
+    expect(state.errors.client).toBe(
+      "That client is not one you can pick. Choose another.",
+    );
+    expect(saved).not.toHaveBeenCalled();
+  });
+
+  it("says so when the project was deleted before the form came back", async () => {
+    read.mockResolvedValue(null);
+
+    const state = await edit({ name: "Engine rewrite II" });
+
+    expect(state.formError).toBe(
+      "That project no longer exists. Nothing was saved.",
+    );
+    expect(state.fields.name).toBe("Engine rewrite II");
+    expect(saved).not.toHaveBeenCalled();
+  });
+
+  it("says the same thing when it disappears between the read and the write", async () => {
+    saved.mockResolvedValue(null);
+
+    const state = await edit({});
+
+    expect(state.formError).toBe(
+      "That project no longer exists. Nothing was saved.",
+    );
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("reports a failed write instead of losing the changes", async () => {
+    saved.mockRejectedValue(new Error("database is locked"));
+
+    const state = await edit({ contractValue: "15000" });
+
+    expect(state.formError).toBe(
+      "Could not save the changes. Nothing was written — try again.",
+    );
+    expect(state.fields.contractValue).toBe("15000");
+    expect(redirect).not.toHaveBeenCalled();
+  });
+});
