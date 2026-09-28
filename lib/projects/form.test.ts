@@ -134,3 +134,47 @@ describe("a project's contract value", () => {
     );
   });
 });
+
+describe("a project's rate override", () => {
+  it("becomes whole cents per hour", () => {
+    const result = parse({ rateOverride: "180" });
+    expect(result.ok && result.value.rateCents).toBe(18000);
+  });
+
+  it("is null when left blank, which means the client's rate applies", () => {
+    const result = parse({ rateOverride: "" });
+    expect(result.ok && result.value.rateCents).toBeNull();
+  });
+
+  it("is zero when someone means it, which is not the same as blank", () => {
+    const result = parse({ rateOverride: "0" });
+    expect(result.ok && result.value.rateCents).toBe(0);
+  });
+
+  it("is held to a plausible hourly rate", () => {
+    expect(errors({ rateOverride: "25000" }).rateOverride).toBe(
+      "Rate override must be $10,000.00 or less.",
+    );
+  });
+});
+
+describe("a form with several problems", () => {
+  it("comes back with every one of them, not just the first", () => {
+    expect(
+      errors({ client: "", name: "", contractValue: "x", rateOverride: "-1" }),
+    ).toEqual({
+      client: "Client is required.",
+      name: "Name is required.",
+      contractValue: "Contract value must be an amount, like 150 or 150.00.",
+      rateOverride: "Rate override cannot be negative.",
+    });
+  });
+
+  it("keys them by the names the form lays out, so focus can find the first", () => {
+    const keys = Object.keys(errors({ client: "", name: "" }));
+    expect(PROJECT_FIELD_NAMES.filter((name) => keys.includes(name))).toEqual([
+      "client",
+      "name",
+    ]);
+  });
+});
