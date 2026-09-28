@@ -32,3 +32,28 @@ export function optionalRateCents(
 export function rateInput(cents: number): string {
   return cents === 0 ? "" : centsToInput(cents);
 }
+
+/**
+ * A project's rate override, where a blank field is a third answer rather
+ * than a missing one.
+ *
+ * Null means "bill this at whatever the client bills at" and zero means "bill
+ * this at nothing" — a project on a fixed price, where the hours are not
+ * charged for. Both are deliberate, and a validator that folded blank into
+ * zero the way `optionalRateCents` does would make the first unsayable.
+ */
+export function overrideRateCents(
+  value: string,
+  label = "Rate override",
+): FieldResult<number | null> {
+  return optionalCentsField(value, { label, max: MAX_RATE_CENTS });
+}
+
+/**
+ * The inverse, for prefilling the override when editing a project. No
+ * override is a blank field; an override of zero is `0.00`, because the
+ * figure was somebody's decision and the form has to offer it back as one.
+ */
+export function rateOverrideInput(cents: number | null): string {
+  return cents === null ? "" : centsToInput(cents);
+}
