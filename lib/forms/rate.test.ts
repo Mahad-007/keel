@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { MAX_RATE_CENTS, optionalRateCents, rateInput } from "./rate";
+import {
+  MAX_RATE_CENTS,
+  optionalRateCents,
+  overrideRateCents,
+  rateInput,
+  rateOverrideInput,
+} from "./rate";
 
 function rejection(input: string, label?: string): string {
   const result = optionalRateCents(input, label);
@@ -70,6 +76,52 @@ describe("rateInput", () => {
   it("round-trips every rate the field accepts", () => {
     for (const cents of [0, 1, 100, 15000, MAX_RATE_CENTS]) {
       expect(optionalRateCents(rateInput(cents))).toEqual({
+        ok: true,
+        value: cents,
+      });
+    }
+  });
+});
+
+describe("overrideRateCents", () => {
+  it("reads a blank override as no override at all", () => {
+    expect(overrideRateCents("")).toEqual({ ok: true, value: null });
+    expect(overrideRateCents("   ")).toEqual({ ok: true, value: null });
+  });
+
+  it("keeps an override of zero, which is not the same as none", () => {
+    expect(overrideRateCents("0")).toEqual({ ok: true, value: 0 });
+  });
+
+  it("converts a typed override into whole cents", () => {
+    expect(overrideRateCents("$180.50")).toEqual({ ok: true, value: 18050 });
+  });
+
+  it("holds the override to the same range as any other rate", () => {
+    expect(overrideRateCents("-1")).toEqual({
+      ok: false,
+      message: "Rate override cannot be negative.",
+    });
+    expect(overrideRateCents("10000.01")).toEqual({
+      ok: false,
+      message: "Rate override must be $10,000.00 or less.",
+    });
+  });
+});
+
+describe("rateOverrideInput", () => {
+  it("shows an override as an editable amount, zero included", () => {
+    expect(rateOverrideInput(18050)).toBe("180.50");
+    expect(rateOverrideInput(0)).toBe("0.00");
+  });
+
+  it("shows the absence of an override as a blank field", () => {
+    expect(rateOverrideInput(null)).toBe("");
+  });
+
+  it("round-trips every override the field accepts", () => {
+    for (const cents of [null, 0, 1, 18050, MAX_RATE_CENTS]) {
+      expect(overrideRateCents(rateOverrideInput(cents))).toEqual({
         ok: true,
         value: cents,
       });
