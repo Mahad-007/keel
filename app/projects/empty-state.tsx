@@ -1,4 +1,5 @@
 import { describeNoMatches } from "@/lib/projects/filter";
+import { NEW_PROJECT_PATH } from "@/lib/projects/query";
 import { projectStatusLabel, type ProjectStatus } from "@/lib/projects/status";
 
 import { EmptyPanel } from "./empty-panel";
@@ -14,7 +15,7 @@ export function NoProjects() {
   return (
     <EmptyPanel
       heading="No projects yet."
-      action={{ href: "/clients", label: "Go to clients" }}
+      action={{ href: NEW_PROJECT_PATH, label: "New project" }}
     >
       <p>
         A project is one engagement for one client: the thing scope is agreed
@@ -23,8 +24,8 @@ export function NoProjects() {
         rate unless it sets an override of its own.
       </p>
       <p>
-        There is no form for adding one yet. Every project hangs off a client,
-        so the client book is the place to start.
+        Every project hangs off a client, so the form asks for one first. If the
+        client book is empty it will say so and send you there.
       </p>
     </EmptyPanel>
   );
