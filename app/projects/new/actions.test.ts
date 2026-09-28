@@ -75,3 +75,43 @@ describe("createProjectAction", () => {
     expect(redirect).toHaveBeenCalledWith("/projects/prj_engine");
   });
 });
+
+describe("a project form that is rejected", () => {
+  it("returns field errors, keeps what was typed, and writes nothing", async () => {
+    const state = await save({ client: "", name: "", contractValue: "lots" });
+
+    expect(state.errors).toEqual({
+      client: "Client is required.",
+      name: "Name is required.",
+      contractValue: "Contract value must be an amount, like 150 or 150.00.",
+    });
+    expect(state.fields).toEqual({
+      client: "",
+      name: "",
+      contractValue: "lots",
+      rateOverride: "",
+    });
+    expect(state.formError).toBeNull();
+    expect(created).not.toHaveBeenCalled();
+  });
+
+  it("refuses a client the picker never offered", async () => {
+    const state = await save({ client: "cli_grace", name: "Engine rewrite" });
+
+    expect(state.errors.client).toBe(
+      "That client is not one you can pick. Choose another.",
+    );
+    expect(created).not.toHaveBeenCalled();
+  });
+
+  it("refuses a client who was archived while the form sat open", async () => {
+    offered.mockResolvedValue([]);
+
+    const state = await save({ client: "cli_ada", name: "Engine rewrite" });
+
+    expect(state.errors.client).toBe(
+      "That client is not one you can pick. Choose another.",
+    );
+    expect(created).not.toHaveBeenCalled();
+  });
+});
