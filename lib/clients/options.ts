@@ -35,11 +35,39 @@ export function clientOptionLabel(client: Client): string {
  * The options a project form offers, in the order the client list is already
  * read in — alphabetical. A picker sorted differently from the list it stands
  * for is a picker people scroll twice.
+ *
+ * `current` is the client an existing project is already on, and it is here
+ * because archiving a client does not touch their projects: editing one of
+ * those projects would otherwise find its own client missing from the picker,
+ * and the browser would quietly select whoever happens to be first. Saving the
+ * contract value would then reassign the project. So the client is offered,
+ * last and labelled, rather than left out.
  */
-export function clientOptions(clients: readonly Client[]): ClientOption[] {
-  return clients.map((client) => ({
+export function clientOptions(
+  clients: readonly Client[],
+  current: Client | null = null,
+): ClientOption[] {
+  const options = clients.map((client) => ({
     id: client.id,
     label: clientOptionLabel(client),
     archived: false,
   }));
+
+  if (current === null || options.some((option) => option.id === current.id)) {
+    return options;
+  }
+
+  const archived = current.archivedAt !== null;
+  return [
+    ...options,
+    {
+      id: current.id,
+      // Said in the option itself: a picker collapses to one line when it is
+      // closed, and that line is all a reader sees of the choice they kept.
+      label: archived
+        ? `${clientOptionLabel(current)} (archived)`
+        : clientOptionLabel(current),
+      archived,
+    },
+  ];
 }
