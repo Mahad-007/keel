@@ -4,6 +4,7 @@ import Link from "next/link";
 import { projectClientOptions } from "@/lib/clients/picker";
 import { PROJECTS_PATH } from "@/lib/projects/query";
 
+import { NoClientsToPick } from "./no-clients";
 import { NewProjectForm } from "./project-form";
 
 /**
@@ -39,7 +40,11 @@ export default async function NewProjectPage() {
         </p>
       </header>
 
-      <NewProjectForm clients={clients} />
+      {clients.length === 0 ? (
+        <NoClientsToPick />
+      ) : (
+        <NewProjectForm clients={clients} />
+      )}
     </main>
   );
 }
