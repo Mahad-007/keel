@@ -57,6 +57,19 @@ describe("clientOptions", () => {
     ]);
   });
 
+  it("labels an archived client in the list it was given, not just the kept one", () => {
+    // Nothing passes archived rows as the list today, but `listArchivedClients`
+    // exists — and an option that says it is active because of which argument it
+    // arrived through is a picker that reassigns a project without saying so.
+    const options = clientOptions([
+      client({ id: "cli_ada", archivedAt: "2026-09-10T09:00:00.000Z" }),
+    ]);
+
+    expect(options).toEqual([
+      { id: "cli_ada", label: "Ada Lovelace (archived)", archived: true },
+    ]);
+  });
+
   it("offers nothing when there are no clients", () => {
     expect(clientOptions([])).toEqual([]);
   });
