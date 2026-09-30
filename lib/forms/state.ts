@@ -1,5 +1,4 @@
-import { readableMessage } from "./message";
-import type { FieldErrors } from "./result";
+import { hasFieldError, type FieldErrors } from "./result";
 
 /**
  * What a server action hands back to a form that failed, and what the form
@@ -43,12 +42,12 @@ export function failedFormState<K extends string>(
 }
 
 /**
- * A field is only in trouble if there is a sentence to show under it. An
- * empty message is counted nowhere, so the summary, the focus hook and the
- * field itself agree about how many things are wrong.
+ * A field is only in trouble if there is a sentence to show under it. The rule
+ * lives with `FieldErrors` rather than here, so the summary, the focus hook and
+ * everything outside this module agree about how many things are wrong.
  */
 function hasError<K extends string>(state: FormState<K>, name: K): boolean {
-  return readableMessage(state.errors[name]) !== null;
+  return hasFieldError(state.errors, name);
 }
 
 function fieldErrorCount<K extends string>(state: FormState<K>): number {
