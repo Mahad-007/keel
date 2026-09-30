@@ -13,10 +13,7 @@ export type ClientOption = {
   readonly id: string;
   /** What the option reads as, already disambiguated. */
   readonly label: string;
-  /**
-   * Whether this client is off the books. Only ever true of the one a project
-   * is already on — see `clientOptions`.
-   */
+  /** Whether this client is off the books. */
   readonly archived: boolean;
 };
 
@@ -43,33 +40,38 @@ export function clientOptionLabel(client: Client): string {
  * contract value would then reassign the project. So the client is offered,
  * last and labelled, rather than left out.
  */
+/**
+ * One client as one option, with both the flag and the label read off the row.
+ *
+ * Deriving them rather than setting `archived: false` for the list and true for
+ * the kept client means an option cannot claim to be active because of which
+ * argument it arrived through. Today the archive is only ever reached through
+ * `current`, but `listArchivedClients` exists, and the first caller to hand
+ * those rows over as the list should get options that say so.
+ */
+function toOption(client: Client): ClientOption {
+  const archived = client.archivedAt !== null;
+  const label = clientOptionLabel(client);
+  return {
+    id: client.id,
+    // Said in the option itself: a picker collapses to one line when it is
+    // closed, and that line is all a reader sees of the choice they kept.
+    label: archived ? `${label} (archived)` : label,
+    archived,
+  };
+}
+
 export function clientOptions(
   clients: readonly Client[],
   current: Client | null = null,
 ): ClientOption[] {
-  const options = clients.map((client) => ({
-    id: client.id,
-    label: clientOptionLabel(client),
-    archived: false,
-  }));
+  const options = clients.map((client) => toOption(client));
 
   if (current === null || options.some((option) => option.id === current.id)) {
     return options;
   }
 
-  const archived = current.archivedAt !== null;
-  return [
-    ...options,
-    {
-      id: current.id,
-      // Said in the option itself: a picker collapses to one line when it is
-      // closed, and that line is all a reader sees of the choice they kept.
-      label: archived
-        ? `${clientOptionLabel(current)} (archived)`
-        : clientOptionLabel(current),
-      archived,
-    },
-  ];
+  return [...options, toOption(current)];
 }
 
 /**
