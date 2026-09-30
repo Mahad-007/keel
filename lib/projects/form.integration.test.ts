@@ -10,6 +10,7 @@ import { MAX_RATE_CENTS } from "@/lib/forms/rate";
 import {
   EMPTY_PROJECT_FIELDS,
   parseProjectForm,
+  projectFormChanges,
   projectFormFields,
   type ProjectFormFields,
 } from "./form";
@@ -130,5 +131,41 @@ describe("a stored project edited through the form", () => {
 
     expect(saved?.clientId).toBe(other.id);
     expect(saved?.status).toBe(project.status);
+  });
+});
+
+describe("an edit narrowed to what changed", () => {
+  it("leaves the row exactly as it was when nothing was touched", async () => {
+    const project = await save({ contractValue: "12000", rateOverride: "180" });
+
+    const changes = projectFormChanges(project, parsed(projectFormFields(project)));
+    const saved = await updateProject(project.id, changes, db);
+
+    // The patch is asserted as well as the row: two timestamps a millisecond
+    // apart would be equal by luck, and what is being proven here is that no
+    // write was asked for at all.
+    expect(changes).toEqual({});
+    // `updatedAt` included this time: an unchanged submission must not bump it,
+    // or every reopened project climbs a list sorted by when it last changed.
+    expect(saved).toEqual(project);
+  });
+
+  it("writes the one column that moved and nothing else", async () => {
+    const project = await save({ contractValue: "12000", rateOverride: "180" });
+
+    const saved = await updateProject(
+      project.id,
+      projectFormChanges(
+        project,
+        parsed({ ...projectFormFields(project), contractValue: "15000" }),
+      ),
+      db,
+    );
+
+    expect(saved).toEqual({
+      ...project,
+      contractValueCents: 1_500_000,
+      updatedAt: saved?.updatedAt,
+    });
   });
 });
