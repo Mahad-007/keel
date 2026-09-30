@@ -129,6 +129,21 @@ describe("an edit that cannot be saved", () => {
     expect(saved).not.toHaveBeenCalled();
   });
 
+  it("re-reads its own page, so a refused client leaves the picker", async () => {
+    const state = await edit({ client: "cli_nobody" });
+
+    expect(state.errors.client).toBeDefined();
+    expect(revalidatePath).toHaveBeenCalledWith(
+      "/projects/prj_engine/edit",
+    );
+  });
+
+  it("leaves the page alone when the picker was never the problem", async () => {
+    await edit({ name: "" });
+
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
   it("says so when the project was deleted before the form came back", async () => {
     read.mockResolvedValue(null);
 
