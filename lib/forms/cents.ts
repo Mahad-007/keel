@@ -1,4 +1,4 @@
-import { formatCents, parseCents } from "@/lib/money";
+import { centsToInput, formatCents, parseCents } from "@/lib/money";
 
 import { invalid, valid, type FieldResult } from "./result";
 
@@ -43,4 +43,41 @@ export function optionalCentsField(
     return invalid(`${label} must be ${formatCents(max)} or less.`);
   }
   return valid(cents);
+}
+
+/**
+ * The same field where blank means zero rather than nothing — a rate nobody has
+ * set, a contract value nobody has agreed. The schema stores both as zero, and
+ * the field itself has no third answer to give.
+ *
+ * The other reading, where blank and zero are different statements, is
+ * `optionalCentsField`'s null. Which of the two a field wants is the one thing
+ * it has to decide for itself; everything else about parsing an amount is
+ * shared.
+ */
+export function zeroedCentsField(
+  value: string,
+  options: CentsOptions,
+): FieldResult<number> {
+  const parsed = optionalCentsField(value, options);
+  if (!parsed.ok) return parsed;
+  return valid(parsed.value ?? 0);
+}
+
+/**
+ * The inverse of `zeroedCentsField`, for prefilling a form from a stored row.
+ * Zero renders as an empty box rather than as `0.00`, which would read as a
+ * figure somebody chose — the same reading the parse direction gives a blank.
+ */
+export function zeroedCentsInput(cents: number): string {
+  return cents === 0 ? "" : centsToInput(cents);
+}
+
+/**
+ * The inverse of `optionalCentsField`. Null is the empty box; zero is `0.00`,
+ * because where blank means "not set" a zero was somebody's decision and the
+ * form has to offer it back as one.
+ */
+export function optionalCentsInput(cents: number | null): string {
+  return cents === null ? "" : centsToInput(cents);
 }
