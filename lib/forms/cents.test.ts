@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { optionalCentsField } from "./cents";
+import {
+  optionalCentsField,
+  optionalCentsInput,
+  zeroedCentsField,
+  zeroedCentsInput,
+} from "./cents";
 
 const OPTIONS = { label: "Contract value", max: 1_000_000 };
 
@@ -64,5 +69,63 @@ describe("optionalCentsField", () => {
       ok: false,
       message: "Rate override cannot be negative.",
     });
+  });
+});
+
+describe("zeroedCentsField", () => {
+  it("reads a blank field as zero rather than as nothing", () => {
+    expect(zeroedCentsField("", OPTIONS)).toEqual({ ok: true, value: 0 });
+    expect(zeroedCentsField("   ", OPTIONS)).toEqual({ ok: true, value: 0 });
+  });
+
+  it("reads a typed zero the same way, because there is no difference to keep", () => {
+    expect(zeroedCentsField("0", OPTIONS)).toEqual({ ok: true, value: 0 });
+  });
+
+  it("passes an amount and a refusal through untouched", () => {
+    expect(zeroedCentsField("150.50", OPTIONS)).toEqual({ ok: true, value: 15050 });
+    expect(zeroedCentsField("-1", OPTIONS)).toEqual({
+      ok: false,
+      message: "Contract value cannot be negative.",
+    });
+  });
+});
+
+describe("zeroedCentsInput", () => {
+  it("renders an amount as the digits a form accepts back", () => {
+    expect(zeroedCentsInput(15000)).toBe("150.00");
+    expect(zeroedCentsInput(13745)).toBe("137.45");
+  });
+
+  it("renders zero as an empty box, not as a figure somebody chose", () => {
+    expect(zeroedCentsInput(0)).toBe("");
+  });
+
+  it("round-trips every amount back through the field", () => {
+    for (const cents of [0, 1, 999, 15000, 1_000_000]) {
+      expect(zeroedCentsField(zeroedCentsInput(cents), OPTIONS)).toEqual({
+        ok: true,
+        value: cents,
+      });
+    }
+  });
+});
+
+describe("optionalCentsInput", () => {
+  it("renders nothing set as an empty box", () => {
+    expect(optionalCentsInput(null)).toBe("");
+  });
+
+  it("renders a deliberate zero as a figure, which is what it is", () => {
+    expect(optionalCentsInput(0)).toBe("0.00");
+  });
+
+  it("round-trips absence and zero back as the different things they are", () => {
+    for (const cents of [null, 0, 18050]) {
+      expect(optionalCentsField(optionalCentsInput(cents), OPTIONS)).toEqual({
+        ok: true,
+        value: cents,
+      });
+    }
   });
 });
