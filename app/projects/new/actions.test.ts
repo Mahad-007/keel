@@ -104,8 +104,15 @@ describe("a project form that is rejected", () => {
     expect(created).not.toHaveBeenCalled();
   });
 
+  /** Ada archived while the form sat open, with somebody else still on the books. */
+  function onlyGraceLeft() {
+    offered.mockResolvedValue([
+      { id: "cli_grace", label: "Grace Hopper", archived: false },
+    ]);
+  }
+
   it("refuses a client who was archived while the form sat open", async () => {
-    offered.mockResolvedValue([]);
+    onlyGraceLeft();
 
     const state = await save({ client: "cli_ada", name: "Engine rewrite" });
 
@@ -116,7 +123,7 @@ describe("a project form that is rejected", () => {
   });
 
   it("re-reads the form's own page, so the refused client leaves the picker", async () => {
-    offered.mockResolvedValue([]);
+    onlyGraceLeft();
 
     await save({ client: "cli_ada", name: "Engine rewrite" });
 
@@ -124,14 +131,36 @@ describe("a project form that is rejected", () => {
   });
 
   it("re-reads the page for a skipped pick too, which may be why it was skipped", async () => {
-    // Nothing to choose from is the likeliest reason nothing was chosen, and the
-    // reader cannot tell until the page has been read again.
-    offered.mockResolvedValue([]);
+    // Somebody else having been archived is a reason the reader could not find
+    // the client they were looking for, and they cannot tell until the page has
+    // been read again.
+    onlyGraceLeft();
 
     const state = await save({ client: "", name: "Engine rewrite" });
 
     expect(state.errors.client).toBe("Client is required.");
     expect(revalidatePath).toHaveBeenCalledWith("/projects/new");
+  });
+
+  it("keeps the whole form when the last client has gone, and says so", async () => {
+    // Re-reading the page here would swap the form for its "no clients" panel
+    // and lose the name and figures along with it.
+    offered.mockResolvedValue([]);
+
+    const state = await save({
+      client: "cli_ada",
+      name: "Engine rewrite",
+      contractValue: "12000",
+    });
+
+    expect(state.errors.client).toBe(
+      "There are no clients left to file a project under. Restore one from the" +
+        " archived list, or add a new client, and this form will keep what you" +
+        " typed.",
+    );
+    expect(state.fields.name).toBe("Engine rewrite");
+    expect(state.fields.contractValue).toBe("12000");
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
   it("leaves the page alone when the picker was never the problem", async () => {

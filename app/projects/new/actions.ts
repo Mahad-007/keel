@@ -25,6 +25,13 @@ import { NEW_PROJECT_PATH, PROJECTS_PATH } from "@/lib/projects/query";
  * On success it does not return — it redirects, so a refresh cannot resubmit
  * the form and create a second project.
  */
+/**
+ * Said when the picker is empty by the time the form comes back. It replaces
+ * "choose another", which would be asking for something that cannot be done.
+ */
+const NO_CLIENTS_LEFT =
+  "There are no clients left to file a project under. Restore one from the archived list, or add a new client, and this form will keep what you typed.";
+
 export async function createProjectAction(
   _previous: ProjectFormState,
   formData: FormData,
@@ -35,13 +42,25 @@ export async function createProjectAction(
   const clientIds = clients.map((client) => client.id);
   const parsed = parseProjectForm(fields, clientIds);
   if (!parsed.ok) {
-    // The picker on screen was read before this rejection, so when the picker
-    // is what failed the reader is being told to choose again from a list that
-    // is out of date. Revalidating sends the page's current options back with
-    // the message — and if the last client has gone, the page says so instead
-    // of offering a form at all. The rejection is the whole test: a blank pick
-    // on a page whose clients have gone needs the same refresh as a refused one.
+    /**
+     * The picker on screen was read before this rejection, so when the picker is
+     * what failed the reader is being told to choose again from a list that is
+     * out of date. Revalidating sends the page's current options back with the
+     * message. A blank pick counts too — nothing to choose from is the likeliest
+     * reason nothing was chosen.
+     *
+     * Except when the client book has emptied, which is the one case where the
+     * page would render its "no clients" panel instead of the form: that
+     * unmounts the form and takes the typed name and figures with it. So the
+     * form stays, keeping what was typed, and says what happened itself.
+     */
     if (hasFieldError(parsed.errors, "client")) {
+      if (clientIds.length === 0) {
+        return rejectedFormState(fields, {
+          ...parsed.errors,
+          client: NO_CLIENTS_LEFT,
+        });
+      }
       revalidatePath(NEW_PROJECT_PATH);
     }
     return rejectedFormState(fields, parsed.errors);
