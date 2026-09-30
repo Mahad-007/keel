@@ -9,6 +9,7 @@ import {
   parseProjectForm,
   pickerWentStale,
   preselectedClientId,
+  projectFormChanges,
   projectFormFields,
   projectFormStateFor,
   readProjectFields,
@@ -303,5 +304,72 @@ describe("pickerWentStale", () => {
 
   it("reads the pick the way the validator does, trimmed", () => {
     expect(pickerWentStale("  cli_ada  ", offered)).toBe(false);
+  });
+});
+
+describe("projectFormChanges", () => {
+  /** The stored project, submitted back exactly as the form rendered it. */
+  function resubmitted(stored: Project, changes: Partial<ProjectFormFields> = {}) {
+    const result = parseProjectForm(
+      { ...projectFormFields(stored), ...changes },
+      [stored.clientId, "cli_grace"],
+    );
+    if (!result.ok) throw new Error("expected the resubmission to be valid");
+    return projectFormChanges(stored, result.value);
+  }
+
+  it("is empty when nothing was touched, so the row is left alone", () => {
+    expect(resubmitted(project())).toEqual({});
+    expect(resubmitted(project({ contractValueCents: 0, rateCents: null }))).toEqual({});
+    expect(resubmitted(project({ rateCents: 0 }))).toEqual({});
+  });
+
+  it("carries only the field that changed", () => {
+    expect(resubmitted(project(), { name: "Engine rewrite II" })).toEqual({
+      name: "Engine rewrite II",
+    });
+    expect(resubmitted(project(), { contractValue: "15000" })).toEqual({
+      contractValueCents: 1_500_000,
+    });
+    expect(resubmitted(project(), { client: "cli_grace" })).toEqual({
+      clientId: "cli_grace",
+    });
+  });
+
+  it("carries a cleared override, which is a change to NULL rather than absence", () => {
+    expect(resubmitted(project({ rateCents: 18000 }), { rateOverride: "" })).toEqual({
+      rateCents: null,
+    });
+  });
+
+  it("tells an override of zero apart from no override at all", () => {
+    expect(resubmitted(project({ rateCents: null }), { rateOverride: "0" })).toEqual({
+      rateCents: 0,
+    });
+    expect(resubmitted(project({ rateCents: 0 }), { rateOverride: "" })).toEqual({
+      rateCents: null,
+    });
+  });
+
+  it("counts a retyped value that parses the same as no change", () => {
+    expect(resubmitted(project({ contractValueCents: 1_200_000 }), {
+      contractValue: "$12,000",
+    })).toEqual({});
+  });
+
+  it("carries every field when every one of them moved", () => {
+    expect(
+      resubmitted(project(), {
+        client: "cli_grace",
+        name: "Engine rewrite II",
+        contractValue: "15000",
+        rateOverride: "200",
+      }),
+    ).toEqual({
+      clientId: "cli_grace",
+      name: "Engine rewrite II",
+      contractValueCents: 1_500_000,
+      rateCents: 20000,
+    });
   });
 });
