@@ -3,15 +3,14 @@ import { describe, expect, it } from "vitest";
 import { MAX_AMOUNT_CENTS, optionalAmountCents } from "./amount";
 import { zeroedCentsInput } from "./cents";
 
-describe("optionalAmountCents", () => {
-  it("converts a contracted sum into whole cents", () => {
-    expect(optionalAmountCents("12000")).toEqual({ ok: true, value: 1_200_000 });
-    expect(optionalAmountCents("$18,500.75")).toEqual({
-      ok: true,
-      value: 1_850_075,
-    });
-  });
+/**
+ * What is specific to a contracted sum: its ceiling, which is far past any
+ * plausible rate, the field name it uses when the caller gives none, and a blank
+ * field meaning nobody has agreed a figure. Parsing and the rest of the wording
+ * belong to `optionalCentsField` and are tested in `cents.test.ts`.
+ */
 
+describe("optionalAmountCents", () => {
   it("reads a blank field as not agreed yet, which is zero", () => {
     expect(optionalAmountCents("")).toEqual({ ok: true, value: 0 });
     expect(optionalAmountCents("  ")).toEqual({ ok: true, value: 0 });
@@ -32,28 +31,18 @@ describe("optionalAmountCents", () => {
     });
   });
 
-  it("rejects a negative contract value", () => {
-    expect(optionalAmountCents("-1")).toEqual({
-      ok: false,
-      message: "Contract value cannot be negative.",
-    });
-  });
-
-  it("rejects anything that is not an amount", () => {
+  it("calls the field a contract value when the caller does not name it", () => {
     expect(optionalAmountCents("twelve thousand")).toEqual({
       ok: false,
       message: "Contract value must be an amount, like 150 or 150.00.",
     });
   });
-});
 
-describe("amountInput", () => {
-  it("shows a contracted sum as an editable amount", () => {
-    expect(zeroedCentsInput(1_200_000)).toBe("12000.00");
-  });
-
-  it("shows an unagreed value as a blank field, not as zero", () => {
-    expect(zeroedCentsInput(0)).toBe("");
+  it("names the field the caller gave it instead", () => {
+    expect(optionalAmountCents("-1", "Budget")).toEqual({
+      ok: false,
+      message: "Budget cannot be negative.",
+    });
   });
 
   it("round-trips every amount the field accepts", () => {
