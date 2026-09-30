@@ -114,6 +114,21 @@ describe("a project form that is rejected", () => {
     );
     expect(created).not.toHaveBeenCalled();
   });
+
+  it("re-reads the form's own page, so the refused client leaves the picker", async () => {
+    offered.mockResolvedValue([]);
+
+    await save({ client: "cli_ada", name: "Engine rewrite" });
+
+    expect(revalidatePath).toHaveBeenCalledWith("/projects/new");
+  });
+
+  it("leaves the page alone when the picker was never the problem", async () => {
+    const state = await save({ client: "cli_ada", name: "" });
+
+    expect(state.errors.name).toBe("Name is required.");
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
 });
 
 describe("a project that cannot be written", () => {
