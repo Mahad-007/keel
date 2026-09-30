@@ -9,10 +9,11 @@ import { failedFormState, rejectedFormState } from "@/lib/forms/state";
 import { projectPath } from "@/lib/projects/detail";
 import {
   parseProjectForm,
+  pickerWentStale,
   readProjectFields,
   type ProjectFormState,
 } from "@/lib/projects/form";
-import { PROJECTS_PATH } from "@/lib/projects/query";
+import { NEW_PROJECT_PATH, PROJECTS_PATH } from "@/lib/projects/query";
 
 /**
  * Creating a project. The same four steps as creating a client — read,
@@ -31,11 +32,19 @@ export async function createProjectAction(
   const fields = readProjectFields(formData);
 
   const clients = await projectClientOptions();
-  const parsed = parseProjectForm(
-    fields,
-    clients.map((client) => client.id),
-  );
-  if (!parsed.ok) return rejectedFormState(fields, parsed.errors);
+  const clientIds = clients.map((client) => client.id);
+  const parsed = parseProjectForm(fields, clientIds);
+  if (!parsed.ok) {
+    // The picker the reader is looking at offered a client this action has just
+    // refused, so it was read before that client was archived. Revalidating
+    // sends the page's options back with the rejection, which is what makes
+    // "choose another" something they can do without reloading — and if that
+    // was the last client, the page says so instead of offering a form.
+    if (pickerWentStale(fields.client, clientIds)) {
+      revalidatePath(NEW_PROJECT_PATH);
+    }
+    return rejectedFormState(fields, parsed.errors);
+  }
 
   let project;
   try {
