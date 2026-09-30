@@ -2,7 +2,8 @@ import type { NewClientInput } from "@/lib/data/clients";
 import type { Client } from "@/lib/db/schema";
 import { EMAIL_MAX_LENGTH, optionalEmail } from "@/lib/forms/email";
 import { readFields } from "@/lib/forms/form-data";
-import { optionalRateCents, rateInput } from "@/lib/forms/rate";
+import { zeroedCentsInput } from "@/lib/forms/cents";
+import { optionalRateCents } from "@/lib/forms/rate";
 import { collect, type FieldErrors, type ParseResult } from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
 import { optionalText, requiredText } from "@/lib/forms/text";
@@ -112,7 +113,7 @@ export function clientFormFields(client: Client): ClientFormFields {
     name: client.name,
     company: client.company ?? "",
     email: client.email ?? "",
-    defaultRate: rateInput(client.defaultRateCents),
+    defaultRate: zeroedCentsInput(client.defaultRateCents),
     notes: client.notes ?? "",
   };
 }
