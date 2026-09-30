@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo } from "react";
+import { useActionState } from "react";
 
 import {
   FormSummary,
@@ -37,10 +37,10 @@ export function EditProjectForm({
   /** The project's own page, which is where a save ends up too. */
   cancelHref: string;
 }) {
-  const save = useMemo(
-    () => updateProjectAction.bind(null, projectId),
-    [projectId],
-  );
+  // `useActionState` reads the action when the form is submitted rather than
+  // holding on to it, so a fresh binding each render costs nothing and there is
+  // nothing here for a memo to save.
+  const save = updateProjectAction.bind(null, projectId);
   const [state, formAction] = useActionState(save, initialState);
 
   useFirstErrorFocus(state, PROJECT_FIELD_NAMES);
