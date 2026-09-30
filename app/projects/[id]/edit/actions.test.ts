@@ -105,6 +105,14 @@ describe("updateProjectAction", () => {
 
     expect(saved.mock.calls[0][1]).not.toHaveProperty("status");
   });
+
+  it("asks for no change at all when nothing was edited", async () => {
+    await expect(edit({})).rejects.toThrow("NEXT_REDIRECT:/projects/prj_engine");
+
+    // An empty patch, which the data layer answers without a write — so Save on
+    // a form nobody changed leaves `updatedAt` where it was.
+    expect(saved).toHaveBeenCalledWith("prj_engine", {});
+  });
 });
 
 describe("an edit that cannot be saved", () => {
