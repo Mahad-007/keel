@@ -5,7 +5,12 @@ import { amountInput, optionalAmountCents } from "@/lib/forms/amount";
 import { requiredChoice } from "@/lib/forms/choice";
 import { readFields } from "@/lib/forms/form-data";
 import { overrideRateCents, rateOverrideInput } from "@/lib/forms/rate";
-import { collect, type FieldErrors, type ParseResult } from "@/lib/forms/result";
+import {
+  collect,
+  hasFieldError,
+  type FieldErrors,
+  type ParseResult,
+} from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
 import { requiredText } from "@/lib/forms/text";
 
@@ -177,7 +182,7 @@ export function preselectedClientId(
   clients: readonly ClientOption[],
 ): string {
   if (state.fields.client !== "") return state.fields.client;
-  if (state.errors.client !== undefined) return "";
+  if (hasFieldError(state.errors, "client")) return "";
   return clients.length === 1 ? clients[0].id : "";
 }
 
