@@ -29,18 +29,6 @@ export function clientOptionLabel(client: Client): string {
 }
 
 /**
- * The options a project form offers, in the order the client list is already
- * read in — alphabetical. A picker sorted differently from the list it stands
- * for is a picker people scroll twice.
- *
- * `current` is the client an existing project is already on, and it is here
- * because archiving a client does not touch their projects: editing one of
- * those projects would otherwise find its own client missing from the picker,
- * and the browser would quietly select whoever happens to be first. Saving the
- * contract value would then reassign the project. So the client is offered,
- * last and labelled, rather than left out.
- */
-/**
  * One client as one option, with both the flag and the label read off the row.
  *
  * Deriving them rather than setting `archived: false` for the list and true for
@@ -61,6 +49,18 @@ function toOption(client: Client): ClientOption {
   };
 }
 
+/**
+ * The options a project form offers, in the order the client list is already
+ * read in — alphabetical. A picker sorted differently from the list it stands
+ * for is a picker people scroll twice.
+ *
+ * `current` is the client an existing project is already on, and it is here
+ * because archiving a client does not touch their projects: editing one of
+ * those projects would otherwise find its own client missing from the picker,
+ * and the browser would quietly select whoever happens to be first. Saving the
+ * contract value would then reassign the project. So the client is offered,
+ * last and labelled, rather than left out.
+ */
 export function clientOptions(
   clients: readonly Client[],
   current: Client | null = null,
