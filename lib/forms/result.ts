@@ -1,3 +1,5 @@
+import { readableMessage } from "./message";
+
 /**
  * The shape every form validator in the codebase speaks.
  *
@@ -21,6 +23,23 @@ export function invalid<T>(message: string): FieldResult<T> {
 
 /** One message per bad field, keyed by the field's form name. */
 export type FieldErrors<K extends string> = Partial<Record<K, string>>;
+
+/**
+ * Whether a field came back with something to say.
+ *
+ * One answer to a question a form asks in several places — the summary counting
+ * bad fields, the focus hook looking for the first one, a picker deciding
+ * whether to preselect, an action deciding whether the options it offered need
+ * re-reading. A message of `""` is not an error, per `readableMessage`, and the
+ * places that ask must agree about that or the form counts a field it never
+ * marks.
+ */
+export function hasFieldError<K extends string>(
+  errors: FieldErrors<K>,
+  name: K,
+): boolean {
+  return readableMessage(errors[name]) !== null;
+}
 
 export type ParseResult<T, K extends string> =
   | { readonly ok: true; readonly value: T }
