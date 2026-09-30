@@ -9,6 +9,7 @@ import { failedFormState, rejectedFormState } from "@/lib/forms/state";
 import { projectEditPath, projectPath } from "@/lib/projects/detail";
 import {
   parseProjectForm,
+  pickerWentStale,
   readProjectFields,
   type ProjectFormState,
 } from "@/lib/projects/form";
@@ -47,11 +48,19 @@ export async function updateProjectAction(
   if (current === null) return failedFormState(fields, GONE);
 
   const clients = await projectClientOptions(current.clientId);
-  const parsed = parseProjectForm(
-    fields,
-    clients.map((client) => client.id),
-  );
-  if (!parsed.ok) return rejectedFormState(fields, parsed.errors);
+  const clientIds = clients.map((client) => client.id);
+  const parsed = parseProjectForm(fields, clientIds);
+  if (!parsed.ok) {
+    // The options on screen are older than this rejection: they offered a
+    // client who has since been archived, and telling the reader to choose
+    // another while the list still shows that one is a dead end. Revalidating
+    // sends the current options back with the message. The project's own client
+    // is never the one refused — the picker keeps them either way.
+    if (pickerWentStale(fields.client, clientIds)) {
+      revalidatePath(projectEditPath(id));
+    }
+    return rejectedFormState(fields, parsed.errors);
+  }
 
   let saved;
   try {
