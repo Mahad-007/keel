@@ -1,8 +1,8 @@
 import type { ClientOption } from "@/lib/clients/options";
 import type { NewProjectInput } from "@/lib/data/projects";
 import type { Project } from "@/lib/db/schema";
-import { amountInput, optionalAmountCents } from "@/lib/forms/amount";
-import { optionalCentsInput } from "@/lib/forms/cents";
+import { optionalAmountCents } from "@/lib/forms/amount";
+import { optionalCentsInput, zeroedCentsInput } from "@/lib/forms/cents";
 import { requiredChoice } from "@/lib/forms/choice";
 import { readFields } from "@/lib/forms/form-data";
 import { overrideRateCents } from "@/lib/forms/rate";
@@ -150,7 +150,7 @@ export function projectFormFields(project: Project): ProjectFormFields {
   return {
     client: project.clientId,
     name: project.name,
-    contractValue: amountInput(project.contractValueCents),
+    contractValue: zeroedCentsInput(project.contractValueCents),
     rateOverride: optionalCentsInput(project.rateCents),
   };
 }

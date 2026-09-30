@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { amountInput, MAX_AMOUNT_CENTS, optionalAmountCents } from "./amount";
+import { MAX_AMOUNT_CENTS, optionalAmountCents } from "./amount";
+import { zeroedCentsInput } from "./cents";
 
 describe("optionalAmountCents", () => {
   it("converts a contracted sum into whole cents", () => {
@@ -48,16 +49,16 @@ describe("optionalAmountCents", () => {
 
 describe("amountInput", () => {
   it("shows a contracted sum as an editable amount", () => {
-    expect(amountInput(1_200_000)).toBe("12000.00");
+    expect(zeroedCentsInput(1_200_000)).toBe("12000.00");
   });
 
   it("shows an unagreed value as a blank field, not as zero", () => {
-    expect(amountInput(0)).toBe("");
+    expect(zeroedCentsInput(0)).toBe("");
   });
 
   it("round-trips every amount the field accepts", () => {
     for (const cents of [0, 1, 1_200_000, MAX_AMOUNT_CENTS]) {
-      expect(optionalAmountCents(amountInput(cents))).toEqual({
+      expect(optionalAmountCents(zeroedCentsInput(cents))).toEqual({
         ok: true,
         value: cents,
       });
