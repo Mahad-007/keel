@@ -37,9 +37,9 @@ export function EditProjectForm({
   /** The project's own page, which is where a save ends up too. */
   cancelHref: string;
 }) {
-  // `useActionState` reads the action when the form is submitted rather than
-  // holding on to it, so a fresh binding each render costs nothing and there is
-  // nothing here for a memo to save.
+  // The id is fixed for as long as this page is mounted, so there is nothing a
+  // memo here could ever invalidate on — the binding is just the action with its
+  // first argument already supplied.
   const save = updateProjectAction.bind(null, projectId);
   const [state, formAction] = useActionState(save, initialState);
 
