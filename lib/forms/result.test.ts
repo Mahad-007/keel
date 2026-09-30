@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { collect, invalid, valid } from "./result";
+import {
+  collect,
+  hasFieldError,
+  invalid,
+  valid,
+  type FieldErrors,
+} from "./result";
 
 describe("collect", () => {
   it("hands back every value when each field is valid", () => {
@@ -42,5 +48,25 @@ describe("collect", () => {
     const result = collect({ rateCents: valid(0), notes: valid<string | null>(null) });
 
     expect(result).toEqual({ ok: true, value: { rateCents: 0, notes: null } });
+  });
+});
+
+describe("hasFieldError", () => {
+  it("is true for a field with a message", () => {
+    expect(hasFieldError({ name: "Name is required." }, "name")).toBe(true);
+  });
+
+  it("is false for a field nobody complained about", () => {
+    const errors: FieldErrors<"client" | "name"> = { name: "Name is required." };
+
+    expect(hasFieldError(errors, "client")).toBe(false);
+    expect(hasFieldError({}, "name")).toBe(false);
+  });
+
+  it("does not count a message with nothing to show", () => {
+    // A field marked in trouble with nothing under it is a field the reader
+    // cannot fix, so every part of the form has to agree it is not in trouble.
+    expect(hasFieldError({ name: "" }, "name")).toBe(false);
+    expect(hasFieldError({ name: "   " }, "name")).toBe(false);
   });
 });
