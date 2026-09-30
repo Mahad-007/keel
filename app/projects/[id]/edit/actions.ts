@@ -10,6 +10,7 @@ import { projectEditPath, projectPath } from "@/lib/projects/detail";
 import {
   parseProjectForm,
   pickerWentStale,
+  projectFormChanges,
   readProjectFields,
   type ProjectFormState,
 } from "@/lib/projects/form";
@@ -62,9 +63,16 @@ export async function updateProjectAction(
     return rejectedFormState(fields, parsed.errors);
   }
 
+  /**
+   * Only what moved. The data layer writes nothing for an empty patch, which is
+   * what keeps Save on an untouched form from bumping `updatedAt` and jumping
+   * the project to the top of a list sorted by it.
+   */
+  const changes = projectFormChanges(current, parsed.value);
+
   let saved;
   try {
-    saved = await updateProject(id, parsed.value);
+    saved = await updateProject(id, changes);
   } catch (error) {
     // The user cannot act on a driver error, but the logs should keep it.
     console.error("updateProjectAction: failed to save project", error);

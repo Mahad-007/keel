@@ -73,16 +73,15 @@ beforeEach(() => {
 });
 
 describe("updateProjectAction", () => {
-  it("saves the changed fields and goes back to the project", async () => {
+  it("saves the changed field and goes back to the project", async () => {
     await expect(edit({ contractValue: "15000" })).rejects.toThrow(
       "NEXT_REDIRECT:/projects/prj_engine",
     );
 
+    // The one column that moved, not all four: the fields the reader left alone
+    // stay out of the patch so the data layer writes only what changed.
     expect(saved).toHaveBeenCalledWith("prj_engine", {
-      clientId: "cli_ada",
-      name: "Engine rewrite",
       contractValueCents: 1_500_000,
-      rateCents: 18000,
     });
     expect(revalidatePath).toHaveBeenCalledWith("/projects/prj_engine");
   });
