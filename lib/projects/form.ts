@@ -6,12 +6,7 @@ import { optionalCentsInput, zeroedCentsInput } from "@/lib/forms/cents";
 import { requiredChoice } from "@/lib/forms/choice";
 import { readFields } from "@/lib/forms/form-data";
 import { overrideRateCents } from "@/lib/forms/rate";
-import {
-  collect,
-  hasFieldError,
-  type FieldErrors,
-  type ParseResult,
-} from "@/lib/forms/result";
+import { collect, hasFieldError, type ParseResult } from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
 import { requiredText } from "@/lib/forms/text";
 
@@ -49,8 +44,6 @@ export type ProjectFieldName = (typeof PROJECT_FIELD_NAMES)[number];
 
 /** Every field as submitted, untrimmed. What the form renders back on error. */
 export type ProjectFormFields = Record<ProjectFieldName, string>;
-
-export type ProjectFieldErrors = FieldErrors<ProjectFieldName>;
 
 /**
  * How long each field may be. Exported because the inputs carry the same
