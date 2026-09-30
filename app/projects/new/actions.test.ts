@@ -123,6 +123,17 @@ describe("a project form that is rejected", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/projects/new");
   });
 
+  it("re-reads the page for a skipped pick too, which may be why it was skipped", async () => {
+    // Nothing to choose from is the likeliest reason nothing was chosen, and the
+    // reader cannot tell until the page has been read again.
+    offered.mockResolvedValue([]);
+
+    const state = await save({ client: "", name: "Engine rewrite" });
+
+    expect(state.errors.client).toBe("Client is required.");
+    expect(revalidatePath).toHaveBeenCalledWith("/projects/new");
+  });
+
   it("leaves the page alone when the picker was never the problem", async () => {
     const state = await save({ client: "cli_ada", name: "" });
 
