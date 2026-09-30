@@ -204,3 +204,31 @@ export function pickerWentStale(
   const picked = client.trim();
   return picked !== "" && !offered.includes(picked);
 }
+
+/**
+ * What an edit actually changed, as a patch holding only those columns.
+ *
+ * The data layer treats an empty patch as a no-op, and says why: a form
+ * submitted without a change should not bump `updatedAt` and reorder a list
+ * sorted by it. A patch that always carries all four columns defeats that —
+ * pressing Save on an untouched form would rewrite the row and jump the project
+ * to the top of the list, claiming something happened when nothing did.
+ *
+ * Comparing values is safe here because the form round-trips: the fields
+ * `projectFormFields` renders are strings the validators return unchanged, so a
+ * field nobody touched parses back to the value already in the row rather than
+ * to something merely equivalent.
+ */
+export function projectFormChanges(
+  current: Project,
+  value: ProjectFormValue,
+): Partial<ProjectFormValue> {
+  const changes: Partial<ProjectFormValue> = {};
+  if (value.clientId !== current.clientId) changes.clientId = value.clientId;
+  if (value.name !== current.name) changes.name = value.name;
+  if (value.contractValueCents !== current.contractValueCents) {
+    changes.contractValueCents = value.contractValueCents;
+  }
+  if (value.rateCents !== current.rateCents) changes.rateCents = value.rateCents;
+  return changes;
+}
