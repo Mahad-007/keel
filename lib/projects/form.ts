@@ -187,30 +187,6 @@ export function preselectedClientId(
 }
 
 /**
- * Whether the picker this submission came from is out of date: it offered a
- * client the form has just refused.
- *
- * The usual cause is a page left open while that client was archived. It
- * matters because the reply to a rejected submission is rendered against the
- * options the page was built with — so the reader is told to choose another
- * client while the list in front of them still shows only the one that was
- * refused, and every resubmission fails in the same way. The action uses this
- * to decide whether the page's options need re-reading, which is the only
- * thing that makes the message actionable.
- *
- * A submission naming a client who was never offered at all — a POST that was
- * never this form — answers true as well. Re-reading the options costs one
- * query and tells that request nothing it did not already know.
- */
-export function pickerWentStale(
-  client: string,
-  offered: readonly string[],
-): boolean {
-  const picked = client.trim();
-  return picked !== "" && !offered.includes(picked);
-}
-
-/**
  * What an edit actually changed, as a patch holding only those columns.
  *
  * The data layer treats an empty patch as a no-op, and says why: a form

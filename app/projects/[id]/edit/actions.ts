@@ -5,11 +5,11 @@ import { redirect } from "next/navigation";
 
 import { projectClientOptions } from "@/lib/clients/picker";
 import { getProject, updateProject } from "@/lib/data/projects";
+import { hasFieldError } from "@/lib/forms/result";
 import { failedFormState, rejectedFormState } from "@/lib/forms/state";
 import { projectEditPath, projectPath } from "@/lib/projects/detail";
 import {
   parseProjectForm,
-  pickerWentStale,
   projectFormChanges,
   readProjectFields,
   type ProjectFormState,
@@ -52,12 +52,12 @@ export async function updateProjectAction(
   const clientIds = clients.map((client) => client.id);
   const parsed = parseProjectForm(fields, clientIds);
   if (!parsed.ok) {
-    // The options on screen are older than this rejection: they offered a
-    // client who has since been archived, and telling the reader to choose
-    // another while the list still shows that one is a dead end. Revalidating
-    // sends the current options back with the message. The project's own client
-    // is never the one refused — the picker keeps them either way.
-    if (pickerWentStale(fields.client, clientIds)) {
+    // The options on screen are older than this rejection, so a rejection
+    // blaming the picker leaves the reader choosing from a list that is out of
+    // date. Revalidating sends the current options back with the message. The
+    // project's own client is never the one refused — the picker keeps them
+    // whether or not they are still on the books.
+    if (hasFieldError(parsed.errors, "client")) {
       revalidatePath(projectEditPath(id));
     }
     return rejectedFormState(fields, parsed.errors);

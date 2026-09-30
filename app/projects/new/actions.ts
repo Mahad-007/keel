@@ -5,11 +5,11 @@ import { redirect } from "next/navigation";
 
 import { projectClientOptions } from "@/lib/clients/picker";
 import { createProject } from "@/lib/data/projects";
+import { hasFieldError } from "@/lib/forms/result";
 import { failedFormState, rejectedFormState } from "@/lib/forms/state";
 import { projectPath } from "@/lib/projects/detail";
 import {
   parseProjectForm,
-  pickerWentStale,
   readProjectFields,
   type ProjectFormState,
 } from "@/lib/projects/form";
@@ -35,12 +35,13 @@ export async function createProjectAction(
   const clientIds = clients.map((client) => client.id);
   const parsed = parseProjectForm(fields, clientIds);
   if (!parsed.ok) {
-    // The picker the reader is looking at offered a client this action has just
-    // refused, so it was read before that client was archived. Revalidating
-    // sends the page's options back with the rejection, which is what makes
-    // "choose another" something they can do without reloading — and if that
-    // was the last client, the page says so instead of offering a form.
-    if (pickerWentStale(fields.client, clientIds)) {
+    // The picker on screen was read before this rejection, so when the picker
+    // is what failed the reader is being told to choose again from a list that
+    // is out of date. Revalidating sends the page's current options back with
+    // the message — and if the last client has gone, the page says so instead
+    // of offering a form at all. The rejection is the whole test: a blank pick
+    // on a page whose clients have gone needs the same refresh as a refused one.
+    if (hasFieldError(parsed.errors, "client")) {
       revalidatePath(NEW_PROJECT_PATH);
     }
     return rejectedFormState(fields, parsed.errors);

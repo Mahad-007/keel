@@ -7,7 +7,6 @@ import {
   INITIAL_PROJECT_FORM_STATE,
   PROJECT_FIELD_NAMES,
   parseProjectForm,
-  pickerWentStale,
   preselectedClientId,
   projectFormChanges,
   projectFormFields,
@@ -279,31 +278,6 @@ describe("preselectedClientId", () => {
       formError: null,
     };
     expect(preselectedClientId(state, [ada])).toBe("");
-  });
-});
-
-describe("pickerWentStale", () => {
-  const offered = ["cli_ada", "cli_grace"];
-
-  it("is false for a client the form still offers", () => {
-    expect(pickerWentStale("cli_ada", offered)).toBe(false);
-  });
-
-  it("is true for a client who has left the list since the page was built", () => {
-    expect(pickerWentStale("cli_ada", ["cli_grace"])).toBe(true);
-  });
-
-  it("is true when there is nobody left to pick at all", () => {
-    expect(pickerWentStale("cli_ada", [])).toBe(true);
-  });
-
-  it("is false for a blank pick, which is a field the user skipped", () => {
-    expect(pickerWentStale("", offered)).toBe(false);
-    expect(pickerWentStale("   ", offered)).toBe(false);
-  });
-
-  it("reads the pick the way the validator does, trimmed", () => {
-    expect(pickerWentStale("  cli_ada  ", offered)).toBe(false);
   });
 });
 
