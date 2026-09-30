@@ -9,6 +9,10 @@ import {
   type ProjectFormState,
 } from "@/lib/projects/form";
 
+/** What the picker always says, before anything unusual about the options. */
+const CLIENT_HINT =
+  "Who the work is for. Every project hangs off one client, and it bills at their default rate unless it overrides it below.";
+
 /**
  * The four fields that describe a project, in the order the form lays them
  * out. Both the new and the edit form render exactly this set: a field added
@@ -19,10 +23,6 @@ import {
  * values and the messages always travel together — the state *is* what a field
  * needs to render itself.
  */
-/** What the picker always says, before anything unusual about the options. */
-const CLIENT_HINT =
-  "Who the work is for. Every project hangs off one client, and it bills at their default rate unless it overrides it below.";
-
 export function ProjectFields({
   state,
   clients,
