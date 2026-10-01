@@ -1,5 +1,16 @@
+import { requiredChoice } from "@/lib/forms/choice";
 import { readFields } from "@/lib/forms/form-data";
+import { collect, type ParseResult } from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
+import { optionalText } from "@/lib/forms/text";
+
+import type { ProjectStatus } from "./status";
+import {
+  allowedTransitions,
+  checkTransition,
+  TRANSITION_REASON_LIMIT,
+  type TransitionProblemCode,
+} from "./transitions";
 
 /**
  * The status form, from submitted strings to a move the data layer will
@@ -48,4 +59,70 @@ export const INITIAL_TRANSITION_FORM_STATE: TransitionFormState =
  */
 export function readTransitionFields(formData: FormData): TransitionFormFields {
   return readFields(formData, TRANSITION_FIELD_NAMES);
+}
+
+/**
+ * What the form yields once the move is good: the status to go to, and the
+ * reason to file with it — null rather than `""`, because the trail stores
+ * absence as NULL and an empty string would read as a reason nobody can see.
+ */
+export type TransitionFormValue = {
+  status: ProjectStatus;
+  reason: string | null;
+};
+
+/**
+ * Which field a refused transition is blamed on.
+ *
+ * The status, when the move itself is impossible: the page offered it, so the
+ * project has moved underneath the reader and the buttons are the stale part.
+ * The reason, when the move is fine and what was typed is not — that is the
+ * box they can do something about, and marking the buttons instead would send
+ * them looking for a problem that is not there.
+ */
+const PROBLEM_FIELDS: Record<TransitionProblemCode, TransitionFieldName> = {
+  illegal: "status",
+  "reason-required": "reason",
+  "reason-too-long": "reason",
+};
+
+/**
+ * A submitted status change, checked against the project it is being made to.
+ *
+ * `from` is the status as last read from the database, so the moves on offer
+ * are the ones that project can actually make. That check is repeated inside
+ * `transitionProject` against the row in its own transaction — this one is
+ * here to produce a message beside the right field, not to be trusted as the
+ * last word.
+ */
+export function parseTransitionForm(
+  fields: TransitionFormFields,
+  from: ProjectStatus,
+): ParseResult<TransitionFormValue, TransitionFieldName> {
+  const parsed = collect({
+    status: requiredChoice(fields.status, allowedTransitions(from), {
+      label: "Status",
+      // Nobody types this field, so an unknown value is a page that was
+      // rendered before somebody else moved the project.
+      unknown:
+        "That is not a move this project can make any more. Reload to see where it stands.",
+    }),
+    reason: optionalText(fields.reason, {
+      label: "Reason",
+      max: TRANSITION_REASON_LIMIT,
+    }),
+  });
+
+  if (!parsed.ok) return parsed;
+
+  const { status, reason } = parsed.value;
+  const problem = checkTransition(from, status, reason);
+  if (problem !== null) {
+    return {
+      ok: false,
+      errors: { [PROBLEM_FIELDS[problem.code]]: problem.message },
+    };
+  }
+
+  return { ok: true, value: { status, reason } };
 }
