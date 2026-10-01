@@ -998,9 +998,19 @@ describe("a project row with a status outside the enum", () => {
  * A project parked in `status`, for a transition test to move out of. Built by
  * creating it there rather than by walking it through the lifecycle, so that a
  * test of one move is not also a test of the moves before it.
+ *
+ * It waits before handing the project back, because creating one writes the
+ * opening line of its trail: without the gap that row and the next one can
+ * share a millisecond, and a test reading "the latest event" would get
+ * whichever of the two sorted first.
  */
 async function projectIn(status: ProjectStatus) {
-  return createProject({ clientId, name: `A ${status} one`, status }, db);
+  const project = await createProject(
+    { clientId, name: `A ${status} one`, status },
+    db,
+  );
+  await tick();
+  return project;
 }
 
 describe("transitionProject on a legal move", () => {
@@ -1070,7 +1080,6 @@ describe("transitionProject on a legal move", () => {
 
   it("hands back the saved row rather than the one it read", async () => {
     const project = await projectIn("draft");
-    await tick();
 
     const result = await transitionProject(project.id, "active", {}, db);
 
@@ -1317,7 +1326,6 @@ describe("transitionProject and the trail", () => {
 
   it("keeps the trail of a reopening and the close before it", async () => {
     const project = await projectIn("closed");
-    await tick();
 
     await transitionProject(
       project.id,
