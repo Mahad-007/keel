@@ -7,6 +7,7 @@ import {
   checkTransition,
   PROJECT_TRANSITIONS,
   refuseTransition,
+  TRANSITION_REASON_LIMIT,
   transitionRequiresReason,
   transitionVerb,
 } from "./transitions";
@@ -265,5 +266,47 @@ describe("checkTransition on an illegal move", () => {
     expect(
       checkTransition("closed", "draft", "We agreed to start over.")?.code,
     ).toBe("illegal");
+  });
+});
+
+describe("checkTransition on the reason", () => {
+  it("refuses a reopening with nothing said", () => {
+    expect(checkTransition("closed", "active", null)?.code).toBe(
+      "reason-required",
+    );
+  });
+
+  it("asks for the reason in words a person can act on", () => {
+    expect(checkTransition("closed", "active", null)?.message).toMatch(
+      /Say why this is reopening/,
+    );
+  });
+
+  it("accepts a reason at the length limit", () => {
+    const reason = "x".repeat(TRANSITION_REASON_LIMIT);
+
+    expect(checkTransition("closed", "active", reason)).toBeNull();
+  });
+
+  it("refuses a reason one character past the limit", () => {
+    const reason = "x".repeat(TRANSITION_REASON_LIMIT + 1);
+
+    expect(checkTransition("closed", "active", reason)?.code).toBe(
+      "reason-too-long",
+    );
+  });
+
+  it("caps the note on a move that never needed one", () => {
+    const note = "x".repeat(TRANSITION_REASON_LIMIT + 1);
+
+    expect(checkTransition("active", "paused", note)?.code).toBe(
+      "reason-too-long",
+    );
+  });
+
+  it("answers the illegality before the length", () => {
+    const note = "x".repeat(TRANSITION_REASON_LIMIT + 1);
+
+    expect(checkTransition("closed", "draft", note)?.code).toBe("illegal");
   });
 });
