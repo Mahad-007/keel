@@ -11,8 +11,17 @@ import {
   parseProjectStatus,
   type ProjectStatus,
 } from "@/lib/projects/status";
+import {
+  checkTransition,
+  type TransitionProblem,
+} from "@/lib/projects/transitions";
 
-import { optionalCents, requiredText, wholeCents } from "./fields";
+import {
+  optionalCents,
+  optionalText,
+  requiredText,
+  wholeCents,
+} from "./fields";
 import { recordProjectStatusEvent } from "./project-status-events";
 
 /**
@@ -383,4 +392,92 @@ export async function countProjectsByStatus(
     counts[row.status] = Number(row.total);
   }
   return counts;
+}
+
+/**
+ * Why a status move was not made. The transition guard's own reasons, plus the
+ * one it cannot have an opinion about: there was no project to move.
+ *
+ * A code rather than a thrown error because none of these is a bug. Every one
+ * of them is reachable from a page that was correct when it rendered and is
+ * not any more, and the caller has to be able to say which happened.
+ */
+export type ProjectTransitionProblem =
+  | TransitionProblem
+  | { readonly code: "no-such-project"; readonly message: string };
+
+/** The outcome of asking a project to change status. */
+export type ProjectTransitionResult =
+  | { readonly ok: true; readonly project: Project }
+  | { readonly ok: false; readonly problem: ProjectTransitionProblem };
+
+/** Said once, so the data layer and the action cannot drift apart on it. */
+const NO_SUCH_PROJECT: ProjectTransitionProblem = {
+  code: "no-such-project",
+  message: "That project no longer exists. Nothing was changed.",
+};
+
+/** What a status move may carry besides the status itself. */
+export type ProjectTransitionOptions = {
+  /** Why the move was made. Required to reopen a closed project. */
+  reason?: string | null;
+};
+
+/**
+ * Moves a project to another status, if the lifecycle allows it.
+ *
+ * This is the only way a project's status changes. `updateProject` deliberately
+ * cannot touch the column: a patch is a form saving four fields, and a status
+ * change is a decision with a guard in front of it and a row of history behind
+ * it. One door means a closed project cannot quietly reopen through the other.
+ *
+ * The guard runs against the row as it is read inside the transaction rather
+ * than against whatever the page was showing, so two people pressing Close on
+ * the same project do not both succeed: the second reads a closed project and
+ * is refused.
+ *
+ * The status, the two lifecycle dates, and the trail entry are one write.
+ * A status that moved without leaving a line behind is the failure the trail
+ * exists to rule out, so it must not be possible to get one by losing a
+ * connection between two statements.
+ */
+export async function transitionProject(
+  id: string,
+  to: ProjectStatus,
+  options: ProjectTransitionOptions = {},
+  database: Database = db,
+): Promise<ProjectTransitionResult> {
+  const next = parseProjectStatus(to);
+  const reason = optionalText(options.reason);
+  const now = new Date().toISOString();
+
+  return database.transaction(async (tx) => {
+    const current = await getProject(id, tx);
+    if (current === null) return { ok: false, problem: NO_SUCH_PROJECT };
+
+    const problem = checkTransition(current.status, next, reason);
+    if (problem !== null) return { ok: false, problem };
+
+    const [row] = await tx
+      .update(projects)
+      .set({
+        status: next,
+        ...lifecycleStamps(current, next, now),
+        updatedAt: now,
+      })
+      .where(eq(projects.id, id))
+      .returning();
+
+    await recordProjectStatusEvent(
+      {
+        projectId: id,
+        fromStatus: current.status,
+        toStatus: next,
+        reason,
+      },
+      tx,
+    );
+
+    return { ok: true, project: row };
+  });
 }
