@@ -76,3 +76,48 @@ export const projects = sqliteTable(
 
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
+
+/**
+ * Every status a project has ever been in, and why it moved.
+ *
+ * The project row carries the status it is in now, which is all any list or
+ * badge needs — and it is exactly the thing that answers "when did this close?"
+ * by overwriting the previous answer. An engagement that was paused for two
+ * months, resumed, and closed twice is a story the `status` column cannot tell,
+ * and it is the story anybody arguing about a late invoice actually wants.
+ *
+ * Append-only: rows are written by `transitionProject` and never updated. A
+ * trail that can be edited is not a trail.
+ *
+ * `fromStatus` is NULL for the row written when the project is created, which
+ * is the one event with nothing before it. Every other row has both ends, so
+ * the trail can be read without consulting the row above it.
+ */
+export const projectStatusEvents = sqliteTable(
+  "project_status_events",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    /** The status left behind. NULL only on the project's opening event. */
+    fromStatus: text("from_status", { enum: PROJECT_STATUSES }),
+    toStatus: text("to_status", { enum: PROJECT_STATUSES }).notNull(),
+    /**
+     * Why, in the words of whoever moved it. Optional for most moves and
+     * required to reopen a closed project — the whole point of the guard is
+     * that reopening leaves a sentence behind.
+     */
+    reason: text("reason"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(current_timestamp)`),
+  },
+  /** The trail is only ever read one project at a time. */
+  (table) => [
+    index("project_status_events_project_id_idx").on(table.projectId),
+  ],
+);
+
+export type ProjectStatusEvent = typeof projectStatusEvents.$inferSelect;
+export type NewProjectStatusEvent = typeof projectStatusEvents.$inferInsert;
