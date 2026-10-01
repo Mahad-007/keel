@@ -4,6 +4,7 @@ import { PROJECT_STATUSES, type ProjectStatus } from "./status";
 import {
   allowedTransitions,
   canTransition,
+  checkTransition,
   PROJECT_TRANSITIONS,
   refuseTransition,
   transitionRequiresReason,
@@ -227,5 +228,42 @@ describe("refuseTransition", () => {
     expect(refuseTransition("mothballed" as ProjectStatus, "active")).toBe(
       'A project that is "mothballed" cannot become active.',
     );
+  });
+});
+
+describe("checkTransition on a legal move", () => {
+  it("passes every legal move that needs no reason", () => {
+    for (const [from, to] of LEGAL) {
+      if (transitionRequiresReason(from, to)) continue;
+      expect(checkTransition(from, to, null)).toBeNull();
+    }
+  });
+
+  it("passes a legal move carrying a note nobody asked for", () => {
+    expect(checkTransition("active", "paused", "Client went quiet.")).toBeNull();
+  });
+
+  it("passes the reopening once it has a reason", () => {
+    expect(
+      checkTransition("closed", "active", "They came back for phase two."),
+    ).toBeNull();
+  });
+});
+
+describe("checkTransition on an illegal move", () => {
+  it.each(ILLEGAL)("refuses %s to %s as illegal", (from, to) => {
+    expect(checkTransition(from, to, null)?.code).toBe("illegal");
+  });
+
+  it("carries the refusal's own sentence rather than a generic one", () => {
+    expect(checkTransition("closed", "paused", null)?.message).toBe(
+      refuseTransition("closed", "paused"),
+    );
+  });
+
+  it("stays illegal however good the reason is", () => {
+    expect(
+      checkTransition("closed", "draft", "We agreed to start over.")?.code,
+    ).toBe("illegal");
   });
 });
