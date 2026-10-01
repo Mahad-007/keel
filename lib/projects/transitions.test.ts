@@ -5,6 +5,7 @@ import {
   allowedTransitions,
   canTransition,
   checkTransition,
+  describeStatusChange,
   PROJECT_TRANSITIONS,
   refuseTransition,
   TRANSITION_REASON_LIMIT,
@@ -308,5 +309,50 @@ describe("checkTransition on the reason", () => {
     const note = "x".repeat(TRANSITION_REASON_LIMIT + 1);
 
     expect(checkTransition("closed", "draft", note)?.code).toBe("illegal");
+  });
+});
+
+describe("describeStatusChange on an opening event", () => {
+  it("says a draft was set up", () => {
+    expect(describeStatusChange(null, "draft")).toBe("Set up as a draft.");
+  });
+
+  it("says a project created running started straight away", () => {
+    expect(describeStatusChange(null, "active")).toMatch(/straight away/);
+  });
+
+  it("says a project created closed was recorded after the fact", () => {
+    expect(describeStatusChange(null, "closed")).toMatch(/after the fact/);
+  });
+
+  it("names a status outside the four rather than saying nothing", () => {
+    expect(describeStatusChange(null, "mothballed" as ProjectStatus)).toBe(
+      'Set up as "mothballed".',
+    );
+  });
+});
+
+describe("describeStatusChange on a move", () => {
+  it("gives every legal move its own past tense", () => {
+    const lines = LEGAL.map(([from, to]) => describeStatusChange(from, to));
+
+    expect(new Set(lines).size).toBe(LEGAL.length);
+  });
+
+  it("distinguishes cancelling a draft from closing live work", () => {
+    expect(describeStatusChange("draft", "closed")).toBe(
+      "Cancelled before it started.",
+    );
+    expect(describeStatusChange("active", "closed")).toBe("Closed.");
+  });
+
+  it("records a reopening as a reopening", () => {
+    expect(describeStatusChange("closed", "active")).toBe("Reopened.");
+  });
+
+  it("falls back to naming both ends of a pair it cannot phrase", () => {
+    expect(describeStatusChange("closed", "paused")).toBe(
+      "Moved from closed to paused.",
+    );
   });
 });
