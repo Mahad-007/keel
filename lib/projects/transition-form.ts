@@ -158,7 +158,7 @@ export function transitionNotePrompt(
   if (required) {
     return {
       label: "Why is this reopening?",
-      hint: "A closed project reopens on the record. Say what changed, for whoever reads this later.",
+      hint: "Required. A closed project reopens on the record, so say what changed for whoever reads this later.",
       required: true,
     };
   }

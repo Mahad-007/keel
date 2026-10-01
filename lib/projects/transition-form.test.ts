@@ -162,6 +162,14 @@ describe("transitionNotePrompt", () => {
     expect(transitionNotePrompt("active").hint).toMatch(/kept with the change/);
   });
 
+  it("says outright that a reopening's reason is required", () => {
+    expect(transitionNotePrompt("closed").hint).toMatch(/^Required\./);
+  });
+
+  it("does not call an optional note required", () => {
+    expect(transitionNotePrompt("active").hint).not.toMatch(/Required/);
+  });
+
   it("requires nothing of a status with no moves at all", () => {
     expect(transitionNotePrompt("mothballed" as ProjectStatus).required).toBe(
       false,
