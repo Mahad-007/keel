@@ -446,33 +446,45 @@ export async function transitionProject(
   const reason = optionalText(options.reason);
   const now = new Date().toISOString();
 
-  return database.transaction(async (tx) => {
-    const current = await getProject(id, tx);
-    if (current === null) return { ok: false, problem: NO_SUCH_PROJECT };
+  /**
+   * `immediate` rather than the default deferred begin. This transaction reads
+   * the project and then writes it, and a deferred one takes no write lock
+   * until the update — so a second transition arriving in between reads the
+   * same status, passes the same guard, and then fails to upgrade. SQLite
+   * refuses the stale write rather than losing it, so the guard holds either
+   * way; taking the lock up front turns "busy, try again" into waiting its
+   * turn and getting the right answer.
+   */
+  return database.transaction(
+    async (tx) => {
+      const current = await getProject(id, tx);
+      if (current === null) return { ok: false, problem: NO_SUCH_PROJECT };
 
-    const problem = checkTransition(current.status, next, reason);
-    if (problem !== null) return { ok: false, problem };
+      const problem = checkTransition(current.status, next, reason);
+      if (problem !== null) return { ok: false, problem };
 
-    const [row] = await tx
-      .update(projects)
-      .set({
-        status: next,
-        ...lifecycleStamps(current, next, now),
-        updatedAt: now,
-      })
-      .where(eq(projects.id, id))
-      .returning();
+      const [row] = await tx
+        .update(projects)
+        .set({
+          status: next,
+          ...lifecycleStamps(current, next, now),
+          updatedAt: now,
+        })
+        .where(eq(projects.id, id))
+        .returning();
 
-    await recordProjectStatusEvent(
-      {
-        projectId: id,
-        fromStatus: current.status,
-        toStatus: next,
-        reason,
-      },
-      tx,
-    );
+      await recordProjectStatusEvent(
+        {
+          projectId: id,
+          fromStatus: current.status,
+          toStatus: next,
+          reason,
+        },
+        tx,
+      );
 
-    return { ok: true, project: row };
-  });
+      return { ok: true, project: row };
+    },
+    { behavior: "immediate" },
+  );
 }
