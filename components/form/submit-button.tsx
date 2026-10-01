@@ -39,6 +39,18 @@ export type SubmitButtonProps = {
    * anyone who cannot see which line they are on.
    */
   subject?: string;
+  /**
+   * What the button contributes to the submission, for a form offering
+   * several ways out of it — the project status buttons, where "Pause" and
+   * "Close" post the same form to the same action and differ only in this.
+   *
+   * A browser sends the pressed button's name and value and nobody else's,
+   * which is what makes this a choice rather than a field: a form submitted
+   * without pressing a button carries no status at all, and reads as blank
+   * rather than defaulting to whichever move happened to be first.
+   */
+  name?: string;
+  value?: string;
 };
 
 export function SubmitButton({
@@ -46,6 +58,8 @@ export function SubmitButton({
   pendingLabel,
   variant = "primary",
   subject,
+  name,
+  value,
 }: SubmitButtonProps) {
   const pending = useFormPending();
   const label = submitLabel(children, pendingLabel, pending);
@@ -53,6 +67,8 @@ export function SubmitButton({
   return (
     <button
       type="submit"
+      name={name}
+      value={value}
       disabled={pending}
       aria-disabled={pending}
       aria-label={submitAriaLabel(label, subject)}
