@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import {
@@ -61,14 +61,26 @@ export async function recordProjectStatusEvent(
 }
 
 /**
+ * The order rows went in, read backwards. SQLite hands every row of a table
+ * like this one an implicit `rowid` one higher than the last, so it is the
+ * insertion order exactly — which for an append-only table is the order the
+ * things happened in.
+ *
+ * `createdAt` is the obvious thing to sort by and the wrong one. It is
+ * millisecond-precision, and two moves in the same millisecond tie on it; the
+ * id does not break that tie either, since an id's leading characters are the
+ * same millisecond and the rest is random. It is also the application's clock,
+ * which can go backwards. The trail is the one table where "what order did
+ * this happen in" must not be a guess.
+ */
+const NEWEST_FIRST = sql`${projectStatusEvents}.rowid desc`;
+
+/**
  * One project's trail, newest first.
  *
  * Newest first because the question a reader brings to a project page is what
  * happened last — the reopening they are looking at the consequences of, not
- * the day it was set up. The id breaks ties in the same direction, so two
- * moves in the same millisecond do not swap places between reloads; ids carry
- * their creation time in the prefix, which is what makes that ordering mean
- * something rather than merely being stable.
+ * the day it was set up.
  */
 export async function listProjectStatusEvents(
   projectId: string,
@@ -78,5 +90,5 @@ export async function listProjectStatusEvents(
     .select()
     .from(projectStatusEvents)
     .where(eq(projectStatusEvents.projectId, projectId))
-    .orderBy(desc(projectStatusEvents.createdAt), desc(projectStatusEvents.id));
+    .orderBy(NEWEST_FIRST);
 }

@@ -14,11 +14,6 @@ import { createProject, deleteProject } from "./projects";
 let db: Database;
 let projectId: string;
 
-/** Ids and timestamps both order by time, so two rows must not tie. */
-function tick(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 2));
-}
-
 beforeEach(async () => {
   db = await createTestDb();
   const clientId = (await createClient({ name: "Anvil Co" }, db)).id;
@@ -96,12 +91,10 @@ describe("recordProjectStatusEvent", () => {
 
 describe("listProjectStatusEvents", () => {
   it("returns the trail newest first, down to the opening event", async () => {
-    await tick();
     await recordProjectStatusEvent(
       { projectId, fromStatus: "draft", toStatus: "active" },
       db,
     );
-    await tick();
     await recordProjectStatusEvent(
       { projectId, fromStatus: "active", toStatus: "paused" },
       db,

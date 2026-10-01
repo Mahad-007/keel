@@ -957,18 +957,11 @@ describe("a project row with a status outside the enum", () => {
  * creating it there rather than by walking it through the lifecycle, so that a
  * test of one move is not also a test of the moves before it.
  *
- * It waits before handing the project back, because creating one writes the
- * opening line of its trail: without the gap that row and the next one can
- * share a millisecond, and a test reading "the latest event" would get
- * whichever of the two sorted first.
+ * Nothing waits here: the trail is ordered by insertion, so the opening event
+ * and the move after it keep their order however close together they land.
  */
 async function projectIn(status: ProjectStatus) {
-  const project = await createProject(
-    { clientId, name: `A ${status} one`, status },
-    db,
-  );
-  await tick();
-  return project;
+  return createProject({ clientId, name: `A ${status} one`, status }, db);
 }
 
 describe("transitionProject on a legal move", () => {
@@ -1038,6 +1031,10 @@ describe("transitionProject on a legal move", () => {
 
   it("hands back the saved row rather than the one it read", async () => {
     const project = await projectIn("draft");
+    // `updatedAt` comes from the wall clock, so the write has to land in a
+    // different millisecond from the create for the comparison to mean
+    // anything.
+    await tick();
 
     const result = await transitionProject(project.id, "active", {}, db);
 
@@ -1258,9 +1255,7 @@ describe("transitionProject and the trail", () => {
   it("appends rather than replacing, so the whole story is there", async () => {
     const project = await projectIn("draft");
     await transitionProject(project.id, "active", {}, db);
-    await tick();
     await transitionProject(project.id, "paused", {}, db);
-    await tick();
     await transitionProject(project.id, "closed", {}, db);
 
     const events = await listProjectStatusEvents(project.id, db);
