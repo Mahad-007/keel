@@ -29,9 +29,10 @@ import { requiredText } from "@/lib/forms/text";
  * relative to — the rate override field is only meaningful once you know
  * whose default it would be overriding.
  *
- * Status is deliberately absent. A project's status moves through a lifecycle
- * with rules of its own, and a `<select>` on an edit form would let a closed
- * project silently reopen; Day 010 gives it the transitions it needs.
+ * Status is deliberately absent, and the data layer will not accept one in a
+ * patch either. A project's status moves through a lifecycle with rules of its
+ * own — a `<select>` here would let a closed project silently reopen. The
+ * buttons on the project page are where it moves, through `transitionProject`.
  */
 export const PROJECT_FIELD_NAMES = [
   "client",
