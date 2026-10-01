@@ -44,3 +44,14 @@ export function allowedTransitions(
 ): readonly ProjectStatus[] {
   return PROJECT_TRANSITIONS[from] ?? [];
 }
+
+/**
+ * Whether `from → to` is a move the lifecycle allows.
+ *
+ * Deliberately false for `from === to`: staying put is not a transition, and a
+ * guard that waved it through would let a second press of Close write a second
+ * audit row saying nothing happened.
+ */
+export function canTransition(from: ProjectStatus, to: ProjectStatus): boolean {
+  return allowedTransitions(from).includes(to);
+}
