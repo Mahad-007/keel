@@ -98,3 +98,39 @@ describe("canTransition on a legal move", () => {
     );
   });
 });
+
+/** The other nine of the sixteen pairs. Together with LEGAL that is all of them. */
+const ILLEGAL: readonly (readonly [ProjectStatus, ProjectStatus])[] = [
+  ["draft", "draft"],
+  ["draft", "paused"],
+  ["active", "draft"],
+  ["active", "active"],
+  ["paused", "draft"],
+  ["paused", "paused"],
+  ["closed", "draft"],
+  ["closed", "paused"],
+  ["closed", "closed"],
+];
+
+describe("canTransition on an illegal move", () => {
+  it.each(ILLEGAL)("refuses %s to %s", (from, to) => {
+    expect(canTransition(from, to)).toBe(false);
+  });
+
+  it("accounts for every pair of statuses between them", () => {
+    const pairs = PROJECT_STATUSES.flatMap((from) =>
+      PROJECT_STATUSES.map((to) => `${from}->${to}`),
+    );
+    const covered = [...LEGAL, ...ILLEGAL].map(
+      ([from, to]) => `${from}->${to}`,
+    );
+
+    expect(covered.sort()).toEqual(pairs.sort());
+  });
+
+  it("refuses every move out of a status outside the four", () => {
+    for (const to of PROJECT_STATUSES) {
+      expect(canTransition("mothballed" as ProjectStatus, to)).toBe(false);
+    }
+  });
+});
