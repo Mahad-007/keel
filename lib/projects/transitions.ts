@@ -55,3 +55,42 @@ export function allowedTransitions(
 export function canTransition(from: ProjectStatus, to: ProjectStatus): boolean {
   return allowedTransitions(from).includes(to);
 }
+
+/** A move, spelled the way the rest of this module keys them. */
+function edge(from: ProjectStatus, to: ProjectStatus): string {
+  return `${from}->${to}`;
+}
+
+/**
+ * What each move is called, on the button that makes it.
+ *
+ * Keyed by the pair rather than by the destination, because the same
+ * destination is a different act depending on where you are standing:
+ * `draft → active` is starting work, `paused → active` is resuming it, and
+ * `closed → active` is reopening something that was finished. A button
+ * labelled "Active" for all three would make the reader work out which.
+ *
+ * `draft → closed` is "Cancel" for the same reason: nothing ran, so there is
+ * nothing to close, and calling it closing would imply there was.
+ */
+const TRANSITION_VERBS: Record<string, string> = {
+  "draft->active": "Start",
+  "draft->closed": "Cancel",
+  "active->paused": "Pause",
+  "active->closed": "Close",
+  "paused->active": "Resume",
+  "paused->closed": "Close",
+  "closed->active": "Reopen",
+};
+
+/**
+ * The verb for a legal move, or null for one that cannot be made — so a caller
+ * cannot render a button for a transition the guard would refuse.
+ */
+export function transitionVerb(
+  from: ProjectStatus,
+  to: ProjectStatus,
+): string | null {
+  if (!canTransition(from, to)) return null;
+  return TRANSITION_VERBS[edge(from, to)] ?? null;
+}
