@@ -73,7 +73,16 @@ export function StatusForm({
         rows={note.required ? 3 : 2}
         maxLength={TRANSITION_REASON_LIMIT}
       />
-      <div className="flex flex-wrap items-center gap-2">
+      {/*
+        A group, because the buttons are alternatives rather than a row of
+        unrelated controls: "Pause" and "Close" read as a choice with a label
+        over it, instead of two verbs encountered one after the other.
+      */}
+      <div
+        role="group"
+        aria-label="Move this project to"
+        className="flex flex-wrap items-center gap-2"
+      >
         {moves.map((to) => (
           <SubmitButton
             key={to}
