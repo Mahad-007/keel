@@ -46,11 +46,16 @@ export type NewProjectInput = {
 };
 
 /**
- * Only the fields present are written, so a patch can touch one column. There
- * is deliberately no `startedAt` or `closedAt` here: both are derived from the
- * status the project moves to, not set by hand.
+ * Only the fields present are written, so a patch can touch one column.
+ *
+ * Three columns are deliberately missing. `startedAt` and `closedAt` are
+ * derived from the status a project moves to rather than set by hand — and
+ * `status` itself is not patchable at all, because a status change has a guard
+ * in front of it and a line of history behind it. `transitionProject` is the
+ * only way through, which is what stops a closed project reopening as a side
+ * effect of saving a form.
  */
-export type ProjectPatch = Partial<NewProjectInput>;
+export type ProjectPatch = Partial<Omit<NewProjectInput, "status">>;
 
 /**
  * A project without a client is not a project, and the foreign key would stop
@@ -183,9 +188,7 @@ export async function listProjectsForClient(
  * write, so a form that was submitted without a change does not bump
  * `updatedAt` and reorder somebody's list.
  *
- * A status in the patch also rewrites `startedAt` and `closedAt`, through the
- * same rule `createProject` uses: the two dates are derived from the status a
- * project moves to, never set by a caller.
+ * The status is not among the fields it can touch; see `ProjectPatch`.
  */
 export async function updateProject(
   id: string,
@@ -214,14 +217,6 @@ export async function updateProject(
    */
   if (patch.clientId !== undefined) {
     values.clientId = await requireClient(patch.clientId, database);
-  }
-
-  if (patch.status !== undefined) {
-    const status = parseProjectStatus(patch.status);
-    const current = await getProject(id, database);
-    if (!current) return null;
-    values.status = status;
-    Object.assign(values, lifecycleStamps(current, status, now));
   }
 
   if (Object.keys(values).length === 0) return getProject(id, database);

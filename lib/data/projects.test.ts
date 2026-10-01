@@ -18,6 +18,7 @@ import {
   listProjects,
   listProjectsForClient,
   listProjectsWithClient,
+  type ProjectPatch,
   transitionProject,
   updateProject,
 } from "./projects";
@@ -419,90 +420,47 @@ describe("createProject and the status trail", () => {
 });
 
 describe("updateProject on the status", () => {
-  it("dates the start when a draft is activated", async () => {
+  /**
+   * The compiler refuses a status in a patch, which is the real guard. This
+   * proves the runtime agrees: a crafted object reaching the data layer past
+   * the type gets its status ignored rather than written, so the only way a
+   * project changes status stays `transitionProject`.
+   */
+  it("ignores a status smuggled past the type", async () => {
     const project = await createProject({ clientId, name: "Kickoff" }, db);
 
-    const updated = await updateProject(project.id, { status: "active" }, db);
-
-    expect(updated?.status).toBe("active");
-    expect(updated?.startedAt).not.toBeNull();
-  });
-
-  it("keeps the original start across a pause and a resume", async () => {
-    const project = await createProject(
-      { clientId, name: "Stop start", status: "active" },
+    await updateProject(
+      project.id,
+      { status: "closed" } as unknown as ProjectPatch,
       db,
     );
 
-    await updateProject(project.id, { status: "paused" }, db);
-    const resumed = await updateProject(project.id, { status: "active" }, db);
-
-    expect(resumed?.startedAt).toBe(project.startedAt);
+    expect((await getProject(project.id, db))?.status).toBe("draft");
   });
 
-  it("dates the close when the work is finished", async () => {
-    const project = await createProject(
-      { clientId, name: "Wrapping up", status: "active" },
+  it("writes no line of history when it was asked to", async () => {
+    const project = await createProject({ clientId, name: "Kickoff" }, db);
+
+    await updateProject(
+      project.id,
+      { status: "active" } as unknown as ProjectPatch,
       db,
     );
 
-    const closed = await updateProject(project.id, { status: "closed" }, db);
-
-    expect(closed?.closedAt).not.toBeNull();
-    expect(closed?.startedAt).toBe(project.startedAt);
+    expect(await listProjectStatusEvents(project.id, db)).toHaveLength(1);
   });
 
-  it("clears the close date when a closed project reopens", async () => {
-    const project = await createProject(
-      { clientId, name: "Round two", status: "active" },
+  it("still saves the fields it is allowed to touch alongside it", async () => {
+    const project = await createProject({ clientId, name: "Kickoff" }, db);
+
+    const updated = await updateProject(
+      project.id,
+      { name: "Renamed", status: "closed" } as unknown as ProjectPatch,
       db,
     );
-    await updateProject(project.id, { status: "closed" }, db);
 
-    const reopened = await updateProject(project.id, { status: "active" }, db);
-
-    expect(reopened?.closedAt).toBeNull();
-    expect(reopened?.startedAt).toBe(project.startedAt);
-  });
-
-  it("clears both dates when a project is put back to draft", async () => {
-    const project = await createProject(
-      { clientId, name: "Never mind", status: "active" },
-      db,
-    );
-    await updateProject(project.id, { status: "closed" }, db);
-
-    const drafted = await updateProject(project.id, { status: "draft" }, db);
-
-    expect(drafted?.startedAt).toBeNull();
-    expect(drafted?.closedAt).toBeNull();
-  });
-
-  it("keeps the first close date when a closed project is closed again", async () => {
-    const project = await createProject(
-      { clientId, name: "Twice done", status: "closed" },
-      db,
-    );
-    await tick();
-
-    const again = await updateProject(project.id, { status: "closed" }, db);
-
-    expect(again?.closedAt).toBe(project.closedAt);
-  });
-
-  it("refuses a status outside the four and writes nothing", async () => {
-    const project = await createProject({ clientId, name: "Valid" }, db);
-
-    await expect(
-      updateProject(project.id, { status: "archived" as ProjectStatus }, db),
-    ).rejects.toThrow(/unknown project status/);
-    expect(await getProject(project.id, db)).toEqual(project);
-  });
-
-  it("returns null when the project to re-status does not exist", async () => {
-    expect(
-      await updateProject("prj_nope", { status: "active" }, db),
-    ).toBeNull();
+    expect(updated?.name).toBe("Renamed");
+    expect(updated?.status).toBe("draft");
   });
 });
 
@@ -935,7 +893,7 @@ describe("countProjectsByStatus after a status change", () => {
   it("moves a project from its old status to its new one", async () => {
     const project = await createProject({ clientId, name: "Agreed" }, db);
 
-    await updateProject(project.id, { status: "active" }, db);
+    await transitionProject(project.id, "active", {}, db);
 
     const counts = await countProjectsByStatus(db);
     expect(counts.draft).toBe(0);
