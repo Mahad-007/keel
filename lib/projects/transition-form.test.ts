@@ -66,3 +66,74 @@ describe("parseTransitionForm on a good submission", () => {
     expect(parsed.ok).toBe(true);
   });
 });
+
+describe("parseTransitionForm on a rejected submission", () => {
+  it("rejects a form submitted with no button pressed", () => {
+    const parsed = parseTransitionForm(EMPTY_TRANSITION_FIELDS, "active");
+
+    expect(parsed.ok).toBe(false);
+    expect(!parsed.ok && parsed.errors.status).toMatch(/required/);
+  });
+
+  it("blames the buttons for a move the project cannot make", () => {
+    const parsed = parseTransitionForm(fields({ status: "draft" }), "active");
+
+    expect(!parsed.ok && parsed.errors.status).toMatch(/Reload/);
+  });
+
+  it("blames the buttons for a move out of a status the project has left", () => {
+    const parsed = parseTransitionForm(fields({ status: "paused" }), "closed");
+
+    expect(!parsed.ok && parsed.errors.status).toMatch(/Reload/);
+  });
+
+  it("blames the reason box when a reopening says nothing", () => {
+    const parsed = parseTransitionForm(fields({ status: "active" }), "closed");
+
+    expect(!parsed.ok && parsed.errors.reason).toMatch(/Say why/);
+    expect(!parsed.ok && parsed.errors.status).toBeUndefined();
+  });
+
+  it("blames the reason box when a reopening says only whitespace", () => {
+    const parsed = parseTransitionForm(
+      fields({ status: "active", reason: "   " }),
+      "closed",
+    );
+
+    expect(!parsed.ok && parsed.errors.reason).toMatch(/Say why/);
+  });
+
+  it("rejects a note past the length limit", () => {
+    const parsed = parseTransitionForm(
+      fields({
+        status: "paused",
+        reason: "x".repeat(TRANSITION_REASON_LIMIT + 1),
+      }),
+      "active",
+    );
+
+    expect(!parsed.ok && parsed.errors.reason).toMatch(/characters or fewer/);
+  });
+
+  it("accepts a note at the length limit", () => {
+    const parsed = parseTransitionForm(
+      fields({ status: "paused", reason: "x".repeat(TRANSITION_REASON_LIMIT) }),
+      "active",
+    );
+
+    expect(parsed.ok).toBe(true);
+  });
+
+  it("reports the stale buttons and the bad note together", () => {
+    const parsed = parseTransitionForm(
+      fields({
+        status: "draft",
+        reason: "x".repeat(TRANSITION_REASON_LIMIT + 1),
+      }),
+      "active",
+    );
+
+    expect(!parsed.ok && parsed.errors.status).toBeDefined();
+    expect(!parsed.ok && parsed.errors.reason).toBeDefined();
+  });
+});
