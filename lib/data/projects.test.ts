@@ -1276,3 +1276,73 @@ describe("transitionProject and the lifecycle dates", () => {
     expect(cancelled.ok && cancelled.project.closedAt).not.toBeNull();
   });
 });
+
+describe("transitionProject and the trail", () => {
+  it("records both ends of the move", async () => {
+    const project = await projectIn("active");
+
+    await transitionProject(project.id, "paused", {}, db);
+
+    const [latest] = await listProjectStatusEvents(project.id, db);
+    expect(latest.fromStatus).toBe("active");
+    expect(latest.toStatus).toBe("paused");
+  });
+
+  it("appends rather than replacing, so the whole story is there", async () => {
+    const project = await projectIn("draft");
+    await transitionProject(project.id, "active", {}, db);
+    await tick();
+    await transitionProject(project.id, "paused", {}, db);
+    await tick();
+    await transitionProject(project.id, "closed", {}, db);
+
+    const events = await listProjectStatusEvents(project.id, db);
+
+    expect(events.map((event) => event.toStatus)).toEqual([
+      "closed",
+      "paused",
+      "active",
+      "draft",
+    ]);
+  });
+
+  it("writes one line per move, not one per press", async () => {
+    const project = await projectIn("active");
+
+    await transitionProject(project.id, "closed", {}, db);
+    await transitionProject(project.id, "closed", {}, db);
+
+    expect(await listProjectStatusEvents(project.id, db)).toHaveLength(2);
+  });
+
+  it("keeps the trail of a reopening and the close before it", async () => {
+    const project = await projectIn("closed");
+    await tick();
+
+    await transitionProject(
+      project.id,
+      "active",
+      { reason: "Phase two." },
+      db,
+    );
+
+    const events = await listProjectStatusEvents(project.id, db);
+    expect(events).toHaveLength(2);
+    expect(events[0].reason).toBe("Phase two.");
+    expect(events[1].fromStatus).toBeNull();
+  });
+});
+
+describe("transitionProject on a project that is not there", () => {
+  it("says so rather than throwing", async () => {
+    const result = await transitionProject("prj_nope", "active", {}, db);
+
+    expect(!result.ok && result.problem.code).toBe("no-such-project");
+  });
+
+  it("says so even when the move would have been illegal anyway", async () => {
+    const result = await transitionProject("prj_nope", "draft", {}, db);
+
+    expect(!result.ok && result.problem.code).toBe("no-such-project");
+  });
+});
