@@ -5,6 +5,7 @@ import {
   allowedTransitions,
   canTransition,
   PROJECT_TRANSITIONS,
+  transitionVerb,
 } from "./transitions";
 
 describe("PROJECT_TRANSITIONS", () => {
@@ -131,6 +132,36 @@ describe("canTransition on an illegal move", () => {
   it("refuses every move out of a status outside the four", () => {
     for (const to of PROJECT_STATUSES) {
       expect(canTransition("mothballed" as ProjectStatus, to)).toBe(false);
+    }
+  });
+});
+
+describe("transitionVerb", () => {
+  it("calls the first move out of a draft starting the work", () => {
+    expect(transitionVerb("draft", "active")).toBe("Start");
+  });
+
+  it("calls closing a draft a cancellation, because nothing ran", () => {
+    expect(transitionVerb("draft", "closed")).toBe("Cancel");
+  });
+
+  it("distinguishes resuming from starting", () => {
+    expect(transitionVerb("paused", "active")).toBe("Resume");
+  });
+
+  it("distinguishes reopening from both", () => {
+    expect(transitionVerb("closed", "active")).toBe("Reopen");
+  });
+
+  it("gives every legal move a verb", () => {
+    for (const [from, to] of LEGAL) {
+      expect(transitionVerb(from, to)).toBeTruthy();
+    }
+  });
+
+  it("gives no verb to a move that cannot be made", () => {
+    for (const [from, to] of ILLEGAL) {
+      expect(transitionVerb(from, to)).toBeNull();
     }
   });
 });
