@@ -3,8 +3,6 @@
 import { useActionState } from "react";
 
 import {
-  FieldError,
-  fieldErrorId,
   FormSummary,
   SubmitButton,
   TextAreaField,
@@ -52,6 +50,12 @@ export function StatusForm({
   const move = transitionProjectAction.bind(null, projectId);
   const [state, formAction] = useActionState(move, initialState);
 
+  /*
+    Only the reason has a control to focus. A problem with the status is
+    reported as a form error rather than a field one — see
+    `rejectedTransitionState` — so there is never an error keyed under a name
+    with nothing in the DOM to move the cursor to.
+  */
   useFirstErrorFocus(state, TRANSITION_FIELD_NAMES);
 
   const moves = allowedTransitions(status);
@@ -84,11 +88,6 @@ export function StatusForm({
           </SubmitButton>
         ))}
       </div>
-      {state.errors.status === undefined ? null : (
-        <FieldError id={fieldErrorId("status")}>
-          {state.errors.status}
-        </FieldError>
-      )}
     </form>
   );
 }
