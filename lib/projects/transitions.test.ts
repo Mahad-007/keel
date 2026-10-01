@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { PROJECT_STATUSES, type ProjectStatus } from "./status";
-import { PROJECT_TRANSITIONS } from "./transitions";
+import { allowedTransitions, PROJECT_TRANSITIONS } from "./transitions";
 
 describe("PROJECT_TRANSITIONS", () => {
   it("gives every status a set of moves, even if it is empty", () => {
@@ -39,5 +39,27 @@ describe("PROJECT_TRANSITIONS", () => {
     }
 
     expect([...reached].sort()).toEqual([...PROJECT_STATUSES].sort());
+  });
+});
+
+describe("allowedTransitions", () => {
+  it("offers a draft the start and the cancellation", () => {
+    expect(allowedTransitions("draft")).toEqual(["active", "closed"]);
+  });
+
+  it("offers a running project the pause and the close", () => {
+    expect(allowedTransitions("active")).toEqual(["paused", "closed"]);
+  });
+
+  it("offers a paused project the resume and the close", () => {
+    expect(allowedTransitions("paused")).toEqual(["active", "closed"]);
+  });
+
+  it("offers a closed project nothing but reopening", () => {
+    expect(allowedTransitions("closed")).toEqual(["active"]);
+  });
+
+  it("offers a status outside the four nothing at all", () => {
+    expect(allowedTransitions("mothballed" as ProjectStatus)).toEqual([]);
   });
 });
