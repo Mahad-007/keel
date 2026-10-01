@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { PROJECT_STATUSES, type ProjectStatus } from "./status";
-import { allowedTransitions, PROJECT_TRANSITIONS } from "./transitions";
+import {
+  allowedTransitions,
+  canTransition,
+  PROJECT_TRANSITIONS,
+} from "./transitions";
 
 describe("PROJECT_TRANSITIONS", () => {
   it("gives every status a set of moves, even if it is empty", () => {
@@ -61,5 +65,36 @@ describe("allowedTransitions", () => {
 
   it("offers a status outside the four nothing at all", () => {
     expect(allowedTransitions("mothballed" as ProjectStatus)).toEqual([]);
+  });
+});
+
+/**
+ * Every legal move, written out rather than read back off the map the guard
+ * itself uses. A test that derives its expectations from the thing under test
+ * passes whatever the map says, including a typo in it.
+ */
+const LEGAL: readonly (readonly [ProjectStatus, ProjectStatus])[] = [
+  ["draft", "active"],
+  ["draft", "closed"],
+  ["active", "paused"],
+  ["active", "closed"],
+  ["paused", "active"],
+  ["paused", "closed"],
+  ["closed", "active"],
+];
+
+describe("canTransition on a legal move", () => {
+  it.each(LEGAL)("allows %s to %s", (from, to) => {
+    expect(canTransition(from, to)).toBe(true);
+  });
+
+  it("covers every edge the map declares", () => {
+    const declared = PROJECT_STATUSES.flatMap((from) =>
+      PROJECT_TRANSITIONS[from].map((to) => `${from}->${to}`),
+    );
+
+    expect(declared.sort()).toEqual(
+      LEGAL.map(([from, to]) => `${from}->${to}`).sort(),
+    );
   });
 });
