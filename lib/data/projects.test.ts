@@ -1077,3 +1077,75 @@ describe("transitionProject on a legal move", () => {
     expect(result.ok && result.project.updatedAt).not.toBe(project.updatedAt);
   });
 });
+
+describe("transitionProject on an illegal move", () => {
+  it("refuses to put running work back to draft", async () => {
+    const project = await projectIn("active");
+
+    const result = await transitionProject(project.id, "draft", {}, db);
+
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.problem.code).toBe("illegal");
+  });
+
+  it("refuses to pause a draft that has not started", async () => {
+    const project = await projectIn("draft");
+
+    const result = await transitionProject(project.id, "paused", {}, db);
+
+    expect(!result.ok && result.problem.code).toBe("illegal");
+  });
+
+  it("refuses to pause a closed project", async () => {
+    const project = await projectIn("closed");
+
+    const result = await transitionProject(project.id, "paused", {}, db);
+
+    expect(!result.ok && result.problem.code).toBe("illegal");
+  });
+
+  it("refuses to move a project to the status it is already in", async () => {
+    const project = await projectIn("active");
+
+    const result = await transitionProject(project.id, "active", {}, db);
+
+    expect(!result.ok && result.problem.message).toMatch(/already active/);
+  });
+
+  it("leaves the row exactly as it was", async () => {
+    const project = await projectIn("closed");
+
+    await transitionProject(project.id, "draft", {}, db);
+
+    expect(await getProject(project.id, db)).toEqual(project);
+  });
+
+  it("writes no line of history for a move that did not happen", async () => {
+    const project = await projectIn("closed");
+
+    await transitionProject(project.id, "paused", {}, db);
+
+    expect(await listProjectStatusEvents(project.id, db)).toHaveLength(1);
+  });
+
+  it("refuses a status outside the four before it reads anything", async () => {
+    const project = await projectIn("draft");
+
+    await expect(
+      transitionProject(project.id, "archived" as ProjectStatus, {}, db),
+    ).rejects.toThrow(/unknown project status/);
+    expect(await getProject(project.id, db)).toEqual(project);
+  });
+
+  it("refuses every move out of a status outside the four", async () => {
+    const project = await projectIn("draft");
+    await db.run(
+      sql`update projects set status = 'mothballed' where id = ${project.id}`,
+    );
+
+    const result = await transitionProject(project.id, "active", {}, db);
+
+    expect(!result.ok && result.problem.code).toBe("illegal");
+    expect(!result.ok && result.problem.message).toMatch(/"mothballed"/);
+  });
+});
