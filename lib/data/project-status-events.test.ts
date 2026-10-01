@@ -95,7 +95,8 @@ describe("recordProjectStatusEvent", () => {
 });
 
 describe("listProjectStatusEvents", () => {
-  it("returns the trail newest first", async () => {
+  it("returns the trail newest first, down to the opening event", async () => {
+    await tick();
     await recordProjectStatusEvent(
       { projectId, fromStatus: "draft", toStatus: "active" },
       db,
@@ -111,6 +112,7 @@ describe("listProjectStatusEvents", () => {
     expect(events.map((event) => event.toStatus)).toEqual([
       "paused",
       "active",
+      "draft",
     ]);
   });
 

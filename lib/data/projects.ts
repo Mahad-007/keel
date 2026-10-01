@@ -13,6 +13,7 @@ import {
 } from "@/lib/projects/status";
 
 import { optionalCents, requiredText, wholeCents } from "./fields";
+import { recordProjectStatusEvent } from "./project-status-events";
 
 /**
  * Data access for the `projects` table. Plain async functions, one optional
@@ -89,21 +90,34 @@ export async function createProject(
   const rateCents = optionalCents(input.rateCents, "project rate override");
   const clientId = await requireClient(input.clientId, database);
 
-  const [row] = await database
-    .insert(projects)
-    .values({
-      id: newId("prj"),
-      clientId,
-      name,
-      status,
-      contractValueCents,
-      rateCents,
-      ...stamps,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .returning();
-  return row;
+  /**
+   * The project and the first line of its status trail are one write. A
+   * project whose trail starts at its second move would read as having
+   * appeared already active, which is exactly the kind of gap an audit trail
+   * exists to not have.
+   */
+  return database.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(projects)
+      .values({
+        id: newId("prj"),
+        clientId,
+        name,
+        status,
+        contractValueCents,
+        rateCents,
+        ...stamps,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+
+    await recordProjectStatusEvent(
+      { projectId: row.id, fromStatus: null, toStatus: status },
+      tx,
+    );
+    return row;
+  });
 }
 
 /** One project by id, or null if there is no project with that id. */
