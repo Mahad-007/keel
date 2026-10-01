@@ -1,7 +1,16 @@
 import { requiredChoice } from "@/lib/forms/choice";
 import { readFields } from "@/lib/forms/form-data";
-import { collect, type ParseResult } from "@/lib/forms/result";
-import { initialFormState, type FormState } from "@/lib/forms/state";
+import {
+  collect,
+  type FieldErrors,
+  type ParseResult,
+} from "@/lib/forms/result";
+import {
+  failedFormState,
+  initialFormState,
+  rejectedFormState,
+  type FormState,
+} from "@/lib/forms/state";
 import { optionalText } from "@/lib/forms/text";
 
 import type { ProjectStatus } from "./status";
@@ -167,4 +176,27 @@ export function transitionNotePrompt(
     hint: "Optional, and kept with the change — the difference between a project that was paused and one you can remember the reason for.",
     required: false,
   };
+}
+
+/**
+ * A rejected submission as the state the form renders back.
+ *
+ * The reason is a field: the reader typed it, it is wrong, and the message
+ * belongs under the box so they can fix it and press again. The status is not
+ * — it is the button they pressed, and the only thing wrong with it is that
+ * the page offering it is describing a project that has since moved. There is
+ * no control under which that message would make sense, and a form error is
+ * where a problem with the submission as a whole goes.
+ *
+ * A submission wrong in both ways shows only the status. The buttons being
+ * stale means the whole form is, including whichever box the reason would
+ * have gone in.
+ */
+export function rejectedTransitionState(
+  fields: TransitionFormFields,
+  errors: FieldErrors<TransitionFieldName>,
+): TransitionFormState {
+  const stale = errors.status;
+  if (stale !== undefined) return failedFormState(fields, stale);
+  return rejectedFormState(fields, errors);
 }
