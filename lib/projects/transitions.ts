@@ -30,3 +30,17 @@ export const PROJECT_TRANSITIONS: Record<
   paused: ["active", "closed"],
   closed: ["active"],
 };
+
+/**
+ * Where a project in `from` can go next.
+ *
+ * An unrecognised status gets an empty list rather than `undefined`. The
+ * column is plain TEXT in SQLite, so the four values are a type-level promise
+ * a hand-edited row can break, and a row like that should be refused every
+ * move with a message — not crash the page that offers them.
+ */
+export function allowedTransitions(
+  from: ProjectStatus,
+): readonly ProjectStatus[] {
+  return PROJECT_TRANSITIONS[from] ?? [];
+}
