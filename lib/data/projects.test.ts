@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { Database } from "@/lib/db";
 import { projects } from "@/lib/db/schema";
 import type { ProjectStatus } from "@/lib/projects/status";
+import { TRANSITION_REASON_LIMIT } from "@/lib/projects/transitions";
 import { createTestDb } from "@/lib/db/testing";
 
 import { archiveClient, createClient } from "./clients";
@@ -1147,5 +1148,79 @@ describe("transitionProject on an illegal move", () => {
 
     expect(!result.ok && result.problem.code).toBe("illegal");
     expect(!result.ok && result.problem.message).toMatch(/"mothballed"/);
+  });
+});
+
+describe("transitionProject and the reason", () => {
+  it("refuses to reopen a closed project in silence", async () => {
+    const project = await projectIn("closed");
+
+    const result = await transitionProject(project.id, "active", {}, db);
+
+    expect(!result.ok && result.problem.code).toBe("reason-required");
+    expect((await getProject(project.id, db))?.status).toBe("closed");
+  });
+
+  it("treats a reason of only whitespace as no reason at all", async () => {
+    const project = await projectIn("closed");
+
+    const result = await transitionProject(
+      project.id,
+      "active",
+      { reason: "   \n  " },
+      db,
+    );
+
+    expect(!result.ok && result.problem.code).toBe("reason-required");
+  });
+
+  it("refuses a reason longer than the column should hold", async () => {
+    const project = await projectIn("closed");
+
+    const result = await transitionProject(
+      project.id,
+      "active",
+      { reason: "x".repeat(TRANSITION_REASON_LIMIT + 1) },
+      db,
+    );
+
+    expect(!result.ok && result.problem.code).toBe("reason-too-long");
+  });
+
+  it("keeps the reason on the trail, trimmed", async () => {
+    const project = await projectIn("closed");
+
+    await transitionProject(
+      project.id,
+      "active",
+      { reason: "  They came back for phase two.  " },
+      db,
+    );
+
+    const [latest] = await listProjectStatusEvents(project.id, db);
+    expect(latest.reason).toBe("They came back for phase two.");
+  });
+
+  it("keeps a note on a move that did not need one", async () => {
+    const project = await projectIn("active");
+
+    await transitionProject(
+      project.id,
+      "paused",
+      { reason: "Waiting on their copy." },
+      db,
+    );
+
+    const [latest] = await listProjectStatusEvents(project.id, db);
+    expect(latest.reason).toBe("Waiting on their copy.");
+  });
+
+  it("records no reason when none was given", async () => {
+    const project = await projectIn("draft");
+
+    await transitionProject(project.id, "active", {}, db);
+
+    const [latest] = await listProjectStatusEvents(project.id, db);
+    expect(latest.reason).toBeNull();
   });
 });
