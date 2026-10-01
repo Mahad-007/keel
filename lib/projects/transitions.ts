@@ -166,3 +166,62 @@ export function refuseTransition(
   }
   return `A project that is ${phrase(from)} cannot become ${phrase(to)}.`;
 }
+
+/**
+ * Why a transition was refused: a code for the caller to branch on, and a
+ * sentence for the person who asked for it.
+ *
+ * The code exists because the two kinds of refusal want different handling. A
+ * missing reason is a field the user can fill in and resubmit; an illegal move
+ * is not something any amount of typing fixes, and the page offering it is out
+ * of date. A server action has to tell those apart to decide whether it is
+ * marking a field or re-reading the project.
+ */
+export type TransitionProblemCode =
+  | "illegal"
+  | "reason-required"
+  | "reason-too-long";
+
+export type TransitionProblem = {
+  readonly code: TransitionProblemCode;
+  readonly message: string;
+};
+
+/**
+ * The whole guard in one call: may a project in `from` move to `to`, with this
+ * reason attached? Null means yes.
+ *
+ * `reason` is the normalised value — trimmed, and null rather than empty when
+ * nothing was typed — because "   " must not satisfy a requirement to explain
+ * yourself. Both callers that matter normalise before asking: the form through
+ * `optionalText` and the data layer through its own.
+ *
+ * The order is the order a reader would reach the problems in. Being told the
+ * reason is too long for a move that was never possible would be answering the
+ * wrong question.
+ */
+export function checkTransition(
+  from: ProjectStatus,
+  to: ProjectStatus,
+  reason: string | null,
+): TransitionProblem | null {
+  const refusal = refuseTransition(from, to);
+  if (refusal !== null) return { code: "illegal", message: refusal };
+
+  if (reason === null && transitionRequiresReason(from, to)) {
+    return {
+      code: "reason-required",
+      message:
+        "Say why this is reopening. A closed project reopens on the record or not at all.",
+    };
+  }
+
+  if (reason !== null && reason.length > TRANSITION_REASON_LIMIT) {
+    return {
+      code: "reason-too-long",
+      message: `The reason must be ${TRANSITION_REASON_LIMIT} characters or fewer.`,
+    };
+  }
+
+  return null;
+}
