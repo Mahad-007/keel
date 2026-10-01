@@ -1224,3 +1224,55 @@ describe("transitionProject and the reason", () => {
     expect(latest.reason).toBeNull();
   });
 });
+
+describe("transitionProject and the lifecycle dates", () => {
+  it("dates the start when a draft is started", async () => {
+    const project = await projectIn("draft");
+
+    const result = await transitionProject(project.id, "active", {}, db);
+
+    expect(result.ok && result.project.startedAt).not.toBeNull();
+  });
+
+  it("keeps the original start across a pause and a resume", async () => {
+    const project = await projectIn("active");
+
+    await transitionProject(project.id, "paused", {}, db);
+    const resumed = await transitionProject(project.id, "active", {}, db);
+
+    expect(resumed.ok && resumed.project.startedAt).toBe(project.startedAt);
+  });
+
+  it("dates the close when the work is finished", async () => {
+    const project = await projectIn("active");
+
+    const closed = await transitionProject(project.id, "closed", {}, db);
+
+    expect(closed.ok && closed.project.closedAt).not.toBeNull();
+    expect(closed.ok && closed.project.startedAt).toBe(project.startedAt);
+  });
+
+  it("clears the close date when a closed project reopens", async () => {
+    const project = await projectIn("active");
+    await transitionProject(project.id, "closed", {}, db);
+
+    const reopened = await transitionProject(
+      project.id,
+      "active",
+      { reason: "Phase two." },
+      db,
+    );
+
+    expect(reopened.ok && reopened.project.closedAt).toBeNull();
+    expect(reopened.ok && reopened.project.startedAt).toBe(project.startedAt);
+  });
+
+  it("starts a cancelled draft's clock at nothing, and ends it", async () => {
+    const project = await projectIn("draft");
+
+    const cancelled = await transitionProject(project.id, "closed", {}, db);
+
+    expect(cancelled.ok && cancelled.project.startedAt).toBeNull();
+    expect(cancelled.ok && cancelled.project.closedAt).not.toBeNull();
+  });
+});
