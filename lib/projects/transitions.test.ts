@@ -5,6 +5,7 @@ import {
   allowedTransitions,
   canTransition,
   PROJECT_TRANSITIONS,
+  refuseTransition,
   transitionRequiresReason,
   transitionVerb,
 } from "./transitions";
@@ -183,5 +184,48 @@ describe("transitionRequiresReason", () => {
   it("does not make starting a draft feel like reopening", () => {
     expect(transitionRequiresReason("draft", "active")).toBe(false);
     expect(transitionRequiresReason("paused", "active")).toBe(false);
+  });
+});
+
+describe("refuseTransition", () => {
+  it("says nothing about a move that is allowed", () => {
+    for (const [from, to] of LEGAL) {
+      expect(refuseTransition(from, to)).toBeNull();
+    }
+  });
+
+  it("gives every refused move a sentence to show", () => {
+    for (const [from, to] of ILLEGAL) {
+      expect(refuseTransition(from, to)).toMatch(/\.$/);
+    }
+  });
+
+  it("tells a reader standing still that they already are", () => {
+    expect(refuseTransition("active", "active")).toBe(
+      "This project is already active.",
+    );
+    expect(refuseTransition("draft", "draft")).toBe(
+      "This project is already a draft.",
+    );
+  });
+
+  it("explains that draft is a beginning, not a destination", () => {
+    for (const from of ["active", "paused", "closed"] as const) {
+      expect(refuseTransition(from, "draft")).toMatch(/goes back to it/);
+    }
+  });
+
+  it("tells a draft to start before it can pause", () => {
+    expect(refuseTransition("draft", "paused")).toMatch(/Start it first/);
+  });
+
+  it("tells a closed project to reopen before it can pause", () => {
+    expect(refuseTransition("closed", "paused")).toMatch(/Reopen it first/);
+  });
+
+  it("names the stored value when the status is not one of the four", () => {
+    expect(refuseTransition("mothballed" as ProjectStatus, "active")).toBe(
+      'A project that is "mothballed" cannot become active.',
+    );
   });
 });
