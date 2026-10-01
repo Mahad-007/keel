@@ -17,6 +17,7 @@ import {
   listProjects,
   listProjectsForClient,
   listProjectsWithClient,
+  transitionProject,
   updateProject,
 } from "./projects";
 
@@ -989,5 +990,90 @@ describe("a project row with a status outside the enum", () => {
     const rows = await listProjectsWithClient({}, db);
 
     expect(rows.map((row) => row.name)).toEqual(["Odd one"]);
+  });
+});
+
+/**
+ * A project parked in `status`, for a transition test to move out of. Built by
+ * creating it there rather than by walking it through the lifecycle, so that a
+ * test of one move is not also a test of the moves before it.
+ */
+async function projectIn(status: ProjectStatus) {
+  return createProject({ clientId, name: `A ${status} one`, status }, db);
+}
+
+describe("transitionProject on a legal move", () => {
+  it("starts a draft", async () => {
+    const project = await projectIn("draft");
+
+    const result = await transitionProject(project.id, "active", {}, db);
+
+    expect(result.ok).toBe(true);
+    expect((await getProject(project.id, db))?.status).toBe("active");
+  });
+
+  it("cancels a draft that never ran", async () => {
+    const project = await projectIn("draft");
+
+    const result = await transitionProject(project.id, "closed", {}, db);
+
+    expect(result.ok).toBe(true);
+    expect((await getProject(project.id, db))?.status).toBe("closed");
+  });
+
+  it("pauses running work", async () => {
+    const project = await projectIn("active");
+
+    expect((await transitionProject(project.id, "paused", {}, db)).ok).toBe(
+      true,
+    );
+  });
+
+  it("closes running work", async () => {
+    const project = await projectIn("active");
+
+    expect((await transitionProject(project.id, "closed", {}, db)).ok).toBe(
+      true,
+    );
+  });
+
+  it("resumes paused work", async () => {
+    const project = await projectIn("paused");
+
+    expect((await transitionProject(project.id, "active", {}, db)).ok).toBe(
+      true,
+    );
+  });
+
+  it("closes paused work", async () => {
+    const project = await projectIn("paused");
+
+    expect((await transitionProject(project.id, "closed", {}, db)).ok).toBe(
+      true,
+    );
+  });
+
+  it("reopens a closed project that says why", async () => {
+    const project = await projectIn("closed");
+
+    const result = await transitionProject(
+      project.id,
+      "active",
+      { reason: "They came back for phase two." },
+      db,
+    );
+
+    expect(result.ok).toBe(true);
+    expect((await getProject(project.id, db))?.status).toBe("active");
+  });
+
+  it("hands back the saved row rather than the one it read", async () => {
+    const project = await projectIn("draft");
+    await tick();
+
+    const result = await transitionProject(project.id, "active", {}, db);
+
+    expect(result.ok && result.project.status).toBe("active");
+    expect(result.ok && result.project.updatedAt).not.toBe(project.updatedAt);
   });
 });
