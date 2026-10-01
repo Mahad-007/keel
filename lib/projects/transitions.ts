@@ -94,3 +94,31 @@ export function transitionVerb(
   if (!canTransition(from, to)) return null;
   return TRANSITION_VERBS[edge(from, to)] ?? null;
 }
+
+/**
+ * Whether a move may only be made with a reason attached.
+ *
+ * Exactly one qualifies, and it is the one the whole guard exists for:
+ * reopening a closed project. Closing is a statement that the engagement is
+ * finished — it is what stops the burn clock, what an invoice is cut against,
+ * and what a client is told. Undoing it is not an edit, it is a decision, and
+ * a decision with nobody's words against it is indistinguishable from a
+ * misclick six months later.
+ *
+ * Every other move may carry a note and does not need one. Demanding a
+ * sentence to pause a project would get "." typed into the box, which is worse
+ * than no box: it makes the trail look answered when it is not.
+ */
+export function transitionRequiresReason(
+  from: ProjectStatus,
+  to: ProjectStatus,
+): boolean {
+  return from === "closed" && to === "active";
+}
+
+/**
+ * How long a reason may be. Long enough for the two or three sentences that
+ * actually explain a reopening, short enough that the column is not where
+ * somebody pastes an email thread.
+ */
+export const TRANSITION_REASON_LIMIT = 500;
