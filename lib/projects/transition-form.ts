@@ -9,6 +9,7 @@ import {
   allowedTransitions,
   checkTransition,
   TRANSITION_REASON_LIMIT,
+  transitionRequiresReason,
   type TransitionProblemCode,
 } from "./transitions";
 
@@ -125,4 +126,45 @@ export function parseTransitionForm(
   }
 
   return { ok: true, value: { status, reason } };
+}
+
+/** How the reason box is labelled and whether it has to be filled in. */
+export type TransitionNotePrompt = {
+  readonly label: string;
+  readonly hint: string;
+  readonly required: boolean;
+};
+
+/**
+ * What to ask for in the reason box, given where the project stands.
+ *
+ * The requirement is derived rather than written down twice: a box is required
+ * when every move the project can make requires one, which today means a
+ * closed project, whose only move is reopening. Asking the transition rules
+ * rather than testing for `closed` means a later status with the same property
+ * gets the right box without anyone remembering this file.
+ *
+ * The wording follows from that. A required box asks a question, because the
+ * reader has to answer it; an optional one offers somewhere to put a sentence,
+ * and says what the sentence is for.
+ */
+export function transitionNotePrompt(
+  from: ProjectStatus,
+): TransitionNotePrompt {
+  const moves = allowedTransitions(from);
+  const required =
+    moves.length > 0 && moves.every((to) => transitionRequiresReason(from, to));
+
+  if (required) {
+    return {
+      label: "Why is this reopening?",
+      hint: "A closed project reopens on the record. Say what changed, for whoever reads this later.",
+      required: true,
+    };
+  }
+  return {
+    label: "Note",
+    hint: "Optional, and kept with the change — the difference between a project that was paused and one you can remember the reason for.",
+    required: false,
+  };
 }
