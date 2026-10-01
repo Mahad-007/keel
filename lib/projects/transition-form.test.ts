@@ -4,8 +4,10 @@ import {
   EMPTY_TRANSITION_FIELDS,
   parseTransitionForm,
   readTransitionFields,
+  transitionNotePrompt,
   type TransitionFormFields,
 } from "./transition-form";
+import type { ProjectStatus } from "./status";
 import { TRANSITION_REASON_LIMIT } from "./transitions";
 
 function fields(patch: Partial<TransitionFormFields>): TransitionFormFields {
@@ -135,5 +137,34 @@ describe("parseTransitionForm on a rejected submission", () => {
 
     expect(!parsed.ok && parsed.errors.status).toBeDefined();
     expect(!parsed.ok && parsed.errors.reason).toBeDefined();
+  });
+});
+
+describe("transitionNotePrompt", () => {
+  it("demands a reason from a closed project, because reopening does", () => {
+    const prompt = transitionNotePrompt("closed");
+
+    expect(prompt.required).toBe(true);
+    expect(prompt.label).toMatch(/reopening/);
+  });
+
+  it("asks nothing of a project with an ordinary move to make", () => {
+    for (const from of ["draft", "active", "paused"] as const) {
+      expect(transitionNotePrompt(from).required).toBe(false);
+    }
+  });
+
+  it("labels an optional box as a note rather than a question", () => {
+    expect(transitionNotePrompt("active").label).toBe("Note");
+  });
+
+  it("says what an optional note is for", () => {
+    expect(transitionNotePrompt("active").hint).toMatch(/kept with the change/);
+  });
+
+  it("requires nothing of a status with no moves at all", () => {
+    expect(transitionNotePrompt("mothballed" as ProjectStatus).required).toBe(
+      false,
+    );
   });
 });
