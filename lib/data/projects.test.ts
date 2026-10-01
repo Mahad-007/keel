@@ -7,6 +7,7 @@ import type { ProjectStatus } from "@/lib/projects/status";
 import { createTestDb } from "@/lib/db/testing";
 
 import { archiveClient, createClient } from "./clients";
+import { listProjectStatusEvents } from "./project-status-events";
 import {
   countProjectsByStatus,
   createProject,
@@ -376,6 +377,42 @@ describe("updateProject on the rate override", () => {
     const updated = await updateProject(project.id, { rateCents: 0 }, db);
 
     expect(updated?.rateCents).toBe(0);
+  });
+});
+
+describe("createProject and the status trail", () => {
+  it("opens the trail with an event that has nothing before it", async () => {
+    const project = await createProject({ clientId, name: "Kickoff" }, db);
+
+    const [opening] = await listProjectStatusEvents(project.id, db);
+
+    expect(opening.fromStatus).toBeNull();
+    expect(opening.toStatus).toBe("draft");
+  });
+
+  it("writes exactly one event, not one per column", async () => {
+    const project = await createProject({ clientId, name: "Kickoff" }, db);
+
+    expect(await listProjectStatusEvents(project.id, db)).toHaveLength(1);
+  });
+
+  it("records the status a project was created in, not the default", async () => {
+    const project = await createProject(
+      { clientId, name: "Historic", status: "closed" },
+      db,
+    );
+
+    const [opening] = await listProjectStatusEvents(project.id, db);
+
+    expect(opening.toStatus).toBe("closed");
+  });
+
+  it("writes no trail for a project that was refused", async () => {
+    await expect(
+      createProject({ clientId, name: "   " }, db),
+    ).rejects.toThrow(/required/);
+
+    expect(await listProjects(db)).toEqual([]);
   });
 });
 
