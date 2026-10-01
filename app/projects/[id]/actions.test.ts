@@ -89,3 +89,61 @@ describe("transitionProjectAction on a legal move", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/projects/prj_engine");
   });
 });
+
+describe("transitionProjectAction on a submission it refuses", () => {
+  it("writes nothing when the move is not one the project can make", async () => {
+    const state = await press({ status: "draft" });
+
+    expect(moved).not.toHaveBeenCalled();
+    expect(state.errors.status).toBeDefined();
+  });
+
+  it("marks the reason box when a reopening says nothing", async () => {
+    read.mockResolvedValue({ ...STORED, status: "closed" });
+
+    const state = await press({ status: "active" });
+
+    expect(moved).not.toHaveBeenCalled();
+    expect(state.errors.reason).toMatch(/Say why/);
+  });
+
+  it("hands back what was typed, so a rejected reason is not lost", async () => {
+    read.mockResolvedValue({ ...STORED, status: "closed" });
+
+    const state = await press({ status: "active", reason: "x".repeat(600) });
+
+    expect(state.fields.reason).toBe("x".repeat(600));
+  });
+
+  it("says so when the project was deleted while the page was open", async () => {
+    read.mockResolvedValue(null);
+
+    const state = await press({ status: "paused" });
+
+    expect(moved).not.toHaveBeenCalled();
+    expect(state.formError).toMatch(/no longer exists/);
+  });
+
+  it("reports the data layer's refusal when the project moved underneath", async () => {
+    moved.mockResolvedValue({
+      ok: false,
+      problem: { code: "illegal", message: "This project is already closed." },
+    });
+
+    const state = await press({ status: "paused" });
+
+    expect(state.formError).toBe("This project is already closed.");
+    expect(state.errors).toEqual({});
+  });
+
+  it("keeps a driver error out of the user's face and in the logs", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    moved.mockRejectedValue(new Error("database is locked"));
+
+    const state = await press({ status: "paused" });
+
+    expect(state.formError).toMatch(/Nothing was written/);
+    expect(logged).toHaveBeenCalled();
+    logged.mockRestore();
+  });
+});
