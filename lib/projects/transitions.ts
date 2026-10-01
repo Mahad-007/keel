@@ -122,3 +122,47 @@ export function transitionRequiresReason(
  * somebody pastes an email thread.
  */
 export const TRANSITION_REASON_LIMIT = 500;
+
+/**
+ * Each status as it reads inside a sentence, which is not how it reads on a
+ * badge: "already Draft" is not English, and "already a draft" is.
+ */
+const STATUS_PHRASES: Record<ProjectStatus, string> = {
+  draft: "a draft",
+  active: "active",
+  paused: "paused",
+  closed: "closed",
+};
+
+/** A status in a sentence, falling back to quoting whatever is stored. */
+function phrase(status: ProjectStatus): string {
+  return STATUS_PHRASES[status] ?? `"${String(status)}"`;
+}
+
+/**
+ * Why the lifecycle will not make this move, or null if it will.
+ *
+ * A boolean guard is enough to stop a bad transition and not enough to explain
+ * one. The person who pressed the button is looking at a project page that
+ * offered them the move a moment ago — the honest answer is almost always that
+ * the project moved underneath them, so each message says what is true now and
+ * what to do about it, rather than restating the rule.
+ */
+export function refuseTransition(
+  from: ProjectStatus,
+  to: ProjectStatus,
+): string | null {
+  if (canTransition(from, to)) return null;
+
+  if (from === to) return `This project is already ${phrase(to)}.`;
+  if (to === "draft") {
+    return "Draft is where a project starts, and nothing goes back to it once it has left.";
+  }
+  if (to === "paused" && from === "draft") {
+    return "A project that has not started cannot be paused. Start it first.";
+  }
+  if (to === "paused" && from === "closed") {
+    return "A closed project cannot be paused. Reopen it first if the work has come back.";
+  }
+  return `A project that is ${phrase(from)} cannot become ${phrase(to)}.`;
+}
