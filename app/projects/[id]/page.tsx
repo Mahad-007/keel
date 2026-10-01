@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
+import { listProjectStatusEvents } from "@/lib/data/project-status-events";
 import { getProjectWithClient } from "@/lib/data/projects";
 import { parseProjectTabParam } from "@/lib/projects/detail";
 import { PROJECT_TAB_LABELS } from "@/lib/projects/tabs";
@@ -54,6 +55,14 @@ export default async function ProjectPage({
 
   const tab = parseProjectTabParam(await searchParams);
 
+  /*
+    Only the overview reads the status trail, so only the overview pays for
+    it: the other four tabs render a sentence apiece and have no business
+    running a second query to do it.
+  */
+  const statusEvents =
+    tab === "overview" ? await listProjectStatusEvents(project.id) : [];
+
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 font-sans">
       <ProjectHeader project={project} />
@@ -74,7 +83,7 @@ export default async function ProjectPage({
           {PROJECT_TAB_LABELS[tab]}
         </h2>
         {tab === "overview" ? (
-          <OverviewPanel project={project} />
+          <OverviewPanel project={project} statusEvents={statusEvents} />
         ) : (
           <UnbuiltTabPanel tab={tab} />
         )}

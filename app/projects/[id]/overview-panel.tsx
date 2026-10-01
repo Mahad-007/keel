@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 
 import type { ProjectWithClient } from "@/lib/data/projects";
+import type { ProjectStatusEvent } from "@/lib/db/schema";
 import { formatDate } from "@/lib/dates";
 import { describeRateOverride } from "@/lib/projects/detail";
 
+import { StatusHistory } from "./status-history";
 import { StatusSection } from "./status-section";
 
 /**
@@ -29,10 +31,17 @@ function Fact({ term, children }: { term: string; children: ReactNode }) {
  *
  * The header already carries the three facts that matter at a glance — client,
  * status, contract value — so this is deliberately the rest: the rate the work
- * bills at, when the row was set up and last touched, and where the status is
- * moved on from.
+ * bills at, when the row was set up and last touched, the status trail, and
+ * where the status is moved on from.
  */
-export function OverviewPanel({ project }: { project: ProjectWithClient }) {
+export function OverviewPanel({
+  project,
+  statusEvents,
+}: {
+  project: ProjectWithClient;
+  /** The project's status trail, newest first. */
+  statusEvents: readonly ProjectStatusEvent[];
+}) {
   return (
     <>
       <dl className="mt-4 text-sm">
@@ -40,6 +49,18 @@ export function OverviewPanel({ project }: { project: ProjectWithClient }) {
         <Fact term="Set up">{formatDate(project.createdAt)}</Fact>
         <Fact term="Last changed">{formatDate(project.updatedAt)}</Fact>
       </dl>
+      {/*
+        History before the controls, for the same reason the archive sits at
+        the bottom of a client form: a reader arrives wanting to know what has
+        happened, and the thing that changes the project should be below the
+        thing that describes it.
+      */}
+      <section className="mt-10 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+          History
+        </h3>
+        <StatusHistory events={statusEvents} />
+      </section>
       <StatusSection project={project} />
     </>
   );
