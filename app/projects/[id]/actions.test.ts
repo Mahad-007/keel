@@ -95,7 +95,7 @@ describe("transitionProjectAction on a submission it refuses", () => {
     const state = await press({ status: "draft" });
 
     expect(moved).not.toHaveBeenCalled();
-    expect(state.errors.status).toBeDefined();
+    expect(state.formError).toMatch(/Reload/);
   });
 
   it("marks the reason box when a reopening says nothing", async () => {

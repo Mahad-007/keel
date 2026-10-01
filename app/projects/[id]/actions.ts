@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getProject, transitionProject } from "@/lib/data/projects";
-import { failedFormState, rejectedFormState } from "@/lib/forms/state";
+import { failedFormState } from "@/lib/forms/state";
 import { projectPath } from "@/lib/projects/detail";
 import { PROJECTS_PATH } from "@/lib/projects/query";
 import {
   parseTransitionForm,
   readTransitionFields,
+  rejectedTransitionState,
   type TransitionFormState,
 } from "@/lib/projects/transition-form";
 
@@ -42,7 +43,7 @@ export async function transitionProjectAction(
   }
 
   const parsed = parseTransitionForm(fields, current.status);
-  if (!parsed.ok) return rejectedFormState(fields, parsed.errors);
+  if (!parsed.ok) return rejectedTransitionState(fields, parsed.errors);
 
   let result;
   try {
