@@ -4,6 +4,7 @@ import {
   EMPTY_TRANSITION_FIELDS,
   parseTransitionForm,
   readTransitionFields,
+  rejectedTransitionState,
   transitionNotePrompt,
   type TransitionFormFields,
 } from "./transition-form";
@@ -174,5 +175,38 @@ describe("transitionNotePrompt", () => {
     expect(transitionNotePrompt("mothballed" as ProjectStatus).required).toBe(
       false,
     );
+  });
+});
+
+describe("rejectedTransitionState", () => {
+  const typed = fields({ status: "draft", reason: "Something." });
+
+  it("puts a bad reason under the reason box", () => {
+    const state = rejectedTransitionState(typed, { reason: "Too long." });
+
+    expect(state.errors.reason).toBe("Too long.");
+    expect(state.formError).toBeNull();
+  });
+
+  it("puts a stale status above the form, where it belongs", () => {
+    const state = rejectedTransitionState(typed, { status: "Reload." });
+
+    expect(state.formError).toBe("Reload.");
+    expect(state.errors).toEqual({});
+  });
+
+  it("shows only the stale status when both are wrong", () => {
+    const state = rejectedTransitionState(typed, {
+      status: "Reload.",
+      reason: "Too long.",
+    });
+
+    expect(state.formError).toBe("Reload.");
+    expect(state.errors.reason).toBeUndefined();
+  });
+
+  it("hands back what was typed either way", () => {
+    expect(rejectedTransitionState(typed, { reason: "x" }).fields).toBe(typed);
+    expect(rejectedTransitionState(typed, { status: "x" }).fields).toBe(typed);
   });
 });
