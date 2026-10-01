@@ -225,3 +225,54 @@ export function checkTransition(
 
   return null;
 }
+
+/**
+ * How a project came to be in the status it was created in.
+ *
+ * A project does not have to start as a draft: an engagement entered after the
+ * fact can be created already closed, and one agreed on the phone can be
+ * created running. The opening row of the trail should say which, because
+ * "Created" followed by a project that is already closed invites the reader to
+ * look for the close that never happened.
+ */
+const OPENING_EVENTS: Record<ProjectStatus, string> = {
+  draft: "Set up as a draft.",
+  active: "Set up and started straight away.",
+  paused: "Set up already paused.",
+  closed: "Recorded after the fact, already closed.",
+};
+
+/**
+ * What each move reads as once it is history. Past tense, and short: the trail
+ * is a column of these, and the reason beneath is where the detail goes.
+ */
+const PAST_TENSE: Record<string, string> = {
+  "draft->active": "Started.",
+  "draft->closed": "Cancelled before it started.",
+  "active->paused": "Paused.",
+  "active->closed": "Closed.",
+  "paused->active": "Resumed.",
+  "paused->closed": "Closed while paused.",
+  "closed->active": "Reopened.",
+};
+
+/**
+ * One line of the status trail. `from` is null for a project's opening event,
+ * the one move with nothing before it.
+ *
+ * Rows written before a status was renamed, or by hand, fall back to naming
+ * both ends. A trail that drops a line it cannot phrase is a trail with a gap
+ * in it, which is the one thing a trail may not have.
+ */
+export function describeStatusChange(
+  from: ProjectStatus | null,
+  to: ProjectStatus,
+): string {
+  if (from === null) {
+    return OPENING_EVENTS[to] ?? `Set up as "${String(to)}".`;
+  }
+  return (
+    PAST_TENSE[edge(from, to)] ??
+    `Moved from ${phrase(from)} to ${phrase(to)}.`
+  );
+}
