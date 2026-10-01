@@ -5,6 +5,7 @@ import {
   allowedTransitions,
   canTransition,
   PROJECT_TRANSITIONS,
+  transitionRequiresReason,
   transitionVerb,
 } from "./transitions";
 
@@ -163,5 +164,24 @@ describe("transitionVerb", () => {
     for (const [from, to] of ILLEGAL) {
       expect(transitionVerb(from, to)).toBeNull();
     }
+  });
+});
+
+describe("transitionRequiresReason", () => {
+  it("demands one to reopen a closed project", () => {
+    expect(transitionRequiresReason("closed", "active")).toBe(true);
+  });
+
+  it("demands nothing of any other legal move", () => {
+    const demanding = LEGAL.filter(([from, to]) =>
+      transitionRequiresReason(from, to),
+    );
+
+    expect(demanding).toEqual([["closed", "active"]]);
+  });
+
+  it("does not make starting a draft feel like reopening", () => {
+    expect(transitionRequiresReason("draft", "active")).toBe(false);
+    expect(transitionRequiresReason("paused", "active")).toBe(false);
   });
 });
