@@ -4,7 +4,7 @@ import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 
 import { createClient } from "./clients";
-import { createDeliverable } from "./deliverables";
+import { createDeliverable, getDeliverable } from "./deliverables";
 import { createProject } from "./projects";
 
 let db: Database;
@@ -156,5 +156,22 @@ describe("createDeliverable validation", () => {
 
     const kept = await createDeliverable({ projectId, title: "First" }, db);
     expect(kept.sortOrder).toBe(0);
+  });
+});
+
+describe("getDeliverable", () => {
+  it("reads back the row that was written", async () => {
+    const created = await createDeliverable(
+      { projectId, title: "Design system", estimatedMinutes: 600 },
+      db,
+    );
+
+    const found = await getDeliverable(created.id, db);
+
+    expect(found).toEqual(created);
+  });
+
+  it("returns null for an id that was never written", async () => {
+    expect(await getDeliverable("dlv_missing", db)).toBeNull();
   });
 });
