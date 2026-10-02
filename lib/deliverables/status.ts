@@ -32,3 +32,17 @@ export function isDeliverableStatus(value: unknown): value is DeliverableStatus 
     (DELIVERABLE_STATUSES as readonly string[]).includes(value)
   );
 }
+
+/**
+ * The strict form, for callers with nowhere sensible to fall back to — the
+ * data layer writing the column. The message lists the alternatives, because
+ * the usual cause is a typo and the usual reader is a developer.
+ */
+export function parseDeliverableStatus(value: unknown): DeliverableStatus {
+  if (!isDeliverableStatus(value)) {
+    throw new Error(
+      `unknown deliverable status: ${JSON.stringify(value)} (expected one of ${DELIVERABLE_STATUSES.join(", ")})`,
+    );
+  }
+  return value;
+}
