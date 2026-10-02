@@ -133,3 +133,16 @@ export async function createDeliverable(
     { behavior: "immediate" },
   );
 }
+
+/** One deliverable by id, or null if there is no deliverable with that id. */
+export async function getDeliverable(
+  id: string,
+  database: Database = db,
+): Promise<Deliverable | null> {
+  const [row] = await database
+    .select()
+    .from(deliverables)
+    .where(eq(deliverables.id, id))
+    .limit(1);
+  return row ?? null;
+}
