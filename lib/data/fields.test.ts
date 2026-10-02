@@ -5,6 +5,7 @@ import {
   optionalText,
   requiredText,
   wholeCents,
+  wholeMinutes,
 } from "./fields";
 
 describe("requiredText", () => {
@@ -111,5 +112,41 @@ describe("optionalCents", () => {
 
   it("keeps a deliberate zero, which is not the same as no override", () => {
     expect(optionalCents(0, "rate override")).toBe(0);
+  });
+});
+
+describe("wholeMinutes", () => {
+  it("passes a whole number of minutes through", () => {
+    expect(wholeMinutes(90, "estimate")).toBe(90);
+  });
+
+  it("allows zero, which means nobody has estimated it yet", () => {
+    expect(wholeMinutes(0, "estimate")).toBe(0);
+  });
+
+  it("refuses a fraction, naming the field and the value", () => {
+    expect(() => wholeMinutes(90.5, "estimate")).toThrow(
+      /estimate must be whole minutes, got 90.5/,
+    );
+  });
+
+  it("refuses a negative estimate", () => {
+    expect(() => wholeMinutes(-1, "estimate")).toThrow(/cannot be negative/);
+  });
+
+  it("refuses a value too large to survive the round trip", () => {
+    expect(() => wholeMinutes(Number.MAX_SAFE_INTEGER + 2, "estimate")).toThrow(
+      /whole minutes/,
+    );
+    expect(wholeMinutes(Number.MAX_SAFE_INTEGER, "estimate")).toBe(
+      Number.MAX_SAFE_INTEGER,
+    );
+  });
+
+  it("refuses NaN and infinity rather than storing them", () => {
+    expect(() => wholeMinutes(Number.NaN, "estimate")).toThrow(/whole minutes/);
+    expect(() => wholeMinutes(Number.POSITIVE_INFINITY, "estimate")).toThrow(
+      /whole minutes/,
+    );
   });
 });
