@@ -309,3 +309,44 @@ describe("updateDeliverable with nothing to change", () => {
     expect(updated?.createdAt).toBe(created.createdAt);
   });
 });
+
+describe("updateDeliverable validation", () => {
+  it("refuses to blank out a title", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+
+    await expect(
+      updateDeliverable(created.id, { title: "  " }, db),
+    ).rejects.toThrow(/deliverable title is required/);
+    expect((await getDeliverable(created.id, db))?.title).toBe("Build");
+  });
+
+  it("refuses an estimate that is not whole minutes", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+
+    await expect(
+      updateDeliverable(created.id, { estimatedMinutes: 45.5 }, db),
+    ).rejects.toThrow(/whole minutes/);
+  });
+
+  it("refuses a negative estimate", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+
+    await expect(
+      updateDeliverable(created.id, { estimatedMinutes: -1 }, db),
+    ).rejects.toThrow(/cannot be negative/);
+  });
+
+  it("refuses a status that is not one of the three", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+
+    await expect(
+      updateDeliverable(created.id, { status: "parked" as "done" }, db),
+    ).rejects.toThrow(/unknown deliverable status/);
+  });
+
+  it("validates before it decides the patch is empty", async () => {
+    await expect(
+      updateDeliverable("dlv_missing", { title: "" }, db),
+    ).rejects.toThrow(/deliverable title is required/);
+  });
+});
