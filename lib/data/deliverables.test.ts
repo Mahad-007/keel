@@ -478,3 +478,62 @@ describe("reorderDeliverables", () => {
     expect(await reorderDeliverables(projectId, [], db)).toEqual([]);
   });
 });
+
+describe("reorderDeliverables refusals", () => {
+  async function pair() {
+    const first = await createDeliverable({ projectId, title: "First" }, db);
+    const second = await createDeliverable({ projectId, title: "Second" }, db);
+    return { first, second };
+  }
+
+  it("refuses an order that leaves a deliverable out", async () => {
+    const { first } = await pair();
+
+    await expect(
+      reorderDeliverables(projectId, [first.id], db),
+    ).rejects.toThrow(/leaves out deliverables/);
+  });
+
+  it("refuses an order that names a deliverable twice", async () => {
+    const { first, second } = await pair();
+
+    await expect(
+      reorderDeliverables(projectId, [first.id, first.id, second.id], db),
+    ).rejects.toThrow(/same deliverable twice/);
+  });
+
+  it("refuses an order naming another project's deliverable", async () => {
+    const { first, second } = await pair();
+    const clientId = (await createClient({ name: "Beam Ltd" }, db)).id;
+    const other = (await createProject({ clientId, name: "Other" }, db)).id;
+    const theirs = await createDeliverable({ projectId: other, title: "Theirs" }, db);
+
+    await expect(
+      reorderDeliverables(projectId, [first.id, second.id, theirs.id], db),
+    ).rejects.toThrow(/not in this project/);
+  });
+
+  it("writes nothing when the order is refused", async () => {
+    const { first, second } = await pair();
+
+    await expect(
+      reorderDeliverables(projectId, [second.id], db),
+    ).rejects.toThrow();
+
+    const list = await listDeliverables(projectId, db);
+    expect(list.map((row) => row.id)).toEqual([first.id, second.id]);
+  });
+
+  it("does not move another project's deliverable", async () => {
+    const { first, second } = await pair();
+    const clientId = (await createClient({ name: "Beam Ltd" }, db)).id;
+    const other = (await createProject({ clientId, name: "Other" }, db)).id;
+    const theirs = await createDeliverable({ projectId: other, title: "Theirs" }, db);
+
+    await reorderDeliverables(projectId, [second.id, first.id], db);
+
+    expect((await getDeliverable(theirs.id, db))?.sortOrder).toBe(
+      theirs.sortOrder,
+    );
+  });
+});
