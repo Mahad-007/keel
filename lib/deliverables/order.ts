@@ -102,3 +102,27 @@ export function moveOne(
 ): readonly string[] {
   return moveBy(ids, id, MOVE_DELTAS[direction]);
 }
+
+/**
+ * Only the positions that would actually change, given where the deliverables
+ * sit now and the order they should be in.
+ *
+ * Dense renumbering means a naive reorder writes every row in the project,
+ * when moving the last two deliverables changes two of them. Comparing first
+ * keeps a move to the rows that moved — which matters less for the write than
+ * for `updatedAt`: bumping the timestamp of eight untouched deliverables makes
+ * every one of them look edited.
+ *
+ * Ids with no current position are skipped. There is no row to write for a
+ * deliverable that no longer exists, and `orderMismatch` is what tells a
+ * caller it asked for one.
+ */
+export function orderChanges(
+  current: readonly DeliverablePosition[],
+  desired: readonly string[],
+): readonly DeliverablePosition[] {
+  const held = new Map(current.map(({ id, sortOrder }) => [id, sortOrder]));
+  return positionsFor(desired).filter(
+    ({ id, sortOrder }) => held.has(id) && held.get(id) !== sortOrder,
+  );
+}
