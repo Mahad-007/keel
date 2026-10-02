@@ -48,3 +48,39 @@ export function positionsFor(
 ): readonly DeliverablePosition[] {
   return ids.map((id, index) => ({ id, sortOrder: index }));
 }
+
+/** Keeps an index inside a list, so a move at either end stays put. */
+function clamp(index: number, last: number): number {
+  return Math.min(Math.max(Math.trunc(index), 0), last);
+}
+
+/**
+ * The list with one id moved `delta` places — negative towards the front.
+ *
+ * Clamped rather than refused at the ends: pressing Up on the first
+ * deliverable is a reasonable thing to do with a list, and the honest answer
+ * is that nothing moves. A caller that needs to know whether anything changed
+ * asks `orderChanges`, which compares positions instead of guessing from a
+ * return value.
+ *
+ * An id the list does not contain leaves the order alone. A page showing a
+ * deliverable another tab has deleted will ask for exactly that, and
+ * rearranging the remaining scope because of it would be worse than doing
+ * nothing.
+ */
+export function moveBy(
+  ids: readonly string[],
+  id: string,
+  delta: number,
+): readonly string[] {
+  const from = ids.indexOf(id);
+  if (from === -1) return ids;
+
+  const to = clamp(from + delta, ids.length - 1);
+  if (to === from) return ids;
+
+  const moved = [...ids];
+  moved.splice(from, 1);
+  moved.splice(to, 0, id);
+  return moved;
+}
