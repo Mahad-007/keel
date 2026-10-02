@@ -156,6 +156,18 @@ describe("orderChanges", () => {
     expect(orderChanges(current, ["a", "b", "c", "gone"])).toEqual([]);
   });
 
+  it("leaves no gap where a vanished deliverable sat", () => {
+    expect(orderChanges(current, ["a", "gone", "b", "c"])).toEqual([]);
+  });
+
+  it("still closes up the list around a vanished deliverable", () => {
+    expect(orderChanges(current, ["gone", "c", "a", "b"])).toEqual([
+      { id: "c", sortOrder: 0 },
+      { id: "a", sortOrder: 1 },
+      { id: "b", sortOrder: 2 },
+    ]);
+  });
+
   it("has nothing to do for a project with no deliverables", () => {
     expect(orderChanges([], [])).toEqual([]);
   });
