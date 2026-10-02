@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { moveBy, nextSortOrder, positionsFor } from "./order";
+import { moveBy, moveOne, nextSortOrder, positionsFor } from "./order";
 
 describe("nextSortOrder", () => {
   it("starts an empty project's list at zero", () => {
@@ -89,5 +89,22 @@ describe("moveBy at the edges", () => {
   it("leaves the order alone for an id it cannot find", () => {
     expect(moveBy(ids, "gone", -1)).toEqual(ids);
     expect(moveBy([], "gone", 1)).toEqual([]);
+  });
+});
+
+describe("moveOne", () => {
+  const ids = ["a", "b", "c"];
+
+  it("reads up as towards the front of the list", () => {
+    expect(moveOne(ids, "c", "up")).toEqual(["a", "c", "b"]);
+  });
+
+  it("reads down as towards the back of the list", () => {
+    expect(moveOne(ids, "a", "down")).toEqual(["b", "a", "c"]);
+  });
+
+  it("is a single step, never more", () => {
+    expect(moveOne(ids, "c", "up")).toEqual(moveBy(ids, "c", -1));
+    expect(moveOne(ids, "a", "down")).toEqual(moveBy(ids, "a", 1));
   });
 });
