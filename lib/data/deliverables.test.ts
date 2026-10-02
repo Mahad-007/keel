@@ -609,3 +609,51 @@ describe("moveDeliverable", () => {
     ]);
   });
 });
+
+describe("moveDeliverable at the edges", () => {
+  it("leaves the first deliverable where it is when moved up", async () => {
+    const first = await createDeliverable({ projectId, title: "First" }, db);
+    await createDeliverable({ projectId, title: "Second" }, db);
+
+    const list = await moveDeliverable(first.id, "up", db);
+
+    expect(list?.map((row) => row.title)).toEqual(["First", "Second"]);
+  });
+
+  it("leaves the last deliverable where it is when moved down", async () => {
+    await createDeliverable({ projectId, title: "First" }, db);
+    const last = await createDeliverable({ projectId, title: "Second" }, db);
+
+    const list = await moveDeliverable(last.id, "down", db);
+
+    expect(list?.map((row) => row.title)).toEqual(["First", "Second"]);
+  });
+
+  it("does not bump updatedAt for a move that changes nothing", async () => {
+    const only = await createDeliverable({ projectId, title: "Only" }, db);
+    await new Promise((resolve) => setTimeout(resolve, 2));
+
+    await moveDeliverable(only.id, "up", db);
+
+    expect((await getDeliverable(only.id, db))?.updatedAt).toBe(only.updatedAt);
+  });
+
+  it("does not record a reordered deliverable as edited", async () => {
+    const first = await createDeliverable({ projectId, title: "First" }, db);
+    const second = await createDeliverable({ projectId, title: "Second" }, db);
+    await new Promise((resolve) => setTimeout(resolve, 2));
+
+    await moveDeliverable(second.id, "up", db);
+
+    expect((await getDeliverable(first.id, db))?.updatedAt).toBe(
+      first.updatedAt,
+    );
+    expect((await getDeliverable(second.id, db))?.updatedAt).toBe(
+      second.updatedAt,
+    );
+  });
+
+  it("returns null for a deliverable that no longer exists", async () => {
+    expect(await moveDeliverable("dlv_missing", "up", db)).toBeNull();
+  });
+});
