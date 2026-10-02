@@ -37,3 +37,14 @@ export function nextSortOrder(highest: number | null): number {
   if (highest === null) return 0;
   return highest + 1;
 }
+
+/**
+ * The positions a list of ids should hold: dense, from zero, in the order
+ * given. The id's place in the array *is* its position, which is the whole
+ * invariant this module keeps.
+ */
+export function positionsFor(
+  ids: readonly string[],
+): readonly DeliverablePosition[] {
+  return ids.map((id, index) => ({ id, sortOrder: index }));
+}
