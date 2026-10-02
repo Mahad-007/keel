@@ -40,6 +40,36 @@ describe("createDeliverable", () => {
     expect(deliverable.status).toBe("started");
   });
 
+  it("defaults a deliverable to pending with nothing estimated", async () => {
+    const deliverable = await createDeliverable(
+      { projectId, title: "Content migration" },
+      db,
+    );
+
+    expect(deliverable.status).toBe("pending");
+    expect(deliverable.estimatedMinutes).toBe(0);
+    expect(deliverable.description).toBeNull();
+  });
+
+  it("collapses a blank description to NULL rather than storing spaces", async () => {
+    const deliverable = await createDeliverable(
+      { projectId, title: "Launch", description: "   " },
+      db,
+    );
+
+    expect(deliverable.description).toBeNull();
+  });
+
+  it("trims the title and the description it was given", async () => {
+    const deliverable = await createDeliverable(
+      { projectId, title: "  Analytics  ", description: "  Two events.  " },
+      db,
+    );
+
+    expect(deliverable.title).toBe("Analytics");
+    expect(deliverable.description).toBe("Two events.");
+  });
+
   it("stamps both timestamps on a new deliverable", async () => {
     const deliverable = await createDeliverable(
       { projectId, title: "Launch" },
