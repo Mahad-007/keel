@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  isMoveDirection,
   moveBy,
   moveOne,
+  parseMoveDirection,
   nextSortOrder,
   orderChanges,
   orderMismatch,
@@ -210,5 +212,51 @@ describe("orderMismatch", () => {
 
   it("reports the repeat before the ids it cannot find", () => {
     expect(orderMismatch(current, ["a", "a", "gone"])).toMatch(/twice/);
+  });
+});
+
+describe("isMoveDirection", () => {
+  it("accepts the two directions a control can ask for", () => {
+    expect(isMoveDirection("up")).toBe(true);
+    expect(isMoveDirection("down")).toBe(true);
+  });
+
+  it("rejects a word that is not a direction", () => {
+    expect(isMoveDirection("top")).toBe(false);
+    expect(isMoveDirection("Up")).toBe(false);
+    expect(isMoveDirection("")).toBe(false);
+  });
+
+  it("rejects the inherited keys every object answers to", () => {
+    expect(isMoveDirection("__proto__")).toBe(false);
+    expect(isMoveDirection("constructor")).toBe(false);
+    expect(isMoveDirection("toString")).toBe(false);
+  });
+
+  it("rejects everything that is not a string", () => {
+    expect(isMoveDirection(undefined)).toBe(false);
+    expect(isMoveDirection(null)).toBe(false);
+    expect(isMoveDirection(-1)).toBe(false);
+  });
+});
+
+describe("parseMoveDirection", () => {
+  it("hands back the direction it was given", () => {
+    expect(parseMoveDirection("up")).toBe("up");
+    expect(parseMoveDirection("down")).toBe("down");
+  });
+
+  it("throws on anything else, naming the value and the alternatives", () => {
+    expect(() => parseMoveDirection("sideways")).toThrow(
+      /"sideways".*up, down/,
+    );
+  });
+});
+
+describe("moveOne with a direction it does not recognise", () => {
+  it("refuses rather than moving the deliverable to the top", () => {
+    expect(() =>
+      moveOne(["a", "b", "c"], "c", "__proto__" as "up"),
+    ).toThrow(/unknown move direction/);
   });
 });
