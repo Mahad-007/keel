@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_DELIVERABLE_STATUS,
   DELIVERABLE_STATUSES,
+  DELIVERABLE_STATUS_LABELS,
+  deliverableStatusLabel,
   isDeliverableStatus,
   parseDeliverableStatus,
 } from "./status";
@@ -51,5 +53,26 @@ describe("parseDeliverableStatus", () => {
     expect(() => parseDeliverableStatus(null)).toThrow(
       /pending, started, done/,
     );
+  });
+});
+
+describe("deliverableStatusLabel", () => {
+  it("labels every status", () => {
+    for (const status of DELIVERABLE_STATUSES) {
+      expect(deliverableStatusLabel(status)).toBe(
+        DELIVERABLE_STATUS_LABELS[status],
+      );
+    }
+  });
+
+  it("gives no two statuses the same label", () => {
+    const labels = Object.values(DELIVERABLE_STATUS_LABELS);
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+
+  it("shows a hand-edited value rather than an empty cell", () => {
+    expect(
+      deliverableStatusLabel("abandoned" as (typeof DELIVERABLE_STATUSES)[number]),
+    ).toBe("abandoned");
   });
 });
