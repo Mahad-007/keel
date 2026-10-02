@@ -4,7 +4,11 @@ import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 
 import { createClient } from "./clients";
-import { createDeliverable, getDeliverable } from "./deliverables";
+import {
+  createDeliverable,
+  getDeliverable,
+  listDeliverables,
+} from "./deliverables";
 import { createProject } from "./projects";
 
 let db: Database;
@@ -173,5 +177,40 @@ describe("getDeliverable", () => {
 
   it("returns null for an id that was never written", async () => {
     expect(await getDeliverable("dlv_missing", db)).toBeNull();
+  });
+});
+
+describe("listDeliverables", () => {
+  it("returns the deliverables in the order they were added", async () => {
+    await createDeliverable({ projectId, title: "Discovery" }, db);
+    await createDeliverable({ projectId, title: "Design" }, db);
+    await createDeliverable({ projectId, title: "Build" }, db);
+
+    const list = await listDeliverables(projectId, db);
+
+    expect(list.map((row) => row.title)).toEqual([
+      "Discovery",
+      "Design",
+      "Build",
+    ]);
+  });
+
+  it("returns nothing for a project with no scope written down", async () => {
+    expect(await listDeliverables(projectId, db)).toEqual([]);
+  });
+
+  it("returns nothing for a project that does not exist", async () => {
+    expect(await listDeliverables("prj_missing", db)).toEqual([]);
+  });
+
+  it("leaves another project's deliverables out", async () => {
+    const clientId = (await createClient({ name: "Beam Ltd" }, db)).id;
+    const other = (await createProject({ clientId, name: "Other" }, db)).id;
+    await createDeliverable({ projectId, title: "Ours" }, db);
+    await createDeliverable({ projectId: other, title: "Theirs" }, db);
+
+    const list = await listDeliverables(projectId, db);
+
+    expect(list.map((row) => row.title)).toEqual(["Ours"]);
   });
 });
