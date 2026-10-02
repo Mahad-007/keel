@@ -20,3 +20,20 @@ export type DeliverablePosition = {
   readonly id: string;
   readonly sortOrder: number;
 };
+
+/**
+ * The position a new deliverable takes, given the highest one already used —
+ * null when the project has no deliverables yet.
+ *
+ * New scope goes on the end. Somebody writing down the fourth thing they
+ * agreed to is continuing a list, not inserting into one, and a form that
+ * silently put it at the top would reorder a list the client has seen.
+ *
+ * Hand-edited rows can leave the highest position anywhere, including below
+ * zero; one above it is still the end of the list, and the next renumber
+ * brings the whole thing back to dense.
+ */
+export function nextSortOrder(highest: number | null): number {
+  if (highest === null) return 0;
+  return highest + 1;
+}
