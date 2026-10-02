@@ -3,10 +3,12 @@ import { asc, eq, max } from "drizzle-orm";
 import { db, type Database } from "@/lib/db";
 import { deliverables, projects, type Deliverable } from "@/lib/db/schema";
 import {
+  moveOne,
   nextSortOrder,
   orderChanges,
   orderMismatch,
   type DeliverablePosition,
+  type MoveDirection,
 } from "@/lib/deliverables/order";
 import {
   DEFAULT_DELIVERABLE_STATUS,
@@ -316,6 +318,40 @@ export async function reorderDeliverables(
 
       await writePositions(orderChanges(current, orderedIds), tx);
       return listDeliverables(projectId, tx);
+    },
+    { behavior: "immediate" },
+  );
+}
+
+/**
+ * Moves one deliverable a single place up or down its project's list and
+ * returns the list as it now reads, or null if there is no deliverable with
+ * that id.
+ *
+ * Only the id is needed: which project's list it belongs to is a fact about the
+ * row, not something a caller should have to pass and could get wrong. The
+ * deliverable at the end of the list in the direction asked for stays where it
+ * is — see `moveBy` for why that is an answer rather than an error.
+ */
+export async function moveDeliverable(
+  id: string,
+  direction: MoveDirection,
+  database: Database = db,
+): Promise<Deliverable[] | null> {
+  return database.transaction(
+    async (tx) => {
+      const deliverable = await getDeliverable(id, tx);
+      if (deliverable === null) return null;
+
+      const current = await currentPositions(deliverable.projectId, tx);
+      const desired = moveOne(
+        current.map((position) => position.id),
+        id,
+        direction,
+      );
+
+      await writePositions(orderChanges(current, desired), tx);
+      return listDeliverables(deliverable.projectId, tx);
     },
     { behavior: "immediate" },
   );
