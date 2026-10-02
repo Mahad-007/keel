@@ -113,17 +113,25 @@ export function moveOne(
  * for `updatedAt`: bumping the timestamp of eight untouched deliverables makes
  * every one of them look edited.
  *
- * Ids with no current position are skipped. There is no row to write for a
- * deliverable that no longer exists, and `orderMismatch` is what tells a
- * caller it asked for one.
+ * Ids with no current position are dropped before the list is numbered, not
+ * after. There is no row to write for a deliverable that no longer exists, and
+ * numbering around it would leave the gap it was holding — a list of three with
+ * a phantom id in the middle would come back as 0, 2, 3, which is exactly the
+ * invariant this module exists to keep.
+ *
+ * `desired` must still name every id in `current`. An order that leaves one out
+ * does not say where it belongs, so the id keeps the position it had and can
+ * collide with a renumbered one; `orderMismatch` is what refuses such a request
+ * before it gets here.
  */
 export function orderChanges(
   current: readonly DeliverablePosition[],
   desired: readonly string[],
 ): readonly DeliverablePosition[] {
   const held = new Map(current.map(({ id, sortOrder }) => [id, sortOrder]));
-  return positionsFor(desired).filter(
-    ({ id, sortOrder }) => held.has(id) && held.get(id) !== sortOrder,
+  const placeable = desired.filter((id) => held.has(id));
+  return positionsFor(placeable).filter(
+    ({ id, sortOrder }) => held.get(id) !== sortOrder,
   );
 }
 
