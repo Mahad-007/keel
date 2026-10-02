@@ -275,3 +275,37 @@ describe("updateDeliverable", () => {
     ).toBeNull();
   });
 });
+
+describe("updateDeliverable with nothing to change", () => {
+  it("returns the row unchanged for an empty patch", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+
+    const updated = await updateDeliverable(created.id, {}, db);
+
+    expect(updated).toEqual(created);
+  });
+
+  it("leaves updatedAt alone for an empty patch", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+
+    await updateDeliverable(created.id, {}, db);
+
+    expect((await getDeliverable(created.id, db))?.updatedAt).toBe(
+      created.updatedAt,
+    );
+  });
+
+  it("returns null for an empty patch against a missing deliverable", async () => {
+    expect(await updateDeliverable("dlv_missing", {}, db)).toBeNull();
+  });
+
+  it("records that a deliverable was edited when something changed", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+    await new Promise((resolve) => setTimeout(resolve, 2));
+
+    const updated = await updateDeliverable(created.id, { title: "Ship" }, db);
+
+    expect(updated?.updatedAt).not.toBe(created.updatedAt);
+    expect(updated?.createdAt).toBe(created.createdAt);
+  });
+});
