@@ -84,3 +84,21 @@ export function moveBy(
   moved.splice(to, 0, id);
   return moved;
 }
+
+/**
+ * Which way "up" is, said once. A list moves a deliverable towards the front
+ * of the order, and the front of the order is the top of the page.
+ */
+export const MOVE_DELTAS = { up: -1, down: 1 } as const;
+
+/** The two directions a move-up/move-down control can ask for. */
+export type MoveDirection = keyof typeof MOVE_DELTAS;
+
+/** One step in the named direction — what a move button asks for. */
+export function moveOne(
+  ids: readonly string[],
+  id: string,
+  direction: MoveDirection,
+): readonly string[] {
+  return moveBy(ids, id, MOVE_DELTAS[direction]);
+}
