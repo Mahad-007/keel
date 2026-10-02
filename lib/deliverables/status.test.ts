@@ -4,6 +4,7 @@ import {
   DEFAULT_DELIVERABLE_STATUS,
   DELIVERABLE_STATUSES,
   isDeliverableStatus,
+  parseDeliverableStatus,
 } from "./status";
 
 describe("isDeliverableStatus", () => {
@@ -32,5 +33,23 @@ describe("isDeliverableStatus", () => {
 
   it("rejects the empty string, which an unfilled select submits", () => {
     expect(isDeliverableStatus("")).toBe(false);
+  });
+});
+
+describe("parseDeliverableStatus", () => {
+  it("hands back the status it was given", () => {
+    for (const status of DELIVERABLE_STATUSES) {
+      expect(parseDeliverableStatus(status)).toBe(status);
+    }
+  });
+
+  it("throws on anything else, naming the value it refused", () => {
+    expect(() => parseDeliverableStatus("shipped")).toThrow(/"shipped"/);
+  });
+
+  it("lists the statuses it would have accepted", () => {
+    expect(() => parseDeliverableStatus(null)).toThrow(
+      /pending, started, done/,
+    );
   });
 });
