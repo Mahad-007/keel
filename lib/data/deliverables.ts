@@ -237,26 +237,6 @@ export async function updateDeliverable(
   return row ?? null;
 }
 
-/**
- * Removes the deliverable and returns it, or null if there was none with that
- * id.
- *
- * Deleted outright rather than archived: a deliverable that was really part of
- * the engagement and has been finished is `done`, and one that was dropped is a
- * scope change the Day 020 snapshots record. What is left is a line typed by
- * mistake, and keeping those in every scope list is how a list stops being read.
- */
-export async function deleteDeliverable(
-  id: string,
-  database: Database = db,
-): Promise<Deliverable | null> {
-  const [row] = await database
-    .delete(deliverables)
-    .where(eq(deliverables.id, id))
-    .returning();
-  return row ?? null;
-}
-
 /** The positions a project's deliverables hold now, in the order they hold. */
 async function currentPositions(
   projectId: string,
@@ -287,6 +267,63 @@ async function writePositions(
       .set({ sortOrder })
       .where(eq(deliverables.id, id));
   }
+}
+
+/**
+ * Closes the gaps a delete leaves, so positions stay dense from zero.
+ *
+ * Nothing about reading the list needs it — the order is relative, and a list
+ * numbered 0, 2, 3 reads the same as 0, 1, 2. It matters because `sortOrder` is
+ * meant to *be* the position: the scope snapshots and templates later in the
+ * roadmap copy an order between projects, and comparing "third in the list"
+ * against a stored 4 is the kind of mismatch nobody finds until it is wrong in
+ * front of a client.
+ */
+async function compactPositions(
+  projectId: string,
+  database: Database,
+): Promise<void> {
+  const remaining = await currentPositions(projectId, database);
+  await writePositions(
+    orderChanges(
+      remaining,
+      remaining.map((position) => position.id),
+    ),
+    database,
+  );
+}
+
+/**
+ * Removes the deliverable and returns it, or null if there was none with that
+ * id.
+ *
+ * Deleted outright rather than archived: a deliverable that was really part of
+ * the engagement and has been finished is `done`, and one that was dropped is a
+ * scope change the Day 020 snapshots record. What is left is a line typed by
+ * mistake, and keeping those in every scope list is how a list stops being read.
+ *
+ * Removing a row out of the middle of a list would leave a gap in the
+ * positions, so the remaining deliverables are renumbered in the same
+ * transaction. A delete that half happened is not something a scope list should
+ * be able to show.
+ */
+export async function deleteDeliverable(
+  id: string,
+  database: Database = db,
+): Promise<Deliverable | null> {
+  return database.transaction(
+    async (tx) => {
+      const [row] = await tx
+        .delete(deliverables)
+        .where(eq(deliverables.id, id))
+        .returning();
+      if (!row) return null;
+
+      await compactPositions(row.projectId, tx);
+      return row;
+    },
+    { behavior: "immediate" },
+  );
 }
 
 /**
