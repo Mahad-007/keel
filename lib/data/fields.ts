@@ -62,3 +62,22 @@ export function optionalCents(
   if (value === undefined || value === null) return null;
   return wholeCents(value, field);
 }
+
+/**
+ * A duration column: whole minutes, never negative. Minutes are the repo's
+ * unit of time everywhere, so a fractional value means somebody divided hours
+ * somewhere upstream and the remainder is about to be rounded away silently.
+ *
+ * Safely whole for the same reason as `wholeCents`: past 2^53 the integer is
+ * no longer exact, and SQLite accepts the write before the driver fails
+ * decoding it back, leaving a row that poisons every later read of the table.
+ */
+export function wholeMinutes(value: number, field: string): number {
+  if (!Number.isSafeInteger(value)) {
+    throw new Error(`${field} must be whole minutes, got ${value}`);
+  }
+  if (value < 0) {
+    throw new Error(`${field} cannot be negative, got ${value}`);
+  }
+  return value;
+}
