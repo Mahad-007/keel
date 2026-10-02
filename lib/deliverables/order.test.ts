@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { moveBy, moveOne, nextSortOrder, positionsFor } from "./order";
+import {
+  moveBy,
+  moveOne,
+  nextSortOrder,
+  orderChanges,
+  positionsFor,
+} from "./order";
 
 describe("nextSortOrder", () => {
   it("starts an empty project's list at zero", () => {
@@ -106,5 +112,50 @@ describe("moveOne", () => {
   it("is a single step, never more", () => {
     expect(moveOne(ids, "c", "up")).toEqual(moveBy(ids, "c", -1));
     expect(moveOne(ids, "a", "down")).toEqual(moveBy(ids, "a", 1));
+  });
+});
+
+describe("orderChanges", () => {
+  const current = [
+    { id: "a", sortOrder: 0 },
+    { id: "b", sortOrder: 1 },
+    { id: "c", sortOrder: 2 },
+  ];
+
+  it("writes nothing when the order already holds", () => {
+    expect(orderChanges(current, ["a", "b", "c"])).toEqual([]);
+  });
+
+  it("writes only the two rows a single swap moves", () => {
+    expect(orderChanges(current, ["b", "a", "c"])).toEqual([
+      { id: "b", sortOrder: 0 },
+      { id: "a", sortOrder: 1 },
+    ]);
+  });
+
+  it("leaves the middle row alone when the ends are swapped", () => {
+    expect(orderChanges(current, ["c", "b", "a"])).toEqual([
+      { id: "c", sortOrder: 0 },
+      { id: "a", sortOrder: 2 },
+    ]);
+  });
+
+  it("compacts positions that were left with gaps", () => {
+    const gapped = [
+      { id: "a", sortOrder: 0 },
+      { id: "b", sortOrder: 4 },
+    ];
+
+    expect(orderChanges(gapped, ["a", "b"])).toEqual([
+      { id: "b", sortOrder: 1 },
+    ]);
+  });
+
+  it("has no row to write for an id that no longer exists", () => {
+    expect(orderChanges(current, ["a", "b", "c", "gone"])).toEqual([]);
+  });
+
+  it("has nothing to do for a project with no deliverables", () => {
+    expect(orderChanges([], [])).toEqual([]);
   });
 });
