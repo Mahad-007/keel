@@ -1,4 +1,4 @@
-import { eq, max } from "drizzle-orm";
+import { asc, eq, max } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import { deliverables, projects, type Deliverable } from "@/lib/db/schema";
@@ -145,4 +145,32 @@ export async function getDeliverable(
     .where(eq(deliverables.id, id))
     .limit(1);
   return row ?? null;
+}
+
+/**
+ * The order a scope list is always read in: the positions the two parties
+ * agreed, with the id breaking ties.
+ *
+ * Ties should be impossible — the data layer keeps positions dense and
+ * unique — but a hand-edited row can duplicate one, and a list that shuffles
+ * between reloads is the worst way to find that out.
+ */
+const IN_ORDER = [asc(deliverables.sortOrder), asc(deliverables.id)] as const;
+
+/**
+ * One project's deliverables, in their agreed order.
+ *
+ * Scoped to a project rather than listing the table, because a scope list is
+ * only ever read one project at a time — and the index covers both halves of
+ * that query, so the list comes back without a sort.
+ */
+export async function listDeliverables(
+  projectId: string,
+  database: Database = db,
+): Promise<Deliverable[]> {
+  return database
+    .select()
+    .from(deliverables)
+    .where(eq(deliverables.projectId, projectId))
+    .orderBy(...IN_ORDER);
 }
