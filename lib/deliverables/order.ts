@@ -126,3 +126,51 @@ export function orderChanges(
     ({ id, sortOrder }) => held.has(id) && held.get(id) !== sortOrder,
   );
 }
+
+/** The ids that appear more than once, in the order they first repeat. */
+function duplicates(ids: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const repeated = new Set<string>();
+  for (const id of ids) {
+    if (seen.has(id)) repeated.add(id);
+    seen.add(id);
+  }
+  return [...repeated];
+}
+
+/**
+ * Why a requested order cannot be applied, or null if it can.
+ *
+ * A reorder is a statement about the whole list: these deliverables, in this
+ * sequence. Anything else is ambiguous rather than partially right — an order
+ * that leaves one out does not say whether it belongs at the top or the
+ * bottom, and one that names a deliverable twice does not say which copy is
+ * meant. Applying such a request would silently invent a position.
+ *
+ * A sentence rather than a thrown error, so the data layer decides what to do
+ * with it. The wording is for a developer: every one of these means the caller
+ * built the list wrong, which is a bug and not something a user can retype.
+ */
+export function orderMismatch(
+  current: readonly string[],
+  desired: readonly string[],
+): string | null {
+  const repeated = duplicates(desired);
+  if (repeated.length > 0) {
+    return `reorder lists the same deliverable twice: ${repeated.join(", ")}`;
+  }
+
+  const held = new Set(current);
+  const unknown = desired.filter((id) => !held.has(id));
+  if (unknown.length > 0) {
+    return `reorder names deliverables that are not in this project: ${unknown.join(", ")}`;
+  }
+
+  const listed = new Set(desired);
+  const missing = current.filter((id) => !listed.has(id));
+  if (missing.length > 0) {
+    return `reorder leaves out deliverables: ${missing.join(", ")}`;
+  }
+
+  return null;
+}
