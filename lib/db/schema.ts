@@ -2,6 +2,10 @@ import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 import {
+  DEFAULT_DELIVERABLE_STATUS,
+  DELIVERABLE_STATUSES,
+} from "@/lib/deliverables/status";
+import {
   DEFAULT_PROJECT_STATUS,
   PROJECT_STATUSES,
 } from "@/lib/projects/status";
@@ -121,3 +125,61 @@ export const projectStatusEvents = sqliteTable(
 
 export type ProjectStatusEvent = typeof projectStatusEvents.$inferSelect;
 export type NewProjectStatusEvent = typeof projectStatusEvents.$inferInsert;
+
+/**
+ * One line of a project's agreed scope: a thing to be delivered, what it was
+ * estimated at, and where it stands.
+ *
+ * This is the contract side of the product. Time is logged against a project
+ * and attributed to a deliverable, and the gap between what a deliverable was
+ * estimated at and what it has cost is the measurement the whole scope-creep
+ * phase is built on. A project without deliverables can only say it is over
+ * budget; a project with them can say which part of the work ate it.
+ *
+ * `estimatedMinutes` is whole minutes, never hours — the repo's time unit —
+ * and zero means "not estimated yet" rather than "free", because no real
+ * deliverable takes no time. Scope summaries flag the zeroes rather than
+ * quietly totalling them as nothing.
+ *
+ * `sortOrder` is a position, not a priority: dense integers from zero that the
+ * data layer renumbers, because the order a scope list is read in is the order
+ * the two parties agreed it in. Ties are impossible by construction, so the
+ * list cannot shuffle between reloads.
+ *
+ * Rows cascade with the project. A deliverable is part of an engagement, not
+ * a record of one, so there is nothing to keep once the project is gone.
+ */
+export const deliverables = sqliteTable(
+  "deliverables",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    /** The detail behind the title. NULL when the title said it all. */
+    description: text("description"),
+    /** The estimate in whole minutes. Zero means nobody has estimated it. */
+    estimatedMinutes: integer("estimated_minutes").notNull().default(0),
+    status: text("status", { enum: DELIVERABLE_STATUSES })
+      .notNull()
+      .default(DEFAULT_DELIVERABLE_STATUS),
+    /** Position in the project's list, dense from zero. */
+    sortOrder: integer("sort_order").notNull(),
+    ...timestamps,
+  },
+  /**
+   * A scope list is only ever read one project at a time and always in order,
+   * so the index covers both halves of that query and the list comes back
+   * without a sort.
+   */
+  (table) => [
+    index("deliverables_project_id_sort_order_idx").on(
+      table.projectId,
+      table.sortOrder,
+    ),
+  ],
+);
+
+export type Deliverable = typeof deliverables.$inferSelect;
+export type NewDeliverable = typeof deliverables.$inferInsert;
