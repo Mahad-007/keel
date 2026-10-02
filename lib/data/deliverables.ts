@@ -174,3 +174,17 @@ export async function listDeliverables(
     .where(eq(deliverables.projectId, projectId))
     .orderBy(...IN_ORDER);
 }
+
+/**
+ * Only the fields present are written, so a patch can touch one column.
+ *
+ * Two are deliberately missing. `projectId` is not an edit — moving a
+ * deliverable to another engagement is deleting it from one scope and adding it
+ * to another, and doing it as a patch would leave it holding a position in a
+ * list it is no longer in. `sortOrder` has its own door for the same reason the
+ * project's status does: a form saving a title must not be able to rearrange
+ * the list behind it.
+ */
+export type DeliverablePatch = Partial<
+  Omit<NewDeliverableInput, "projectId">
+>;
