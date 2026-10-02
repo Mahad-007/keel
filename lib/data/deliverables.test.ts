@@ -680,3 +680,72 @@ describe("moveDeliverable across projects", () => {
     expect((await getDeliverable(theirsSecond.id, db))?.sortOrder).toBe(1);
   });
 });
+
+describe("positions after a delete", () => {
+  it("closes the gap a deleted deliverable leaves", async () => {
+    await createDeliverable({ projectId, title: "Discovery" }, db);
+    const design = await createDeliverable({ projectId, title: "Design" }, db);
+    await createDeliverable({ projectId, title: "Build" }, db);
+
+    await deleteDeliverable(design.id, db);
+
+    const list = await listDeliverables(projectId, db);
+    expect(list.map((row) => row.sortOrder)).toEqual([0, 1]);
+  });
+
+  it("keeps the order of what is left", async () => {
+    const discovery = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    const design = await createDeliverable({ projectId, title: "Design" }, db);
+    const build = await createDeliverable({ projectId, title: "Build" }, db);
+
+    await deleteDeliverable(discovery.id, db);
+
+    const list = await listDeliverables(projectId, db);
+    expect(list.map((row) => row.id)).toEqual([design.id, build.id]);
+  });
+
+  it("appends the next deliverable after the compacted list", async () => {
+    const discovery = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    await createDeliverable({ projectId, title: "Design" }, db);
+    await deleteDeliverable(discovery.id, db);
+
+    const added = await createDeliverable({ projectId, title: "Build" }, db);
+
+    expect(added.sortOrder).toBe(1);
+  });
+
+  it("does not record the deliverables it renumbered as edited", async () => {
+    const discovery = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    const build = await createDeliverable({ projectId, title: "Build" }, db);
+    await new Promise((resolve) => setTimeout(resolve, 2));
+
+    await deleteDeliverable(discovery.id, db);
+
+    expect((await getDeliverable(build.id, db))?.updatedAt).toBe(
+      build.updatedAt,
+    );
+  });
+
+  it("leaves another project's positions alone", async () => {
+    const clientId = (await createClient({ name: "Beam Ltd" }, db)).id;
+    const other = (await createProject({ clientId, name: "Other" }, db)).id;
+    const theirs = await createDeliverable(
+      { projectId: other, title: "Theirs" },
+      db,
+    );
+    const ours = await createDeliverable({ projectId, title: "Ours" }, db);
+
+    await deleteDeliverable(ours.id, db);
+
+    expect((await getDeliverable(theirs.id, db))?.sortOrder).toBe(0);
+  });
+});
