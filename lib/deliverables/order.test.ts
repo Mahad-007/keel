@@ -64,3 +64,30 @@ describe("moveBy", () => {
     expect(moveBy(ids, "b", 0)).toEqual(ids);
   });
 });
+
+describe("moveBy at the edges", () => {
+  const ids = ["a", "b", "c"];
+
+  it("keeps the first deliverable first when asked to move it up", () => {
+    expect(moveBy(ids, "a", -1)).toEqual(ids);
+  });
+
+  it("keeps the last deliverable last when asked to move it down", () => {
+    expect(moveBy(ids, "c", 1)).toEqual(ids);
+  });
+
+  it("clamps a move that overshoots either end", () => {
+    expect(moveBy(ids, "b", -9)).toEqual(["b", "a", "c"]);
+    expect(moveBy(ids, "b", 9)).toEqual(["a", "c", "b"]);
+  });
+
+  it("has nothing to move in a one-item list", () => {
+    expect(moveBy(["only"], "only", -1)).toEqual(["only"]);
+    expect(moveBy(["only"], "only", 1)).toEqual(["only"]);
+  });
+
+  it("leaves the order alone for an id it cannot find", () => {
+    expect(moveBy(ids, "gone", -1)).toEqual(ids);
+    expect(moveBy([], "gone", 1)).toEqual([]);
+  });
+});
