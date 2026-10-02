@@ -9,6 +9,7 @@ import {
   deleteDeliverable,
   getDeliverable,
   listDeliverables,
+  reorderDeliverables,
   updateDeliverable,
 } from "./deliverables";
 import { createProject, deleteProject } from "./projects";
@@ -401,5 +402,79 @@ describe("project cascade", () => {
 
     expect(await listDeliverables(doomed, db)).toEqual([]);
     expect(await getDeliverable(kept.id, db)).not.toBeNull();
+  });
+});
+
+describe("reorderDeliverables", () => {
+  /** Three deliverables in their added order, with the ids to rearrange them. */
+  async function scope() {
+    const discovery = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    const design = await createDeliverable({ projectId, title: "Design" }, db);
+    const build = await createDeliverable({ projectId, title: "Build" }, db);
+    return { discovery, design, build };
+  }
+
+  it("returns the list in the order it was asked for", async () => {
+    const { discovery, design, build } = await scope();
+
+    const list = await reorderDeliverables(
+      projectId,
+      [build.id, discovery.id, design.id],
+      db,
+    );
+
+    expect(list.map((row) => row.title)).toEqual([
+      "Build",
+      "Discovery",
+      "Design",
+    ]);
+  });
+
+  it("writes the order, so the next read agrees with it", async () => {
+    const { discovery, design, build } = await scope();
+
+    await reorderDeliverables(projectId, [build.id, design.id, discovery.id], db);
+
+    const list = await listDeliverables(projectId, db);
+    expect(list.map((row) => row.title)).toEqual([
+      "Build",
+      "Design",
+      "Discovery",
+    ]);
+  });
+
+  it("leaves the positions dense from zero", async () => {
+    const { discovery, design, build } = await scope();
+
+    const list = await reorderDeliverables(
+      projectId,
+      [design.id, build.id, discovery.id],
+      db,
+    );
+
+    expect(list.map((row) => row.sortOrder)).toEqual([0, 1, 2]);
+  });
+
+  it("accepts the order the list is already in", async () => {
+    const { discovery, design, build } = await scope();
+
+    const list = await reorderDeliverables(
+      projectId,
+      [discovery.id, design.id, build.id],
+      db,
+    );
+
+    expect(list.map((row) => row.title)).toEqual([
+      "Discovery",
+      "Design",
+      "Build",
+    ]);
+  });
+
+  it("has nothing to order in a project with no scope", async () => {
+    expect(await reorderDeliverables(projectId, [], db)).toEqual([]);
   });
 });
