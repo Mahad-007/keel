@@ -94,6 +94,32 @@ export const MOVE_DELTAS = { up: -1, down: 1 } as const;
 /** The two directions a move-up/move-down control can ask for. */
 export type MoveDirection = keyof typeof MOVE_DELTAS;
 
+/**
+ * Narrows an unknown string to a direction.
+ *
+ * `Object.hasOwn` rather than an `in` check, so that a submitted
+ * `__proto__` — a string every object answers to — is not mistaken for a
+ * direction, which would look up a delta that is not a number at all.
+ */
+export function isMoveDirection(value: unknown): value is MoveDirection {
+  return typeof value === "string" && Object.hasOwn(MOVE_DELTAS, value);
+}
+
+/**
+ * The strict form, for the move itself. A direction arrives as a form field or
+ * a URL param, which TypeScript cannot vouch for; anything that is not one of
+ * the two has to stop here rather than resolve to an undefined delta and
+ * silently send the deliverable to the top of the list.
+ */
+export function parseMoveDirection(value: unknown): MoveDirection {
+  if (!isMoveDirection(value)) {
+    throw new Error(
+      `unknown move direction: ${JSON.stringify(value)} (expected one of ${Object.keys(MOVE_DELTAS).join(", ")})`,
+    );
+  }
+  return value;
+}
+
 /** One step in the named direction — what a move button asks for. */
 export function moveOne(
   ids: readonly string[],
