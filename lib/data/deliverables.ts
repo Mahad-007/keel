@@ -2,7 +2,12 @@ import { asc, eq, max } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import { deliverables, projects, type Deliverable } from "@/lib/db/schema";
-import { nextSortOrder } from "@/lib/deliverables/order";
+import {
+  nextSortOrder,
+  orderChanges,
+  orderMismatch,
+  type DeliverablePosition,
+} from "@/lib/deliverables/order";
 import {
   DEFAULT_DELIVERABLE_STATUS,
   parseDeliverableStatus,
@@ -248,4 +253,70 @@ export async function deleteDeliverable(
     .where(eq(deliverables.id, id))
     .returning();
   return row ?? null;
+}
+
+/** The positions a project's deliverables hold now, in the order they hold. */
+async function currentPositions(
+  projectId: string,
+  database: Database,
+): Promise<DeliverablePosition[]> {
+  return database
+    .select({ id: deliverables.id, sortOrder: deliverables.sortOrder })
+    .from(deliverables)
+    .where(eq(deliverables.projectId, projectId))
+    .orderBy(...IN_ORDER);
+}
+
+/**
+ * Writes the positions that changed, one statement each.
+ *
+ * Deliberately not an `updatedAt` bump: a deliverable that moved down the list
+ * was not edited, and a scope list where every row says it changed this morning
+ * because somebody reordered it tells the reader nothing. The position is the
+ * only column a move touches.
+ */
+async function writePositions(
+  changes: readonly DeliverablePosition[],
+  database: Database,
+): Promise<void> {
+  for (const { id, sortOrder } of changes) {
+    await database
+      .update(deliverables)
+      .set({ sortOrder })
+      .where(eq(deliverables.id, id));
+  }
+}
+
+/**
+ * Sets a project's scope order outright and returns the list as it now reads.
+ *
+ * `orderedIds` must name every one of the project's deliverables exactly once.
+ * A reorder is a statement about the whole list, and `orderMismatch` explains
+ * why a partial one cannot be applied; this throws on such a request because it
+ * means the caller built the list wrong, which no amount of retyping fixes.
+ *
+ * Reading the current positions and writing the new ones is one immediate
+ * transaction. A deferred one takes no write lock until the first update, so two
+ * reorders arriving together would each decide what to write from the same
+ * starting order and interleave into a list neither of them asked for.
+ */
+export async function reorderDeliverables(
+  projectId: string,
+  orderedIds: readonly string[],
+  database: Database = db,
+): Promise<Deliverable[]> {
+  return database.transaction(
+    async (tx) => {
+      const current = await currentPositions(projectId, tx);
+      const problem = orderMismatch(
+        current.map((position) => position.id),
+        orderedIds,
+      );
+      if (problem !== null) throw new Error(problem);
+
+      await writePositions(orderChanges(current, orderedIds), tx);
+      return listDeliverables(projectId, tx);
+    },
+    { behavior: "immediate" },
+  );
 }
