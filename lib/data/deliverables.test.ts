@@ -8,6 +8,7 @@ import {
   createDeliverable,
   getDeliverable,
   listDeliverables,
+  updateDeliverable,
 } from "./deliverables";
 import { createProject } from "./projects";
 
@@ -212,5 +213,65 @@ describe("listDeliverables", () => {
     const list = await listDeliverables(projectId, db);
 
     expect(list.map((row) => row.title)).toEqual(["Ours"]);
+  });
+});
+
+describe("updateDeliverable", () => {
+  it("changes the title and leaves everything else alone", async () => {
+    const created = await createDeliverable(
+      { projectId, title: "Design", estimatedMinutes: 600, status: "started" },
+      db,
+    );
+
+    const updated = await updateDeliverable(
+      created.id,
+      { title: "Design system" },
+      db,
+    );
+
+    expect(updated?.title).toBe("Design system");
+    expect(updated?.estimatedMinutes).toBe(600);
+    expect(updated?.status).toBe("started");
+    expect(updated?.sortOrder).toBe(created.sortOrder);
+  });
+
+  it("re-estimates a deliverable", async () => {
+    const created = await createDeliverable(
+      { projectId, title: "Design", estimatedMinutes: 600 },
+      db,
+    );
+
+    const updated = await updateDeliverable(
+      created.id,
+      { estimatedMinutes: 1_080 },
+      db,
+    );
+
+    expect(updated?.estimatedMinutes).toBe(1_080);
+  });
+
+  it("moves a deliverable to another status", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+
+    const updated = await updateDeliverable(created.id, { status: "done" }, db);
+
+    expect(updated?.status).toBe("done");
+  });
+
+  it("clears a description by patching it blank", async () => {
+    const created = await createDeliverable(
+      { projectId, title: "Build", description: "The old note." },
+      db,
+    );
+
+    const updated = await updateDeliverable(created.id, { description: "" }, db);
+
+    expect(updated?.description).toBeNull();
+  });
+
+  it("returns null for a deliverable that no longer exists", async () => {
+    expect(
+      await updateDeliverable("dlv_missing", { title: "Anything" }, db),
+    ).toBeNull();
   });
 });
