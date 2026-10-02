@@ -657,3 +657,26 @@ describe("moveDeliverable at the edges", () => {
     expect(await moveDeliverable("dlv_missing", "up", db)).toBeNull();
   });
 });
+
+describe("moveDeliverable across projects", () => {
+  it("moves within its own project's list only", async () => {
+    const clientId = (await createClient({ name: "Beam Ltd" }, db)).id;
+    const other = (await createProject({ clientId, name: "Other" }, db)).id;
+    const ours = await createDeliverable({ projectId, title: "Ours" }, db);
+    const alsoOurs = await createDeliverable({ projectId, title: "Also ours" }, db);
+    const theirsFirst = await createDeliverable(
+      { projectId: other, title: "Theirs first" },
+      db,
+    );
+    const theirsSecond = await createDeliverable(
+      { projectId: other, title: "Theirs second" },
+      db,
+    );
+
+    const list = await moveDeliverable(alsoOurs.id, "up", db);
+
+    expect(list?.map((row) => row.id)).toEqual([alsoOurs.id, ours.id]);
+    expect((await getDeliverable(theirsFirst.id, db))?.sortOrder).toBe(0);
+    expect((await getDeliverable(theirsSecond.id, db))?.sortOrder).toBe(1);
+  });
+});
