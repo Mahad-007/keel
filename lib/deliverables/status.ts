@@ -20,3 +20,15 @@ export type DeliverableStatus = (typeof DELIVERABLE_STATUSES)[number];
  * starting it, so a new row is pending however confident everyone is.
  */
 export const DEFAULT_DELIVERABLE_STATUS: DeliverableStatus = "pending";
+
+/**
+ * Narrows an unknown string — a form field, a URL param, a column read back
+ * from a row written before a status was renamed — to a deliverable status.
+ * The caller decides whether anything else is a default or an error.
+ */
+export function isDeliverableStatus(value: unknown): value is DeliverableStatus {
+  return (
+    typeof value === "string" &&
+    (DELIVERABLE_STATUSES as readonly string[]).includes(value)
+  );
+}
