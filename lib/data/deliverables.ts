@@ -229,3 +229,23 @@ export async function updateDeliverable(
     .returning();
   return row ?? null;
 }
+
+/**
+ * Removes the deliverable and returns it, or null if there was none with that
+ * id.
+ *
+ * Deleted outright rather than archived: a deliverable that was really part of
+ * the engagement and has been finished is `done`, and one that was dropped is a
+ * scope change the Day 020 snapshots record. What is left is a line typed by
+ * mistake, and keeping those in every scope list is how a list stops being read.
+ */
+export async function deleteDeliverable(
+  id: string,
+  database: Database = db,
+): Promise<Deliverable | null> {
+  const [row] = await database
+    .delete(deliverables)
+    .where(eq(deliverables.id, id))
+    .returning();
+  return row ?? null;
+}
