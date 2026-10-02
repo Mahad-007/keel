@@ -120,13 +120,20 @@ export function parseMoveDirection(value: unknown): MoveDirection {
   return value;
 }
 
-/** One step in the named direction — what a move button asks for. */
+/**
+ * One step in the named direction — what a move button asks for.
+ *
+ * The direction is parsed rather than trusted. Its type says it is one of two
+ * strings, and the value will have come from a form; a delta of `undefined`
+ * would clamp to zero and move the deliverable to the top of the list, which
+ * is the one outcome worse than an error.
+ */
 export function moveOne(
   ids: readonly string[],
   id: string,
   direction: MoveDirection,
 ): readonly string[] {
-  return moveBy(ids, id, MOVE_DELTAS[direction]);
+  return moveBy(ids, id, MOVE_DELTAS[parseMoveDirection(direction)]);
 }
 
 /**
