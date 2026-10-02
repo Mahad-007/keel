@@ -121,6 +121,7 @@ export async function createDeliverable(
   return database.transaction(
     async (tx) => {
       const projectId = await requireProject(input.projectId, tx);
+      const sortOrder = await endOfList(projectId, tx);
       const [row] = await tx
         .insert(deliverables)
         .values({
@@ -130,7 +131,7 @@ export async function createDeliverable(
           description,
           estimatedMinutes,
           status,
-          sortOrder: await endOfList(projectId, tx),
+          sortOrder,
           createdAt: now,
           updatedAt: now,
         })
