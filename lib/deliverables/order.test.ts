@@ -5,6 +5,7 @@ import {
   moveOne,
   nextSortOrder,
   orderChanges,
+  orderMismatch,
   positionsFor,
 } from "./order";
 
@@ -157,5 +158,45 @@ describe("orderChanges", () => {
 
   it("has nothing to do for a project with no deliverables", () => {
     expect(orderChanges([], [])).toEqual([]);
+  });
+});
+
+describe("orderMismatch", () => {
+  const current = ["a", "b", "c"];
+
+  it("accepts a rearrangement of exactly the same ids", () => {
+    expect(orderMismatch(current, ["c", "a", "b"])).toBeNull();
+  });
+
+  it("accepts the order the list is already in", () => {
+    expect(orderMismatch(current, current)).toBeNull();
+  });
+
+  it("accepts an empty order for a project with no deliverables", () => {
+    expect(orderMismatch([], [])).toBeNull();
+  });
+
+  it("refuses an order that repeats a deliverable", () => {
+    expect(orderMismatch(current, ["a", "a", "b", "c"])).toMatch(
+      /same deliverable twice: a/,
+    );
+  });
+
+  it("refuses an order naming a deliverable from somewhere else", () => {
+    expect(orderMismatch(current, ["a", "b", "c", "other"])).toMatch(
+      /not in this project: other/,
+    );
+  });
+
+  it("refuses an order that leaves a deliverable out", () => {
+    expect(orderMismatch(current, ["a", "b"])).toMatch(/leaves out deliverables: c/);
+  });
+
+  it("names every id it could not place", () => {
+    expect(orderMismatch(current, ["a"])).toMatch(/b, c/);
+  });
+
+  it("reports the repeat before the ids it cannot find", () => {
+    expect(orderMismatch(current, ["a", "a", "gone"])).toMatch(/twice/);
   });
 });
