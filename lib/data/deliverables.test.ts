@@ -9,6 +9,7 @@ import {
   deleteDeliverable,
   getDeliverable,
   listDeliverables,
+  moveDeliverable,
   reorderDeliverables,
   updateDeliverable,
 } from "./deliverables";
@@ -535,5 +536,76 @@ describe("reorderDeliverables refusals", () => {
     expect((await getDeliverable(theirs.id, db))?.sortOrder).toBe(
       theirs.sortOrder,
     );
+  });
+});
+
+describe("moveDeliverable", () => {
+  /** Three deliverables in their added order: Discovery, Design, Build. */
+  async function scope() {
+    const discovery = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    const design = await createDeliverable({ projectId, title: "Design" }, db);
+    const build = await createDeliverable({ projectId, title: "Build" }, db);
+    return { discovery, design, build };
+  }
+
+  it("moves a deliverable one place up the list", async () => {
+    const { build } = await scope();
+
+    const list = await moveDeliverable(build.id, "up", db);
+
+    expect(list?.map((row) => row.title)).toEqual([
+      "Discovery",
+      "Build",
+      "Design",
+    ]);
+  });
+
+  it("moves a deliverable one place down the list", async () => {
+    const { discovery } = await scope();
+
+    const list = await moveDeliverable(discovery.id, "down", db);
+
+    expect(list?.map((row) => row.title)).toEqual([
+      "Design",
+      "Discovery",
+      "Build",
+    ]);
+  });
+
+  it("writes the move, so the next read agrees with it", async () => {
+    const { build } = await scope();
+
+    await moveDeliverable(build.id, "up", db);
+
+    const list = await listDeliverables(projectId, db);
+    expect(list.map((row) => row.title)).toEqual([
+      "Discovery",
+      "Build",
+      "Design",
+    ]);
+  });
+
+  it("keeps the positions dense after a move", async () => {
+    const { design } = await scope();
+
+    const list = await moveDeliverable(design.id, "down", db);
+
+    expect(list?.map((row) => row.sortOrder)).toEqual([0, 1, 2]);
+  });
+
+  it("returns to where it started after a move and its opposite", async () => {
+    const { design } = await scope();
+
+    await moveDeliverable(design.id, "down", db);
+    const list = await moveDeliverable(design.id, "up", db);
+
+    expect(list?.map((row) => row.title)).toEqual([
+      "Discovery",
+      "Design",
+      "Build",
+    ]);
   });
 });
