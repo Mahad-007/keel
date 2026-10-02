@@ -11,7 +11,7 @@ import {
   listDeliverables,
   updateDeliverable,
 } from "./deliverables";
-import { createProject } from "./projects";
+import { createProject, deleteProject } from "./projects";
 
 let db: Database;
 /** Every deliverable needs a project, so each test starts with one. */
@@ -387,5 +387,19 @@ describe("deleteDeliverable", () => {
     await deleteDeliverable(discovery.id, db);
 
     expect((await getDeliverable(build.id, db))?.title).toBe("Build");
+  });
+});
+
+describe("project cascade", () => {
+  it("takes a project's deliverables with it", async () => {
+    const clientId = (await createClient({ name: "Beam Ltd" }, db)).id;
+    const doomed = (await createProject({ clientId, name: "Doomed" }, db)).id;
+    const kept = await createDeliverable({ projectId, title: "Kept" }, db);
+    await createDeliverable({ projectId: doomed, title: "Going" }, db);
+
+    await deleteProject(doomed, db);
+
+    expect(await listDeliverables(doomed, db)).toEqual([]);
+    expect(await getDeliverable(kept.id, db)).not.toBeNull();
   });
 });
