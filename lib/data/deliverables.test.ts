@@ -108,3 +108,53 @@ describe("createDeliverable positions", () => {
     expect(theirs.sortOrder).toBe(0);
   });
 });
+
+describe("createDeliverable validation", () => {
+  it("refuses a deliverable with no title", async () => {
+    await expect(
+      createDeliverable({ projectId, title: "   " }, db),
+    ).rejects.toThrow(/deliverable title is required/);
+  });
+
+  it("refuses an estimate that is not whole minutes", async () => {
+    await expect(
+      createDeliverable({ projectId, title: "Launch", estimatedMinutes: 90.5 }, db),
+    ).rejects.toThrow(/whole minutes/);
+  });
+
+  it("refuses a negative estimate", async () => {
+    await expect(
+      createDeliverable({ projectId, title: "Launch", estimatedMinutes: -30 }, db),
+    ).rejects.toThrow(/cannot be negative/);
+  });
+
+  it("refuses a status that is not one of the three", async () => {
+    await expect(
+      createDeliverable(
+        { projectId, title: "Launch", status: "shipped" as "done" },
+        db,
+      ),
+    ).rejects.toThrow(/unknown deliverable status/);
+  });
+
+  it("names the project id when there is no such project", async () => {
+    await expect(
+      createDeliverable({ projectId: "prj_missing", title: "Launch" }, db),
+    ).rejects.toThrow(/no project with id prj_missing/);
+  });
+
+  it("refuses a blank project id without going to the database", async () => {
+    await expect(
+      createDeliverable({ projectId: "  ", title: "Launch" }, db),
+    ).rejects.toThrow(/deliverable project is required/);
+  });
+
+  it("writes nothing when a deliverable is refused", async () => {
+    await expect(
+      createDeliverable({ projectId, title: "" }, db),
+    ).rejects.toThrow();
+
+    const kept = await createDeliverable({ projectId, title: "First" }, db);
+    expect(kept.sortOrder).toBe(0);
+  });
+});
