@@ -188,3 +188,44 @@ export async function listDeliverables(
 export type DeliverablePatch = Partial<
   Omit<NewDeliverableInput, "projectId">
 >;
+
+/**
+ * Applies the fields present in the patch and returns the updated row, or null
+ * if there is no deliverable with that id.
+ *
+ * An empty patch is a no-op rather than a write, so a form submitted without a
+ * change does not bump `updatedAt` and make an untouched deliverable look
+ * edited — the same rule `updateProject` follows.
+ */
+export async function updateDeliverable(
+  id: string,
+  patch: DeliverablePatch,
+  database: Database = db,
+): Promise<Deliverable | null> {
+  const values: Partial<typeof deliverables.$inferInsert> = {};
+  if (patch.title !== undefined) {
+    values.title = requiredText(patch.title, "deliverable title");
+  }
+  if (patch.description !== undefined) {
+    values.description = optionalText(patch.description);
+  }
+  if (patch.estimatedMinutes !== undefined) {
+    values.estimatedMinutes = wholeMinutes(
+      patch.estimatedMinutes,
+      "deliverable estimate",
+    );
+  }
+  if (patch.status !== undefined) {
+    values.status = parseDeliverableStatus(patch.status);
+  }
+
+  if (Object.keys(values).length === 0) return getDeliverable(id, database);
+
+  values.updatedAt = new Date().toISOString();
+  const [row] = await database
+    .update(deliverables)
+    .set(values)
+    .where(eq(deliverables.id, id))
+    .returning();
+  return row ?? null;
+}
