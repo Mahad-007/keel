@@ -80,3 +80,31 @@ describe("createDeliverable", () => {
     expect(deliverable.updatedAt).toBe(deliverable.createdAt);
   });
 });
+
+describe("createDeliverable positions", () => {
+  it("starts the first deliverable at the top of the list", async () => {
+    const first = await createDeliverable({ projectId, title: "One" }, db);
+
+    expect(first.sortOrder).toBe(0);
+  });
+
+  it("appends each new deliverable after the last", async () => {
+    const first = await createDeliverable({ projectId, title: "One" }, db);
+    const second = await createDeliverable({ projectId, title: "Two" }, db);
+    const third = await createDeliverable({ projectId, title: "Three" }, db);
+
+    expect([first.sortOrder, second.sortOrder, third.sortOrder]).toEqual([
+      0, 1, 2,
+    ]);
+  });
+
+  it("counts positions per project, not across the table", async () => {
+    const clientId = (await createClient({ name: "Beam Ltd" }, db)).id;
+    const other = (await createProject({ clientId, name: "Other" }, db)).id;
+    await createDeliverable({ projectId, title: "Ours" }, db);
+
+    const theirs = await createDeliverable({ projectId: other, title: "Theirs" }, db);
+
+    expect(theirs.sortOrder).toBe(0);
+  });
+});
