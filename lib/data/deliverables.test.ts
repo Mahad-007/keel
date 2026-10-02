@@ -6,6 +6,7 @@ import { createTestDb } from "@/lib/db/testing";
 import { createClient } from "./clients";
 import {
   createDeliverable,
+  deleteDeliverable,
   getDeliverable,
   listDeliverables,
   updateDeliverable,
@@ -348,5 +349,43 @@ describe("updateDeliverable validation", () => {
     await expect(
       updateDeliverable("dlv_missing", { title: "" }, db),
     ).rejects.toThrow(/deliverable title is required/);
+  });
+});
+
+describe("deleteDeliverable", () => {
+  it("hands back the row it removed", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+
+    const deleted = await deleteDeliverable(created.id, db);
+
+    expect(deleted).toEqual(created);
+    expect(await getDeliverable(created.id, db)).toBeNull();
+  });
+
+  it("takes the deliverable out of its project's list", async () => {
+    await createDeliverable({ projectId, title: "Discovery" }, db);
+    const design = await createDeliverable({ projectId, title: "Design" }, db);
+    await createDeliverable({ projectId, title: "Build" }, db);
+
+    await deleteDeliverable(design.id, db);
+
+    const list = await listDeliverables(projectId, db);
+    expect(list.map((row) => row.title)).toEqual(["Discovery", "Build"]);
+  });
+
+  it("returns null for a deliverable that was already gone", async () => {
+    expect(await deleteDeliverable("dlv_missing", db)).toBeNull();
+  });
+
+  it("leaves the rest of the project's scope alone", async () => {
+    const discovery = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    const build = await createDeliverable({ projectId, title: "Build" }, db);
+
+    await deleteDeliverable(discovery.id, db);
+
+    expect((await getDeliverable(build.id, db))?.title).toBe("Build");
   });
 });
