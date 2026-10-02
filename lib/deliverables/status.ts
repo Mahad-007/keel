@@ -46,3 +46,31 @@ export function parseDeliverableStatus(value: unknown): DeliverableStatus {
   }
   return value;
 }
+
+/**
+ * How each status is written in the UI. A record rather than a capitalisation
+ * of the stored value, so the column names and the words a person reads can
+ * move independently — and so adding a status without deciding what to call it
+ * fails to compile.
+ *
+ * "Not started" rather than "Pending", because pending is what a reader has to
+ * translate: it says a state, where the other two say what happened to the
+ * work. The three labels only make sense as a set.
+ */
+export const DELIVERABLE_STATUS_LABELS: Record<DeliverableStatus, string> = {
+  pending: "Not started",
+  started: "In progress",
+  done: "Done",
+};
+
+/**
+ * The label for a status, falling back to the stored value itself.
+ *
+ * The column is plain TEXT in SQLite, so the three values are a type-level
+ * promise a hand-edited row can break. Without the fallback such a row renders
+ * an empty cell, which reads as missing data; showing the raw value says what
+ * is actually in the database.
+ */
+export function deliverableStatusLabel(status: DeliverableStatus): string {
+  return DELIVERABLE_STATUS_LABELS[status] ?? status;
+}
