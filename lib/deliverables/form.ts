@@ -1,8 +1,17 @@
 import type { NewDeliverableInput } from "@/lib/data/deliverables";
 import { optionalEstimateMinutes } from "@/lib/forms/estimate";
 import { readFields } from "@/lib/forms/form-data";
-import { collect, type ParseResult } from "@/lib/forms/result";
-import { initialFormState, type FormState } from "@/lib/forms/state";
+import {
+  collect,
+  type FieldErrors,
+  type ParseResult,
+} from "@/lib/forms/result";
+import {
+  failedFormState,
+  initialFormState,
+  rejectedFormState,
+  type FormState,
+} from "@/lib/forms/state";
 import { optionalText, requiredText } from "@/lib/forms/text";
 
 /**
@@ -114,4 +123,49 @@ export function parseDeliverableForm(
     ok: true,
     value: { title, description, estimatedMinutes: estimate },
   };
+}
+
+/**
+ * What the add line hands back, which is a form state plus one thing a
+ * redirecting form never needs: the title of what was just added.
+ *
+ * Adding scope does not navigate. The reader is working down a list of things
+ * they agreed to and typing them in one after another, and a redirect per
+ * line would throw the cursor away every time. So the form stays where it is,
+ * and this is how it knows the last submission succeeded — the title rather
+ * than a boolean, because the one sentence worth saying afterwards names what
+ * landed.
+ */
+export type AddDeliverableState = DeliverableFormState & {
+  readonly added: string | null;
+};
+
+export const INITIAL_ADD_DELIVERABLE_STATE: AddDeliverableState = {
+  ...INITIAL_DELIVERABLE_FORM_STATE,
+  added: null,
+};
+
+/**
+ * A deliverable was written. The fields come back empty rather than echoing
+ * what was typed: the line is still on screen, ready for the next one, and
+ * leaving the last title in it invites adding it twice.
+ */
+export function addedDeliverableState(title: string): AddDeliverableState {
+  return { ...INITIAL_ADD_DELIVERABLE_STATE, added: title };
+}
+
+/** Validation refused the submission. Nothing was written. */
+export function rejectedAddState(
+  fields: DeliverableFormFields,
+  errors: FieldErrors<DeliverableFieldName>,
+): AddDeliverableState {
+  return { ...rejectedFormState(fields, errors), added: null };
+}
+
+/** The submission was good and could not be saved. */
+export function failedAddState(
+  fields: DeliverableFormFields,
+  formError: string,
+): AddDeliverableState {
+  return { ...failedFormState(fields, formError), added: null };
 }
