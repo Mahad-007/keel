@@ -1,5 +1,5 @@
 import type { Deliverable } from "@/lib/db/schema";
-import { describeEstimate } from "@/lib/deliverables/list";
+import { describeEstimate, isEstimated } from "@/lib/deliverables/list";
 import { deliverableStatusLabel } from "@/lib/deliverables/status";
 
 /**
@@ -24,6 +24,16 @@ export function DeliverableItem({
   /** Its place in the list as rendered, counting from one. */
   position: number;
 }) {
+  /*
+    A missing estimate is set in the colour the rest of the page uses for
+    secondary text, so a column of figures reads as figures and the gaps in it
+    are visibly gaps. It still says what it is — the colour is the second way
+    of telling, never the only one.
+  */
+  const estimateTone = isEstimated(deliverable.estimatedMinutes)
+    ? "text-zinc-900 dark:text-zinc-100"
+    : "text-zinc-500 dark:text-zinc-400";
+
   return (
     <li className="flex items-baseline gap-4 border-b border-zinc-100 py-3 dark:border-zinc-900">
       <span
@@ -50,7 +60,7 @@ export function DeliverableItem({
         )}
       </div>
       <div className="shrink-0 text-right">
-        <p className="text-sm tabular-nums text-zinc-900 dark:text-zinc-100">
+        <p className={`text-sm tabular-nums ${estimateTone}`}>
           {describeEstimate(deliverable.estimatedMinutes)}
         </p>
         <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
