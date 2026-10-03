@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
+import { listDeliverables } from "@/lib/data/deliverables";
 import { listProjectStatusEvents } from "@/lib/data/project-status-events";
 import { getProjectWithClient } from "@/lib/data/projects";
 import { parseProjectTabParam } from "@/lib/projects/detail";
@@ -10,6 +11,7 @@ import { PROJECT_TAB_LABELS } from "@/lib/projects/tabs";
 import { OverviewPanel } from "./overview-panel";
 import { ProjectHeader } from "./project-header";
 import { ProjectTabs } from "./project-tabs";
+import { ScopePanel } from "./scope-panel";
 import { UnbuiltTabPanel } from "./unbuilt-panel";
 
 /**
@@ -63,14 +65,18 @@ export default async function ProjectPage({
   const statusEvents =
     tab === "overview" ? await listProjectStatusEvents(project.id) : [];
 
+  // Same rule for the scope list: the tab that shows it is the only one that
+  // reads it.
+  const deliverables = tab === "scope" ? await listDeliverables(project.id) : [];
+
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 font-sans">
       <ProjectHeader project={project} />
       <ProjectTabs projectId={project.id} current={tab} />
       {/*
-        Overview is the only tab with anything behind it today. The other four
-        say so themselves rather than rendering an empty box, and each one drops
-        out of here as the phase that builds it lands.
+        Overview and scope are the tabs with something behind them today. The
+        other three say so themselves rather than rendering an empty box, and
+        each one drops out of here as the phase that builds it lands.
       */}
       <section aria-labelledby={TAB_HEADING_ID}>
         {/*
@@ -84,6 +90,8 @@ export default async function ProjectPage({
         </h2>
         {tab === "overview" ? (
           <OverviewPanel project={project} statusEvents={statusEvents} />
+        ) : tab === "scope" ? (
+          <ScopePanel projectId={project.id} deliverables={deliverables} />
         ) : (
           <UnbuiltTabPanel tab={tab} />
         )}
