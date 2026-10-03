@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect } from "react";
 
 import {
   fieldId,
@@ -47,31 +47,27 @@ export function AddDeliverableForm({
   useFirstErrorFocus(state, DELIVERABLE_FIELD_NAMES);
 
   /*
-    The boxes are uncontrolled, so React alone cannot empty them: a successful
-    submission sends back blank fields, but what the reader typed is still in
-    the DOM and the browser will keep it there. Resetting the form puts every
-    control back to the blank value React has just rendered.
+    Back to the first box once a line lands. Scope is typed in a run, and
+    after a submit the cursor is on the button — so without this, adding the
+    second deliverable means reaching for the mouse or tabbing backwards past
+    three controls.
+
+    Emptying the boxes is not done here: React resets a form with a function
+    action once the action settles, which restores every uncontrolled control
+    to the value it has just re-rendered — blank after an add, and what was
+    typed after a rejection.
 
     Keyed on the whole state rather than on `added`, because the action hands
-    back a new object every time and two identical titles in a row would
+    back a new object every time and two identical adds in a row would
     otherwise look like no change at all.
   */
-  const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (state.added === null) return;
-    formRef.current?.reset();
-    /*
-      And back to the first box. Scope is typed in a run, and after a submit
-      the cursor is on the button — so without this, adding the second
-      deliverable means reaching for the mouse or tabbing backwards past
-      three controls.
-    */
     document.getElementById(fieldId("title"))?.focus();
   }, [state]);
 
   return (
     <form
-      ref={formRef}
       action={formAction}
       noValidate
       className="mt-4 flex flex-col gap-4"
