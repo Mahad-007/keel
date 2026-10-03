@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { describeEstimate, isEstimated, UNESTIMATED_LABEL } from "./list";
+import {
+  describeEstimate,
+  describeScopeList,
+  isEstimated,
+  UNESTIMATED_LABEL,
+} from "./list";
 
 describe("describeEstimate", () => {
   it("writes an estimate as a duration", () => {
@@ -29,5 +34,21 @@ describe("isEstimated", () => {
   it("counts a zero as unsized and anything else as sized", () => {
     expect(isEstimated(0)).toBe(false);
     expect(isEstimated(1)).toBe(true);
+  });
+});
+
+describe("describeScopeList", () => {
+  it("counts the lines and says the order is deliberate", () => {
+    expect(describeScopeList(4)).toBe(
+      "4 deliverables, in the order they were agreed.",
+    );
+  });
+
+  it("does not claim an order for a list of one", () => {
+    expect(describeScopeList(1)).toBe("One deliverable agreed so far.");
+  });
+
+  it("has something to say about an empty list too", () => {
+    expect(describeScopeList(0)).toBe("No deliverables agreed yet.");
   });
 });
