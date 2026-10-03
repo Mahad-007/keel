@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import {
   FormSummary,
@@ -44,8 +44,29 @@ export function AddDeliverableForm({
 
   useFirstErrorFocus(state, DELIVERABLE_FIELD_NAMES);
 
+  /*
+    The boxes are uncontrolled, so React alone cannot empty them: a successful
+    submission sends back blank fields, but what the reader typed is still in
+    the DOM and the browser will keep it there. Resetting the form puts every
+    control back to the blank value React has just rendered.
+
+    Keyed on the whole state rather than on `added`, because the action hands
+    back a new object every time and two identical titles in a row would
+    otherwise look like no change at all.
+  */
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (state.added === null) return;
+    formRef.current?.reset();
+  }, [state]);
+
   return (
-    <form action={formAction} noValidate className="mt-4 flex flex-col gap-4">
+    <form
+      ref={formRef}
+      action={formAction}
+      noValidate
+      className="mt-4 flex flex-col gap-4"
+    >
       <FormSummary state={state} />
       {/*
         The title and the estimate sit on one row because they are the line
