@@ -31,3 +31,17 @@ export function describeEstimate(minutes: number): string {
   if (!isEstimated(minutes)) return UNESTIMATED_LABEL;
   return formatMinutes(minutes);
 }
+
+/**
+ * The line above a scope list: how many lines there are, and that their order
+ * is part of what was agreed.
+ *
+ * Worth saying once, because an ordered list on a page looks like a list
+ * somebody sorted. This one is not sorted by anything — it is the sequence
+ * the two parties wrote down, and Day 013 is where it gets rearranged.
+ */
+export function describeScopeList(count: number): string {
+  if (count === 0) return "No deliverables agreed yet.";
+  if (count === 1) return "One deliverable agreed so far.";
+  return `${count} deliverables, in the order they were agreed.`;
+}
