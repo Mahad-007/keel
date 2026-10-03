@@ -28,7 +28,18 @@ export function DeliverableList({
       <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
         {describeScopeList(deliverables.length)}
       </p>
-      <ol className="mt-3 border-t border-zinc-200 dark:border-zinc-800">
+      {/*
+        `role="list"` on a list is normally redundant, and here it is not:
+        Tailwind's reset takes the bullets off every list, and WebKit drops
+        the list semantics along with them. The sequence is the one thing
+        this element exists to convey — and the numbers down the left are
+        hidden from assistive technology precisely because the list was
+        meant to carry it.
+      */}
+      <ol
+        role="list"
+        className="mt-3 border-t border-zinc-200 dark:border-zinc-800"
+      >
         {deliverables.map((deliverable, index) => (
           <DeliverableItem
             key={deliverable.id}
