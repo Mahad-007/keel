@@ -169,3 +169,19 @@ export function failedAddState(
 ): AddDeliverableState {
   return { ...failedFormState(fields, formError), added: null };
 }
+
+/**
+ * What to say after a deliverable is added, or null when there is nothing to
+ * say.
+ *
+ * The form does not navigate, so a successful add changes the page in two
+ * places a reader may be looking at neither of: a new line at the end of the
+ * list, and three boxes that just emptied. Anyone working from a screen
+ * reader gets no notification of either. This is the sentence that goes in a
+ * live region, and it names the title — "Added" alone leaves the reader
+ * guessing whether it was the line they meant.
+ */
+export function addedNotice(state: AddDeliverableState): string | null {
+  if (state.added === null) return null;
+  return `Added “${state.added}” to the end of the scope list.`;
+}
