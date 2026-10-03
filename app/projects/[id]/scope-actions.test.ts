@@ -82,7 +82,7 @@ describe("adding a deliverable", () => {
   it("names what landed and clears the line for the next one", async () => {
     const state = await add({ title: "Wireframes" });
 
-    expect(state.added).toBe("Wireframes");
+    expect(state.added).toEqual({ id: "dlv_wire", title: "Wireframes" });
     expect(state.fields.title).toBe("");
     expect(state.formError).toBeNull();
   });

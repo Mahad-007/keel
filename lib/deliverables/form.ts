@@ -127,17 +127,26 @@ export function parseDeliverableForm(
 
 /**
  * What the add line hands back, which is a form state plus one thing a
- * redirecting form never needs: the title of what was just added.
+ * redirecting form never needs: what was just added.
  *
  * Adding scope does not navigate. The reader is working down a list of things
  * they agreed to and typing them in one after another, and a redirect per
  * line would throw the cursor away every time. So the form stays where it is,
- * and this is how it knows the last submission succeeded — the title rather
- * than a boolean, because the one sentence worth saying afterwards names what
- * landed.
+ * and this is how it knows the last submission succeeded.
+ *
+ * The row rather than a boolean, for two reasons. The sentence worth saying
+ * afterwards names what landed — and the id tells two adds apart that say the
+ * same thing. A scope list can hold "Revision round" twice, and without the
+ * id the second one is indistinguishable from the first, which matters to a
+ * live region: its content has to change for a screen reader to notice it.
  */
+export type AddedDeliverable = {
+  readonly id: string;
+  readonly title: string;
+};
+
 export type AddDeliverableState = DeliverableFormState & {
-  readonly added: string | null;
+  readonly added: AddedDeliverable | null;
 };
 
 export const INITIAL_ADD_DELIVERABLE_STATE: AddDeliverableState = {
@@ -150,8 +159,10 @@ export const INITIAL_ADD_DELIVERABLE_STATE: AddDeliverableState = {
  * what was typed: the line is still on screen, ready for the next one, and
  * leaving the last title in it invites adding it twice.
  */
-export function addedDeliverableState(title: string): AddDeliverableState {
-  return { ...INITIAL_ADD_DELIVERABLE_STATE, added: title };
+export function addedDeliverableState(
+  added: AddedDeliverable,
+): AddDeliverableState {
+  return { ...INITIAL_ADD_DELIVERABLE_STATE, added };
 }
 
 /** Validation refused the submission. Nothing was written. */
@@ -183,5 +194,5 @@ export function failedAddState(
  */
 export function addedNotice(state: AddDeliverableState): string | null {
   if (state.added === null) return null;
-  return `Added “${state.added}” to the end of the scope list.`;
+  return `Added “${state.added.title}” to the end of the scope list.`;
 }

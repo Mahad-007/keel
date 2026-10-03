@@ -69,5 +69,8 @@ export async function addDeliverableAction(
   // The list above the form is part of the page, so it only shows the new
   // line once the page is re-rendered.
   revalidatePath(projectPath(projectId));
-  return addedDeliverableState(deliverable.title);
+  return addedDeliverableState({
+    id: deliverable.id,
+    title: deliverable.title,
+  });
 }

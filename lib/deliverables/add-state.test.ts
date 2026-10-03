@@ -9,6 +9,8 @@ import {
   rejectedAddState,
 } from "./form";
 
+const wireframes = { id: "dlv_wire", title: "Wireframes" };
+
 const typed = {
   title: "Wireframes",
   description: "Six screens.",
@@ -28,13 +30,19 @@ describe("the state the add line starts from", () => {
 
 describe("the state after a deliverable is added", () => {
   it("names what landed, so the form can say so", () => {
-    expect(addedDeliverableState("Wireframes").added).toBe("Wireframes");
+    expect(addedDeliverableState(wireframes).added).toEqual(wireframes);
   });
 
   it("empties the fields, so the next line is not a copy of the last", () => {
-    expect(addedDeliverableState("Wireframes").fields).toEqual(
+    expect(addedDeliverableState(wireframes).fields).toEqual(
       EMPTY_DELIVERABLE_FIELDS,
     );
+  });
+
+  it("tells two adds of the same title apart by the row that was written", () => {
+    const first = addedDeliverableState({ id: "dlv_one", title: "Revision" });
+    const again = addedDeliverableState({ id: "dlv_two", title: "Revision" });
+    expect(first.added).not.toEqual(again.added);
   });
 });
 
@@ -62,7 +70,7 @@ describe("the state after a submission that wrote nothing", () => {
 
 describe("the sentence a successful add leaves behind", () => {
   it("names what landed and where it went", () => {
-    expect(addedNotice(addedDeliverableState("Wireframes"))).toBe(
+    expect(addedNotice(addedDeliverableState(wireframes))).toBe(
       "Added “Wireframes” to the end of the scope list.",
     );
   });
