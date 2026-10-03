@@ -17,7 +17,17 @@ import { formatMinutes } from "@/lib/minutes";
  */
 export const UNESTIMATED_LABEL = "Not estimated";
 
+/**
+ * Whether a deliverable has been sized at all. The predicate is exported so
+ * that the list can set an unestimated line in the colour it sets missing
+ * things in without re-deciding what missing means — two spellings of
+ * `=== 0` is how a line ends up worded one way and coloured the other.
+ */
+export function isEstimated(minutes: number): boolean {
+  return minutes !== 0;
+}
+
 export function describeEstimate(minutes: number): string {
-  if (minutes === 0) return UNESTIMATED_LABEL;
+  if (!isEstimated(minutes)) return UNESTIMATED_LABEL;
   return formatMinutes(minutes);
 }
