@@ -66,3 +66,41 @@ describe("the description under a title", () => {
     });
   });
 });
+
+describe("the estimate beside a deliverable", () => {
+  it("arrives as the whole minutes the column stores", () => {
+    const parsed = parseDeliverableForm(
+      submitted({ title: "Wireframes", estimate: "1.5" }),
+    );
+    expect(parsed).toMatchObject({ value: { estimatedMinutes: 90 } });
+  });
+
+  it("is zero when left alone, which reads as not estimated yet", () => {
+    const parsed = parseDeliverableForm(submitted({ title: "Wireframes" }));
+    expect(parsed).toMatchObject({ value: { estimatedMinutes: 0 } });
+  });
+
+  it("is reported under its own field so the message lands on the box", () => {
+    expect(
+      parseDeliverableForm(submitted({ title: "Wireframes", estimate: "a bit" })),
+    ).toEqual({
+      ok: false,
+      errors: { estimate: "Estimate must be a number of hours, like 2 or 1.5." },
+    });
+  });
+});
+
+describe("a deliverable wrong in several ways", () => {
+  it("comes back with every message at once, not the first one", () => {
+    const parsed = parseDeliverableForm(
+      submitted({ title: "", estimate: "-1" }),
+    );
+    expect(parsed).toEqual({
+      ok: false,
+      errors: {
+        title: "Title is required.",
+        estimate: "Estimate cannot be negative.",
+      },
+    });
+  });
+});
