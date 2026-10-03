@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 
 import {
+  fieldId,
   FormSummary,
   SubmitButton,
   TextAreaField,
@@ -58,6 +59,13 @@ export function AddDeliverableForm({
   useEffect(() => {
     if (state.added === null) return;
     formRef.current?.reset();
+    /*
+      And back to the first box. Scope is typed in a run, and after a submit
+      the cursor is on the button — so without this, adding the second
+      deliverable means reaching for the mouse or tabbing backwards past
+      three controls.
+    */
+    document.getElementById(fieldId("title"))?.focus();
   }, [state]);
 
   return (
