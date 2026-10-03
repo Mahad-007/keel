@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   addedDeliverableState,
+  addedNotice,
   EMPTY_DELIVERABLE_FIELDS,
   failedAddState,
   INITIAL_ADD_DELIVERABLE_STATE,
@@ -56,5 +57,24 @@ describe("the state after a submission that wrote nothing", () => {
       formError: "Could not save it.",
       added: null,
     });
+  });
+});
+
+describe("the sentence a successful add leaves behind", () => {
+  it("names what landed and where it went", () => {
+    expect(addedNotice(addedDeliverableState("Wireframes"))).toBe(
+      "Added “Wireframes” to the end of the scope list.",
+    );
+  });
+
+  it("says nothing before anything has been added", () => {
+    expect(addedNotice(INITIAL_ADD_DELIVERABLE_STATE)).toBeNull();
+  });
+
+  it("says nothing about a submission that wrote nothing", () => {
+    expect(addedNotice(failedAddState(typed, "Could not save it."))).toBeNull();
+    expect(
+      addedNotice(rejectedAddState(typed, { title: "Title is required." })),
+    ).toBeNull();
   });
 });
