@@ -35,3 +35,26 @@ export function formatMinutes(minutes: number): string {
   if (rest === 0) return `${sign}${hours}h`;
   return `${sign}${hours}h ${rest}m`;
 }
+
+/**
+ * The other direction: `1.5` hours typed into a form becomes `90` minutes.
+ * Throws on anything that is not a number of hours, the way `parseCents`
+ * throws on anything that is not an amount — turning that into a sentence
+ * somebody can act on is the form layer's job.
+ *
+ * Decimal hours rather than `1:30`, because the field is labelled hours and a
+ * colon in it is ambiguous: `1:30` is an hour and a half to one reader and
+ * half past one to another. A leading point is allowed — `.5` is how half an
+ * hour gets typed by someone in a hurry.
+ *
+ * The result is rounded to the minute, which is the unit. An estimate given to
+ * six decimal places is a spreadsheet's output, not a judgement, and storing
+ * the seconds would imply a precision nobody intended.
+ */
+export function parseHours(input: string): number {
+  const cleaned = input.trim().replace(/[\s,]/g, "");
+  if (!/^-?(\d+(\.\d*)?|\.\d+)$/.test(cleaned)) {
+    throw new Error(`not a number of hours: ${input}`);
+  }
+  return Math.round(Number(cleaned) * MINUTES_PER_HOUR);
+}
