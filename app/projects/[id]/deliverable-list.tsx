@@ -1,4 +1,5 @@
 import type { Deliverable } from "@/lib/db/schema";
+import { describeScopeList } from "@/lib/deliverables/list";
 
 import { DeliverableItem } from "./deliverable-item";
 
@@ -23,14 +24,19 @@ export function DeliverableList({
   deliverables: readonly Deliverable[];
 }) {
   return (
-    <ol className="mt-4 border-t border-zinc-200 dark:border-zinc-800">
-      {deliverables.map((deliverable, index) => (
-        <DeliverableItem
-          key={deliverable.id}
-          deliverable={deliverable}
-          position={index + 1}
-        />
-      ))}
-    </ol>
+    <>
+      <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
+        {describeScopeList(deliverables.length)}
+      </p>
+      <ol className="mt-3 border-t border-zinc-200 dark:border-zinc-800">
+        {deliverables.map((deliverable, index) => (
+          <DeliverableItem
+            key={deliverable.id}
+            deliverable={deliverable}
+            position={index + 1}
+          />
+        ))}
+      </ol>
+    </>
   );
 }
