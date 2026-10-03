@@ -36,6 +36,18 @@ export function DeliverableItem({
         <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
           {deliverable.title}
         </p>
+        {/*
+          Most deliverables are a title and nothing else, so the detail is
+          rendered only when there is some — an empty paragraph under every
+          line would space the list out for the sake of what is not there.
+          Line breaks are kept, because a description is often the two or
+          three bullets that stopped an argument about what was agreed.
+        */}
+        {deliverable.description === null ? null : (
+          <p className="mt-1 max-w-prose whitespace-pre-line text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+            {deliverable.description}
+          </p>
+        )}
       </div>
       <div className="shrink-0 text-right">
         <p className="text-sm tabular-nums text-zinc-900 dark:text-zinc-100">
