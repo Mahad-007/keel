@@ -30,3 +30,33 @@ describe("an estimate somebody has typed", () => {
     expect(optionalEstimateMinutes("1000")).toEqual({ ok: true, value: 60_000 });
   });
 });
+
+describe("an estimate that cannot be stored", () => {
+  it("says what the field wants when it is not a number", () => {
+    expect(optionalEstimateMinutes("a day")).toEqual({
+      ok: false,
+      message: "Estimate must be a number of hours, like 2 or 1.5.",
+    });
+  });
+
+  it("refuses a negative estimate", () => {
+    expect(optionalEstimateMinutes("-2")).toEqual({
+      ok: false,
+      message: "Estimate cannot be negative.",
+    });
+  });
+
+  it("refuses the figure above the ceiling, naming it in hours", () => {
+    expect(optionalEstimateMinutes("1001")).toEqual({
+      ok: false,
+      message: "Estimate must be 1000 hours or less.",
+    });
+  });
+
+  it("names the field the caller asked about", () => {
+    expect(optionalEstimateMinutes("soon", "Design estimate")).toEqual({
+      ok: false,
+      message: "Design estimate must be a number of hours, like 2 or 1.5.",
+    });
+  });
+});
