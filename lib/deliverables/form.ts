@@ -1,5 +1,9 @@
+import type { NewDeliverableInput } from "@/lib/data/deliverables";
+import { optionalEstimateMinutes } from "@/lib/forms/estimate";
 import { readFields } from "@/lib/forms/form-data";
+import { collect, type ParseResult } from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
+import { optionalText, requiredText } from "@/lib/forms/text";
 
 /**
  * The deliverable form, from submitted strings to something the data layer
@@ -66,4 +70,48 @@ export function readDeliverableFields(
   formData: FormData,
 ): DeliverableFormFields {
   return readFields(formData, DELIVERABLE_FIELD_NAMES);
+}
+
+/**
+ * What the form yields once every field is good: exactly the columns a
+ * deliverable row is made of that a person decides, which the data layer
+ * accepts whole as a new deliverable or as a patch to an existing one.
+ */
+export type DeliverableFormValue = Pick<
+  NewDeliverableInput,
+  "title" | "description" | "estimatedMinutes"
+>;
+
+/**
+ * The submitted form, checked.
+ *
+ * The title is the only thing required, and that is the whole shape of the
+ * form: a scope list is worth having with three bare lines on it, and
+ * demanding an estimate before one can be written down is how a list stops
+ * getting written down. The estimate is the number this product exists to
+ * compare against, so it is asked for — but a blank one is zero, and zero
+ * reads as "not estimated yet" wherever it is shown.
+ */
+export function parseDeliverableForm(
+  fields: DeliverableFormFields,
+): ParseResult<DeliverableFormValue, DeliverableFieldName> {
+  const parsed = collect({
+    title: requiredText(fields.title, {
+      label: "Title",
+      max: DELIVERABLE_FIELD_LIMITS.title,
+    }),
+    description: optionalText(fields.description, {
+      label: "Description",
+      max: DELIVERABLE_FIELD_LIMITS.description,
+    }),
+    estimate: optionalEstimateMinutes(fields.estimate),
+  });
+
+  if (!parsed.ok) return parsed;
+
+  const { title, description, estimate } = parsed.value;
+  return {
+    ok: true,
+    value: { title, description, estimatedMinutes: estimate },
+  };
 }
