@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createDeliverable } from "@/lib/data/deliverables";
 import {
   addedDeliverableState,
+  failedAddState,
   parseDeliverableForm,
   readDeliverableFields,
   rejectedAddState,
@@ -37,10 +38,17 @@ export async function addDeliverableAction(
   const parsed = parseDeliverableForm(fields);
   if (!parsed.ok) return rejectedAddState(fields, parsed.errors);
 
-  const deliverable = await createDeliverable({
-    projectId,
-    ...parsed.value,
-  });
+  let deliverable;
+  try {
+    deliverable = await createDeliverable({ projectId, ...parsed.value });
+  } catch (error) {
+    // The user cannot act on a driver error, but the logs should keep it.
+    console.error("addDeliverableAction: failed to write deliverable", error);
+    return failedAddState(
+      fields,
+      "Could not add that deliverable. Nothing was written — try again.",
+    );
+  }
 
   // The list above the form is part of the page, so it only shows the new
   // line once the page is re-rendered.
