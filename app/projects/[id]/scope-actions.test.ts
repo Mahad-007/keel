@@ -92,3 +92,31 @@ describe("a deliverable that is rejected", () => {
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 });
+
+describe("a deliverable that cannot be saved", () => {
+  beforeEach(() => {
+    written.mockRejectedValue(new Error("database is locked"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("says so without losing the line that was typed", async () => {
+    const state = await add({ title: "Wireframes", estimate: "1.5" });
+
+    expect(state.formError).toBe(
+      "Could not add that deliverable. Nothing was written — try again.",
+    );
+    expect(state.fields.title).toBe("Wireframes");
+    expect(state.fields.estimate).toBe("1.5");
+    expect(state.added).toBeNull();
+  });
+
+  it("does not claim the page changed", async () => {
+    await add({ title: "Wireframes" });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("keeps the driver error in the logs", async () => {
+    await add({ title: "Wireframes" });
+    expect(console.error).toHaveBeenCalled();
+  });
+});
