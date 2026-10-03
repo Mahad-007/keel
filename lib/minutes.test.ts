@@ -48,9 +48,13 @@ describe("parseHours", () => {
     expect(parseHours(".5")).toBe(30);
   });
 
-  it("ignores the whitespace and separators a pasted figure carries", () => {
+  it("ignores the whitespace a pasted figure carries", () => {
     expect(parseHours("  2.5 ")).toBe(150);
-    expect(parseHours("1,000")).toBe(60_000);
+    expect(parseHours("1 0")).toBe(600);
+  });
+
+  it("refuses a comma rather than reading 1,5 as fifteen hours", () => {
+    expect(() => parseHours("1,5")).toThrow("not a number of hours");
   });
 
   it("rounds to the minute rather than storing seconds", () => {

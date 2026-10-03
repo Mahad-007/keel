@@ -47,12 +47,18 @@ export function formatMinutes(minutes: number): string {
  * half past one to another. A leading point is allowed — `.5` is how half an
  * hour gets typed by someone in a hurry.
  *
+ * A comma is refused rather than stripped as a thousands separator. On a
+ * comma-decimal keyboard `1,5` means an hour and a half, and stripping the
+ * comma would read it as fifteen hours — a tenfold estimate error that looks
+ * like a number somebody typed. Nothing is lost by refusing: no plausible
+ * estimate needs a thousands separator, and the field says what it wants.
+ *
  * The result is rounded to the minute, which is the unit. An estimate given to
  * six decimal places is a spreadsheet's output, not a judgement, and storing
  * the seconds would imply a precision nobody intended.
  */
 export function parseHours(input: string): number {
-  const cleaned = input.trim().replace(/[\s,]/g, "");
+  const cleaned = input.trim().replace(/\s/g, "");
   if (!/^-?(\d+(\.\d*)?|\.\d+)$/.test(cleaned)) {
     throw new Error(`not a number of hours: ${input}`);
   }
