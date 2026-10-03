@@ -11,6 +11,7 @@ import {
   useFirstErrorFocus,
 } from "@/components/form";
 import {
+  addedNotice,
   DELIVERABLE_FIELD_LIMITS,
   DELIVERABLE_FIELD_NAMES,
   type AddDeliverableState,
@@ -109,8 +110,21 @@ export function AddDeliverableForm({
         defaultValue={state.fields.description}
         maxLength={DELIVERABLE_FIELD_LIMITS.description}
       />
-      <div>
+      <div className="flex flex-wrap items-center gap-3">
         <SubmitButton pendingLabel="Adding…">Add deliverable</SubmitButton>
+        {/*
+          Rendered empty rather than conditionally, because a live region has
+          to be in the document before the text arrives for a screen reader to
+          notice it appearing. `status` rather than `alert`: a line was added
+          as asked, which is worth saying and not worth interrupting for.
+        */}
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-sm text-zinc-600 dark:text-zinc-400"
+        >
+          {addedNotice(state)}
+        </p>
       </div>
     </form>
   );
