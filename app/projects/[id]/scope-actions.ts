@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createDeliverable } from "@/lib/data/deliverables";
+import { getProject } from "@/lib/data/projects";
 import {
   addedDeliverableState,
   failedAddState,
@@ -37,6 +38,21 @@ export async function addDeliverableAction(
 
   const parsed = parseDeliverableForm(fields);
   if (!parsed.ok) return rejectedAddState(fields, parsed.errors);
+
+  /*
+    A deliverable with no project is refused by the data layer anyway, inside
+    the transaction that would have written it, and the message it raises
+    names a column. This one names the situation: the page has been open while
+    the project was deleted somewhere else, and "try again" — what every other
+    failure here advises — is the one thing that will not work.
+  */
+  const project = await getProject(projectId);
+  if (project === null) {
+    return failedAddState(
+      fields,
+      "That project no longer exists, so there is nothing to add scope to.",
+    );
+  }
 
   let deliverable;
   try {

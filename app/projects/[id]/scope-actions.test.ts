@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createDeliverable } from "@/lib/data/deliverables";
+import { getProject } from "@/lib/data/projects";
 import { INITIAL_ADD_DELIVERABLE_STATE } from "@/lib/deliverables/form";
 
 import { addDeliverableAction } from "./scope-actions";
@@ -13,9 +14,12 @@ import { addDeliverableAction } from "./scope-actions";
  */
 vi.mock("@/lib/data/deliverables", () => ({ createDeliverable: vi.fn() }));
 
+vi.mock("@/lib/data/projects", () => ({ getProject: vi.fn() }));
+
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 const written = vi.mocked(createDeliverable);
+const loaded = vi.mocked(getProject);
 
 function submit(values: Record<string, string>): FormData {
   const form = new FormData();
@@ -33,6 +37,18 @@ function add(values: Record<string, string>) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  loaded.mockResolvedValue({
+    id: "prj_engine",
+    clientId: "cli_ada",
+    name: "Engine rewrite",
+    status: "active",
+    contractValueCents: 1_200_000,
+    rateCents: null,
+    startedAt: "2026-09-28T09:00:00.000Z",
+    closedAt: null,
+    createdAt: "2026-09-28T09:00:00.000Z",
+    updatedAt: "2026-09-28T09:00:00.000Z",
+  });
   written.mockResolvedValue({
     id: "dlv_wire",
     projectId: "prj_engine",
@@ -118,5 +134,25 @@ describe("a deliverable that cannot be saved", () => {
   it("keeps the driver error in the logs", async () => {
     await add({ title: "Wireframes" });
     expect(console.error).toHaveBeenCalled();
+  });
+});
+
+describe("adding scope to a project that has gone", () => {
+  beforeEach(() => {
+    loaded.mockResolvedValue(null);
+  });
+
+  it("says so rather than advising a retry that cannot work", async () => {
+    const state = await add({ title: "Wireframes" });
+
+    expect(state.formError).toBe(
+      "That project no longer exists, so there is nothing to add scope to.",
+    );
+    expect(state.fields.title).toBe("Wireframes");
+  });
+
+  it("does not attempt the write", async () => {
+    await add({ title: "Wireframes" });
+    expect(written).not.toHaveBeenCalled();
   });
 });
