@@ -40,3 +40,29 @@ describe("the title of a deliverable", () => {
     });
   });
 });
+
+describe("the description under a title", () => {
+  it("is kept when there is one", () => {
+    const parsed = parseDeliverableForm(
+      submitted({ title: "Wireframes", description: "  Six screens.  " }),
+    );
+    expect(parsed).toMatchObject({ value: { description: "Six screens." } });
+  });
+
+  it("is null when blank, so the column stores absence and not an empty string", () => {
+    const parsed = parseDeliverableForm(submitted({ title: "Wireframes" }));
+    expect(parsed).toMatchObject({ value: { description: null } });
+  });
+
+  it("refuses a brief pasted into it", () => {
+    const description = "x".repeat(
+      DELIVERABLE_FIELD_LIMITS.description + 1,
+    );
+    expect(
+      parseDeliverableForm(submitted({ title: "Wireframes", description })),
+    ).toEqual({
+      ok: false,
+      errors: { description: "Description must be 2000 characters or fewer." },
+    });
+  });
+});
