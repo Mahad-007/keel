@@ -43,7 +43,12 @@ export function DeliverableItem({
         {position}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+        {/*
+          A title is allowed 120 characters and nothing makes them be words:
+          a pasted URL or a run of hyphens would otherwise push the estimate
+          off the right of the list and take the alignment with it.
+        */}
+        <p className="break-words text-sm font-medium text-zinc-900 dark:text-zinc-100">
           {deliverable.title}
         </p>
         {/*
@@ -54,7 +59,7 @@ export function DeliverableItem({
           three bullets that stopped an argument about what was agreed.
         */}
         {deliverable.description === null ? null : (
-          <p className="mt-1 max-w-prose whitespace-pre-line text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+          <p className="mt-1 max-w-prose whitespace-pre-line break-words text-sm leading-6 text-zinc-600 dark:text-zinc-400">
             {deliverable.description}
           </p>
         )}
