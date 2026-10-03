@@ -56,10 +56,6 @@ export function AddDeliverableForm({
     action once the action settles, which restores every uncontrolled control
     to the value it has just re-rendered — blank after an add, and what was
     typed after a rejection.
-
-    Keyed on the whole state rather than on `added`, because the action hands
-    back a new object every time and two identical adds in a row would
-    otherwise look like no change at all.
   */
   useEffect(() => {
     if (state.added === null) return;
