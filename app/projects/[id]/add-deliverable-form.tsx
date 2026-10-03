@@ -117,13 +117,20 @@ export function AddDeliverableForm({
           to be in the document before the text arrives for a screen reader to
           notice it appearing. `status` rather than `alert`: a line was added
           as asked, which is worth saying and not worth interrupting for.
+
+          The sentence is keyed on the deliverable that was written, so adding
+          two lines with the same title replaces the node inside the region
+          rather than rendering identical text. Unchanged text is no change at
+          all, and the second add would go unannounced.
         */}
         <p
           role="status"
           aria-live="polite"
           className="text-sm text-zinc-600 dark:text-zinc-400"
         >
-          {addedNotice(state)}
+          {state.added === null ? null : (
+            <span key={state.added.id}>{addedNotice(state)}</span>
+          )}
         </p>
       </div>
     </form>
