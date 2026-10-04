@@ -11,6 +11,7 @@ import {
   listDeliverables,
   moveDeliverable,
   reorderDeliverables,
+  setDeliverableStatus,
   updateDeliverable,
 } from "./deliverables";
 import { createProject, deleteProject } from "./projects";
@@ -747,5 +748,69 @@ describe("positions after a delete", () => {
     await deleteDeliverable(ours.id, db);
 
     expect((await getDeliverable(theirs.id, db))?.sortOrder).toBe(0);
+  });
+});
+
+describe("setDeliverableStatus", () => {
+  it("moves a deliverable to the status asked for", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+
+    const written = await setDeliverableStatus(
+      created.id,
+      "pending",
+      "started",
+      db,
+    );
+
+    expect(written?.status).toBe("started");
+    expect((await getDeliverable(created.id, db))?.status).toBe("started");
+  });
+
+  it("leaves the rest of the row alone", async () => {
+    const created = await createDeliverable(
+      {
+        projectId,
+        title: "Build",
+        description: "The booking flow.",
+        estimatedMinutes: 600,
+      },
+      db,
+    );
+
+    const written = await setDeliverableStatus(
+      created.id,
+      "pending",
+      "done",
+      db,
+    );
+
+    expect(written?.title).toBe("Build");
+    expect(written?.description).toBe("The booking flow.");
+    expect(written?.estimatedMinutes).toBe(600);
+    expect(written?.sortOrder).toBe(created.sortOrder);
+    expect(written?.createdAt).toBe(created.createdAt);
+  });
+
+  it("records that the deliverable was edited", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+    await new Promise((resolve) => setTimeout(resolve, 2));
+
+    const written = await setDeliverableStatus(
+      created.id,
+      "pending",
+      "started",
+      db,
+    );
+
+    expect(written?.updatedAt).not.toBe(created.updatedAt);
+  });
+
+  it("leaves the other deliverables on the project alone", async () => {
+    const first = await createDeliverable({ projectId, title: "Design" }, db);
+    const second = await createDeliverable({ projectId, title: "Build" }, db);
+
+    await setDeliverableStatus(second.id, "pending", "done", db);
+
+    expect((await getDeliverable(first.id, db))?.status).toBe("pending");
   });
 });
