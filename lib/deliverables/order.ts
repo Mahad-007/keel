@@ -215,3 +215,31 @@ export function orderMismatch(
 
   return null;
 }
+
+/**
+ * Whether the deliverable at this place in the list can move in this
+ * direction — what decides whether a move control is offered or greyed out.
+ *
+ * `position` counts from one, as the list renders it, because that is the
+ * number the control sits next to. Off the end of the list in either
+ * direction is no, not a clamp: a position the list does not contain is a page
+ * describing deliverables that have since changed, and offering to move
+ * something that is not there would be offering a press that does nothing.
+ *
+ * The delta is read from `MOVE_DELTAS` rather than compared against the ends
+ * directly, so "up is towards the front" is still only said in one place. A
+ * control that disagreed with the move about which way up is would be the
+ * worst kind of wrong: it would grey out the press that works and offer the
+ * one that does not.
+ */
+export function canMove(
+  position: number,
+  count: number,
+  direction: MoveDirection,
+): boolean {
+  const from = Math.trunc(position) - 1;
+  if (from < 0 || from >= count) return false;
+
+  const to = from + MOVE_DELTAS[parseMoveDirection(direction)];
+  return to >= 0 && to < count;
+}
