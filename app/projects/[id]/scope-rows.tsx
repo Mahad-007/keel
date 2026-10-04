@@ -16,6 +16,7 @@ import {
   changeDeliverableStatusAction,
   moveDeliverableAction,
 } from "./scope-actions";
+import { ScopeProblem } from "./scope-problem";
 
 /**
  * The lines of a project's scope, and the controls that rearrange them.
@@ -66,6 +67,7 @@ export function ScopeRows({
   );
 
   const [said, setSaid] = useState<Announcement | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
 
   function say(text: string | null) {
     if (text === null) return;
@@ -80,7 +82,13 @@ export function ScopeRows({
       write and nothing to tell the reader — a press that says nothing gets
       nothing done, which is the honest answer.
     */
+    /*
+      A new press clears the last complaint. Leaving it up would leave a red box
+      above a list that has since done what it was told, and the reader would be
+      reading it as being about the press they just made.
+    */
     if (change === null) return;
+    setProblem(null);
 
     /*
       Said against the list as it reads now, before the change is applied: the
@@ -93,16 +101,26 @@ export function ScopeRows({
     // rearranging a list feel like it had to be done one keystroke at a time.
     showChange(change);
 
-    if (change.kind === "move") {
-      await moveDeliverableAction(projectId, change.id, change.direction);
-      return;
+    const result =
+      change.kind === "move"
+        ? await moveDeliverableAction(projectId, change.id, change.direction)
+        : await changeDeliverableStatusAction(
+            projectId,
+            change.id,
+            change.from,
+            change.status,
+          );
+
+    /*
+      React has already rolled the optimistic change back by now: the action has
+      settled, so the list on screen is the server's again. All that is left is
+      to say why it snapped back — and to drop the sentence that said the press
+      had worked, which it did not.
+    */
+    if (!result.ok) {
+      setSaid(null);
+      setProblem(result.problem);
     }
-    await changeDeliverableStatusAction(
-      projectId,
-      change.id,
-      change.from,
-      change.status,
-    );
   }
 
   return (
@@ -122,6 +140,7 @@ export function ScopeRows({
       <p role="status" aria-live="polite" className="sr-only">
         {said === null ? null : <span key={said.press}>{said.text}</span>}
       </p>
+      <ScopeProblem problem={problem} />
       {/*
         `role="list"` on a list is normally redundant, and here it is not:
         Tailwind's reset takes the bullets off every list, and WebKit drops the
