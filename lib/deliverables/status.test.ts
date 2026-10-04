@@ -5,6 +5,8 @@ import {
   DELIVERABLE_STATUSES,
   DELIVERABLE_STATUS_LABELS,
   deliverableStatusLabel,
+  DELIVERABLE_STATUS_VERBS,
+  deliverableStatusVerb,
   isDeliverableStatus,
   nextDeliverableStatus,
   parseDeliverableStatus,
@@ -112,5 +114,34 @@ describe("nextDeliverableStatus", () => {
     expect(
       nextDeliverableStatus("abandoned" as (typeof DELIVERABLE_STATUSES)[number]),
     ).toBe(DEFAULT_DELIVERABLE_STATUS);
+  });
+});
+
+describe("deliverableStatusVerb", () => {
+  it("gives every status a verb", () => {
+    for (const status of DELIVERABLE_STATUSES) {
+      expect(deliverableStatusVerb(status)).toBe(
+        DELIVERABLE_STATUS_VERBS[status],
+      );
+    }
+  });
+
+  it("gives no two statuses the same verb", () => {
+    const verbs = Object.values(DELIVERABLE_STATUS_VERBS);
+    expect(new Set(verbs).size).toBe(verbs.length);
+  });
+
+  it("never reads as the status the row already shows", () => {
+    for (const status of DELIVERABLE_STATUSES) {
+      expect(deliverableStatusVerb(status)).not.toBe(
+        DELIVERABLE_STATUS_LABELS[status],
+      );
+    }
+  });
+
+  it("offers to reset a status nothing else can interpret", () => {
+    expect(
+      deliverableStatusVerb("abandoned" as (typeof DELIVERABLE_STATUSES)[number]),
+    ).toBe("Reset status");
   });
 });
