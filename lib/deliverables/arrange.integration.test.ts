@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createClient } from "@/lib/data/clients";
 import {
   createDeliverable,
+  getDeliverable,
   listDeliverables,
   moveDeliverable,
+  setDeliverableStatus,
 } from "@/lib/data/deliverables";
 import { createProject } from "@/lib/data/projects";
 import type { Database } from "@/lib/db";
@@ -12,6 +14,7 @@ import type { Deliverable } from "@/lib/db/schema";
 import { createTestDb } from "@/lib/db/testing";
 
 import { applyScopeChange, readScopeChange, SCOPE_FIELD_NAMES } from "./arrange";
+import { nextDeliverableStatus } from "./status";
 
 /**
  * The seam between the list on screen and the list in the database.
@@ -119,5 +122,92 @@ describe("a move on screen and the same move in the database", () => {
     const stored = await listDeliverables(projectId, db);
 
     expect(stored.map((row) => row.sortOrder)).toEqual([0, 1, 2, 3]);
+  });
+});
+
+/** What a row's controls submit when its status button is pressed. */
+function statusPress(deliverable: Deliverable): FormData {
+  const form = new FormData();
+  form.set(SCOPE_FIELD_NAMES.id, deliverable.id);
+  form.set(SCOPE_FIELD_NAMES.from, deliverable.status);
+  form.set(
+    SCOPE_FIELD_NAMES.status,
+    nextDeliverableStatus(deliverable.status),
+  );
+  return form;
+}
+
+function statusChange(deliverable: Deliverable) {
+  const read = readScopeChange(statusPress(deliverable));
+  if (read === null) throw new Error("expected the press to read as a change");
+  if (read.kind !== "status") throw new Error("expected a status change");
+  return read;
+}
+
+describe("a status press on screen and the same press in the database", () => {
+  it("agrees about starting a deliverable", async () => {
+    const rows = await scope();
+    const build = rows[2];
+
+    const change = statusChange(build);
+    const shown = applyScopeChange(rows, change);
+    const written = await setDeliverableStatus(
+      build.id,
+      change.from,
+      change.status,
+      db,
+    );
+
+    expect(shown[2].status).toBe("started");
+    expect(written?.status).toBe("started");
+  });
+
+  it("agrees all the way round the cycle", async () => {
+    const rows = await scope();
+    let build = rows[2];
+
+    for (let press = 0; press < 4; press += 1) {
+      const change = statusChange(build);
+      const shown = applyScopeChange([build], change);
+      const written = await setDeliverableStatus(
+        build.id,
+        change.from,
+        change.status,
+        db,
+      );
+
+      expect(written).not.toBeNull();
+      expect(written?.status).toBe(shown[0].status);
+      build = written as Deliverable;
+    }
+
+    expect(build.status).toBe("started");
+  });
+
+  it("leaves the order alone, whichever status is pressed", async () => {
+    const rows = await scope();
+    const change = statusChange(rows[0]);
+
+    const shown = applyScopeChange(rows, change);
+    await setDeliverableStatus(rows[0].id, change.from, change.status, db);
+
+    expect(titles(shown)).toEqual(titles(rows));
+    expect(titles(await listDeliverables(projectId, db))).toEqual(titles(rows));
+  });
+
+  it("refuses a press read from a row that has since been pressed", async () => {
+    const rows = await scope();
+    const stale = statusChange(rows[0]);
+    await setDeliverableStatus(rows[0].id, "pending", "done", db);
+
+    const written = await setDeliverableStatus(
+      rows[0].id,
+      stale.from,
+      stale.status,
+      db,
+    );
+
+    expect(written).toBeNull();
+    expect((await getDeliverable(rows[0].id, db))?.status).toBe("done");
   });
 });
