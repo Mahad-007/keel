@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useRef, useState } from "react";
+import { useEffect, useOptimistic, useRef, useState } from "react";
 
 import type { Deliverable } from "@/lib/db/schema";
 import {
@@ -81,6 +81,24 @@ export function ScopeRows({
   */
   const saving = useRef(new Set<string>());
 
+  /*
+    The list each press is measured against: where the line is now, so the
+    sentence can say where it ends up and the list can tell a press that moves
+    nothing from one that does.
+
+    It cannot be the `rows` of the render the handler was created in. Two presses
+    inside one frame — a held key, a quick double press — both see the list as it
+    was before either, and the second would announce the position the first had
+    just claimed. So each press advances this itself, and the effect puts it back
+    in step with what is on screen once React has re-rendered: after a press that
+    landed that is the same list, and after one the server refused it is the
+    list the page rolled back to.
+  */
+  const shown = useRef<readonly Deliverable[]>(deliverables);
+  useEffect(() => {
+    shown.current = rows;
+  }, [rows]);
+
   function say(text: string | null) {
     if (text === null) return;
     setSaid((previous) => ({ text, press: (previous?.press ?? 0) + 1 }));
@@ -103,7 +121,8 @@ export function ScopeRows({
     */
     if (change === null) return;
 
-    const pressed = rows.find((row) => row.id === change.id);
+    const list = shown.current;
+    const pressed = list.find((row) => row.id === change.id);
 
     /*
       A second status press on a line whose first press has not landed. The two
@@ -125,7 +144,7 @@ export function ScopeRows({
       sentence names where the line ends up, and `announceScopeChange` works
       that out with the same function that moves it.
     */
-    say(announceScopeChange(rows, change));
+    say(announceScopeChange(list, change));
 
     /*
       A press the list cannot act on: a greyed move control at the end of the
@@ -133,11 +152,12 @@ export function ScopeRows({
       sentence above has already said so, and there is nothing to write — the
       write would be a round trip whose answer is the list as it already reads.
     */
-    if (!changesScope(rows, change)) return;
+    if (!changesScope(list, change)) return;
 
     // On screen first. A press that waited for the round trip would make
     // rearranging a list feel like it had to be done one keystroke at a time.
     showChange(change);
+    shown.current = applyScopeChange(list, change);
 
     report(await write(change));
   }
