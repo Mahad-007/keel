@@ -95,6 +95,20 @@ export const MOVE_DELTAS = { up: -1, down: 1 } as const;
 export type MoveDirection = keyof typeof MOVE_DELTAS;
 
 /**
+ * What a move control says on its face.
+ *
+ * Words rather than arrow glyphs. An arrow is smaller and it is also a guess:
+ * a scope list is read down the page, so "up" and "down" are literally true of
+ * where the line goes, where ▲ has to be interpreted as a direction before it
+ * can be interpreted as a move. The accessible name says the same thing with
+ * the deliverable's title in it, so the two never describe different presses.
+ */
+export const MOVE_LABELS: Record<MoveDirection, string> = {
+  up: "Up",
+  down: "Down",
+};
+
+/**
  * Narrows an unknown string to a direction.
  *
  * `Object.hasOwn` rather than an `in` check, so that a submitted
