@@ -1,7 +1,11 @@
 import { readField } from "@/lib/forms/form-data";
 
 import { isMoveDirection, moveOne, type MoveDirection } from "./order";
-import { isDeliverableStatus, type DeliverableStatus } from "./status";
+import {
+  deliverableStatusPhrase,
+  isDeliverableStatus,
+  type DeliverableStatus,
+} from "./status";
 
 /**
  * Rearranging a scope list: the two changes a row's controls can ask for, and
@@ -141,4 +145,51 @@ export function readScopeChange(formData: FormData): ScopeChange | null {
   const from = readField(formData, SCOPE_FIELD_NAMES.from);
   if (!isDeliverableStatus(status) || !isDeliverableStatus(from)) return null;
   return { kind: "status", id, from, status };
+}
+
+/** Which end of the list a press that moved nothing had already reached. */
+const END_OF_LIST: Record<MoveDirection, string> = {
+  up: "first",
+  down: "last",
+};
+
+/**
+ * What to say out loud once a change has been applied, or null when there is
+ * nothing to say.
+ *
+ * The list rearranges itself under the reader without the page reloading. On
+ * screen that is the whole message — the line is visibly one place higher —
+ * and to anyone working from a screen reader it is silence, because moving a
+ * node does not announce anything. So each press gets a sentence, and the
+ * sentence names the deliverable and where it ended up: "moved up" is no use
+ * on a press that was the third in a row.
+ *
+ * `rows` is the list as it reads *before* the press, which is what the page
+ * has. The position announced is counted in the list the change produces, by
+ * the same function that produces it, so the number said out loud cannot
+ * disagree with the number drawn down the left.
+ *
+ * A press that moved nothing says so rather than claiming a move. The controls
+ * at the ends of the list are disabled, so it takes a stale page to get here —
+ * and a reader who has just pressed Up deserves better than silence followed
+ * by a list that did not change.
+ */
+export function announceScopeChange<T extends ArrangedDeliverable>(
+  rows: readonly T[],
+  change: ScopeChange,
+): string | null {
+  const row = rows.find((one) => one.id === change.id);
+  if (row === undefined) return null;
+
+  if (change.kind === "status") {
+    return `“${row.title}” is now ${deliverableStatusPhrase(change.status)}.`;
+  }
+
+  const moved = applyScopeChange(rows, change);
+  const was = rows.indexOf(row) + 1;
+  const now = moved.indexOf(row) + 1;
+  if (now === was) {
+    return `“${row.title}” is already ${END_OF_LIST[change.direction]}.`;
+  }
+  return `Moved “${row.title}” to position ${now} of ${moved.length}.`;
 }
