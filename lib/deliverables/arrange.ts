@@ -193,3 +193,43 @@ export function announceScopeChange<T extends ArrangedDeliverable>(
   }
   return `Moved “${row.title}” to position ${now} of ${moved.length}.`;
 }
+
+/**
+ * What a scope write hands back: nothing to say, or the one sentence worth
+ * saying about why the list did not change.
+ *
+ * Not a form state, because these presses are not a form being filled in.
+ * There is no field to put a message under and nothing the reader typed to
+ * render back — a press either happened or it did not, and if it did not, the
+ * list on screen has already snapped back to what the database says. The
+ * sentence is there to explain that snap.
+ */
+export type ScopeWriteResult =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly problem: string };
+
+/** The write landed. The revalidated page is the rest of the answer. */
+export const SCOPE_WRITE_DONE: ScopeWriteResult = { ok: true };
+
+export function scopeWriteProblem(problem: string): ScopeWriteResult {
+  return { ok: false, problem };
+}
+
+/**
+ * The sentences a refused press comes back with.
+ *
+ * Each one says what to do next, because "something went wrong" leaves a
+ * reader pressing the same button again. Two of these end in "reload": the page
+ * is describing a scope list that has since changed, and no amount of pressing
+ * will make it describe the current one.
+ */
+export const SCOPE_PROBLEMS = {
+  /** The row is gone, or belongs to a project this page is not showing. */
+  missing:
+    "That deliverable is not on this project any more, so nothing was changed. Reload to see what the scope list says now.",
+  /** The press described a direction or a status that is not one of ours. */
+  unknown:
+    "That is not a change this list can make, so nothing was changed. Reload to see what the scope list says now.",
+  /** The write itself failed — the driver, the disk, the network. */
+  failed: "Could not save that change. Nothing was written — try again.",
+} as const;
