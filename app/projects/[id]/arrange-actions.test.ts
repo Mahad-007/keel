@@ -209,3 +209,61 @@ describe("advancing a deliverable's status", () => {
     expect(result).toEqual({ ok: true });
   });
 });
+
+describe("a status press against a row that has moved on", () => {
+  it("writes nothing when the row is already in another status", async () => {
+    loaded.mockResolvedValue({ ...wireframes, status: "done" });
+
+    const result = await changeDeliverableStatusAction(
+      "prj_engine",
+      "dlv_wire",
+      "pending",
+      "started",
+    );
+
+    expect(restated).not.toHaveBeenCalled();
+    expect(result.ok).toBe(false);
+  });
+
+  it("says what the row holds instead, which the page cannot show", async () => {
+    loaded.mockResolvedValue({ ...wireframes, status: "done" });
+
+    const result = await changeDeliverableStatusAction(
+      "prj_engine",
+      "dlv_wire",
+      "pending",
+      "started",
+    );
+
+    expect(result.ok ? null : result.problem).toBe(
+      "“Wireframes” is already done, so nothing was changed. Reload to see what the scope list says now.",
+    );
+  });
+
+  it("revalidates nothing when it refuses", async () => {
+    loaded.mockResolvedValue({ ...wireframes, status: "done" });
+
+    await changeDeliverableStatusAction(
+      "prj_engine",
+      "dlv_wire",
+      "pending",
+      "started",
+    );
+
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("reports a race when the row changes under the write itself", async () => {
+    restated.mockResolvedValue(null);
+
+    const result = await changeDeliverableStatusAction(
+      "prj_engine",
+      "dlv_wire",
+      "pending",
+      "started",
+    );
+
+    expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.raced });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
