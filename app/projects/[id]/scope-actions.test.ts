@@ -12,7 +12,11 @@ import { addDeliverableAction } from "./scope-actions";
  * branching — reject, fail, add — and the validation and the writing are each
  * already tested where they live.
  */
-vi.mock("@/lib/data/deliverables", () => ({ createDeliverable: vi.fn() }));
+vi.mock("@/lib/data/deliverables", () => ({
+  createDeliverable: vi.fn(),
+  getDeliverable: vi.fn(),
+  moveDeliverable: vi.fn(),
+}));
 
 vi.mock("@/lib/data/projects", () => ({ getProject: vi.fn() }));
 
