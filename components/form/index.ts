@@ -7,6 +7,7 @@
  * not in here should add it here, not next to the page that wanted it.
  */
 
+export { AlertNote } from "./alert-note";
 export { Field, type FieldProps } from "./field";
 export { FieldError } from "./field-error";
 export { FieldHint } from "./field-hint";
