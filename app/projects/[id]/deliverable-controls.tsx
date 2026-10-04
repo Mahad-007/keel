@@ -1,8 +1,10 @@
 import {
+  moveButtonLabel,
   SCOPE_FIELD_NAMES,
   statusButtonLabel,
   type ArrangedDeliverable,
 } from "@/lib/deliverables/arrange";
+import { canMove, MOVE_LABELS } from "@/lib/deliverables/order";
 import {
   deliverableStatusVerb,
   nextDeliverableStatus,
@@ -24,9 +26,15 @@ import { ScopeButton } from "./scope-button";
  */
 export function DeliverableControls({
   deliverable,
+  position,
+  count,
   arrange,
 }: {
   deliverable: ArrangedDeliverable;
+  /** Its place in the list as rendered, counting from one. */
+  position: number;
+  /** How many lines the list has, which is what decides the two ends. */
+  count: number;
   /** What to do with a press. The list reads it and applies it on screen. */
   arrange: (formData: FormData) => void;
 }) {
@@ -59,6 +67,24 @@ export function DeliverableControls({
       >
         {deliverableStatusVerb(deliverable.status)}
       </ScopeButton>
+      {/*
+        Both move controls are drawn on every line, and the one that cannot act
+        is disabled rather than missing. A column of buttons that appears and
+        disappears as lines move is harder to use than one that is always in the
+        same place — and the first line of a list has no "up" to offer, which is
+        a fact about the list worth showing rather than hiding.
+      */}
+      {(["up", "down"] as const).map((direction) => (
+        <ScopeButton
+          key={direction}
+          name={SCOPE_FIELD_NAMES.direction}
+          value={direction}
+          label={moveButtonLabel(deliverable.title, direction)}
+          disabled={!canMove(position, count, direction)}
+        >
+          {MOVE_LABELS[direction]}
+        </ScopeButton>
+      ))}
     </form>
   );
 }
