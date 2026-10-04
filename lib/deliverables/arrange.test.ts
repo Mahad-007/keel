@@ -247,6 +247,19 @@ describe("reading a press of a row's controls", () => {
     ).toBeNull();
   });
 
+  it("reads a press on a row holding a status the app does not know", () => {
+    expect(
+      readScopeChange(
+        press({ id: "dlv_wire", from: "abandoned", status: "pending" }),
+      ),
+    ).toEqual({
+      kind: "status",
+      id: "dlv_wire",
+      from: "abandoned",
+      status: "pending",
+    });
+  });
+
   it("refuses a submission with no control in it at all", () => {
     expect(readScopeChange(press({ id: "dlv_wire" }))).toBeNull();
   });
@@ -362,6 +375,17 @@ describe("a status press aimed at a row that has moved on", () => {
     expect(
       staleStatusProblem(row("a", "Wireframes", "pending"), "done"),
     ).toContain("back on the list as not started");
+  });
+
+  it("refuses a press made against a status the row has never held", () => {
+    expect(staleStatusProblem(row("a", "Wireframes", "started"), "abandoned")).toBe(
+      "“Wireframes” is already in progress, so nothing was changed. Reload to see what the scope list says now.",
+    );
+  });
+
+  it("lets a press against a hand-edited status through", () => {
+    const edited = row("a", "Wireframes", "abandoned" as DeliverableStatus);
+    expect(staleStatusProblem(edited, "abandoned")).toBeNull();
   });
 
   it("refuses every status but the one the press was made against", () => {

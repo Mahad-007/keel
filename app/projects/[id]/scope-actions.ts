@@ -174,18 +174,19 @@ export async function moveDeliverableAction(
  * `setDeliverableStatus`, as part of the statement that writes it, which is the
  * check that cannot be beaten by somebody else pressing at the same moment.
  *
- * Both statuses are narrowed first for the same reason the direction is: typed
- * arguments to a server action are a promise the caller makes, not one the
- * runtime keeps, and an unknown status reaching the write would stop it with a
- * message about a column.
+ * Only the destination is narrowed. A typed argument to a server action is a
+ * promise the caller makes rather than one the runtime keeps, and a status that
+ * is about to be written has to be one of ours — but `from` is only ever
+ * compared against the row, so anything it does not match is already refused,
+ * including whatever a hand-edited row is holding.
  */
 export async function changeDeliverableStatusAction(
   projectId: string,
   id: string,
-  from: DeliverableStatus,
+  from: string,
   to: DeliverableStatus,
 ): Promise<ScopeWriteResult> {
-  if (!isDeliverableStatus(from) || !isDeliverableStatus(to)) {
+  if (!isDeliverableStatus(to)) {
     return scopeWriteProblem(SCOPE_PROBLEMS.unknown);
   }
 

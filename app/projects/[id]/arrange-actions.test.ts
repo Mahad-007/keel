@@ -282,16 +282,33 @@ describe("a status press this list cannot make", () => {
     expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.unknown });
   });
 
-  it("refuses a press that claims the row was in no known status", async () => {
+  it("refuses a press claiming a status the row is not in", async () => {
     const result = await changeDeliverableStatusAction(
       "prj_engine",
       "dlv_wire",
-      "shipped" as "done",
+      "shipped",
       "done",
     );
 
     expect(restated).not.toHaveBeenCalled();
-    expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.unknown });
+    expect(result.ok).toBe(false);
+  });
+
+  it("writes a press made against whatever a hand-edited row holds", async () => {
+    loaded.mockResolvedValue({
+      ...wireframes,
+      status: "abandoned" as "done",
+    });
+
+    const result = await changeDeliverableStatusAction(
+      "prj_engine",
+      "dlv_wire",
+      "abandoned",
+      "pending",
+    );
+
+    expect(restated).toHaveBeenCalledWith("dlv_wire", "abandoned", "pending");
+    expect(result).toEqual({ ok: true });
   });
 
   it("refuses a deliverable belonging to another project", async () => {

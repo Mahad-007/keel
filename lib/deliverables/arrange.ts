@@ -44,6 +44,11 @@ export type ArrangedDeliverable = {
  * A status change carries where the row is as well as where it is going. The
  * destination is what the list shows immediately; `from` is what lets the
  * write refuse a status the reader was not looking at when they pressed.
+ *
+ * `from` is a plain string because it is only ever compared. A row holding a
+ * status this app does not recognise — the column is TEXT, so one can — still
+ * renders a control offering to press it back into the cycle, and narrowing the
+ * status it came from would turn that offer into a button that does nothing.
  */
 export type ScopeChange =
   | {
@@ -54,7 +59,7 @@ export type ScopeChange =
   | {
       readonly kind: "status";
       readonly id: string;
-      readonly from: DeliverableStatus;
+      readonly from: string;
       readonly status: DeliverableStatus;
     };
 
@@ -144,7 +149,10 @@ export function readScopeChange(formData: FormData): ScopeChange | null {
 
   const status = readField(formData, SCOPE_FIELD_NAMES.status);
   const from = readField(formData, SCOPE_FIELD_NAMES.from);
-  if (!isDeliverableStatus(status) || !isDeliverableStatus(from)) return null;
+  // The destination has to be a status, because it is about to be written. Where
+  // the row came from only has to be something: it is checked against the row
+  // rather than stored, and a row can be holding anything.
+  if (!isDeliverableStatus(status) || from === "") return null;
   return { kind: "status", id, from, status };
 }
 
@@ -259,7 +267,7 @@ export const SCOPE_PROBLEMS = {
  */
 export function staleStatusProblem(
   row: ArrangedDeliverable,
-  from: DeliverableStatus,
+  from: string,
 ): string | null {
   if (row.status === from) return null;
   return `“${row.title}” is already ${deliverableStatusPhrase(row.status)}, so nothing was changed. Reload to see what the scope list says now.`;
