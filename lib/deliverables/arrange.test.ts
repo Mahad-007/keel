@@ -5,6 +5,8 @@ import {
   applyScopeChange,
   readScopeChange,
   SCOPE_FIELD_NAMES,
+  SCOPE_PROBLEMS,
+  staleStatusProblem,
   type ArrangedDeliverable,
 } from "./arrange";
 import type { DeliverableStatus } from "./status";
@@ -340,5 +342,48 @@ describe("announcing a status press", () => {
         status: "done",
       }),
     ).toBeNull();
+  });
+});
+
+describe("a status press aimed at a row that has moved on", () => {
+  it("passes when the row still says what the press said it did", () => {
+    expect(staleStatusProblem(row("a", "Wireframes", "started"), "started")).toBeNull();
+  });
+
+  it("refuses when somebody else has already changed it", () => {
+    expect(staleStatusProblem(row("a", "Wireframes", "done"), "started")).toBe(
+      "“Wireframes” is already done, so nothing was changed. Reload to see what the scope list says now.",
+    );
+  });
+
+  it("names the status the row holds, not the one the page showed", () => {
+    expect(
+      staleStatusProblem(row("a", "Wireframes", "pending"), "done"),
+    ).toContain("back on the list as not started");
+  });
+
+  it("refuses every status but the one the press was made against", () => {
+    const stored = row("a", "Wireframes", "started");
+    expect(staleStatusProblem(stored, "pending")).not.toBeNull();
+    expect(staleStatusProblem(stored, "done")).not.toBeNull();
+  });
+});
+
+describe("the sentences a refused press comes back with", () => {
+  it("gives no two problems the same sentence", () => {
+    const sentences = Object.values(SCOPE_PROBLEMS);
+    expect(new Set(sentences).size).toBe(sentences.length);
+  });
+
+  it("tells the reader what to do next", () => {
+    for (const sentence of Object.values(SCOPE_PROBLEMS)) {
+      expect(sentence).toMatch(/(Reload|try again)/);
+    }
+  });
+
+  it("says that nothing was written, so a press is not half-applied", () => {
+    for (const sentence of Object.values(SCOPE_PROBLEMS)) {
+      expect(sentence).toMatch(/[Nn]othing was (changed|written)/);
+    }
   });
 });
