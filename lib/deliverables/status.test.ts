@@ -6,6 +6,7 @@ import {
   DELIVERABLE_STATUS_LABELS,
   deliverableStatusLabel,
   isDeliverableStatus,
+  nextDeliverableStatus,
   parseDeliverableStatus,
 } from "./status";
 
@@ -74,5 +75,42 @@ describe("deliverableStatusLabel", () => {
     expect(
       deliverableStatusLabel("abandoned" as (typeof DELIVERABLE_STATUSES)[number]),
     ).toBe("abandoned");
+  });
+});
+
+describe("nextDeliverableStatus", () => {
+  it("starts work that has not been started", () => {
+    expect(nextDeliverableStatus("pending")).toBe("started");
+  });
+
+  it("finishes work that is under way", () => {
+    expect(nextDeliverableStatus("started")).toBe("done");
+  });
+
+  it("puts finished work back on the list", () => {
+    expect(nextDeliverableStatus("done")).toBe("pending");
+  });
+
+  it("closes the loop, so no status is a dead end", () => {
+    const visited = new Set<string>();
+    let status = DEFAULT_DELIVERABLE_STATUS;
+    for (let press = 0; press < DELIVERABLE_STATUSES.length; press += 1) {
+      visited.add(status);
+      status = nextDeliverableStatus(status);
+    }
+    expect(visited).toEqual(new Set(DELIVERABLE_STATUSES));
+    expect(status).toBe(DEFAULT_DELIVERABLE_STATUS);
+  });
+
+  it("always lands on a status the column is allowed to hold", () => {
+    for (const status of DELIVERABLE_STATUSES) {
+      expect(isDeliverableStatus(nextDeliverableStatus(status))).toBe(true);
+    }
+  });
+
+  it("brings a hand-edited value back into the cycle", () => {
+    expect(
+      nextDeliverableStatus("abandoned" as (typeof DELIVERABLE_STATUSES)[number]),
+    ).toBe(DEFAULT_DELIVERABLE_STATUS);
   });
 });
