@@ -16,6 +16,7 @@ vi.mock("@/lib/data/deliverables", () => ({
   createDeliverable: vi.fn(),
   getDeliverable: vi.fn(),
   moveDeliverable: vi.fn(),
+  setDeliverableStatus: vi.fn(),
 }));
 
 vi.mock("@/lib/data/projects", () => ({ getProject: vi.fn() }));

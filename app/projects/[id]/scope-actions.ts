@@ -6,12 +6,14 @@ import {
   createDeliverable,
   getDeliverable,
   moveDeliverable,
+  setDeliverableStatus,
 } from "@/lib/data/deliverables";
 import { getProject } from "@/lib/data/projects";
 import {
   SCOPE_PROBLEMS,
   SCOPE_WRITE_DONE,
   scopeWriteProblem,
+  staleStatusProblem,
   type ScopeWriteResult,
 } from "@/lib/deliverables/arrange";
 import {
@@ -23,6 +25,10 @@ import {
   type AddDeliverableState,
 } from "@/lib/deliverables/form";
 import { isMoveDirection, type MoveDirection } from "@/lib/deliverables/order";
+import {
+  isDeliverableStatus,
+  type DeliverableStatus,
+} from "@/lib/deliverables/status";
 import { projectPath } from "@/lib/projects/detail";
 
 /**
@@ -155,6 +161,55 @@ export async function moveDeliverableAction(
   // The list is part of the page, so the order the server renders only changes
   // once the page is re-rendered. Until it is, what the reader sees is the
   // optimistic copy.
+  revalidatePath(projectPath(projectId));
+  return SCOPE_WRITE_DONE;
+}
+
+/**
+ * Moving one deliverable to the next status in its cycle.
+ *
+ * `from` is where the row stood when the button was drawn, and it is checked
+ * twice on the way through. Once here, against the row as read, so the sentence
+ * that comes back can say what the row actually holds — and once inside
+ * `setDeliverableStatus`, as part of the statement that writes it, which is the
+ * check that cannot be beaten by somebody else pressing at the same moment.
+ *
+ * Both statuses are narrowed first for the same reason the direction is: typed
+ * arguments to a server action are a promise the caller makes, not one the
+ * runtime keeps, and an unknown status reaching the write would stop it with a
+ * message about a column.
+ */
+export async function changeDeliverableStatusAction(
+  projectId: string,
+  id: string,
+  from: DeliverableStatus,
+  to: DeliverableStatus,
+): Promise<ScopeWriteResult> {
+  if (!isDeliverableStatus(from) || !isDeliverableStatus(to)) {
+    return scopeWriteProblem(SCOPE_PROBLEMS.unknown);
+  }
+
+  const deliverable = await projectDeliverable(projectId, id);
+  if (deliverable === null) return scopeWriteProblem(SCOPE_PROBLEMS.missing);
+
+  const stale = staleStatusProblem(deliverable, from);
+  if (stale !== null) return scopeWriteProblem(stale);
+
+  let written;
+  try {
+    written = await setDeliverableStatus(id, from, to);
+  } catch (error) {
+    // The user cannot act on a driver error, but the logs should keep it.
+    console.error("changeDeliverableStatusAction: failed to write status", error);
+    return scopeWriteProblem(SCOPE_PROBLEMS.failed);
+  }
+
+  // The row passed the check above and still did not match: it was deleted or
+  // pressed again in the moment between. Nothing was written either way.
+  if (written === null) return scopeWriteProblem(SCOPE_PROBLEMS.raced);
+
+  // The status is rendered from the row, so the words beside the line only
+  // change once the page is re-rendered.
   revalidatePath(projectPath(projectId));
   return SCOPE_WRITE_DONE;
 }

@@ -230,6 +230,14 @@ export const SCOPE_PROBLEMS = {
   /** The press described a direction or a status that is not one of ours. */
   unknown:
     "That is not a change this list can make, so nothing was changed. Reload to see what the scope list says now.",
+  /**
+   * The row changed between the check that let the press through and the write
+   * itself. A race rather than a mistake, and a different sentence from the
+   * stale press below: that one can say what the row says instead, while this
+   * one only knows that it is no longer what was read a moment ago.
+   */
+  raced:
+    "That deliverable changed while the press was on its way, so nothing was written. Reload to see what the scope list says now.",
   /** The write itself failed — the driver, the disk, the network. */
   failed: "Could not save that change. Nothing was written — try again.",
 } as const;
