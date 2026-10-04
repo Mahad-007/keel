@@ -1,11 +1,18 @@
 import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getDeliverable, moveDeliverable } from "@/lib/data/deliverables";
+import {
+  getDeliverable,
+  moveDeliverable,
+  setDeliverableStatus,
+} from "@/lib/data/deliverables";
 import type { Deliverable } from "@/lib/db/schema";
 import { SCOPE_PROBLEMS } from "@/lib/deliverables/arrange";
 
-import { moveDeliverableAction } from "./scope-actions";
+import {
+  changeDeliverableStatusAction,
+  moveDeliverableAction,
+} from "./scope-actions";
 
 /**
  * Mocked collaborators rather than a database. The arithmetic of a move and the
@@ -26,6 +33,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 const loaded = vi.mocked(getDeliverable);
 const moved = vi.mocked(moveDeliverable);
+const restated = vi.mocked(setDeliverableStatus);
 
 const wireframes: Deliverable = {
   id: "dlv_wire",
@@ -43,6 +51,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   loaded.mockResolvedValue(wireframes);
   moved.mockResolvedValue([wireframes]);
+  restated.mockResolvedValue({ ...wireframes, status: "started" });
 });
 
 describe("moving a deliverable", () => {
@@ -143,5 +152,60 @@ describe("a move the database refuses", () => {
     await moveDeliverableAction("prj_engine", "dlv_wire", "up");
 
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("advancing a deliverable's status", () => {
+  it("writes the status the press asked for, from the one it was drawn at", async () => {
+    const result = await changeDeliverableStatusAction(
+      "prj_engine",
+      "dlv_wire",
+      "pending",
+      "started",
+    );
+
+    expect(restated).toHaveBeenCalledWith("dlv_wire", "pending", "started");
+    expect(result).toEqual({ ok: true });
+  });
+
+  it("revalidates the project, so the words beside the line catch up", async () => {
+    await changeDeliverableStatusAction(
+      "prj_engine",
+      "dlv_wire",
+      "pending",
+      "started",
+    );
+
+    expect(revalidatePath).toHaveBeenCalledWith("/projects/prj_engine");
+  });
+
+  it("marks a started deliverable done", async () => {
+    loaded.mockResolvedValue({ ...wireframes, status: "started" });
+    restated.mockResolvedValue({ ...wireframes, status: "done" });
+
+    const result = await changeDeliverableStatusAction(
+      "prj_engine",
+      "dlv_wire",
+      "started",
+      "done",
+    );
+
+    expect(restated).toHaveBeenCalledWith("dlv_wire", "started", "done");
+    expect(result).toEqual({ ok: true });
+  });
+
+  it("puts a finished deliverable back on the list", async () => {
+    loaded.mockResolvedValue({ ...wireframes, status: "done" });
+    restated.mockResolvedValue({ ...wireframes, status: "pending" });
+
+    const result = await changeDeliverableStatusAction(
+      "prj_engine",
+      "dlv_wire",
+      "done",
+      "pending",
+    );
+
+    expect(restated).toHaveBeenCalledWith("dlv_wire", "done", "pending");
+    expect(result).toEqual({ ok: true });
   });
 });
