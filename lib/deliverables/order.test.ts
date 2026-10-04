@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canMove,
   isMoveDirection,
   moveBy,
   moveOne,
@@ -258,5 +259,41 @@ describe("moveOne with a direction it does not recognise", () => {
     expect(() =>
       moveOne(["a", "b", "c"], "c", "__proto__" as "up"),
     ).toThrow(/unknown move direction/);
+  });
+});
+
+describe("canMove", () => {
+  it("will not move the first deliverable up", () => {
+    expect(canMove(1, 4, "up")).toBe(false);
+  });
+
+  it("will not move the last deliverable down", () => {
+    expect(canMove(4, 4, "down")).toBe(false);
+  });
+
+  it("moves a deliverable in the middle either way", () => {
+    expect(canMove(2, 4, "up")).toBe(true);
+    expect(canMove(2, 4, "down")).toBe(true);
+  });
+
+  it("offers nothing for the only deliverable in a list", () => {
+    expect(canMove(1, 1, "up")).toBe(false);
+    expect(canMove(1, 1, "down")).toBe(false);
+  });
+
+  it("offers nothing for a position the list does not have", () => {
+    expect(canMove(5, 4, "up")).toBe(false);
+    expect(canMove(0, 4, "down")).toBe(false);
+    expect(canMove(1, 0, "down")).toBe(false);
+  });
+
+  it("agrees with the move itself about which way up is", () => {
+    const ids = ["a", "b", "c"];
+    for (const [index, id] of ids.entries()) {
+      for (const direction of ["up", "down"] as const) {
+        const moved = moveOne(ids, id, direction);
+        expect(canMove(index + 1, ids.length, direction)).toBe(moved !== ids);
+      }
+    }
   });
 });
