@@ -105,8 +105,16 @@ export async function addDeliverableAction(
  * sentence for both, which is the honest one — a page that cannot act on a
  * deliverable does not need to be told whether it exists, and saying so would
  * make this endpoint a way of asking.
+ *
+ * Nor is the id taken on trust for being typed as a string. It arrives over the
+ * wire like every other argument here, and anything that is not a string would
+ * reach the driver as a bound parameter and come back as an error about SQL
+ * rather than as an answer about a deliverable. Not a string is not a
+ * deliverable, which is the same answer as not being one of this project's.
  */
-async function projectDeliverable(projectId: string, id: string) {
+async function projectDeliverable(projectId: string, id: unknown) {
+  if (typeof id !== "string" || id.trim() === "") return null;
+
   const deliverable = await getDeliverable(id);
   if (deliverable === null) return null;
   if (deliverable.projectId !== projectId) {

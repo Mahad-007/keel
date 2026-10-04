@@ -95,6 +95,24 @@ describe("moving a deliverable that is not this project's", () => {
     expect(console.warn).toHaveBeenCalled();
   });
 
+  it("refuses an id that is not a string, before it reaches the driver", async () => {
+    const result = await moveDeliverableAction(
+      "prj_engine",
+      { id: "dlv_wire" } as unknown as string,
+      "up",
+    );
+
+    expect(loaded).not.toHaveBeenCalled();
+    expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.missing });
+  });
+
+  it("refuses a press that names no deliverable at all", async () => {
+    const result = await moveDeliverableAction("prj_engine", "   ", "up");
+
+    expect(loaded).not.toHaveBeenCalled();
+    expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.missing });
+  });
+
   it("says the same thing about a deliverable that does not exist", async () => {
     loaded.mockResolvedValue(null);
 
