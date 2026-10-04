@@ -98,3 +98,35 @@ export function nextDeliverableStatus(
   if (held === -1) return DEFAULT_DELIVERABLE_STATUS;
   return DELIVERABLE_STATUSES[(held + 1) % DELIVERABLE_STATUSES.length];
 }
+
+/**
+ * What the status button says, keyed by the status the deliverable is in now.
+ *
+ * Keyed by where it is rather than where it is going, because that is what the
+ * row knows and because the verb is about the work rather than the column:
+ * "Mark done" is a thing a person does to a deliverable, where "Done" would be
+ * a label pretending to be a control. The three only make sense as a set — each
+ * one has to be unmistakable next to a line of scope, and none of them may read
+ * as the status the row already shows.
+ *
+ * "Reopen" lands on not-started rather than back in progress. A deliverable
+ * that is no longer done is not thereby being worked on, and saying so is one
+ * more press — which is the right price for not inventing a fact about
+ * somebody's week.
+ */
+export const DELIVERABLE_STATUS_VERBS: Record<DeliverableStatus, string> = {
+  pending: "Start",
+  started: "Mark done",
+  done: "Reopen",
+};
+
+/**
+ * What to put on the status button for a deliverable in this status.
+ *
+ * The fallback matches what `nextDeliverableStatus` does with a status the list
+ * does not know: such a row goes back to not-started, and the button has to say
+ * that rather than offer a verb for a state nobody can interpret.
+ */
+export function deliverableStatusVerb(status: DeliverableStatus): string {
+  return DELIVERABLE_STATUS_VERBS[status] ?? "Reset status";
+}
