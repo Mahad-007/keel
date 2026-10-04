@@ -10,6 +10,7 @@ import {
   SCOPE_FIELD_NAMES,
   SCOPE_PROBLEMS,
   staleStatusProblem,
+  stillSavingNotice,
   type ArrangedDeliverable,
 } from "./arrange";
 import { canMove } from "./order";
@@ -515,5 +516,18 @@ describe("whether a press would change anything", () => {
         );
       }
     }
+  });
+});
+
+describe("a second status press on a line still saving", () => {
+  it("names the line it is about", () => {
+    expect(stillSavingNotice("Wireframes")).toBe(
+      "Still saving the last change to “Wireframes”. Press again in a moment.",
+    );
+  });
+
+  it("says what to do, rather than that something went wrong", () => {
+    expect(stillSavingNotice("Wireframes")).toMatch(/Press again/);
+    expect(stillSavingNotice("Wireframes")).not.toMatch(/(error|failed|wrong)/i);
   });
 });

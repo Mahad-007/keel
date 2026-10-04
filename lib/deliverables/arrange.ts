@@ -275,6 +275,21 @@ export const SCOPE_PROBLEMS = {
 } as const;
 
 /**
+ * What to say to a second status press on a line whose first press is still on
+ * its way.
+ *
+ * The two cannot be sent together. A status press names the status it expects to
+ * find, which is what stops it overruling somebody else's change — and a second
+ * press sent before the first has landed describes a row that does not exist
+ * yet, so the write would refuse it and blame a conflict the reader caused
+ * themselves. Dropping it is the honest answer, as long as the reader is told
+ * that is what happened rather than left pressing a control that does nothing.
+ */
+export function stillSavingNotice(title: string): string {
+  return `Still saving the last change to “${title}”. Press again in a moment.`;
+}
+
+/**
  * Why a status press cannot be applied to the row as it now stands, or null
  * when it can.
  *
