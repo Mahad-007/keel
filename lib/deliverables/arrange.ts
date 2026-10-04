@@ -1,4 +1,4 @@
-import type { MoveDirection } from "./order";
+import { moveOne, type MoveDirection } from "./order";
 import type { DeliverableStatus } from "./status";
 
 /**
@@ -50,3 +50,41 @@ export type ScopeChange =
       readonly from: DeliverableStatus;
       readonly status: DeliverableStatus;
     };
+
+/**
+ * The list as it reads once a change has been asked for.
+ *
+ * The move goes through `moveOne`, the same function the data layer reorders
+ * with, so the list on screen and the list in the database are rearranged by
+ * one piece of arithmetic rather than two that have to agree. A press at the
+ * end of the list in the direction pressed leaves the order alone, and so does
+ * a change naming a deliverable this list does not have — a row somebody else
+ * deleted while the page was open.
+ *
+ * Nothing renumbers `sortOrder`. The number beside each line is its index in
+ * the list as rendered, and the stored position is the data layer's business;
+ * writing a guess at it here would put a second, briefly-wrong copy of the
+ * order in the same array as the real one.
+ */
+export function applyScopeChange<T extends ArrangedDeliverable>(
+  rows: readonly T[],
+  change: ScopeChange,
+): readonly T[] {
+  if (change.kind === "status") {
+    return rows.map((row) =>
+      row.id === change.id ? { ...row, status: change.status } : row,
+    );
+  }
+
+  const order = moveOne(
+    rows.map((row) => row.id),
+    change.id,
+    change.direction,
+  );
+
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  return order.flatMap((id) => {
+    const row = byId.get(id);
+    return row === undefined ? [] : [row];
+  });
+}
