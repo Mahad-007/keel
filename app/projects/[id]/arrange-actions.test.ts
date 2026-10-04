@@ -64,3 +64,50 @@ describe("moving a deliverable", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/projects/prj_engine");
   });
 });
+
+describe("moving a deliverable that is not this project's", () => {
+  it("refuses a deliverable belonging to another project", async () => {
+    loaded.mockResolvedValue({ ...wireframes, projectId: "prj_somebody_else" });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+
+    expect(moved).not.toHaveBeenCalled();
+    expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.missing });
+  });
+
+  it("keeps a press aimed at another project in the logs", async () => {
+    loaded.mockResolvedValue({ ...wireframes, projectId: "prj_somebody_else" });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+
+    expect(console.warn).toHaveBeenCalled();
+  });
+
+  it("says the same thing about a deliverable that does not exist", async () => {
+    loaded.mockResolvedValue(null);
+
+    const result = await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+
+    expect(moved).not.toHaveBeenCalled();
+    expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.missing });
+  });
+
+  it("revalidates nothing when it refuses", async () => {
+    loaded.mockResolvedValue(null);
+
+    await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("reports it gone if it is deleted between the read and the move", async () => {
+    moved.mockResolvedValue(null);
+
+    const result = await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+
+    expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.missing });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
