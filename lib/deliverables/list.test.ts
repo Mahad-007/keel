@@ -38,10 +38,15 @@ describe("isEstimated", () => {
 });
 
 describe("describeScopeList", () => {
-  it("counts the lines and says the order is deliberate", () => {
+  it("counts the lines, says the order is deliberate, and how to change it", () => {
     expect(describeScopeList(4)).toBe(
-      "4 deliverables, in the order they were agreed.",
+      "4 deliverables, in the order they were agreed — move a line with the Up and Down buttons beside it.",
     );
+  });
+
+  it("does not offer to rearrange a list with nothing to rearrange", () => {
+    expect(describeScopeList(1)).not.toMatch(/Up and Down/);
+    expect(describeScopeList(0)).not.toMatch(/Up and Down/);
   });
 
   it("does not claim an order for a list of one", () => {

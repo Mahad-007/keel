@@ -33,15 +33,21 @@ export function describeEstimate(minutes: number): string {
 }
 
 /**
- * The line above a scope list: how many lines there are, and that their order
- * is part of what was agreed.
+ * The line above a scope list: how many lines there are, that their order is
+ * part of what was agreed, and how to change it.
  *
  * Worth saying once, because an ordered list on a page looks like a list
- * somebody sorted. This one is not sorted by anything — it is the sequence
- * the two parties wrote down, and Day 013 is where it gets rearranged.
+ * somebody sorted. This one is not sorted by anything — it is the sequence the
+ * two parties wrote down, and the only thing that changes it is a press of one
+ * of the controls on a line.
+ *
+ * Saying where those controls are costs a clause and saves a hunt: they sit at
+ * the end of each row, which is the last place a reader scanning a list of
+ * titles would look. A list of one has nowhere to move to, so it is not told
+ * about a pair of buttons that are both greyed out.
  */
 export function describeScopeList(count: number): string {
   if (count === 0) return "No deliverables agreed yet.";
   if (count === 1) return "One deliverable agreed so far.";
-  return `${count} deliverables, in the order they were agreed.`;
+  return `${count} deliverables, in the order they were agreed — move a line with the Up and Down buttons beside it.`;
 }
