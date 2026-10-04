@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   announceScopeChange,
   applyScopeChange,
+  moveButtonLabel,
+  statusButtonLabel,
   readScopeChange,
   SCOPE_FIELD_NAMES,
   SCOPE_PROBLEMS,
@@ -385,5 +387,39 @@ describe("the sentences a refused press comes back with", () => {
     for (const sentence of Object.values(SCOPE_PROBLEMS)) {
       expect(sentence).toMatch(/[Nn]othing was (changed|written)/);
     }
+  });
+});
+
+describe("what a row's controls are called", () => {
+  it("names the deliverable a move acts on", () => {
+    expect(moveButtonLabel("Wireframes", "up")).toBe("Move “Wireframes” up");
+    expect(moveButtonLabel("Wireframes", "down")).toBe("Move “Wireframes” down");
+  });
+
+  it("tells two rows' move controls apart", () => {
+    expect(moveButtonLabel("Wireframes", "up")).not.toBe(
+      moveButtonLabel("Launch checklist", "up"),
+    );
+  });
+
+  it("puts the verb first on the status control", () => {
+    expect(statusButtonLabel("Wireframes", "pending")).toBe(
+      "Start “Wireframes”",
+    );
+    expect(statusButtonLabel("Wireframes", "started")).toBe(
+      "Mark done “Wireframes”",
+    );
+    expect(statusButtonLabel("Wireframes", "done")).toBe(
+      "Reopen “Wireframes”",
+    );
+  });
+
+  it("gives a row's three controls three different names", () => {
+    const names = [
+      statusButtonLabel("Wireframes", "pending"),
+      moveButtonLabel("Wireframes", "up"),
+      moveButtonLabel("Wireframes", "down"),
+    ];
+    expect(new Set(names).size).toBe(names.length);
   });
 });
