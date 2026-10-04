@@ -60,6 +60,7 @@ export function ScopeButton({
       type="submit"
       name={name}
       value={value}
+      aria-label={label}
       aria-disabled={unavailable || undefined}
       className={`${SHAPE} ${unavailable ? UNAVAILABLE : AVAILABLE}`}
     >
