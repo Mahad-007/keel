@@ -111,3 +111,36 @@ describe("moving a deliverable that is not this project's", () => {
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 });
+
+describe("a move the database refuses", () => {
+  it("refuses a direction that is not one of the two", async () => {
+    const result = await moveDeliverableAction(
+      "prj_engine",
+      "dlv_wire",
+      "top" as "up",
+    );
+
+    expect(loaded).not.toHaveBeenCalled();
+    expect(moved).not.toHaveBeenCalled();
+    expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.unknown });
+  });
+
+  it("says a driver error could not be saved, and keeps it in the logs", async () => {
+    moved.mockRejectedValue(new Error("database is locked"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+
+    expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.failed });
+    expect(console.error).toHaveBeenCalled();
+  });
+
+  it("does not claim the page changed after a failed write", async () => {
+    moved.mockRejectedValue(new Error("database is locked"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
