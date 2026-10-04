@@ -1,7 +1,7 @@
 import type { Deliverable } from "@/lib/db/schema";
 import { describeScopeList } from "@/lib/deliverables/list";
 
-import { DeliverableItem } from "./deliverable-item";
+import { ScopeRows } from "./scope-rows";
 
 /**
  * A project's scope, in the order it was agreed.
@@ -17,10 +17,17 @@ import { DeliverableItem } from "./deliverable-item";
  * business. If a hand-edited row ever left a gap in the stored positions, the
  * numbers on screen would still read 1, 2, 3, which is what the two parties
  * would be talking about.
+ *
+ * The rows themselves are a client component, because they can be rearranged
+ * and the rearranging shows before the server has agreed to it. The sentence
+ * above them is not: the count does not change when a line moves or is marked
+ * done, so there is nothing for it to be optimistic about.
  */
 export function DeliverableList({
+  projectId,
   deliverables,
 }: {
+  projectId: string;
   deliverables: readonly Deliverable[];
 }) {
   return (
@@ -28,26 +35,7 @@ export function DeliverableList({
       <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
         {describeScopeList(deliverables.length)}
       </p>
-      {/*
-        `role="list"` on a list is normally redundant, and here it is not:
-        Tailwind's reset takes the bullets off every list, and WebKit drops
-        the list semantics along with them. The sequence is the one thing
-        this element exists to convey — and the numbers down the left are
-        hidden from assistive technology precisely because the list was
-        meant to carry it.
-      */}
-      <ol
-        role="list"
-        className="mt-3 border-t border-zinc-200 dark:border-zinc-800"
-      >
-        {deliverables.map((deliverable, index) => (
-          <DeliverableItem
-            key={deliverable.id}
-            deliverable={deliverable}
-            position={index + 1}
-          />
-        ))}
-      </ol>
+      <ScopeRows projectId={projectId} deliverables={deliverables} />
     </>
   );
 }

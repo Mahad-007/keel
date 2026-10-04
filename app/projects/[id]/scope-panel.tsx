@@ -33,7 +33,7 @@ export function ScopePanel({
       {empty ? (
         <NoDeliverables />
       ) : (
-        <DeliverableList deliverables={deliverables} />
+        <DeliverableList projectId={projectId} deliverables={deliverables} />
       )}
       <section className="mt-10 border-t border-zinc-200 pt-6 dark:border-zinc-800">
         <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
