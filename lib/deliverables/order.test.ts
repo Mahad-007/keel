@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   canMove,
   isMoveDirection,
+  MOVE_DIRECTIONS,
   moveBy,
   moveOne,
   parseMoveDirection,
@@ -259,6 +260,19 @@ describe("moveOne with a direction it does not recognise", () => {
     expect(() =>
       moveOne(["a", "b", "c"], "c", "__proto__" as "up"),
     ).toThrow(/unknown move direction/);
+  });
+});
+
+describe("MOVE_DIRECTIONS", () => {
+  it("lists both directions, front of the list first", () => {
+    expect(MOVE_DIRECTIONS).toEqual(["up", "down"]);
+  });
+
+  it("lists every direction a move can be asked for", () => {
+    for (const direction of MOVE_DIRECTIONS) {
+      expect(isMoveDirection(direction)).toBe(true);
+    }
+    expect(MOVE_DIRECTIONS).toHaveLength(2);
   });
 });
 

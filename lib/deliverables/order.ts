@@ -95,6 +95,18 @@ export const MOVE_DELTAS = { up: -1, down: 1 } as const;
 export type MoveDirection = keyof typeof MOVE_DELTAS;
 
 /**
+ * Both directions, in the order a row offers them: towards the front first,
+ * because that is the direction a list is read in.
+ *
+ * Written down once so that a row drawing a control per direction, and the
+ * message naming the two a caller may ask for, are reading the same list — and
+ * so that a third direction, if there is ever one, cannot be half-added.
+ */
+export const MOVE_DIRECTIONS: readonly MoveDirection[] = Object.keys(
+  MOVE_DELTAS,
+) as MoveDirection[];
+
+/**
  * What a move control says on its face.
  *
  * Words rather than arrow glyphs. An arrow is smaller and it is also a guess:
@@ -128,7 +140,7 @@ export function isMoveDirection(value: unknown): value is MoveDirection {
 export function parseMoveDirection(value: unknown): MoveDirection {
   if (!isMoveDirection(value)) {
     throw new Error(
-      `unknown move direction: ${JSON.stringify(value)} (expected one of ${Object.keys(MOVE_DELTAS).join(", ")})`,
+      `unknown move direction: ${JSON.stringify(value)} (expected one of ${MOVE_DIRECTIONS.join(", ")})`,
     );
   }
   return value;
