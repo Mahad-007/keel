@@ -1,4 +1,4 @@
-import { asc, eq, max } from "drizzle-orm";
+import { and, asc, eq, max } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import { deliverables, projects, type Deliverable } from "@/lib/db/schema";
@@ -393,4 +393,42 @@ export async function moveDeliverable(
     },
     { behavior: "immediate" },
   );
+}
+
+/**
+ * Moves one deliverable from the status it is in to the next one, and hands
+ * back the row as written — or null if it was not in that status, which
+ * includes there being no such deliverable at all.
+ *
+ * `from` is not decoration. A status press is made against a list the reader
+ * can see, and between the render and the press somebody else may have marked
+ * the same line done. A plain write would overrule them silently; this one
+ * cannot, because the status it expects is part of the WHERE clause. One
+ * statement, so there is no window between checking and writing for the row to
+ * change in — which is the whole reason this is not `updateDeliverable` with a
+ * read in front of it.
+ *
+ * Null is deliberately ambiguous between "gone" and "already something else":
+ * one statement cannot tell those apart, and the caller that wants to say which
+ * reads the row for its message. Either way nothing was written.
+ *
+ * `updatedAt` moves, unlike a reorder. Starting a deliverable or marking it done
+ * is a change to what the line says about the work, which is exactly what that
+ * column is for.
+ */
+export async function setDeliverableStatus(
+  id: string,
+  from: DeliverableStatus,
+  to: DeliverableStatus,
+  database: Database = db,
+): Promise<Deliverable | null> {
+  const expected = parseDeliverableStatus(from);
+  const next = parseDeliverableStatus(to);
+
+  const [row] = await database
+    .update(deliverables)
+    .set({ status: next, updatedAt: new Date().toISOString() })
+    .where(and(eq(deliverables.id, id), eq(deliverables.status, expected)))
+    .returning();
+  return row ?? null;
 }
