@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type { Deliverable } from "@/lib/db/schema";
 import { describeEstimate, isEstimated } from "@/lib/deliverables/list";
 import { deliverableStatusLabel } from "@/lib/deliverables/status";
@@ -15,14 +17,25 @@ import { deliverableStatusLabel } from "@/lib/deliverables/status";
  * two things a reader scans a scope list for: how big, and how far along.
  * Words rather than a bar or a coloured dot — "Not estimated" is a fact, and
  * a grey dot is a puzzle.
+ *
+ * The controls that change any of this are passed in rather than built here.
+ * They belong to whatever owns the order — the line itself cannot know whether
+ * it is first, and on this page the list is holding a copy of the order that
+ * the server has not agreed to yet.
  */
 export function DeliverableItem({
   deliverable,
   position,
+  controls,
 }: {
   deliverable: Deliverable;
   /** Its place in the list as rendered, counting from one. */
   position: number;
+  /**
+   * What can be done to this line — omitted where a scope list is being read
+   * rather than worked on.
+   */
+  controls?: ReactNode;
 }) {
   /*
     A missing estimate is set in the colour the rest of the page uses for
@@ -35,7 +48,7 @@ export function DeliverableItem({
     : "text-zinc-500 dark:text-zinc-400";
 
   return (
-    <li className="flex items-baseline gap-4 border-b border-zinc-100 py-3 dark:border-zinc-900">
+    <li className="flex flex-wrap items-baseline gap-x-4 gap-y-2 border-b border-zinc-100 py-3 dark:border-zinc-900">
       <span
         aria-hidden="true"
         className="w-5 shrink-0 text-right text-sm tabular-nums text-zinc-400 dark:text-zinc-500"
@@ -72,6 +85,13 @@ export function DeliverableItem({
           {deliverableStatusLabel(deliverable.status)}
         </p>
       </div>
+      {/*
+        Last in the row and last in the tab order, after the line they act on:
+        a reader reaches the controls having already read what they would be
+        changing. On a narrow screen the row wraps and they drop underneath,
+        which is why the title block keeps the whole width it can get.
+      */}
+      {controls}
     </li>
   );
 }
