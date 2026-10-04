@@ -6,6 +6,7 @@ import type { Deliverable } from "@/lib/db/schema";
 import {
   announceScopeChange,
   applyScopeChange,
+  changesScope,
   readScopeChange,
   type ScopeChange,
 } from "@/lib/deliverables/arrange";
@@ -87,8 +88,8 @@ export function ScopeRows({
       above a list that has since done what it was told, and the reader would be
       reading it as being about the press they just made.
     */
-    if (change === null) return;
     setProblem(null);
+    if (change === null) return;
 
     /*
       Said against the list as it reads now, before the change is applied: the
@@ -96,6 +97,14 @@ export function ScopeRows({
       that out with the same function that moves it.
     */
     say(announceScopeChange(rows, change));
+
+    /*
+      A press the list cannot act on: a greyed move control at the end of the
+      order, or a line somebody else has deleted since the page was drawn. The
+      sentence above has already said so, and there is nothing to write — the
+      write would be a round trip whose answer is the list as it already reads.
+    */
+    if (!changesScope(rows, change)) return;
 
     // On screen first. A press that waited for the round trip would make
     // rearranging a list feel like it had to be done one keystroke at a time.
