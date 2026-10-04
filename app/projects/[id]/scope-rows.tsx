@@ -1,9 +1,10 @@
 "use client";
 
-import { useOptimistic } from "react";
+import { useOptimistic, useState } from "react";
 
 import type { Deliverable } from "@/lib/db/schema";
 import {
+  announceScopeChange,
   applyScopeChange,
   readScopeChange,
   type ScopeChange,
@@ -30,6 +31,17 @@ import {
  * and it leaves this component as the only thing that has to know which server
  * action answers which press.
  */
+/**
+ * What was last said about a press, and how many presses ago that was.
+ *
+ * The count is not shown. It is there because a live region only announces
+ * text that has changed, and two presses running can say the same thing —
+ * marking a line done, reopening it, marking it done again. Keying the sentence
+ * on the press makes the second one a new node rather than the same words, which
+ * is the difference between being told and not.
+ */
+type Announcement = { readonly text: string; readonly press: number };
+
 export function ScopeRows({
   projectId,
   deliverables,
@@ -53,6 +65,13 @@ export function ScopeRows({
     applyScopeChange,
   );
 
+  const [said, setSaid] = useState<Announcement | null>(null);
+
+  function say(text: string | null) {
+    if (text === null) return;
+    setSaid((previous) => ({ text, press: (previous?.press ?? 0) + 1 }));
+  }
+
   async function arrange(formData: FormData) {
     const change = readScopeChange(formData);
     /*
@@ -62,6 +81,13 @@ export function ScopeRows({
       nothing done, which is the honest answer.
     */
     if (change === null) return;
+
+    /*
+      Said against the list as it reads now, before the change is applied: the
+      sentence names where the line ends up, and `announceScopeChange` works
+      that out with the same function that moves it.
+    */
+    say(announceScopeChange(rows, change));
 
     // On screen first. A press that waited for the round trip would make
     // rearranging a list feel like it had to be done one keystroke at a time.
@@ -80,32 +106,49 @@ export function ScopeRows({
   }
 
   return (
-    /*
-      `role="list"` on a list is normally redundant, and here it is not:
-      Tailwind's reset takes the bullets off every list, and WebKit drops the
-      list semantics along with them. The sequence is the one thing this element
-      exists to convey — and the numbers down the left are hidden from assistive
-      technology precisely because the list was meant to carry it.
-    */
-    <ol
-      role="list"
-      className="mt-3 border-t border-zinc-200 dark:border-zinc-800"
-    >
-      {rows.map((deliverable, index) => (
-        <DeliverableItem
-          key={deliverable.id}
-          deliverable={deliverable}
-          position={index + 1}
-          controls={
-            <DeliverableControls
-              deliverable={deliverable}
-              position={index + 1}
-              count={rows.length}
-              arrange={arrange}
-            />
-          }
-        />
-      ))}
-    </ol>
+    <>
+      {/*
+        The list rearranges itself under the reader with no page load and no
+        form submission to notice, so to anyone working from a screen reader a
+        press is silent. This is where it is said out loud. Hidden visually,
+        because on screen the line visibly moved and a sentence repeating it
+        would be clutter in the one place the page should stay dense.
+
+        Rendered empty rather than conditionally: a live region has to be in the
+        document before the text arrives for a screen reader to notice it
+        appearing. `status` rather than `alert` — a list that did what it was
+        told is worth saying and not worth interrupting for.
+      */}
+      <p role="status" aria-live="polite" className="sr-only">
+        {said === null ? null : <span key={said.press}>{said.text}</span>}
+      </p>
+      {/*
+        `role="list"` on a list is normally redundant, and here it is not:
+        Tailwind's reset takes the bullets off every list, and WebKit drops the
+        list semantics along with them. The sequence is the one thing this
+        element exists to convey — and the numbers down the left are hidden from
+        assistive technology precisely because the list was meant to carry it.
+      */}
+      <ol
+        role="list"
+        className="mt-3 border-t border-zinc-200 dark:border-zinc-800"
+      >
+        {rows.map((deliverable, index) => (
+          <DeliverableItem
+            key={deliverable.id}
+            deliverable={deliverable}
+            position={index + 1}
+            controls={
+              <DeliverableControls
+                deliverable={deliverable}
+                position={index + 1}
+                count={rows.length}
+                arrange={arrange}
+              />
+            }
+          />
+        ))}
+      </ol>
+    </>
   );
 }
