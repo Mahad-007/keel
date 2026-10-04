@@ -98,3 +98,76 @@ describe("applying a move to the list on screen", () => {
     );
   });
 });
+
+describe("applying a status press to the list on screen", () => {
+  it("sets the status of the row that was pressed", () => {
+    const changed = applyScopeChange(scope, {
+      kind: "status",
+      id: "c",
+      from: "pending",
+      status: "started",
+    });
+    expect(changed[2].status).toBe("started");
+  });
+
+  it("leaves every other row exactly as it was", () => {
+    const changed = applyScopeChange(scope, {
+      kind: "status",
+      id: "c",
+      from: "pending",
+      status: "started",
+    });
+    expect(changed[0]).toBe(scope[0]);
+    expect(changed[1]).toBe(scope[1]);
+  });
+
+  it("keeps the order a status press found the list in", () => {
+    const changed = applyScopeChange(scope, {
+      kind: "status",
+      id: "a",
+      from: "done",
+      status: "pending",
+    });
+    expect(ids(changed)).toEqual(ids(scope));
+  });
+
+  it("keeps the rest of the row it changed", () => {
+    const changed = applyScopeChange(scope, {
+      kind: "status",
+      id: "b",
+      from: "started",
+      status: "done",
+    });
+    expect(changed[1]).toEqual({ ...scope[1], status: "done" });
+  });
+
+  it("ignores a deliverable this list no longer has", () => {
+    const changed = applyScopeChange(scope, {
+      kind: "status",
+      id: "gone",
+      from: "pending",
+      status: "done",
+    });
+    expect(changed).toEqual(scope);
+  });
+
+  it("does not check what the row was: the write does that", () => {
+    const changed = applyScopeChange(scope, {
+      kind: "status",
+      id: "a",
+      from: "pending",
+      status: "started",
+    });
+    expect(changed[0].status).toBe("started");
+  });
+
+  it("leaves the list it was given alone", () => {
+    applyScopeChange(scope, {
+      kind: "status",
+      id: "a",
+      from: "done",
+      status: "pending",
+    });
+    expect(scope[0].status).toBe("done");
+  });
+});
