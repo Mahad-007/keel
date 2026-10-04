@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState } from "react";
+import { useOptimistic, useRef, useState } from "react";
 
 import type { Deliverable } from "@/lib/db/schema";
 import {
@@ -8,7 +8,9 @@ import {
   applyScopeChange,
   changesScope,
   readScopeChange,
+  stillSavingNotice,
   type ScopeChange,
+  type ScopeWriteResult,
 } from "@/lib/deliverables/arrange";
 
 import { DeliverableControls } from "./deliverable-controls";
@@ -70,6 +72,15 @@ export function ScopeRows({
   const [said, setSaid] = useState<Announcement | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
 
+  /*
+    The lines with a status press still on its way to the server.
+
+    A ref rather than state: nothing is drawn from it — the control greys itself
+    from the pending state of its own form — and it has to be true the moment it
+    is read, which a state update scheduled for the next render would not be.
+  */
+  const saving = useRef(new Set<string>());
+
   function say(text: string | null) {
     if (text === null) return;
     setSaid((previous) => ({ text, press: (previous?.press ?? 0) + 1 }));
@@ -78,18 +89,36 @@ export function ScopeRows({
   async function arrange(formData: FormData) {
     const change = readScopeChange(formData);
     /*
+      A new press clears the last complaint first of all. Leaving it up would
+      leave a red box above a list that has since done what it was told, and the
+      reader would be reading it as being about the press they just made.
+    */
+    setProblem(null);
+
+    /*
       A submission that describes no change it can make: a direction that is not
       one of the two, a form submitted without a button. There is nothing to
       write and nothing to tell the reader — a press that says nothing gets
       nothing done, which is the honest answer.
     */
-    /*
-      A new press clears the last complaint. Leaving it up would leave a red box
-      above a list that has since done what it was told, and the reader would be
-      reading it as being about the press they just made.
-    */
-    setProblem(null);
     if (change === null) return;
+
+    const pressed = rows.find((row) => row.id === change.id);
+
+    /*
+      A second status press on a line whose first press has not landed. The two
+      cannot be sent together — the second names a status the server has not
+      written yet, so it would come back refused, blaming a conflict the reader
+      caused themselves and rolling their press back. So it is dropped, and said.
+    */
+    if (
+      change.kind === "status" &&
+      pressed !== undefined &&
+      saving.current.has(change.id)
+    ) {
+      say(stillSavingNotice(pressed.title));
+      return;
+    }
 
     /*
       Said against the list as it reads now, before the change is applied: the
@@ -110,26 +139,38 @@ export function ScopeRows({
     // rearranging a list feel like it had to be done one keystroke at a time.
     showChange(change);
 
-    const result =
-      change.kind === "move"
-        ? await moveDeliverableAction(projectId, change.id, change.direction)
-        : await changeDeliverableStatusAction(
-            projectId,
-            change.id,
-            change.from,
-            change.status,
-          );
+    report(await write(change));
+  }
 
+  /** The write a press asks for, with the line marked as saving while it runs. */
+  async function write(change: ScopeChange) {
+    if (change.kind === "move") {
+      return moveDeliverableAction(projectId, change.id, change.direction);
+    }
+
+    saving.current.add(change.id);
+    try {
+      return await changeDeliverableStatusAction(
+        projectId,
+        change.id,
+        change.from,
+        change.status,
+      );
+    } finally {
+      saving.current.delete(change.id);
+    }
+  }
+
+  function report(result: ScopeWriteResult) {
     /*
       React has already rolled the optimistic change back by now: the action has
       settled, so the list on screen is the server's again. All that is left is
       to say why it snapped back — and to drop the sentence that said the press
       had worked, which it did not.
     */
-    if (!result.ok) {
-      setSaid(null);
-      setProblem(result.problem);
-    }
+    if (result.ok) return;
+    setSaid(null);
+    setProblem(result.problem);
   }
 
   return (
