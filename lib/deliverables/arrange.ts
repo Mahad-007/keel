@@ -233,3 +233,25 @@ export const SCOPE_PROBLEMS = {
   /** The write itself failed — the driver, the disk, the network. */
   failed: "Could not save that change. Nothing was written — try again.",
 } as const;
+
+/**
+ * Why a status press cannot be applied to the row as it now stands, or null
+ * when it can.
+ *
+ * A press says where the row was as well as where it is going, and this is what
+ * that is for. The button said "Mark done" because the row said "In progress";
+ * if the row says something else by the time the press arrives, the reader was
+ * looking at a list that had already moved and the press is not the one they
+ * would make now. Writing it anyway would silently overrule whoever changed it.
+ *
+ * The sentence names the status the row actually holds, because that is the
+ * thing the reader cannot see — their page still shows the old one, and the
+ * difference is the whole explanation.
+ */
+export function staleStatusProblem(
+  row: ArrangedDeliverable,
+  from: DeliverableStatus,
+): string | null {
+  if (row.status === from) return null;
+  return `“${row.title}” is already ${deliverableStatusPhrase(row.status)}, so nothing was changed. Reload to see what the scope list says now.`;
+}
