@@ -3,6 +3,7 @@ import { readField } from "@/lib/forms/form-data";
 import { isMoveDirection, moveOne, type MoveDirection } from "./order";
 import {
   deliverableStatusPhrase,
+  deliverableStatusVerb,
   isDeliverableStatus,
   type DeliverableStatus,
 } from "./status";
@@ -262,4 +263,34 @@ export function staleStatusProblem(
 ): string | null {
   if (row.status === from) return null;
   return `“${row.title}” is already ${deliverableStatusPhrase(row.status)}, so nothing was changed. Reload to see what the scope list says now.`;
+}
+
+/**
+ * What a move control is called, with the deliverable it acts on in the name.
+ *
+ * A scope list of eight lines holds eight buttons that say "Up", and to anyone
+ * who cannot see which line they are on that is one control repeated eight
+ * times. The title is what makes each one a different button.
+ *
+ * The direction appears in the sentence as itself: the two values of
+ * `MoveDirection` are the English words, so there is nothing to translate and
+ * nothing that can fall out of step with the label on the button.
+ */
+export function moveButtonLabel(title: string, direction: MoveDirection): string {
+  return `Move “${title}” ${direction}`;
+}
+
+/**
+ * What the status control is called, which is the verb on its face plus the
+ * line it acts on: "Mark done “Wireframes”".
+ *
+ * Slightly odd read aloud and the right trade: the verb has to come first
+ * because it is what the button does, and a screen reader walking a list of
+ * controls reads the name from the front.
+ */
+export function statusButtonLabel(
+  title: string,
+  status: DeliverableStatus,
+): string {
+  return `${deliverableStatusVerb(status)} “${title}”`;
 }
