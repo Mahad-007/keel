@@ -1,5 +1,7 @@
-import { moveOne, type MoveDirection } from "./order";
-import type { DeliverableStatus } from "./status";
+import { readField } from "@/lib/forms/form-data";
+
+import { isMoveDirection, moveOne, type MoveDirection } from "./order";
+import { isDeliverableStatus, type DeliverableStatus } from "./status";
 
 /**
  * Rearranging a scope list: the two changes a row's controls can ask for, and
@@ -87,4 +89,56 @@ export function applyScopeChange<T extends ArrangedDeliverable>(
     const row = byId.get(id);
     return row === undefined ? [] : [row];
   });
+}
+
+/**
+ * The names a row's controls submit under.
+ *
+ * Written down once because they are read in two places that cannot see each
+ * other: the hidden inputs and buttons in the row, and the parser below. A
+ * typo in one of them would not fail to compile — it would make every press on
+ * that row do nothing.
+ *
+ * `id` is in the form rather than bound into an action per row because one form
+ * carries all of a row's controls: a press has to say which deliverable it was
+ * aimed at, and the direction or status says what to do with it. The project is
+ * *not* in the form — the page binds that, so a submitted field cannot name a
+ * project the reader was not looking at.
+ */
+export const SCOPE_FIELD_NAMES = {
+  id: "id",
+  direction: "direction",
+  status: "status",
+  from: "from",
+} as const;
+
+/**
+ * What a press of one of a row's controls asked for, or null if the submission
+ * does not describe a change this list can make.
+ *
+ * A browser sends the pressed button's name and value and nobody else's, which
+ * is what lets one form per row carry three controls: a move button contributes
+ * a direction, the status button a destination status, and whichever was pressed
+ * is the only one in the submission.
+ *
+ * Null rather than a thrown error, because every cause is the same kind of
+ * thing — a form submitted some other way, a direction that is not one of the
+ * two, a status the list does not know. There is nothing for the reader to fix
+ * and nothing to tell them: the honest response to a press that says nothing is
+ * to do nothing.
+ */
+export function readScopeChange(formData: FormData): ScopeChange | null {
+  const id = readField(formData, SCOPE_FIELD_NAMES.id).trim();
+  if (id === "") return null;
+
+  const direction = readField(formData, SCOPE_FIELD_NAMES.direction);
+  if (direction !== "") {
+    if (!isMoveDirection(direction)) return null;
+    return { kind: "move", id, direction };
+  }
+
+  const status = readField(formData, SCOPE_FIELD_NAMES.status);
+  const from = readField(formData, SCOPE_FIELD_NAMES.from);
+  if (!isDeliverableStatus(status) || !isDeliverableStatus(from)) return null;
+  return { kind: "status", id, from, status };
 }
