@@ -814,3 +814,55 @@ describe("setDeliverableStatus", () => {
     expect((await getDeliverable(first.id, db))?.status).toBe("pending");
   });
 });
+
+describe("setDeliverableStatus against a row that has moved on", () => {
+  it("writes nothing when the deliverable is in another status", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+    await setDeliverableStatus(created.id, "pending", "done", db);
+
+    const second = await setDeliverableStatus(
+      created.id,
+      "pending",
+      "started",
+      db,
+    );
+
+    expect(second).toBeNull();
+    expect((await getDeliverable(created.id, db))?.status).toBe("done");
+  });
+
+  it("leaves updatedAt alone when it refuses", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+    const done = await setDeliverableStatus(created.id, "pending", "done", db);
+    await new Promise((resolve) => setTimeout(resolve, 2));
+
+    await setDeliverableStatus(created.id, "started", "done", db);
+
+    expect((await getDeliverable(created.id, db))?.updatedAt).toBe(
+      done?.updatedAt,
+    );
+  });
+
+  it("returns null for a deliverable that no longer exists", async () => {
+    expect(
+      await setDeliverableStatus("dlv_missing", "pending", "done", db),
+    ).toBeNull();
+  });
+
+  it("refuses a status the column is not allowed to hold", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+
+    await expect(
+      setDeliverableStatus(created.id, "pending", "shipped" as "done", db),
+    ).rejects.toThrow(/unknown deliverable status/);
+    expect((await getDeliverable(created.id, db))?.status).toBe("pending");
+  });
+
+  it("refuses to be asked for a status the row could not have been in", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+
+    await expect(
+      setDeliverableStatus(created.id, "shipped" as "done", "done", db),
+    ).rejects.toThrow(/unknown deliverable status/);
+  });
+});
