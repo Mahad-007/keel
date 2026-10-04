@@ -16,11 +16,20 @@
  * not what the page is for — the scope is. They have to be reachable without
  * being the loudest thing in the row.
  */
+
+const SHAPE = "rounded border px-2 py-1 text-xs font-medium";
+
+const AVAILABLE =
+  "border-zinc-300 text-zinc-700 hover:border-zinc-500 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:text-zinc-100";
+
+const UNAVAILABLE =
+  "cursor-not-allowed border-zinc-200 text-zinc-400 dark:border-zinc-800 dark:text-zinc-600";
+
 export function ScopeButton({
   name,
   value,
   label,
-  disabled = false,
+  unavailable = false,
   children,
 }: {
   /** The field this press contributes, which is how the action reads it. */
@@ -33,17 +42,26 @@ export function ScopeButton({
    */
   label: string;
   /** For a move the list cannot make — the first line cannot go up. */
-  disabled?: boolean;
+  unavailable?: boolean;
   children: string;
 }) {
   return (
+    /*
+      `aria-disabled` rather than `disabled`, which is the difference between a
+      control that cannot act and one that is not there. A disabled button is
+      dropped from the tab order the moment it is disabled — so pressing Up
+      until a line reaches the top takes the focus off the button with it, and a
+      reader working by keyboard is suddenly at the top of the document with no
+      idea where they were. This one keeps the focus, keeps the name, and the
+      press it reports is one the list knows changes nothing and answers with a
+      sentence saying so.
+    */
     <button
       type="submit"
       name={name}
       value={value}
-      disabled={disabled}
-      aria-label={label}
-      className="rounded border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:border-zinc-500 hover:text-zinc-900 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:text-zinc-400 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:text-zinc-100 dark:disabled:border-zinc-800 dark:disabled:text-zinc-600"
+      aria-disabled={unavailable || undefined}
+      className={`${SHAPE} ${unavailable ? UNAVAILABLE : AVAILABLE}`}
     >
       {children}
     </button>

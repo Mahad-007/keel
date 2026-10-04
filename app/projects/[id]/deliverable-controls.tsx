@@ -69,7 +69,7 @@ export function DeliverableControls({
       </ScopeButton>
       {/*
         Both move controls are drawn on every line, and the one that cannot act
-        is disabled rather than missing. A column of buttons that appears and
+        is greyed rather than missing. A column of buttons that appears and
         disappears as lines move is harder to use than one that is always in the
         same place — and the first line of a list has no "up" to offer, which is
         a fact about the list worth showing rather than hiding.
@@ -80,7 +80,7 @@ export function DeliverableControls({
           name={SCOPE_FIELD_NAMES.direction}
           value={direction}
           label={moveButtonLabel(deliverable.title, direction)}
-          disabled={!canMove(position, count, direction)}
+          unavailable={!canMove(position, count, direction)}
         >
           {MOVE_LABELS[direction]}
         </ScopeButton>
