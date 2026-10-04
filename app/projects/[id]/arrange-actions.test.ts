@@ -267,3 +267,74 @@ describe("a status press against a row that has moved on", () => {
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 });
+
+describe("a status press this list cannot make", () => {
+  it("refuses a status the column is not allowed to hold", async () => {
+    const result = await changeDeliverableStatusAction(
+      "prj_engine",
+      "dlv_wire",
+      "pending",
+      "shipped" as "done",
+    );
+
+    expect(loaded).not.toHaveBeenCalled();
+    expect(restated).not.toHaveBeenCalled();
+    expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.unknown });
+  });
+
+  it("refuses a press that claims the row was in no known status", async () => {
+    const result = await changeDeliverableStatusAction(
+      "prj_engine",
+      "dlv_wire",
+      "shipped" as "done",
+      "done",
+    );
+
+    expect(restated).not.toHaveBeenCalled();
+    expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.unknown });
+  });
+
+  it("refuses a deliverable belonging to another project", async () => {
+    loaded.mockResolvedValue({ ...wireframes, projectId: "prj_somebody_else" });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = await changeDeliverableStatusAction(
+      "prj_engine",
+      "dlv_wire",
+      "pending",
+      "started",
+    );
+
+    expect(restated).not.toHaveBeenCalled();
+    expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.missing });
+  });
+
+  it("refuses a deliverable that does not exist", async () => {
+    loaded.mockResolvedValue(null);
+
+    const result = await changeDeliverableStatusAction(
+      "prj_engine",
+      "dlv_wire",
+      "pending",
+      "started",
+    );
+
+    expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.missing });
+  });
+
+  it("says a driver error could not be saved, and keeps it in the logs", async () => {
+    restated.mockRejectedValue(new Error("database is locked"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await changeDeliverableStatusAction(
+      "prj_engine",
+      "dlv_wire",
+      "pending",
+      "started",
+    );
+
+    expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.failed });
+    expect(console.error).toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
