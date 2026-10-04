@@ -74,3 +74,27 @@ export const DELIVERABLE_STATUS_LABELS: Record<DeliverableStatus, string> = {
 export function deliverableStatusLabel(status: DeliverableStatus): string {
   return DELIVERABLE_STATUS_LABELS[status] ?? status;
 }
+
+/**
+ * Where one press of a deliverable's status button lands it.
+ *
+ * A cycle rather than a forward control and a back one. Three statuses need at
+ * most two presses to reach any of the others, so a second button would buy
+ * nothing and cost a column in every row of the list — and the label says the
+ * destination, so a press is never a guess about which way round the loop
+ * goes. The loop closing is what makes a mis-press cheap: nothing in a scope
+ * list is a dead end you have to go and edit a row to escape.
+ *
+ * A status the list does not know — the column is plain TEXT, so a hand-edited
+ * row can hold one — rejoins the cycle at the start rather than staying stuck
+ * outside it. Pressing the button on such a row is the only way back, and
+ * "not started" is the one status that is true of a deliverable nobody can say
+ * anything about.
+ */
+export function nextDeliverableStatus(
+  status: DeliverableStatus,
+): DeliverableStatus {
+  const held = DELIVERABLE_STATUSES.indexOf(status);
+  if (held === -1) return DEFAULT_DELIVERABLE_STATUS;
+  return DELIVERABLE_STATUSES[(held + 1) % DELIVERABLE_STATUSES.length];
+}
