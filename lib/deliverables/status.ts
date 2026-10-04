@@ -130,3 +130,32 @@ export const DELIVERABLE_STATUS_VERBS: Record<DeliverableStatus, string> = {
 export function deliverableStatusVerb(status: DeliverableStatus): string {
   return DELIVERABLE_STATUS_VERBS[status] ?? "Reset status";
 }
+
+/**
+ * How each status reads inside a sentence about the deliverable, rather than as
+ * a label in a column.
+ *
+ * The list changes under the reader without the page reloading — a press sets a
+ * status, and the only thing that moves is two words on one line. That is
+ * nothing at all to anyone working from a screen reader, so the change is said
+ * out loud, and a sentence needs its words in the order a sentence has them:
+ * "is now in progress", not "is now In progress".
+ *
+ * Not-started says more than the label does, because it is the one status a
+ * press can go *back* to. "is now not started" invites the reading that the
+ * press undid itself; naming the list is what makes it a destination.
+ */
+export const DELIVERABLE_STATUS_PHRASES: Record<DeliverableStatus, string> = {
+  pending: "back on the list as not started",
+  started: "in progress",
+  done: "done",
+};
+
+/**
+ * How to say a status in a sentence, falling back to the stored value for the
+ * same reason the label does: a hand-edited row should read as whatever is
+ * actually in the column rather than trail off into nothing.
+ */
+export function deliverableStatusPhrase(status: DeliverableStatus): string {
+  return DELIVERABLE_STATUS_PHRASES[status] ?? status;
+}
