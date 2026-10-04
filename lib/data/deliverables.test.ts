@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import type { Database } from "@/lib/db";
@@ -858,11 +859,26 @@ describe("setDeliverableStatus against a row that has moved on", () => {
     expect((await getDeliverable(created.id, db))?.status).toBe("pending");
   });
 
-  it("refuses to be asked for a status the row could not have been in", async () => {
+  it("matches no row when asked for a status the column cannot hold", async () => {
     const created = await createDeliverable({ projectId, title: "Build" }, db);
 
-    await expect(
-      setDeliverableStatus(created.id, "shipped" as "done", "done", db),
-    ).rejects.toThrow(/unknown deliverable status/);
+    expect(await setDeliverableStatus(created.id, "shipped", "done", db)).toBeNull();
+    expect((await getDeliverable(created.id, db))?.status).toBe("pending");
+  });
+
+  it("presses a hand-edited status back into one the app knows", async () => {
+    const created = await createDeliverable({ projectId, title: "Build" }, db);
+    await db.run(
+      sql`update deliverables set status = 'abandoned' where id = ${created.id}`,
+    );
+
+    const written = await setDeliverableStatus(
+      created.id,
+      "abandoned",
+      "pending",
+      db,
+    );
+
+    expect(written?.status).toBe("pending");
   });
 });

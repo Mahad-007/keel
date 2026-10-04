@@ -408,6 +408,14 @@ export async function moveDeliverable(
  * change in — which is the whole reason this is not `updateDeliverable` with a
  * read in front of it.
  *
+ * It is a filter rather than a value, which is why it is a plain string where
+ * `to` is a status. Nothing is written from it, so there is nothing to validate:
+ * a `from` the column could not hold simply matches no row, and that is the
+ * right answer rather than an error. It also means a row left holding something
+ * the app does not recognise — the column is TEXT, and the three values are a
+ * promise a hand-edited row can break — can still be pressed back into one of
+ * them, which is exactly what the status cycle offers to do with it.
+ *
  * Null is deliberately ambiguous between "gone" and "already something else":
  * one statement cannot tell those apart, and the caller that wants to say which
  * reads the row for its message. Either way nothing was written.
@@ -418,17 +426,24 @@ export async function moveDeliverable(
  */
 export async function setDeliverableStatus(
   id: string,
-  from: DeliverableStatus,
+  from: string,
   to: DeliverableStatus,
   database: Database = db,
 ): Promise<Deliverable | null> {
-  const expected = parseDeliverableStatus(from);
   const next = parseDeliverableStatus(to);
 
   const [row] = await database
     .update(deliverables)
     .set({ status: next, updatedAt: new Date().toISOString() })
-    .where(and(eq(deliverables.id, id), eq(deliverables.status, expected)))
+    .where(
+      and(
+        eq(deliverables.id, id),
+        // Drizzle types the column as the three statuses because that is what
+        // this app writes to it. SQLite will compare it against any string, and
+        // comparing it against one is the whole job here.
+        eq(deliverables.status, from as DeliverableStatus),
+      ),
+    )
     .returning();
   return row ?? null;
 }
