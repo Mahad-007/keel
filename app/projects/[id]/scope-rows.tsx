@@ -1,7 +1,13 @@
 "use client";
 
+import { useOptimistic } from "react";
+
 import type { Deliverable } from "@/lib/db/schema";
-import { readScopeChange } from "@/lib/deliverables/arrange";
+import {
+  applyScopeChange,
+  readScopeChange,
+  type ScopeChange,
+} from "@/lib/deliverables/arrange";
 
 import { DeliverableControls } from "./deliverable-controls";
 import { DeliverableItem } from "./deliverable-item";
@@ -31,6 +37,22 @@ export function ScopeRows({
   projectId: string;
   deliverables: readonly Deliverable[];
 }) {
+  /*
+    The list as the reader sees it, which is the server's list plus whatever
+    they have just pressed. React keeps the pressed changes until the action
+    that was sent for them settles and the re-rendered page arrives, then drops
+    them — so a press that the server refuses rolls back on its own, and there
+    is no second copy of the order here to get out of step.
+
+    The reducer is the same pure function the tests use, and a move inside it
+    goes through the same arithmetic as the write. That is what stops the list
+    sliding one way on screen and the other way in the database.
+  */
+  const [rows, showChange] = useOptimistic<readonly Deliverable[], ScopeChange>(
+    deliverables,
+    applyScopeChange,
+  );
+
   async function arrange(formData: FormData) {
     const change = readScopeChange(formData);
     /*
@@ -40,6 +62,10 @@ export function ScopeRows({
       nothing done, which is the honest answer.
     */
     if (change === null) return;
+
+    // On screen first. A press that waited for the round trip would make
+    // rearranging a list feel like it had to be done one keystroke at a time.
+    showChange(change);
 
     if (change.kind === "move") {
       await moveDeliverableAction(projectId, change.id, change.direction);
@@ -65,7 +91,7 @@ export function ScopeRows({
       role="list"
       className="mt-3 border-t border-zinc-200 dark:border-zinc-800"
     >
-      {deliverables.map((deliverable, index) => (
+      {rows.map((deliverable, index) => (
         <DeliverableItem
           key={deliverable.id}
           deliverable={deliverable}
@@ -74,7 +100,7 @@ export function ScopeRows({
             <DeliverableControls
               deliverable={deliverable}
               position={index + 1}
-              count={deliverables.length}
+              count={rows.length}
               arrange={arrange}
             />
           }
