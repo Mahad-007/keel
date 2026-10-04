@@ -5,6 +5,8 @@ import {
   DELIVERABLE_STATUSES,
   DELIVERABLE_STATUS_LABELS,
   deliverableStatusLabel,
+  DELIVERABLE_STATUS_PHRASES,
+  deliverableStatusPhrase,
   DELIVERABLE_STATUS_VERBS,
   deliverableStatusVerb,
   isDeliverableStatus,
@@ -143,5 +145,32 @@ describe("deliverableStatusVerb", () => {
     expect(
       deliverableStatusVerb("abandoned" as (typeof DELIVERABLE_STATUSES)[number]),
     ).toBe("Reset status");
+  });
+});
+
+describe("deliverableStatusPhrase", () => {
+  it("phrases every status", () => {
+    for (const status of DELIVERABLE_STATUSES) {
+      expect(deliverableStatusPhrase(status)).toBe(
+        DELIVERABLE_STATUS_PHRASES[status],
+      );
+    }
+  });
+
+  it("reads as the middle of a sentence, not as a heading", () => {
+    for (const phrase of Object.values(DELIVERABLE_STATUS_PHRASES)) {
+      expect(phrase).toBe(phrase.toLowerCase());
+    }
+  });
+
+  it("gives no two statuses the same phrase", () => {
+    const phrases = Object.values(DELIVERABLE_STATUS_PHRASES);
+    expect(new Set(phrases).size).toBe(phrases.length);
+  });
+
+  it("says a hand-edited value rather than trailing off", () => {
+    expect(
+      deliverableStatusPhrase("abandoned" as (typeof DELIVERABLE_STATUSES)[number]),
+    ).toBe("abandoned");
   });
 });
