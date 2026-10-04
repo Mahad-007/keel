@@ -8,7 +8,6 @@ import {
   applyScopeChange,
   changesScope,
   readScopeChange,
-  stillSavingNotice,
   type ScopeChange,
   type ScopeWriteResult,
 } from "@/lib/deliverables/arrange";
@@ -73,13 +72,22 @@ export function ScopeRows({
   const [problem, setProblem] = useState<string | null>(null);
 
   /*
-    The lines with a status press still on its way to the server.
+    The write the next press has to wait for.
 
-    A ref rather than state: nothing is drawn from it — the control greys itself
-    from the pending state of its own form — and it has to be true the moment it
-    is read, which a state update scheduled for the next render would not be.
+    Presses are sent one at a time, in the order they were made. A status press
+    names the status it expects to find — that is what stops it overruling
+    somebody else's change — and it takes that from the row as the reader sees
+    it, which during a run of presses is what the press before it asked for. Sent
+    together, the second would describe a row the first had not finished writing
+    and come back refused, blaming a conflict the reader caused themselves.
+
+    Queueing rather than refusing, because every press in a run is meant: "Start"
+    then "Mark done" on one line is two presses in under a second, and both are
+    what the reader said. Waiting costs nothing they can see — the list already
+    shows the result, and React holds each optimistic change until the action that
+    was sent for it settles.
   */
-  const saving = useRef(new Set<string>());
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
 
   /*
     The list each press is measured against: where the line is now, so the
@@ -122,22 +130,6 @@ export function ScopeRows({
     if (change === null) return;
 
     const list = shown.current;
-    const pressed = list.find((row) => row.id === change.id);
-
-    /*
-      A second status press on a line whose first press has not landed. The two
-      cannot be sent together — the second names a status the server has not
-      written yet, so it would come back refused, blaming a conflict the reader
-      caused themselves and rolling their press back. So it is dropped, and said.
-    */
-    if (
-      change.kind === "status" &&
-      pressed !== undefined &&
-      saving.current.has(change.id)
-    ) {
-      say(stillSavingNotice(pressed.title));
-      return;
-    }
 
     /*
       Said against the list as it reads now, before the change is applied: the
@@ -162,23 +154,25 @@ export function ScopeRows({
     report(await write(change));
   }
 
-  /** The write a press asks for, with the line marked as saving while it runs. */
-  async function write(change: ScopeChange) {
+  /** The write a press asks for, once the press before it has finished. */
+  function write(change: ScopeChange): Promise<ScopeWriteResult> {
+    const turn = queue.current.then(() => send(change));
+    // The queue must survive a write that fails, or every later press waits on a
+    // promise that never settles — so what is kept is the handled version.
+    queue.current = turn.catch(() => undefined);
+    return turn;
+  }
+
+  function send(change: ScopeChange): Promise<ScopeWriteResult> {
     if (change.kind === "move") {
       return moveDeliverableAction(projectId, change.id, change.direction);
     }
-
-    saving.current.add(change.id);
-    try {
-      return await changeDeliverableStatusAction(
-        projectId,
-        change.id,
-        change.from,
-        change.status,
-      );
-    } finally {
-      saving.current.delete(change.id);
-    }
+    return changeDeliverableStatusAction(
+      projectId,
+      change.id,
+      change.from,
+      change.status,
+    );
   }
 
   function report(result: ScopeWriteResult) {
