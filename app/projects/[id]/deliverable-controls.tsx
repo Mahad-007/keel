@@ -1,16 +1,12 @@
 import {
   moveButtonLabel,
   SCOPE_FIELD_NAMES,
-  statusButtonLabel,
   type ArrangedDeliverable,
 } from "@/lib/deliverables/arrange";
 import { canMove, MOVE_LABELS } from "@/lib/deliverables/order";
-import {
-  deliverableStatusVerb,
-  nextDeliverableStatus,
-} from "@/lib/deliverables/status";
 
 import { ScopeButton } from "./scope-button";
+import { StatusButton } from "./status-button";
 
 /**
  * The controls on one line of a scope list: what it is doing, and where it sits.
@@ -64,13 +60,7 @@ export function DeliverableControls({
           name={SCOPE_FIELD_NAMES.from}
           value={deliverable.status}
         />
-        <ScopeButton
-          name={SCOPE_FIELD_NAMES.status}
-          value={nextDeliverableStatus(deliverable.status)}
-          label={statusButtonLabel(deliverable.title, deliverable.status)}
-        >
-          {deliverableStatusVerb(deliverable.status)}
-        </ScopeButton>
+        <StatusButton deliverable={deliverable} />
       </form>
       <form action={arrange} className="flex items-center gap-1">
         <input
