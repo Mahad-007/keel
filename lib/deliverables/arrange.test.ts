@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  announceScopeChange,
   applyScopeChange,
   readScopeChange,
   SCOPE_FIELD_NAMES,
@@ -251,5 +252,93 @@ describe("reading a press of a row's controls", () => {
     form.set("id", "dlv_wire");
     form.set("direction", new File([], "up.txt"));
     expect(readScopeChange(form)).toBeNull();
+  });
+});
+
+describe("announcing a move", () => {
+  it("names the deliverable and where it ended up", () => {
+    expect(
+      announceScopeChange(scope, { kind: "move", id: "c", direction: "up" }),
+    ).toBe("Moved “Launch checklist” to position 2 of 3.");
+  });
+
+  it("counts the position the way the list draws it", () => {
+    expect(
+      announceScopeChange(scope, { kind: "move", id: "a", direction: "down" }),
+    ).toBe("Moved “Wireframes” to position 2 of 3.");
+  });
+
+  it("says so when the press moved nothing at the front", () => {
+    expect(
+      announceScopeChange(scope, { kind: "move", id: "a", direction: "up" }),
+    ).toBe("“Wireframes” is already first.");
+  });
+
+  it("says so when the press moved nothing at the back", () => {
+    expect(
+      announceScopeChange(scope, { kind: "move", id: "c", direction: "down" }),
+    ).toBe("“Launch checklist” is already last.");
+  });
+
+  it("has nothing to say about a deliverable this list no longer has", () => {
+    expect(
+      announceScopeChange(scope, { kind: "move", id: "gone", direction: "up" }),
+    ).toBeNull();
+  });
+
+  it("agrees with the list the same change produces", () => {
+    const change = { kind: "move", id: "b", direction: "down" } as const;
+    const moved = applyScopeChange(scope, change);
+    expect(announceScopeChange(scope, change)).toBe(
+      `Moved “Build the booking flow” to position ${
+        moved.findIndex((one) => one.id === "b") + 1
+      } of ${moved.length}.`,
+    );
+  });
+});
+
+describe("announcing a status press", () => {
+  it("says what the deliverable is now", () => {
+    expect(
+      announceScopeChange(scope, {
+        kind: "status",
+        id: "c",
+        from: "pending",
+        status: "started",
+      }),
+    ).toBe("“Launch checklist” is now in progress.");
+  });
+
+  it("says a finished deliverable is finished", () => {
+    expect(
+      announceScopeChange(scope, {
+        kind: "status",
+        id: "b",
+        from: "started",
+        status: "done",
+      }),
+    ).toBe("“Build the booking flow” is now done.");
+  });
+
+  it("says where a reopened deliverable went", () => {
+    expect(
+      announceScopeChange(scope, {
+        kind: "status",
+        id: "a",
+        from: "done",
+        status: "pending",
+      }),
+    ).toBe("“Wireframes” is now back on the list as not started.");
+  });
+
+  it("has nothing to say about a deliverable this list no longer has", () => {
+    expect(
+      announceScopeChange(scope, {
+        kind: "status",
+        id: "gone",
+        from: "pending",
+        status: "done",
+      }),
+    ).toBeNull();
   });
 });
