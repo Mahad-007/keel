@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { applyScopeChange, type ArrangedDeliverable } from "./arrange";
+import {
+  applyScopeChange,
+  readScopeChange,
+  SCOPE_FIELD_NAMES,
+  type ArrangedDeliverable,
+} from "./arrange";
 import type { DeliverableStatus } from "./status";
 
 function row(
@@ -169,5 +174,82 @@ describe("applying a status press to the list on screen", () => {
       status: "pending",
     });
     expect(scope[0].status).toBe("done");
+  });
+});
+
+function press(values: Record<string, string>): FormData {
+  const form = new FormData();
+  for (const [name, value] of Object.entries(values)) form.set(name, value);
+  return form;
+}
+
+describe("reading a press of a row's controls", () => {
+  it("reads a move up", () => {
+    expect(readScopeChange(press({ id: "dlv_wire", direction: "up" }))).toEqual({
+      kind: "move",
+      id: "dlv_wire",
+      direction: "up",
+    });
+  });
+
+  it("reads a move down", () => {
+    expect(
+      readScopeChange(press({ id: "dlv_wire", direction: "down" })),
+    ).toEqual({ kind: "move", id: "dlv_wire", direction: "down" });
+  });
+
+  it("reads a status press, and what the row said when it was pressed", () => {
+    expect(
+      readScopeChange(press({ id: "dlv_wire", from: "pending", status: "started" })),
+    ).toEqual({
+      kind: "status",
+      id: "dlv_wire",
+      from: "pending",
+      status: "started",
+    });
+  });
+
+  it("uses the field names the row's controls are built from", () => {
+    const form = new FormData();
+    form.set(SCOPE_FIELD_NAMES.id, "dlv_wire");
+    form.set(SCOPE_FIELD_NAMES.direction, "up");
+    expect(readScopeChange(form)).toEqual({
+      kind: "move",
+      id: "dlv_wire",
+      direction: "up",
+    });
+  });
+
+  it("refuses a press that names no deliverable", () => {
+    expect(readScopeChange(press({ direction: "up" }))).toBeNull();
+    expect(readScopeChange(press({ id: "   ", direction: "up" }))).toBeNull();
+  });
+
+  it("refuses a direction that is not one of the two", () => {
+    expect(readScopeChange(press({ id: "dlv_wire", direction: "top" }))).toBeNull();
+    expect(readScopeChange(press({ id: "dlv_wire", direction: "UP" }))).toBeNull();
+  });
+
+  it("refuses a status the list does not know", () => {
+    expect(
+      readScopeChange(press({ id: "dlv_wire", from: "pending", status: "shipped" })),
+    ).toBeNull();
+  });
+
+  it("refuses a status press that does not say what the row was", () => {
+    expect(
+      readScopeChange(press({ id: "dlv_wire", status: "started" })),
+    ).toBeNull();
+  });
+
+  it("refuses a submission with no control in it at all", () => {
+    expect(readScopeChange(press({ id: "dlv_wire" }))).toBeNull();
+  });
+
+  it("ignores a file posted where a direction belongs", () => {
+    const form = new FormData();
+    form.set("id", "dlv_wire");
+    form.set("direction", new File([], "up.txt"));
+    expect(readScopeChange(form)).toBeNull();
   });
 });
