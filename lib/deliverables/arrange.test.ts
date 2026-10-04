@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   announceScopeChange,
   applyScopeChange,
+  changesScope,
   moveButtonLabel,
   statusButtonLabel,
   readScopeChange,
@@ -11,6 +12,7 @@ import {
   staleStatusProblem,
   type ArrangedDeliverable,
 } from "./arrange";
+import { canMove } from "./order";
 import type { DeliverableStatus } from "./status";
 
 function row(
@@ -445,5 +447,73 @@ describe("what a row's controls are called", () => {
       moveButtonLabel("Wireframes", "down"),
     ];
     expect(new Set(names).size).toBe(names.length);
+  });
+});
+
+describe("whether a press would change anything", () => {
+  it("is true for a move the list can make", () => {
+    expect(changesScope(scope, { kind: "move", id: "b", direction: "up" })).toBe(
+      true,
+    );
+    expect(
+      changesScope(scope, { kind: "move", id: "b", direction: "down" }),
+    ).toBe(true);
+  });
+
+  it("is false at the ends of the list", () => {
+    expect(changesScope(scope, { kind: "move", id: "a", direction: "up" })).toBe(
+      false,
+    );
+    expect(
+      changesScope(scope, { kind: "move", id: "c", direction: "down" }),
+    ).toBe(false);
+  });
+
+  it("is false for a list of one, whichever way it is pressed", () => {
+    const only = [row("a", "Wireframes")];
+    expect(changesScope(only, { kind: "move", id: "a", direction: "up" })).toBe(
+      false,
+    );
+    expect(
+      changesScope(only, { kind: "move", id: "a", direction: "down" }),
+    ).toBe(false);
+  });
+
+  it("is false for a deliverable the list no longer has", () => {
+    expect(
+      changesScope(scope, { kind: "move", id: "gone", direction: "up" }),
+    ).toBe(false);
+  });
+
+  it("is true for a status press that moves the row on", () => {
+    expect(
+      changesScope(scope, {
+        kind: "status",
+        id: "c",
+        from: "pending",
+        status: "started",
+      }),
+    ).toBe(true);
+  });
+
+  it("is false for a status press that asks for the status it holds", () => {
+    expect(
+      changesScope(scope, {
+        kind: "status",
+        id: "a",
+        from: "done",
+        status: "done",
+      }),
+    ).toBe(false);
+  });
+
+  it("agrees with canMove about which presses are worth sending", () => {
+    for (const [index, one] of scope.entries()) {
+      for (const direction of ["up", "down"] as const) {
+        expect(changesScope(scope, { kind: "move", id: one.id, direction })).toBe(
+          canMove(index + 1, scope.length, direction),
+        );
+      }
+    }
   });
 });

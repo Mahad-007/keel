@@ -156,6 +156,29 @@ export function readScopeChange(formData: FormData): ScopeChange | null {
   return { kind: "status", id, from, status };
 }
 
+/**
+ * Whether a press would actually change the list it was made against.
+ *
+ * It is what stops a press at the end of the list becoming a write. A move
+ * control the list cannot act on — Up on the first line — is offered rather
+ * than taken away, so that a reader pressing it keeps the focus they have and
+ * gets told why nothing happened; this is how the list knows that is the case
+ * before it sends anything.
+ *
+ * A deliverable the list no longer has changes nothing either, and so does a
+ * status press that names the status the row already holds. Both are a page
+ * describing a scope list that has moved on, and neither is worth a round trip.
+ */
+export function changesScope<T extends ArrangedDeliverable>(
+  rows: readonly T[],
+  change: ScopeChange,
+): boolean {
+  const row = rows.find((one) => one.id === change.id);
+  if (row === undefined) return false;
+  if (change.kind === "status") return row.status !== change.status;
+  return applyScopeChange(rows, change).indexOf(row) !== rows.indexOf(row);
+}
+
 /** Which end of the list a press that moved nothing had already reached. */
 const END_OF_LIST: Record<MoveDirection, string> = {
   up: "first",
