@@ -1,5 +1,7 @@
 import type { Deliverable } from "@/lib/db/schema";
 import { describeScopeList } from "@/lib/deliverables/list";
+import type { MoveDirection } from "@/lib/deliverables/order";
+import type { DeliverableStatus } from "@/lib/deliverables/status";
 
 import {
   changeDeliverableStatusAction,
@@ -34,24 +36,49 @@ export function DeliverableList({
   projectId: string;
   deliverables: readonly Deliverable[];
 }) {
+  /*
+    The project is closed over by these two rather than passed to the actions as
+    an argument, and the shape matters more than it looks.
+
+    An argument to a server action is wire data: the call is a POST, and the
+    client sends every argument in it. `.bind` on an imported action is no
+    different — it concatenates onto `$$bound` and the values are serialised in
+    the clear, wherever the `.bind` is written. So a project named that way is
+    named by whoever holds the page, and checking a deliverable against it
+    compares two values from the same source.
+
+    A `"use server"` function declared *here*, inside a server component, is
+    what the compiler rewrites to encrypt its captured variables, so the project
+    id crosses to the client and back as ciphertext the caller cannot forge or
+    swap. That is what gives the deliverable-belongs-to-project check in the
+    actions something real to compare against.
+
+    It still says only which page made the call, not who was holding it. Phase 8
+    has to answer that from the session.
+  */
+  async function move(id: string, direction: MoveDirection) {
+    "use server";
+    return moveDeliverableAction(projectId, id, direction);
+  }
+
+  async function changeStatus(
+    id: string,
+    from: string,
+    status: DeliverableStatus,
+  ) {
+    "use server";
+    return changeDeliverableStatusAction(projectId, id, from, status);
+  }
+
   return (
     <>
       <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
         {describeScopeList(deliverables.length)}
       </p>
-      {/*
-        The project is bound here, on the server, rather than passed to the
-        actions as an argument from the rows. A server action is a POST endpoint
-        and its arguments are whatever the caller sent; a value closed over by
-        the action is encrypted by the framework instead, so no press can name a
-        project other than the one this page was served for. That is what gives
-        the deliverable-belongs-to-project check in the actions something real
-        to compare against.
-      */}
       <ScopeRows
         deliverables={deliverables}
-        move={moveDeliverableAction.bind(null, projectId)}
-        changeStatus={changeDeliverableStatusAction.bind(null, projectId)}
+        move={move}
+        changeStatus={changeStatus}
       />
     </>
   );
