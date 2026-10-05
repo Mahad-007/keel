@@ -8,6 +8,8 @@ import {
   applyScopeChange,
   changesScope,
   readScopeChange,
+  SCOPE_NO_ANSWER,
+  scopeWriteProblem,
   type ScopeChange,
   type ScopeWriteResult,
 } from "@/lib/deliverables/arrange";
@@ -154,13 +156,28 @@ export function ScopeRows({
     report(await write(change));
   }
 
-  /** The write a press asks for, once the press before it has finished. */
+  /**
+   * The write a press asks for, once the press before it has finished.
+   *
+   * It settles rather than rejecting, which is the whole reason it is a function
+   * and not an inline `await`. The actions answer a failed *write* with a
+   * sentence, but a call that never gets an answer at all — connection dropped,
+   * tab suspended mid-request, request aborted — rejects, and a rejection thrown
+   * out of a form action takes the page to an error boundary. The reader's line
+   * would snap back and the explanation would be a crash, which is precisely
+   * what the sentence beneath the list exists to replace.
+   */
   function write(change: ScopeChange): Promise<ScopeWriteResult> {
     const turn = queue.current.then(() => send(change));
     // The queue must survive a write that fails, or every later press waits on a
     // promise that never settles — so what is kept is the handled version.
     queue.current = turn.catch(() => undefined);
-    return turn;
+    return turn.catch((error) => {
+      // Nothing here a reader can act on beyond reloading, but a dropped action
+      // is worth a line in the console for whoever is looking into why.
+      console.error("scope press: the server never answered", error);
+      return scopeWriteProblem(SCOPE_NO_ANSWER);
+    });
   }
 
   function send(change: ScopeChange): Promise<ScopeWriteResult> {
