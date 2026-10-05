@@ -10,6 +10,7 @@ import {
   readScopeChange,
   SCOPE_NO_ANSWER,
   scopeWriteProblem,
+  type Announcement,
   type ScopeChange,
   type ScopeWriteResult,
 } from "@/lib/deliverables/arrange";
@@ -36,17 +37,6 @@ import { ScopeProblem } from "./scope-problem";
  * and it leaves this component as the only thing that has to know which server
  * action answers which press.
  */
-/**
- * What was last said about a press, and how many presses ago that was.
- *
- * The count is not shown. It is there because a live region only announces
- * text that has changed, and two presses running can say the same thing —
- * marking a line done, reopening it, marking it done again. Keying the sentence
- * on the press makes the second one a new node rather than the same words, which
- * is the difference between being told and not.
- */
-type Announcement = { readonly text: string; readonly press: number };
-
 export function ScopeRows({
   projectId,
   deliverables,

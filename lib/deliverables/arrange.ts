@@ -227,6 +227,25 @@ export function announceScopeChange<T extends ArrangedDeliverable>(
 }
 
 /**
+ * What was last said about a press, and which press said it.
+ *
+ * The number is not shown anywhere. It is there because a live region only
+ * announces text that has *changed*, and two presses running can say the same
+ * thing — marking a line done, reopening it, marking it done again. Keying the
+ * sentence on the press makes the second one a new node rather than the same
+ * words, which is the difference between being told and not.
+ *
+ * It is also what lets a press withdraw its own sentence and nobody else's,
+ * which matters because presses are sent one at a time and answered in that
+ * order: by the time one is refused, a later press may already have said
+ * something true.
+ */
+export type Announcement = {
+  readonly text: string;
+  readonly press: number;
+};
+
+/**
  * What a scope write hands back: nothing to say, or the one sentence worth
  * saying about why the list did not change.
  *
