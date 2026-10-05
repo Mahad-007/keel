@@ -11,6 +11,7 @@ import {
   SCOPE_NO_ANSWER,
   SCOPE_PROBLEMS,
   staleStatusProblem,
+  withdrawAnnouncement,
   type ArrangedDeliverable,
 } from "./arrange";
 import { canMove } from "./order";
@@ -414,6 +415,28 @@ describe("the sentences a refused press comes back with", () => {
     for (const sentence of Object.values(SCOPE_PROBLEMS)) {
       expect(sentence).toMatch(/[Nn]othing was (changed|written)/);
     }
+  });
+});
+
+describe("withdrawing what a press said", () => {
+  const said = { text: "Moved “Wireframes” to position 1 of 3.", press: 4 };
+
+  it("takes back the sentence the named press said", () => {
+    expect(withdrawAnnouncement(said, 4)).toBeNull();
+  });
+
+  it("leaves a later press's sentence standing", () => {
+    // Presses are answered in the order they were made, so a refused press can
+    // be answered after a later one has already announced something true.
+    expect(withdrawAnnouncement(said, 3)).toBe(said);
+  });
+
+  it("leaves an earlier press's sentence standing", () => {
+    expect(withdrawAnnouncement(said, 5)).toBe(said);
+  });
+
+  it("has nothing to take back from an empty live region", () => {
+    expect(withdrawAnnouncement(null, 4)).toBeNull();
   });
 });
 
