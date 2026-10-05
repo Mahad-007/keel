@@ -10,8 +10,8 @@ import type { Deliverable } from "@/lib/db/schema";
 import { SCOPE_PROBLEMS } from "@/lib/deliverables/arrange";
 
 import {
-  changeDeliverableStatusAction,
-  moveDeliverableAction,
+  writeDeliverableStatus,
+  writeDeliverableMove,
 } from "./scope-writes";
 
 /**
@@ -56,20 +56,20 @@ beforeEach(() => {
 
 describe("moving a deliverable", () => {
   it("moves the deliverable the press named, in the direction pressed", async () => {
-    const result = await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+    const result = await writeDeliverableMove("prj_engine", "dlv_wire", "up");
 
     expect(moved).toHaveBeenCalledWith("dlv_wire", "up");
     expect(result).toEqual({ ok: true });
   });
 
   it("moves it down when that is the button pressed", async () => {
-    await moveDeliverableAction("prj_engine", "dlv_wire", "down");
+    await writeDeliverableMove("prj_engine", "dlv_wire", "down");
 
     expect(moved).toHaveBeenCalledWith("dlv_wire", "down");
   });
 
   it("revalidates the project, so the server's order catches up", async () => {
-    await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+    await writeDeliverableMove("prj_engine", "dlv_wire", "up");
 
     expect(revalidatePath).toHaveBeenCalledWith("/projects/prj_engine");
   });
@@ -80,7 +80,7 @@ describe("moving a deliverable that is not this project's", () => {
     loaded.mockResolvedValue({ ...wireframes, projectId: "prj_somebody_else" });
     vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    const result = await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+    const result = await writeDeliverableMove("prj_engine", "dlv_wire", "up");
 
     expect(moved).not.toHaveBeenCalled();
     expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.missing });
@@ -90,13 +90,13 @@ describe("moving a deliverable that is not this project's", () => {
     loaded.mockResolvedValue({ ...wireframes, projectId: "prj_somebody_else" });
     vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+    await writeDeliverableMove("prj_engine", "dlv_wire", "up");
 
     expect(console.warn).toHaveBeenCalled();
   });
 
   it("refuses an id that is not a string, before it reaches the driver", async () => {
-    const result = await moveDeliverableAction(
+    const result = await writeDeliverableMove(
       "prj_engine",
       { id: "dlv_wire" } as unknown as string,
       "up",
@@ -107,7 +107,7 @@ describe("moving a deliverable that is not this project's", () => {
   });
 
   it("refuses a press that names no deliverable at all", async () => {
-    const result = await moveDeliverableAction("prj_engine", "   ", "up");
+    const result = await writeDeliverableMove("prj_engine", "   ", "up");
 
     expect(loaded).not.toHaveBeenCalled();
     expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.missing });
@@ -116,7 +116,7 @@ describe("moving a deliverable that is not this project's", () => {
   it("says the same thing about a deliverable that does not exist", async () => {
     loaded.mockResolvedValue(null);
 
-    const result = await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+    const result = await writeDeliverableMove("prj_engine", "dlv_wire", "up");
 
     expect(moved).not.toHaveBeenCalled();
     expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.missing });
@@ -125,7 +125,7 @@ describe("moving a deliverable that is not this project's", () => {
   it("revalidates nothing when it refuses", async () => {
     loaded.mockResolvedValue(null);
 
-    await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+    await writeDeliverableMove("prj_engine", "dlv_wire", "up");
 
     expect(revalidatePath).not.toHaveBeenCalled();
   });
@@ -133,7 +133,7 @@ describe("moving a deliverable that is not this project's", () => {
   it("reports it gone if it is deleted between the read and the move", async () => {
     moved.mockResolvedValue(null);
 
-    const result = await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+    const result = await writeDeliverableMove("prj_engine", "dlv_wire", "up");
 
     expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.missing });
     expect(revalidatePath).not.toHaveBeenCalled();
@@ -142,7 +142,7 @@ describe("moving a deliverable that is not this project's", () => {
 
 describe("a move the database refuses", () => {
   it("refuses a direction that is not one of the two", async () => {
-    const result = await moveDeliverableAction(
+    const result = await writeDeliverableMove(
       "prj_engine",
       "dlv_wire",
       "top" as "up",
@@ -157,7 +157,7 @@ describe("a move the database refuses", () => {
     moved.mockRejectedValue(new Error("database is locked"));
     vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const result = await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+    const result = await writeDeliverableMove("prj_engine", "dlv_wire", "up");
 
     expect(result).toEqual({ ok: false, problem: SCOPE_PROBLEMS.failed });
     expect(console.error).toHaveBeenCalled();
@@ -167,7 +167,7 @@ describe("a move the database refuses", () => {
     moved.mockRejectedValue(new Error("database is locked"));
     vi.spyOn(console, "error").mockImplementation(() => {});
 
-    await moveDeliverableAction("prj_engine", "dlv_wire", "up");
+    await writeDeliverableMove("prj_engine", "dlv_wire", "up");
 
     expect(revalidatePath).not.toHaveBeenCalled();
   });
@@ -175,7 +175,7 @@ describe("a move the database refuses", () => {
 
 describe("advancing a deliverable's status", () => {
   it("writes the status the press asked for, from the one it was drawn at", async () => {
-    const result = await changeDeliverableStatusAction(
+    const result = await writeDeliverableStatus(
       "prj_engine",
       "dlv_wire",
       "pending",
@@ -187,7 +187,7 @@ describe("advancing a deliverable's status", () => {
   });
 
   it("revalidates the project, so the words beside the line catch up", async () => {
-    await changeDeliverableStatusAction(
+    await writeDeliverableStatus(
       "prj_engine",
       "dlv_wire",
       "pending",
@@ -201,7 +201,7 @@ describe("advancing a deliverable's status", () => {
     loaded.mockResolvedValue({ ...wireframes, status: "started" });
     restated.mockResolvedValue({ ...wireframes, status: "done" });
 
-    const result = await changeDeliverableStatusAction(
+    const result = await writeDeliverableStatus(
       "prj_engine",
       "dlv_wire",
       "started",
@@ -216,7 +216,7 @@ describe("advancing a deliverable's status", () => {
     loaded.mockResolvedValue({ ...wireframes, status: "done" });
     restated.mockResolvedValue({ ...wireframes, status: "pending" });
 
-    const result = await changeDeliverableStatusAction(
+    const result = await writeDeliverableStatus(
       "prj_engine",
       "dlv_wire",
       "done",
@@ -232,7 +232,7 @@ describe("a status press against a row that has moved on", () => {
   it("writes nothing when the row is already in another status", async () => {
     loaded.mockResolvedValue({ ...wireframes, status: "done" });
 
-    const result = await changeDeliverableStatusAction(
+    const result = await writeDeliverableStatus(
       "prj_engine",
       "dlv_wire",
       "pending",
@@ -246,7 +246,7 @@ describe("a status press against a row that has moved on", () => {
   it("says what the row holds instead, which the page cannot show", async () => {
     loaded.mockResolvedValue({ ...wireframes, status: "done" });
 
-    const result = await changeDeliverableStatusAction(
+    const result = await writeDeliverableStatus(
       "prj_engine",
       "dlv_wire",
       "pending",
@@ -261,7 +261,7 @@ describe("a status press against a row that has moved on", () => {
   it("revalidates nothing when it refuses", async () => {
     loaded.mockResolvedValue({ ...wireframes, status: "done" });
 
-    await changeDeliverableStatusAction(
+    await writeDeliverableStatus(
       "prj_engine",
       "dlv_wire",
       "pending",
@@ -274,7 +274,7 @@ describe("a status press against a row that has moved on", () => {
   it("reports a race when the row changes under the write itself", async () => {
     restated.mockResolvedValue(null);
 
-    const result = await changeDeliverableStatusAction(
+    const result = await writeDeliverableStatus(
       "prj_engine",
       "dlv_wire",
       "pending",
@@ -288,7 +288,7 @@ describe("a status press against a row that has moved on", () => {
 
 describe("a status press this list cannot make", () => {
   it("refuses a status the column is not allowed to hold", async () => {
-    const result = await changeDeliverableStatusAction(
+    const result = await writeDeliverableStatus(
       "prj_engine",
       "dlv_wire",
       "pending",
@@ -301,7 +301,7 @@ describe("a status press this list cannot make", () => {
   });
 
   it("refuses a press claiming a status the row is not in", async () => {
-    const result = await changeDeliverableStatusAction(
+    const result = await writeDeliverableStatus(
       "prj_engine",
       "dlv_wire",
       "shipped",
@@ -318,7 +318,7 @@ describe("a status press this list cannot make", () => {
       status: "abandoned" as "done",
     });
 
-    const result = await changeDeliverableStatusAction(
+    const result = await writeDeliverableStatus(
       "prj_engine",
       "dlv_wire",
       "abandoned",
@@ -333,7 +333,7 @@ describe("a status press this list cannot make", () => {
     loaded.mockResolvedValue({ ...wireframes, projectId: "prj_somebody_else" });
     vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    const result = await changeDeliverableStatusAction(
+    const result = await writeDeliverableStatus(
       "prj_engine",
       "dlv_wire",
       "pending",
@@ -347,7 +347,7 @@ describe("a status press this list cannot make", () => {
   it("refuses a deliverable that does not exist", async () => {
     loaded.mockResolvedValue(null);
 
-    const result = await changeDeliverableStatusAction(
+    const result = await writeDeliverableStatus(
       "prj_engine",
       "dlv_wire",
       "pending",
@@ -361,7 +361,7 @@ describe("a status press this list cannot make", () => {
     restated.mockRejectedValue(new Error("database is locked"));
     vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const result = await changeDeliverableStatusAction(
+    const result = await writeDeliverableStatus(
       "prj_engine",
       "dlv_wire",
       "pending",

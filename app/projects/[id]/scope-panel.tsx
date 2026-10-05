@@ -4,7 +4,7 @@ import {
   type AddDeliverableState,
 } from "@/lib/deliverables/form";
 
-import { addDeliverableAction } from "./scope-writes";
+import { writeNewDeliverable } from "./scope-writes";
 
 import { AddDeliverableForm } from "./add-deliverable-form";
 import { DeliverableList } from "./deliverable-list";
@@ -46,7 +46,7 @@ export function ScopePanel({
   */
   async function add(previous: AddDeliverableState, formData: FormData) {
     "use server";
-    return addDeliverableAction(projectId, previous, formData);
+    return writeNewDeliverable(projectId, previous, formData);
   }
 
   return (

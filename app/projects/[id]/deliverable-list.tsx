@@ -4,8 +4,8 @@ import type { MoveDirection } from "@/lib/deliverables/order";
 import type { DeliverableStatus } from "@/lib/deliverables/status";
 
 import {
-  changeDeliverableStatusAction,
-  moveDeliverableAction,
+  writeDeliverableStatus,
+  writeDeliverableMove,
 } from "./scope-writes";
 import { ScopeRows } from "./scope-rows";
 
@@ -58,7 +58,7 @@ export function DeliverableList({
   */
   async function move(id: string, direction: MoveDirection) {
     "use server";
-    return moveDeliverableAction(projectId, id, direction);
+    return writeDeliverableMove(projectId, id, direction);
   }
 
   async function changeStatus(
@@ -67,7 +67,7 @@ export function DeliverableList({
     status: DeliverableStatus,
   ) {
     "use server";
-    return changeDeliverableStatusAction(projectId, id, from, status);
+    return writeDeliverableStatus(projectId, id, from, status);
   }
 
   return (

@@ -66,7 +66,7 @@ import { projectPath } from "@/lib/projects/detail";
  * that makes this project *theirs* belongs here, from the session, when Phase 8
  * adds accounts.
  */
-export async function addDeliverableAction(
+export async function writeNewDeliverable(
   projectId: string,
   _previous: AddDeliverableState,
   formData: FormData,
@@ -96,7 +96,7 @@ export async function addDeliverableAction(
     deliverable = await createDeliverable({ projectId, ...parsed.value });
   } catch (error) {
     // The user cannot act on a driver error, but the logs should keep it.
-    console.error("addDeliverableAction: failed to write deliverable", error);
+    console.error("writeNewDeliverable: failed to write deliverable", error);
     return failedAddState(
       fields,
       "Could not add that deliverable. Nothing was written — try again.",
@@ -173,7 +173,7 @@ async function projectDeliverable(projectId: string, id: unknown) {
  * rearranging, the optimistic copy has already moved, and the only thing this
  * has to say is whether the list it was looking at was still real.
  */
-export async function moveDeliverableAction(
+export async function writeDeliverableMove(
   projectId: string,
   id: string,
   direction: MoveDirection,
@@ -192,7 +192,7 @@ export async function moveDeliverableAction(
     if (moved === null) return scopeWriteProblem(SCOPE_PROBLEMS.missing);
   } catch (error) {
     // The user cannot act on a driver error, but the logs should keep it.
-    console.error("moveDeliverableAction: failed to move deliverable", error);
+    console.error("writeDeliverableMove: failed to move deliverable", error);
     return scopeWriteProblem(SCOPE_PROBLEMS.failed);
   }
 
@@ -218,7 +218,7 @@ export async function moveDeliverableAction(
  * compared against the row, so anything it does not match is already refused,
  * including whatever a hand-edited row is holding.
  */
-export async function changeDeliverableStatusAction(
+export async function writeDeliverableStatus(
   projectId: string,
   id: string,
   from: string,
@@ -239,7 +239,7 @@ export async function changeDeliverableStatusAction(
     written = await setDeliverableStatus(id, from, to);
   } catch (error) {
     // The user cannot act on a driver error, but the logs should keep it.
-    console.error("changeDeliverableStatusAction: failed to write status", error);
+    console.error("writeDeliverableStatus: failed to write status", error);
     return scopeWriteProblem(SCOPE_PROBLEMS.failed);
   }
 

@@ -5,7 +5,7 @@ import { createDeliverable } from "@/lib/data/deliverables";
 import { getProject } from "@/lib/data/projects";
 import { INITIAL_ADD_DELIVERABLE_STATE } from "@/lib/deliverables/form";
 
-import { addDeliverableAction } from "./scope-writes";
+import { writeNewDeliverable } from "./scope-writes";
 
 /**
  * Mocked collaborators rather than a database: the action's own job is the
@@ -33,7 +33,7 @@ function submit(values: Record<string, string>): FormData {
 }
 
 function add(values: Record<string, string>) {
-  return addDeliverableAction(
+  return writeNewDeliverable(
     "prj_engine",
     INITIAL_ADD_DELIVERABLE_STATE,
     submit(values),
