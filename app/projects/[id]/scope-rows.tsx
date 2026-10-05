@@ -10,6 +10,7 @@ import {
   readScopeChange,
   SCOPE_NO_ANSWER,
   scopeWriteProblem,
+  withdrawAnnouncement,
   type Announcement,
   type ScopeChange,
   type ScopeWriteResult,
@@ -99,9 +100,29 @@ export function ScopeRows({
     shown.current = rows;
   }, [rows]);
 
-  function say(text: string | null) {
-    if (text === null) return;
-    setSaid((previous) => ({ text, press: (previous?.press ?? 0) + 1 }));
+  /*
+    How many presses have been made, which is what numbers the sentences.
+
+    A ref rather than the previous announcement, because the number has to be
+    known to the press that allocated it and a functional update does not hand
+    it back. The press carries its number as far as the write's answer, which is
+    what lets a refused press take back its own sentence without touching one a
+    later press has since said.
+  */
+  const presses = useRef(0);
+
+  /**
+   * Says something about a press, and hands back the number it was said under.
+   *
+   * A press with nothing to announce still takes a number. It costs nothing and
+   * it keeps the caller total: every press has a number to withdraw, and one
+   * that never said anything withdraws nothing, rather than the caller having to
+   * carry a maybe-number to say so.
+   */
+  function say(text: string | null): number {
+    const press = (presses.current += 1);
+    if (text !== null) setSaid({ text, press });
+    return press;
   }
 
   async function arrange(formData: FormData) {
@@ -128,7 +149,7 @@ export function ScopeRows({
       sentence names where the line ends up, and `announceScopeChange` works
       that out with the same function that moves it.
     */
-    say(announceScopeChange(list, change));
+    const press = say(announceScopeChange(list, change));
 
     /*
       A press the list cannot act on: a greyed move control at the end of the
@@ -143,7 +164,7 @@ export function ScopeRows({
     showChange(change);
     shown.current = applyScopeChange(list, change);
 
-    report(await write(change));
+    report(await write(change), press);
   }
 
   /**
@@ -182,15 +203,21 @@ export function ScopeRows({
     );
   }
 
-  function report(result: ScopeWriteResult) {
+  function report(result: ScopeWriteResult, press: number) {
     /*
       React has already rolled the optimistic change back by now: the action has
       settled, so the list on screen is the server's again. All that is left is
       to say why it snapped back — and to drop the sentence that said the press
       had worked, which it did not.
+
+      Its own sentence, not whatever the live region is holding. Presses are sent
+      one at a time and answered in that order, so by the time this one is refused
+      a later press may already have announced something that did happen — and
+      clearing that would leave the reader never told about it, because the later
+      press will not say it twice.
     */
     if (result.ok) return;
-    setSaid(null);
+    setSaid((said) => withdrawAnnouncement(said, press));
     setProblem(result.problem);
   }
 
