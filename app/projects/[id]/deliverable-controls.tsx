@@ -43,8 +43,10 @@ export function DeliverableControls({
     <form action={arrange} className="flex shrink-0 items-center gap-1">
       {/*
         Which line was pressed, and what it said at the time. The project is not
-        here: the list binds that into the action, so no field of this form can
-        name a project the reader was not looking at.
+        here, and it is not in the list either: the page closes it over and hands
+        the list an action that already carries it, so neither a field of this
+        form nor an argument from the list can name a project the reader was not
+        looking at.
 
         `from` is the row's status as rendered, and it is the whole of the
         protection against two people pressing at once — the write refuses a

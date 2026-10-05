@@ -112,8 +112,9 @@ export function applyScopeChange<T extends ArrangedDeliverable>(
  * `id` is in the form rather than bound into an action per row because one form
  * carries all of a row's controls: a press has to say which deliverable it was
  * aimed at, and the direction or status says what to do with it. The project is
- * *not* in the form — the page binds that, so a submitted field cannot name a
- * project the reader was not looking at.
+ * *not* in the form — the page closes it over before the list ever sees it, so
+ * neither a submitted field nor a forged argument can name a project the reader
+ * was not looking at.
  */
 export const SCOPE_FIELD_NAMES = {
   id: "id",

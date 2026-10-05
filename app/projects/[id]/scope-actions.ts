@@ -40,11 +40,13 @@ import { projectPath } from "@/lib/projects/detail";
  * throw the cursor away three times. So the action returns a state, the form
  * stays mounted, and the list above it is revalidated to show what landed.
  *
- * The project id is bound by the page rather than carried in a hidden input,
- * so no field of the form names the project it writes to. That is tidiness
- * rather than a permission check — a server action is a POST endpoint, and
- * the check that makes this project *theirs* belongs here when Phase 8 adds
- * accounts.
+ * The project id is closed over by the page rather than carried in a hidden
+ * input or passed as an argument by the form, so the framework encrypts it and
+ * no field of a submission can name the project this writes to. That is worth
+ * more than tidiness, and still less than a permission check: it says which
+ * page made the call, not who was holding it. A server action is a POST
+ * endpoint, and the check that makes this project *theirs* belongs here, from
+ * the session, when Phase 8 adds accounts.
  */
 export async function addDeliverableAction(
   projectId: string,
