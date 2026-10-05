@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ADD_NO_ANSWER,
   DELIVERABLE_FIELD_LIMITS,
   EMPTY_DELIVERABLE_FIELDS,
   parseDeliverableForm,
@@ -102,5 +103,19 @@ describe("a deliverable wrong in several ways", () => {
         estimate: "Estimate cannot be negative.",
       },
     });
+  });
+});
+
+describe("the sentence an add with no answer comes back with", () => {
+  it("does not claim the deliverable was not written, because it cannot know", () => {
+    expect(ADD_NO_ANSWER).not.toMatch(/[Nn]othing was (changed|written|added)/);
+  });
+
+  it("does not invite the add to be made again, which would write it twice", () => {
+    expect(ADD_NO_ANSWER).not.toMatch(/try again/);
+  });
+
+  it("sends the reader to the list, which is what the server says", () => {
+    expect(ADD_NO_ANSWER).toMatch(/Reload/);
   });
 });
