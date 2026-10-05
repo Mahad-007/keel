@@ -96,10 +96,20 @@ export async function addDeliverableAction(
  * The deliverable a press names, if it is one of this project's.
  *
  * A server action is a POST endpoint, and the id in a press comes from the
- * page — which means it comes from whoever is holding the page. The project is
- * bound by the component rather than submitted, so the one check worth making
- * here is that the two agree: a deliverable belonging to some other project is
- * not this page's to move, whatever its id says.
+ * page — which means it comes from whoever is holding the page. The project
+ * does not: the page closes over it rather than the rows passing it as an
+ * argument, so the framework encrypts it and a caller cannot swap it. That
+ * asymmetry is the whole point of this function — the id is forgeable and the
+ * project is not, so the one check worth making is that the two agree. A
+ * deliverable belonging to some other project is not this page's to move,
+ * whatever its id says.
+ *
+ * It is not an ownership check, and Phase 8 must not read it as one. All it
+ * establishes is that the press names a deliverable of the project this page
+ * was served for. Whether the reader was entitled to that page is a question
+ * about a session, and the answer has to be derived from the session here —
+ * never from `projectId`, however unforgeable it is, because an unforgeable
+ * value is still only a statement about which page made the call.
  *
  * Gone and somebody-else's are deliberately the same answer. The caller has one
  * sentence for both, which is the honest one — a page that cannot act on a
