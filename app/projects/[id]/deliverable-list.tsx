@@ -6,7 +6,7 @@ import type { DeliverableStatus } from "@/lib/deliverables/status";
 import {
   changeDeliverableStatusAction,
   moveDeliverableAction,
-} from "./scope-actions";
+} from "./scope-writes";
 import { ScopeRows } from "./scope-rows";
 
 /**

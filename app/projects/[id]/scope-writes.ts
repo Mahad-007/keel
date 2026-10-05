@@ -1,4 +1,23 @@
-"use server";
+/**
+ * The three writes a project's scope list can ask for.
+ *
+ * Plain async functions, and the absent `"use server"` at the top of this file
+ * is the point. A `"use server"` module exports an endpoint per function: each
+ * one is registered as a server reference and can be POSTed directly with
+ * whatever arguments the caller likes, `projectId` included. That left the
+ * check in `projectDeliverable` comparing two values from the same source no
+ * matter how carefully the page passed them.
+ *
+ * So these are not actions. The only registered references for this page are
+ * the `"use server"` closures in `deliverable-list.tsx` and `scope-panel.tsx`,
+ * which capture the project — encrypted, because that is the one form the
+ * compiler rewrites — and call in here. There is no second way in that skips
+ * the capture.
+ *
+ * They still take `projectId` as a parameter, which is what makes them testable
+ * without a page. The difference is that nothing reachable from the wire gets to
+ * choose it.
+ */
 
 import { revalidatePath } from "next/cache";
 
@@ -40,13 +59,12 @@ import { projectPath } from "@/lib/projects/detail";
  * throw the cursor away three times. So the action returns a state, the form
  * stays mounted, and the list above it is revalidated to show what landed.
  *
- * The project id is closed over by the page rather than carried in a hidden
- * input or passed as an argument by the form, so the framework encrypts it and
- * no field of a submission can name the project this writes to. That is worth
- * more than tidiness, and still less than a permission check: it says which
- * page made the call, not who was holding it. A server action is a POST
- * endpoint, and the check that makes this project *theirs* belongs here, from
- * the session, when Phase 8 adds accounts.
+ * The project id comes from the page's closure rather than from the submission,
+ * so no field of a form and no argument of a POST can name the project this
+ * writes to. That is worth more than tidiness and still less than a permission
+ * check: it says which page made the call, not who was holding it. The check
+ * that makes this project *theirs* belongs here, from the session, when Phase 8
+ * adds accounts.
  */
 export async function addDeliverableAction(
   projectId: string,
@@ -97,14 +115,14 @@ export async function addDeliverableAction(
 /**
  * The deliverable a press names, if it is one of this project's.
  *
- * A server action is a POST endpoint, and the id in a press comes from the
- * page — which means it comes from whoever is holding the page. The project
- * does not: the page closes over it rather than the rows passing it as an
- * argument, so the framework encrypts it and a caller cannot swap it. That
- * asymmetry is the whole point of this function — the id is forgeable and the
- * project is not, so the one check worth making is that the two agree. A
- * deliverable belonging to some other project is not this page's to move,
- * whatever its id says.
+ * The id in a press comes from the page, which means it comes from whoever is
+ * holding the page: it rides in the submission and a caller can put anything
+ * there. The project does not — it is captured by the page's closure and
+ * encrypted, and this module is not a `"use server"` module, so there is no
+ * endpoint that takes it as an argument. That asymmetry is the whole point of
+ * this function: the id is forgeable and the project is not, so the one check
+ * worth making is that the two agree. A deliverable belonging to some other
+ * project is not this page's to move, whatever its id says.
  *
  * It is not an ownership check, and Phase 8 must not read it as one. All it
  * establishes is that the press names a deliverable of the project this page

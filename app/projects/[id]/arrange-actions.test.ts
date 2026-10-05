@@ -12,7 +12,7 @@ import { SCOPE_PROBLEMS } from "@/lib/deliverables/arrange";
 import {
   changeDeliverableStatusAction,
   moveDeliverableAction,
-} from "./scope-actions";
+} from "./scope-writes";
 
 /**
  * Mocked collaborators rather than a database. The arithmetic of a move and the

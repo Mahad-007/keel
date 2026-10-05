@@ -5,7 +5,7 @@ import { createDeliverable } from "@/lib/data/deliverables";
 import { getProject } from "@/lib/data/projects";
 import { INITIAL_ADD_DELIVERABLE_STATE } from "@/lib/deliverables/form";
 
-import { addDeliverableAction } from "./scope-actions";
+import { addDeliverableAction } from "./scope-writes";
 
 /**
  * Mocked collaborators rather than a database: the action's own job is the

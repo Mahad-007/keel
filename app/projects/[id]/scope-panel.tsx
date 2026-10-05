@@ -4,7 +4,7 @@ import {
   type AddDeliverableState,
 } from "@/lib/deliverables/form";
 
-import { addDeliverableAction } from "./scope-actions";
+import { addDeliverableAction } from "./scope-writes";
 
 import { AddDeliverableForm } from "./add-deliverable-form";
 import { DeliverableList } from "./deliverable-list";
