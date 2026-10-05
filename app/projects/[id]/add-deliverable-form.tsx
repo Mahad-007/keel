@@ -11,9 +11,12 @@ import {
   useFirstErrorFocus,
 } from "@/components/form";
 import {
+  ADD_NO_ANSWER,
   addedNotice,
   DELIVERABLE_FIELD_LIMITS,
   DELIVERABLE_FIELD_NAMES,
+  failedAddState,
+  readDeliverableFields,
   type AddDeliverableAction,
   type AddDeliverableState,
 } from "@/lib/deliverables/form";
@@ -44,7 +47,35 @@ export function AddDeliverableForm({
   add: AddDeliverableAction;
   initialState: AddDeliverableState;
 }) {
-  const [state, formAction] = useActionState(add, initialState);
+  /*
+    The add has to come back with a state even when the call itself fails.
+
+    `useActionState` has no answer for a rejected action: the rejection escapes
+    the dispatch and takes the page to an error boundary, which here would throw
+    away the title and estimate that had just been typed — the one thing this
+    form exists to hold on to. A dropped connection, a tab suspended mid-request
+    and an aborted request all reject, and the project is now captured by an
+    encrypted closure, so a page left open across a deploy that rotated the key
+    rejects too.
+
+    The fields come from the submission rather than the previous state, so what
+    comes back is what was in the boxes when the press was made.
+  */
+  async function attempt(
+    previous: AddDeliverableState,
+    formData: FormData,
+  ): Promise<AddDeliverableState> {
+    try {
+      return await add(previous, formData);
+    } catch (error) {
+      // Nothing a reader can act on beyond reloading, but worth a line in the
+      // console for whoever is looking into why adds are failing.
+      console.error("add deliverable: the server never answered", error);
+      return failedAddState(readDeliverableFields(formData), ADD_NO_ANSWER);
+    }
+  }
+
+  const [state, formAction] = useActionState(attempt, initialState);
 
   useFirstErrorFocus(state, DELIVERABLE_FIELD_NAMES);
 
