@@ -158,11 +158,12 @@ export const INITIAL_ADD_DELIVERABLE_STATE: AddDeliverableState = {
  * Adding a deliverable, with the project already bound — what the form at the
  * bottom of a scope list is handed, rather than a project id to pass on.
  *
- * The binding has to happen on the server. `useActionState` wants an action it
- * can call, and `.bind` inside a client component simply prepends the argument
- * to the POST body, where it is as forgeable as any field of the form. Closed
- * over by a server component instead, it is encrypted by the framework, and
- * the project a line is written to is the project the page was served for.
+ * `useActionState` wants an action it can call, and the obvious way to give it
+ * one is `.bind` — which does not do what it looks like. Bound arguments are
+ * concatenated onto the reference and serialised in the clear, wherever the
+ * `.bind` was written, so the project a line gets written to would be whatever
+ * the caller sent. Captured by a `"use server"` closure in a server component
+ * instead, it is encrypted, and the project is the one the page was served for.
  *
  * As with the presses, that is not an entitlement check — it says which page
  * made the call, not who was holding it. Phase 8 answers that from the session.

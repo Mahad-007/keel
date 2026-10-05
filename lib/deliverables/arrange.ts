@@ -345,14 +345,21 @@ export const SCOPE_NO_ANSWER =
  * project is already bound, so a press only has to say which line it was aimed
  * at and what it asked for.
  *
- * Bound on the server and handed to the list as props, rather than the list
- * holding a project id and passing it as an argument. The difference is not
- * tidiness. An argument to a server action is wire data — the call is a POST,
- * and every argument in it is whatever the caller put there — so a project id
- * passed that way is supplied by the page's holder and comparing a deliverable
- * against it proves nothing. A value closed over by the action is encrypted by
- * the framework and cannot be forged, which is what makes "is this deliverable
- * one of this project's" a check rather than a tautology.
+ * Captured by a `"use server"` closure in the server component that renders the
+ * list, and handed down as props — rather than the list holding a project id
+ * and passing it as an argument. The difference is not tidiness. An argument to
+ * a server action is wire data: the call is a POST, and every argument in it is
+ * whatever the caller put there, so a project id passed that way is supplied by
+ * the page's holder and comparing a deliverable against it proves nothing.
+ *
+ * It has to be that exact shape. `.bind` is *not* enough and the fact that it
+ * reads like binding is the trap — it concatenates onto the reference's
+ * `$$bound` and those values are serialised in the clear, on the server side as
+ * much as the client. Only a `"use server"` function declared inside a server
+ * component is rewritten to encrypt what it captures. That encryption is what
+ * makes "is this deliverable one of this project's" a check rather than a
+ * tautology, so if these ever go back to being `.bind`-ed the check quietly
+ * stops being one.
  *
  * It still is not an ownership check. It says the press names a deliverable of
  * the project the page was served for; whether the reader was entitled to that
