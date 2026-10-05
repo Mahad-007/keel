@@ -12,16 +12,14 @@ import {
   scopeWriteProblem,
   withdrawAnnouncement,
   type Announcement,
+  type MoveScopeAction,
   type ScopeChange,
   type ScopeWriteResult,
+  type StatusScopeAction,
 } from "@/lib/deliverables/arrange";
 
 import { DeliverableControls } from "./deliverable-controls";
 import { DeliverableItem } from "./deliverable-item";
-import {
-  changeDeliverableStatusAction,
-  moveDeliverableAction,
-} from "./scope-actions";
 import { ScopeProblem } from "./scope-problem";
 
 /**
@@ -39,11 +37,19 @@ import { ScopeProblem } from "./scope-problem";
  * action answers which press.
  */
 export function ScopeRows({
-  projectId,
   deliverables,
+  move,
+  changeStatus,
 }: {
-  projectId: string;
   deliverables: readonly Deliverable[];
+  /**
+   * The two writes, with the project already bound by the page that served
+   * them. They arrive as props rather than being imported and called with a
+   * project id, because an argument to a server action is wire data and a
+   * project named that way is named by whoever is holding the page.
+   */
+  move: MoveScopeAction;
+  changeStatus: StatusScopeAction;
 }) {
   /*
     The list as the reader sees it, which is the server's list plus whatever
@@ -192,15 +198,8 @@ export function ScopeRows({
   }
 
   function send(change: ScopeChange): Promise<ScopeWriteResult> {
-    if (change.kind === "move") {
-      return moveDeliverableAction(projectId, change.id, change.direction);
-    }
-    return changeDeliverableStatusAction(
-      projectId,
-      change.id,
-      change.from,
-      change.status,
-    );
+    if (change.kind === "move") return move(change.id, change.direction);
+    return changeStatus(change.id, change.from, change.status);
   }
 
   function report(result: ScopeWriteResult, press: number) {

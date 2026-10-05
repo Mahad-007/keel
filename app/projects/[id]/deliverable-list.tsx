@@ -1,6 +1,10 @@
 import type { Deliverable } from "@/lib/db/schema";
 import { describeScopeList } from "@/lib/deliverables/list";
 
+import {
+  changeDeliverableStatusAction,
+  moveDeliverableAction,
+} from "./scope-actions";
 import { ScopeRows } from "./scope-rows";
 
 /**
@@ -35,7 +39,20 @@ export function DeliverableList({
       <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
         {describeScopeList(deliverables.length)}
       </p>
-      <ScopeRows projectId={projectId} deliverables={deliverables} />
+      {/*
+        The project is bound here, on the server, rather than passed to the
+        actions as an argument from the rows. A server action is a POST endpoint
+        and its arguments are whatever the caller sent; a value closed over by
+        the action is encrypted by the framework instead, so no press can name a
+        project other than the one this page was served for. That is what gives
+        the deliverable-belongs-to-project check in the actions something real
+        to compare against.
+      */}
+      <ScopeRows
+        deliverables={deliverables}
+        move={moveDeliverableAction.bind(null, projectId)}
+        changeStatus={changeDeliverableStatusAction.bind(null, projectId)}
+      />
     </>
   );
 }
