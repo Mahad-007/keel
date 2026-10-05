@@ -192,6 +192,20 @@ export function rejectedAddState(
   return { ...rejectedFormState(fields, errors), added: null };
 }
 
+/**
+ * What to say when the add never got an answer — the connection dropped, the
+ * tab was suspended mid-request, the request was aborted.
+ *
+ * It does not say nothing was written, because from the client there is no way
+ * to know: the request may have been lost on the way out, or the answer lost on
+ * the way back with the row already created. Nor does it say "try again", which
+ * is the instruction that would add the same deliverable twice. Reloading is
+ * the only honest one — the list above the form is what the server says, so
+ * reading it answers the question.
+ */
+export const ADD_NO_ANSWER =
+  "Could not tell whether that deliverable was added — the answer never arrived. Reload to see what the scope list says now.";
+
 /** The submission was good and could not be saved. */
 export function failedAddState(
   fields: DeliverableFormFields,
