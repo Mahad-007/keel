@@ -8,6 +8,7 @@ import {
   statusButtonLabel,
   readScopeChange,
   SCOPE_FIELD_NAMES,
+  SCOPE_NO_ANSWER,
   SCOPE_PROBLEMS,
   staleStatusProblem,
   type ArrangedDeliverable,
@@ -413,6 +414,24 @@ describe("the sentences a refused press comes back with", () => {
     for (const sentence of Object.values(SCOPE_PROBLEMS)) {
       expect(sentence).toMatch(/[Nn]othing was (changed|written)/);
     }
+  });
+});
+
+describe("the sentence a press with no answer at all comes back with", () => {
+  it("is not one of the sentences a refused press uses", () => {
+    expect(Object.values(SCOPE_PROBLEMS)).not.toContain(SCOPE_NO_ANSWER);
+  });
+
+  it("does not claim the write did not happen, because it cannot know", () => {
+    expect(SCOPE_NO_ANSWER).not.toMatch(/[Nn]othing was (changed|written)/);
+  });
+
+  it("sends the reader to the one place that does know", () => {
+    expect(SCOPE_NO_ANSWER).toMatch(/Reload/);
+  });
+
+  it("does not invite the press to be made again", () => {
+    expect(SCOPE_NO_ANSWER).not.toMatch(/try again/);
   });
 });
 
