@@ -246,6 +246,31 @@ export type Announcement = {
 };
 
 /**
+ * The live region's contents once the press numbered `press` takes back what it
+ * said — because the server refused it, so the sentence claiming it worked is
+ * no longer true.
+ *
+ * Only that press's own sentence goes. Presses are sent one at a time and
+ * answered in the order they were made, so a press that is refused can be
+ * answered *after* a later press has already announced something that did
+ * happen: "Start" then "Mark done" on one line is two presses in under a
+ * second, and the first can fail while the second succeeds. Clearing whatever
+ * the region happens to hold would wipe the later sentence moments after it was
+ * inserted, and the later press has no reason to say it twice — so a reader
+ * working from a screen reader would simply never hear it.
+ *
+ * A number no sentence was said under leaves the region alone, which is the
+ * answer for a press that had nothing to announce in the first place.
+ */
+export function withdrawAnnouncement(
+  said: Announcement | null,
+  press: number,
+): Announcement | null {
+  if (said === null || said.press !== press) return said;
+  return null;
+}
+
+/**
  * What a scope write hands back: nothing to say, or the one sentence worth
  * saying about why the list did not change.
  *
