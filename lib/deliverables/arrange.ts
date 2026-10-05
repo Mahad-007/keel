@@ -275,6 +275,27 @@ export const SCOPE_PROBLEMS = {
 } as const;
 
 /**
+ * What to say about a press whose answer never arrived.
+ *
+ * Deliberately not one of `SCOPE_PROBLEMS`, and the difference is the one thing
+ * this sentence has to get right. Every one of those comes back *from* the
+ * action, which means the action ran and decided: nothing was written, and the
+ * sentence can say so. This one is the case where the action never answered —
+ * the connection dropped, the tab was suspended mid-request, the request was
+ * aborted — and then there is no way to know from here whether the write
+ * happened. The request may have been lost on the way out, or the answer lost
+ * on the way back with the row already written.
+ *
+ * So it does not claim either. A sentence saying "nothing was written" would be
+ * a guess, and the guess is wrong exactly when it matters — a reader told their
+ * press did not land, who presses again, cycling a status they had already set.
+ * Reloading is the only honest instruction: the server knows, and the page can
+ * go and ask it.
+ */
+export const SCOPE_NO_ANSWER =
+  "Could not tell whether that change was saved — the answer never arrived. Reload to see what the scope list says now.";
+
+/**
  * Why a status press cannot be applied to the row as it now stands, or null
  * when it can.
  *
