@@ -14,10 +14,9 @@ import {
   addedNotice,
   DELIVERABLE_FIELD_LIMITS,
   DELIVERABLE_FIELD_NAMES,
+  type AddDeliverableAction,
   type AddDeliverableState,
 } from "@/lib/deliverables/form";
-
-import { addDeliverableAction } from "./scope-actions";
 
 /**
  * The line at the bottom of a scope list where the next deliverable is typed.
@@ -33,15 +32,18 @@ import { addDeliverableAction } from "./scope-actions";
  * and nothing else can put the cursor back on the field that failed.
  */
 export function AddDeliverableForm({
-  projectId,
+  add,
   initialState,
 }: {
-  projectId: string;
+  /**
+   * The write, with the project already bound by the page that served this
+   * form. Bound there rather than here: `.bind` in a client component only
+   * prepends the argument to the POST body, where it is exactly as forgeable
+   * as a hidden input naming the project would have been.
+   */
+  add: AddDeliverableAction;
   initialState: AddDeliverableState;
 }) {
-  // The id is fixed for as long as this page is mounted, so the binding is
-  // just the action with its first argument already supplied.
-  const add = addDeliverableAction.bind(null, projectId);
   const [state, formAction] = useActionState(add, initialState);
 
   useFirstErrorFocus(state, DELIVERABLE_FIELD_NAMES);

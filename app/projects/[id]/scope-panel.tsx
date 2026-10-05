@@ -1,6 +1,8 @@
 import type { Deliverable } from "@/lib/db/schema";
 import { INITIAL_ADD_DELIVERABLE_STATE } from "@/lib/deliverables/form";
 
+import { addDeliverableAction } from "./scope-actions";
+
 import { AddDeliverableForm } from "./add-deliverable-form";
 import { DeliverableList } from "./deliverable-list";
 import { NoDeliverables } from "./scope-empty";
@@ -39,8 +41,13 @@ export function ScopePanel({
         <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
           {empty ? "Add the first deliverable" : "Add a deliverable"}
         </h3>
+        {/*
+          The project is closed over here, on the server, so the framework
+          encrypts it and the form cannot write a line to a project this page
+          was not served for.
+        */}
         <AddDeliverableForm
-          projectId={projectId}
+          add={addDeliverableAction.bind(null, projectId)}
           initialState={INITIAL_ADD_DELIVERABLE_STATE}
         />
       </section>
