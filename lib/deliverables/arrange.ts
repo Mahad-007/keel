@@ -340,6 +340,36 @@ export const SCOPE_NO_ANSWER =
   "Could not tell whether that change was saved — the answer never arrived. Reload to see what the scope list says now.";
 
 /**
+ * The two writes a row's controls can ask for, as the list sees them: the
+ * project is already bound, so a press only has to say which line it was aimed
+ * at and what it asked for.
+ *
+ * Bound on the server and handed to the list as props, rather than the list
+ * holding a project id and passing it as an argument. The difference is not
+ * tidiness. An argument to a server action is wire data — the call is a POST,
+ * and every argument in it is whatever the caller put there — so a project id
+ * passed that way is supplied by the page's holder and comparing a deliverable
+ * against it proves nothing. A value closed over by the action is encrypted by
+ * the framework and cannot be forged, which is what makes "is this deliverable
+ * one of this project's" a check rather than a tautology.
+ *
+ * It still is not an ownership check. It says the press names a deliverable of
+ * the project the page was served for; whether the reader was entitled to that
+ * page is a question about a session, and Phase 8 has to ask it in the action
+ * itself, against the session rather than against anything that arrived here.
+ */
+export type MoveScopeAction = (
+  id: string,
+  direction: MoveDirection,
+) => Promise<ScopeWriteResult>;
+
+export type StatusScopeAction = (
+  id: string,
+  from: string,
+  status: DeliverableStatus,
+) => Promise<ScopeWriteResult>;
+
+/**
  * Why a status press cannot be applied to the row as it now stands, or null
  * when it can.
  *
