@@ -1,5 +1,5 @@
 /**
- * The three writes a project's scope list can ask for.
+ * The writes a project's scope list can ask for.
  *
  * Plain async functions, and the absent `"use server"` at the top of this file
  * is the point. A `"use server"` module exports an endpoint per function: each
@@ -26,6 +26,7 @@ import {
   getDeliverable,
   moveDeliverable,
   setDeliverableStatus,
+  updateDeliverable,
 } from "@/lib/data/deliverables";
 import { getProject } from "@/lib/data/projects";
 import {
@@ -36,7 +37,18 @@ import {
   type ScopeWriteResult,
 } from "@/lib/deliverables/arrange";
 import {
+  changesDeliverable,
+  deliverableChanges,
+  EDIT_PROBLEMS,
+  failedEditState,
+  readEditId,
+  rejectedEditState,
+  savedEditState,
+  type EditDeliverableState,
+} from "@/lib/deliverables/edit";
+import {
   addedDeliverableState,
+  deliverableFormFields,
   failedAddState,
   parseDeliverableForm,
   readDeliverableFields,
@@ -251,4 +263,65 @@ export async function writeDeliverableStatus(
   // change once the page is re-rendered.
   revalidatePath(projectPath(projectId));
   return SCOPE_WRITE_DONE;
+}
+
+/**
+ * Saving an edit to one line of a project's scope.
+ *
+ * One action for every row, which is why the id is in the submission: a scope
+ * list of eight lines would otherwise register eight server references, and the
+ * row a save is aimed at is exactly the kind of thing a form says. The project
+ * is not in the submission — it comes from the page's closure, and the check
+ * that the two agree is the whole reason the id being forgeable does not matter.
+ *
+ * Like the add line, it does not redirect: the reader is looking at the list
+ * they are editing. What comes back is a state the row can close itself on, or
+ * the messages it has to stay open holding.
+ */
+export async function writeDeliverableEdit(
+  projectId: string,
+  _previous: EditDeliverableState,
+  formData: FormData,
+): Promise<EditDeliverableState> {
+  const fields = readDeliverableFields(formData);
+
+  const parsed = parseDeliverableForm(fields);
+  if (!parsed.ok) return rejectedEditState(fields, parsed.errors);
+
+  const before = await projectDeliverable(projectId, readEditId(formData));
+  if (before === null) return failedEditState(fields, EDIT_PROBLEMS.missing);
+
+  /*
+    A form opened to read the detail and saved untouched is not a write. Writing
+    it anyway would bump `updatedAt` and mark the line as edited today, which is
+    how a scope list stops being able to say which line actually moved.
+  */
+  const patch = deliverableChanges(before, parsed.value);
+  if (!changesDeliverable(patch)) {
+    return savedEditState(
+      { id: before.id, title: before.title, changed: false },
+      deliverableFormFields(before),
+    );
+  }
+
+  let saved;
+  try {
+    saved = await updateDeliverable(before.id, patch);
+  } catch (error) {
+    // The user cannot act on a driver error, but the logs should keep it.
+    console.error("writeDeliverableEdit: failed to save deliverable", error);
+    return failedEditState(fields, EDIT_PROBLEMS.failed);
+  }
+
+  // Deleted between the read above and the update: nothing was written, and the
+  // page is describing a list that no longer has the row.
+  if (saved === null) return failedEditState(fields, EDIT_PROBLEMS.missing);
+
+  // The line is part of the page, so the words beside it only change once the
+  // page is re-rendered.
+  revalidatePath(projectPath(projectId));
+  return savedEditState(
+    { id: saved.id, title: saved.title, changed: true },
+    deliverableFormFields(saved),
+  );
 }
