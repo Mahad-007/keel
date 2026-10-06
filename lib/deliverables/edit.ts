@@ -1,5 +1,6 @@
 import type { DeliverablePatch } from "@/lib/data/deliverables";
 import type { Deliverable } from "@/lib/db/schema";
+import { readField } from "@/lib/forms/form-data";
 import type { FieldErrors } from "@/lib/forms/result";
 import {
   failedFormState,
@@ -193,3 +194,29 @@ export function savedNotice(state: EditDeliverableState): string | null {
  */
 export const EDIT_NO_ANSWER =
   "Could not tell whether that edit was saved — the answer never arrived. Reload to see what the scope list says now.";
+
+/**
+ * The field an edit submission names its row in.
+ *
+ * Written down once because it is read in two places that cannot see each
+ * other: the hidden input in the form, and the write that reads it. A typo in
+ * one of them compiles and makes every save fail as though the row were gone.
+ *
+ * The same name the row's controls use, which is deliberate — both answer the
+ * question "which deliverable is this press about?" and there is no reason for
+ * a reader of either to learn a second word for it.
+ */
+export const EDIT_FIELD_NAMES = { id: "id" } as const;
+
+/**
+ * Which deliverable a submission was aimed at, or the empty string if it did
+ * not say.
+ *
+ * Trimmed, because an id is matched against a stored one and whitespace around
+ * it is not a different row. Empty is left for the caller to refuse: the write
+ * answers it with the same sentence it answers an unknown id with, since from
+ * the reader's side both mean the line is not there to save.
+ */
+export function readEditId(formData: FormData): string {
+  return readField(formData, EDIT_FIELD_NAMES.id).trim();
+}
