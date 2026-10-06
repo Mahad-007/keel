@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatMinutes, parseHours } from "./minutes";
+import { formatMinutes, hoursInput, parseHours } from "./minutes";
 
 describe("formatMinutes", () => {
   it("writes under an hour as minutes alone", () => {
@@ -71,5 +71,41 @@ describe("parseHours", () => {
     expect(() => parseHours("two")).toThrow("not a number of hours");
     expect(() => parseHours("1:30")).toThrow("not a number of hours");
     expect(() => parseHours("1h")).toThrow("not a number of hours");
+  });
+});
+
+describe("hoursInput", () => {
+  it("writes whole hours without a decimal part", () => {
+    expect(hoursInput(60)).toBe("1");
+    expect(hoursInput(120)).toBe("2");
+    expect(hoursInput(1_200)).toBe("20");
+  });
+
+  it("writes a half hour the way somebody would type it", () => {
+    expect(hoursInput(90)).toBe("1.5");
+    expect(hoursInput(30)).toBe("0.5");
+    expect(hoursInput(15)).toBe("0.25");
+  });
+
+  it("writes an unestimated line as a zero, not a blank", () => {
+    // Whether a zero belongs in the box at all is the form layer's question.
+    expect(hoursInput(0)).toBe("0");
+  });
+
+  it("round-trips every minute value, so an untouched save writes it back", () => {
+    // The thirds are the hard ones: 20 minutes is 0.3333 hours, and a form that
+    // lost a minute each time a deliverable was opened would be worse than one
+    // that refused to open it.
+    for (let minutes = 0; minutes <= 600; minutes += 1) {
+      expect(parseHours(hoursInput(minutes))).toBe(minutes);
+    }
+  });
+
+  it("round-trips the largest estimate a scope line can hold", () => {
+    expect(parseHours(hoursInput(60_000))).toBe(60_000);
+  });
+
+  it("keeps a negative, which only a hand-edited row can hold", () => {
+    expect(hoursInput(-90)).toBe("-1.5");
   });
 });
