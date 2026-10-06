@@ -306,6 +306,19 @@ export function ScopeRows({
   }
 
   /**
+   * Open a row for one thing, which closes anything else that was open.
+   *
+   * It clears the last complaint, for the same reason a press does: a red box
+   * saying nothing was written, left above a list the reader has since gone on
+   * working in, reads as being about whatever they did most recently. Pressing
+   * Edit or Delete is as much a new act as pressing Up.
+   */
+  function openRow(id: string, mode: ScopeRowMode) {
+    setProblem(null);
+    setOpen(openScopeRow(id, mode));
+  }
+
+  /**
    * A row is done with whatever it was open for: the save landed, the reader
    * left the editor, or they decided to keep the deliverable after all.
    *
@@ -432,10 +445,8 @@ export function ScopeRows({
                   position={index + 1}
                   count={rows.length}
                   arrange={arrange}
-                  onEdit={() => setOpen(openScopeRow(deliverable.id, "edit"))}
-                  onDelete={() =>
-                    setOpen(openScopeRow(deliverable.id, "confirm"))
-                  }
+                  onEdit={() => openRow(deliverable.id, "edit")}
+                  onDelete={() => openRow(deliverable.id, "confirm")}
                 />
               }
               prompt={
