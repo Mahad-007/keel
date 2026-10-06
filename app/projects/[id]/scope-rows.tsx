@@ -409,7 +409,11 @@ export function ScopeRows({
               showing both would be the same three values twice over, and the
               reader would have to work out which copy they are changing.
             */
-            <ScopeRow key={deliverable.id} align="start">
+            <ScopeRow
+              key={deliverable.id}
+              align="start"
+              position={index + 1}
+            >
               <EditDeliverableForm
                 deliverable={deliverable}
                 save={edit}

@@ -9,12 +9,6 @@ import { ScopeRow } from "./scope-row";
 /**
  * One line of a project's scope: what was agreed, and what it was sized at.
  *
- * The number down the left is the deliverable's place in the list, drawn
- * rather than left to the browser's own list marker so that it lines up with
- * the one under it once the list reaches ten. It is hidden from assistive
- * technology, which already announces the position from the `<ol>` — hearing
- * "three" twice is worse than not hearing it at all.
- *
  * The estimate and the status sit together on the right because they are the
  * two things a reader scans a scope list for: how big, and how far along.
  * Words rather than a bar or a coloured dot — "Not estimated" is a fact, and
@@ -58,13 +52,7 @@ export function DeliverableItem({
     : "text-zinc-500 dark:text-zinc-400";
 
   return (
-    <ScopeRow>
-      <span
-        aria-hidden="true"
-        className="w-5 shrink-0 text-right text-sm tabular-nums text-zinc-400 dark:text-zinc-500"
-      >
-        {position}
-      </span>
+    <ScopeRow position={position}>
       <div className="min-w-0 flex-1">
         {/*
           A title is allowed 120 characters and nothing makes them be words:
