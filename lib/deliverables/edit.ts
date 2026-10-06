@@ -1,3 +1,4 @@
+import type { DeliverablePatch } from "@/lib/data/deliverables";
 import type { Deliverable } from "@/lib/db/schema";
 import type { FieldErrors } from "@/lib/forms/result";
 import {
@@ -9,6 +10,7 @@ import {
 import {
   deliverableFormFields,
   type DeliverableFieldName,
+  type DeliverableFormValue,
   type DeliverableFormFields,
   type DeliverableFormState,
 } from "./form";
@@ -114,4 +116,47 @@ export function failedEditState(
   formError: string,
 ): EditDeliverableState {
   return { ...failedFormState(fields, formError), saved: null };
+}
+
+/**
+ * What the submitted form actually changes about the stored row — only the
+ * columns whose value is different.
+ *
+ * A patch of every field would also work: the data layer writes what it is
+ * given and the row would end up the same. What it would not leave the same is
+ * `updatedAt`, which a write bumps. Opening a deliverable to read the detail
+ * and pressing Save would then mark it as edited this morning, and a scope list
+ * where every line claims to have changed today tells the reader nothing about
+ * which one actually did.
+ *
+ * An empty patch is therefore meaningful rather than a degenerate case: it is
+ * how the write knows there is nothing to do and the row can say so.
+ */
+export function deliverableChanges(
+  before: Deliverable,
+  value: DeliverableFormValue,
+): DeliverablePatch {
+  /*
+    The two optional fields are read through their absent value rather than
+    compared as they arrive. Both are optional on the input type because adding
+    a deliverable may leave them out, and leaving them out means the same thing
+    the form's empty box means — no detail, nothing estimated. Comparing an
+    absent key against the column directly would put `undefined` in the patch,
+    which the data layer skips and this file would still count as a change.
+  */
+  const description = value.description ?? null;
+  const estimatedMinutes = value.estimatedMinutes ?? 0;
+
+  const patch: DeliverablePatch = {};
+  if (value.title !== before.title) patch.title = value.title;
+  if (description !== before.description) patch.description = description;
+  if (estimatedMinutes !== before.estimatedMinutes) {
+    patch.estimatedMinutes = estimatedMinutes;
+  }
+  return patch;
+}
+
+/** Whether a submitted form asks for any change at all. */
+export function changesDeliverable(patch: DeliverablePatch): boolean {
+  return Object.keys(patch).length > 0;
 }
