@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 
 import {
+  fieldId,
   FormSummary,
   SubmitButton,
   useFirstErrorFocus,
@@ -115,6 +116,23 @@ export function EditDeliverableForm({
   // Scoped to this row: the add line at the bottom of the page renders the same
   // three fields, and an unscoped lookup would move the cursor into it.
   useFirstErrorFocus(state, DELIVERABLE_FIELD_NAMES, deliverable.id);
+
+  /*
+    The cursor goes into the title when the editor opens.
+
+    Without it the focus stays on the Edit button, which has just been replaced
+    by this form — so the reader is left focused on nothing, with a form they
+    have to Tab back into from the top of the page. The title first because it
+    is the field most edits are about, and because it is the first one anyway:
+    anyone wanting the estimate is one Tab away.
+
+    Keyed on the row, so it happens when this editor opens and not again — a
+    rejected save moves the cursor to the field that failed, and this must not
+    drag it back to the title afterwards.
+  */
+  useEffect(() => {
+    document.getElementById(fieldId("title", deliverable.id))?.focus();
+  }, [deliverable.id]);
 
   return (
     <form
