@@ -113,6 +113,49 @@ describe("applying a move to the list on screen", () => {
   });
 });
 
+describe("applying a deletion to the list on screen", () => {
+  it("takes the line out and leaves the rest in order", () => {
+    expect(ids(applyScopeChange(scope, { kind: "remove", id: "b" }))).toEqual([
+      "a",
+      "c",
+    ]);
+  });
+
+  it("takes the first line out", () => {
+    expect(ids(applyScopeChange(scope, { kind: "remove", id: "a" }))).toEqual([
+      "b",
+      "c",
+    ]);
+  });
+
+  it("takes the last line out", () => {
+    expect(ids(applyScopeChange(scope, { kind: "remove", id: "c" }))).toEqual([
+      "a",
+      "b",
+    ]);
+  });
+
+  it("empties a list of one", () => {
+    const only = [row("a", "Wireframes")];
+    expect(applyScopeChange(only, { kind: "remove", id: "a" })).toEqual([]);
+  });
+
+  it("leaves the list alone when it does not have that line", () => {
+    // A row somebody else deleted while the page was open. The list on screen
+    // is already what the deletion would produce.
+    expect(ids(applyScopeChange(scope, { kind: "remove", id: "z" }))).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+  });
+
+  it("does not touch the rows it keeps", () => {
+    const left = applyScopeChange(scope, { kind: "remove", id: "a" });
+    expect(left[0]).toBe(scope[1]);
+  });
+});
+
 describe("applying a status press to the list on screen", () => {
   it("sets the status of the row that was pressed", () => {
     const changed = applyScopeChange(scope, {
