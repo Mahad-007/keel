@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { Deliverable } from "@/lib/db/schema";
 
+import { firstErrorField } from "@/lib/forms/state";
+
 import {
   ADD_NO_ANSWER,
+  DELIVERABLE_FIELD_NAMES,
   DELIVERABLE_FIELD_LIMITS,
   deliverableFormFields,
   EMPTY_DELIVERABLE_FIELDS,
@@ -173,5 +176,27 @@ describe("a stored deliverable as form fields", () => {
       ok: true,
       value: { title },
     });
+  });
+});
+
+describe("the order the deliverable fields are walked in", () => {
+  it("is the order they are laid out: title, estimate, then detail", () => {
+    expect(DELIVERABLE_FIELD_NAMES).toEqual(["title", "estimate", "description"]);
+  });
+
+  it("puts the cursor in the estimate, not the detail box below it", () => {
+    // The estimate sits beside the title and the detail underneath both, so a
+    // submission wrong in the estimate and the detail has to stop at the
+    // estimate on the way down.
+    const state = {
+      fields: EMPTY_DELIVERABLE_FIELDS,
+      errors: {
+        description: "Description is too long.",
+        estimate: "Estimate must be a number of hours, like 2 or 1.5.",
+      },
+      formError: null,
+    };
+
+    expect(firstErrorField(state, DELIVERABLE_FIELD_NAMES)).toBe("estimate");
   });
 });

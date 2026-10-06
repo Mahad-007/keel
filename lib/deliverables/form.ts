@@ -36,14 +36,20 @@ import { optionalText, requiredText } from "@/lib/forms/text";
  * are walked in: the cursor after a rejected submission has to land on the
  * first problem the reader would reach, not the first one declared here.
  *
+ * So the estimate comes second, because that is where it is on screen — it
+ * shares a row with the title, and the detail goes underneath them both. Listed
+ * the other way round, a submission wrong in both the estimate and the detail
+ * would put the cursor in the detail box and leave the reader scrolling back up
+ * to find the field above it that is also marked.
+ *
  * Status and position are deliberately absent. A new deliverable is pending
  * and goes on the end — both are facts about adding scope rather than
  * decisions to offer, and the data layer will not take either in a patch.
  */
 export const DELIVERABLE_FIELD_NAMES = [
   "title",
-  "description",
   "estimate",
+  "description",
 ] as const;
 
 export type DeliverableFieldName = (typeof DELIVERABLE_FIELD_NAMES)[number];
