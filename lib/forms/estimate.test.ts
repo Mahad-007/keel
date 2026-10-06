@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { optionalEstimateMinutes } from "./estimate";
+import { estimateInput, optionalEstimateMinutes } from "./estimate";
 
 describe("an estimate field left alone", () => {
   it("is zero, the stored way of saying nobody has estimated it", () => {
@@ -58,5 +58,33 @@ describe("an estimate that cannot be stored", () => {
       ok: false,
       message: "Design estimate must be a number of hours, like 2 or 1.5.",
     });
+  });
+});
+
+describe("prefilling an estimate field", () => {
+  it("leaves the box empty for a line nobody has estimated", () => {
+    expect(estimateInput(0)).toBe("");
+  });
+
+  it("offers the stored estimate back in hours", () => {
+    expect(estimateInput(90)).toBe("1.5");
+    expect(estimateInput(480)).toBe("8");
+  });
+
+  it("round-trips, so opening a deliverable and saving it changes nothing", () => {
+    for (const minutes of [0, 1, 20, 45, 90, 480, 60_000]) {
+      expect(optionalEstimateMinutes(estimateInput(minutes))).toEqual({
+        ok: true,
+        value: minutes,
+      });
+    }
+  });
+
+  it("offers back an estimate the validator would now refuse", () => {
+    // A row holding more than the maximum can only have been written before
+    // the limit existed or by hand. The form shows what is there rather than a
+    // blank: a reader cannot fix a figure the page will not tell them.
+    expect(estimateInput(120_000)).toBe("2000");
+    expect(optionalEstimateMinutes("2000").ok).toBe(false);
   });
 });
