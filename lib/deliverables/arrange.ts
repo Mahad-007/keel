@@ -1,6 +1,7 @@
 import { readField } from "@/lib/forms/form-data";
 
 import { isMoveDirection, moveOne, type MoveDirection } from "./order";
+import { deletedAnnouncement } from "./remove";
 import {
   deliverableStatusPhrase,
   deliverableStatusVerb,
@@ -61,6 +62,15 @@ export type ScopeChange =
       readonly id: string;
       readonly from: string;
       readonly status: DeliverableStatus;
+    }
+  | {
+      /**
+       * Deleting the line. It carries nothing but the id, because there is
+       * nothing else to say: the step that asked for it has already shown the
+       * reader what they are deleting.
+       */
+      readonly kind: "remove";
+      readonly id: string;
     };
 
 /**
@@ -86,6 +96,17 @@ export function applyScopeChange<T extends ArrangedDeliverable>(
     return rows.map((row) =>
       row.id === change.id ? { ...row, status: change.status } : row,
     );
+  }
+
+  /*
+    A deletion is the one change that makes the list shorter, which is why it
+    goes through the same reducer as the other two rather than its own: the
+    numbers down the left, the ends of the list that grey the move buttons out,
+    and the count above it all follow from the array, and a second way of
+    shortening it would be a second chance for them to disagree.
+  */
+  if (change.kind === "remove") {
+    return rows.filter((row) => row.id !== change.id);
   }
 
   const order = moveOne(
@@ -216,6 +237,15 @@ export function announceScopeChange<T extends ArrangedDeliverable>(
 
   if (change.kind === "status") {
     return `“${row.title}” is now ${deliverableStatusPhrase(change.status)}.`;
+  }
+
+  /*
+    `rows` is the list before the press, so what is left afterwards is one
+    fewer. Counted from the list rather than passed in, because the sentence has
+    to agree with the list the reducer produces from the same array.
+  */
+  if (change.kind === "remove") {
+    return deletedAnnouncement(row.title, rows.length - 1);
   }
 
   const moved = applyScopeChange(rows, change);

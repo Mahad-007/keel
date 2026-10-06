@@ -4,6 +4,7 @@ import type { MoveDirection } from "@/lib/deliverables/order";
 import type { DeliverableStatus } from "@/lib/deliverables/status";
 
 import {
+  writeDeliverableDelete,
   writeDeliverableStatus,
   writeDeliverableMove,
 } from "./scope-writes";
@@ -70,6 +71,11 @@ export function DeliverableList({
     return writeDeliverableStatus(projectId, id, from, status);
   }
 
+  async function remove(id: string) {
+    "use server";
+    return writeDeliverableDelete(projectId, id);
+  }
+
   return (
     <>
       <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
@@ -79,6 +85,7 @@ export function DeliverableList({
         deliverables={deliverables}
         move={move}
         changeStatus={changeStatus}
+        remove={remove}
       />
     </>
   );
