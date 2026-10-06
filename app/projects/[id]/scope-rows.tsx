@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useOptimistic, useRef, useState } from "react";
+import {
+  useEffect,
+  useOptimistic,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 
 import { fieldId } from "@/components/form";
 
@@ -291,6 +297,25 @@ export function ScopeRows({
     moveFocusTo.current = mode === "edit" ? editButtonId(id) : deleteButtonId(id);
   }
 
+  /**
+   * Escape leaves whatever the list has open, writing nothing.
+   *
+   * It is the way out every other expanding thing on a screen has, and without
+   * it the only way out of an editor is to find the Cancel button — which is
+   * below the fields, so on a narrow screen it is off the bottom of them.
+   * Nothing is written and nothing is saved: a reader pressing Escape over a
+   * half-typed edit is asking to abandon it.
+   *
+   * Handled on the list rather than on each row, because only one row is ever
+   * open: one listener at the top covers the editor, the deletion step and
+   * anything either of them grows later, and none of them has to remember to
+   * add it.
+   */
+  function leaveOnEscape(event: KeyboardEvent<HTMLElement>) {
+    if (event.key !== "Escape" || open === null) return;
+    closeRow(open.id, open.mode, null);
+  }
+
   function report(result: ScopeWriteResult, press: number) {
     /*
       React has already rolled the optimistic change back by now: the action has
@@ -336,6 +361,7 @@ export function ScopeRows({
       */}
       <ol
         role="list"
+        onKeyDown={leaveOnEscape}
         className="mt-3 border-t border-zinc-200 dark:border-zinc-800"
       >
         {rows.map((deliverable, index) =>
