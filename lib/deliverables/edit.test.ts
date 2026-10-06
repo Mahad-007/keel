@@ -4,6 +4,8 @@ import type { Deliverable } from "@/lib/db/schema";
 
 import {
   changesDeliverable,
+  EDIT_NO_ANSWER,
+  savedNotice,
   deliverableChanges,
   editDeliverableState,
   failedEditState,
@@ -157,5 +159,50 @@ describe("what an edit changes about the stored row", () => {
     expect(
       Object.keys(changes({ title: "Flows", estimatedMinutes: 15 })),
     ).toEqual(["title", "estimatedMinutes"]);
+  });
+});
+
+describe("the sentence a save comes back with", () => {
+  const fields = { title: "Wireframes", description: "", estimate: "2" };
+
+  it("names the line that was saved", () => {
+    const state = savedEditState(
+      { id: "dlv_wire", title: "Wireframes", changed: true },
+      fields,
+    );
+    expect(savedNotice(state)).toBe("Saved “Wireframes”.");
+  });
+
+  it("names the title as saved, not as the form opened", () => {
+    const state = savedEditState(
+      { id: "dlv_wire", title: "Wireframes, revised", changed: true },
+      fields,
+    );
+    expect(savedNotice(state)).toBe("Saved “Wireframes, revised”.");
+  });
+
+  it("does not claim a change when there was none", () => {
+    const state = savedEditState(
+      { id: "dlv_wire", title: "Wireframes", changed: false },
+      fields,
+    );
+    expect(savedNotice(state)).toBe(
+      "No changes to save — “Wireframes” is as it was.",
+    );
+  });
+
+  it("has nothing to say about a form that has not been saved", () => {
+    expect(savedNotice(editDeliverableState(stored()))).toBeNull();
+    expect(savedNotice(rejectedEditState(fields, { title: "Required." }))).toBeNull();
+  });
+});
+
+describe("the sentence an edit with no answer comes back with", () => {
+  it("does not claim the edit was lost, because nobody here knows", () => {
+    expect(EDIT_NO_ANSWER).not.toMatch(/nothing was (written|saved)/i);
+  });
+
+  it("sends the reader to the list, which is what the server says", () => {
+    expect(EDIT_NO_ANSWER).toMatch(/Reload/);
   });
 });
