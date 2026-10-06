@@ -181,6 +181,24 @@ export function savedNotice(state: EditDeliverableState): string | null {
 }
 
 /**
+ * The sentences a refused save comes back with, in the form that renders above
+ * the fields rather than under one of them: neither is about anything the
+ * reader typed.
+ *
+ * `missing` ends in "reload" because the row the form was opened on is not
+ * there any more, and no amount of pressing Save will put it back. `failed` ends
+ * in "try again" because the row is still there and the write is the thing that
+ * did not happen.
+ */
+export const EDIT_PROBLEMS = {
+  /** The row is gone, or belongs to a project this page is not showing. */
+  missing:
+    "That deliverable is not on this project any more, so nothing was saved. Reload to see what the scope list says now.",
+  /** The write itself failed — the driver, the disk, the network. */
+  failed: "Could not save that change. Nothing was written — try again.",
+} as const;
+
+/**
  * What to say when an edit never got an answer — the connection dropped, the
  * tab was suspended mid-request, the request was aborted.
  *
