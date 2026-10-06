@@ -21,6 +21,14 @@ import {
  * destructive one and is not visually the primary action on the page. Keeping is
  * the way out, and it reads as a sentence about the deliverable rather than as
  * "Cancel", which is a word about the dialogue.
+ *
+ * The cursor lands on *Keep it*, which is the one decision in this component
+ * worth arguing about. The step is opened by pressing a button, and a button is
+ * pressed with Enter or Space — a held key, a doubled press, or the habit of
+ * confirming everything with Enter would then land on whatever has the focus. If
+ * that were the deleting button the step would be a formality that fires itself,
+ * which is exactly the failure mode of the dialogue it replaces. So the safe
+ * answer takes the focus and the destructive one is a deliberate reach.
  */
 export function DeleteDeliverablePrompt({
   id,
@@ -74,14 +82,17 @@ export function DeleteDeliverablePrompt({
           name={SCOPE_FIELD_NAMES.remove}
           value={DELETE_CONFIRM_VALUE}
           aria-label={confirmDeleteLabel(title)}
+          aria-describedby={deletePromptId(id)}
           className="rounded bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-800 dark:bg-red-800 dark:hover:bg-red-700"
         >
           Delete
         </button>
         <button
           type="button"
+          autoFocus
           onClick={onKeep}
           aria-label={keepDeliverableLabel(title)}
+          aria-describedby={deletePromptId(id)}
           className="text-sm text-amber-900 underline underline-offset-4 hover:text-amber-950 dark:text-amber-100 dark:hover:text-white"
         >
           Keep it
