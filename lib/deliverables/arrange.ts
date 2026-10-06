@@ -198,6 +198,13 @@ export function changesScope<T extends ArrangedDeliverable>(
   const row = rows.find((one) => one.id === change.id);
   if (row === undefined) return false;
   if (change.kind === "status") return row.status !== change.status;
+  /*
+    Said rather than left to the comparison below, which would also answer true:
+    a deleted row is in no position at all. The two readings differ for a reader
+    of the code rather than for the list — "it ends up somewhere else" is a
+    statement about a move, and this is not one.
+  */
+  if (change.kind === "remove") return true;
   return applyScopeChange(rows, change).indexOf(row) !== rows.indexOf(row);
 }
 

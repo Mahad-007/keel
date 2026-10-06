@@ -545,6 +545,17 @@ describe("whether a press would change anything", () => {
     ).toBe(true);
   });
 
+  it("is true for a deletion of a line the list has", () => {
+    expect(changesScope(scope, { kind: "remove", id: "a" })).toBe(true);
+    expect(changesScope(scope, { kind: "remove", id: "c" })).toBe(true);
+  });
+
+  it("is false for a deletion of a line the list has already lost", () => {
+    // Somebody else deleted it while the page was open. There is nothing to
+    // take out and nothing worth a round trip to find that out.
+    expect(changesScope(scope, { kind: "remove", id: "z" })).toBe(false);
+  });
+
   it("is false at the ends of the list", () => {
     expect(changesScope(scope, { kind: "move", id: "a", direction: "up" })).toBe(
       false,
