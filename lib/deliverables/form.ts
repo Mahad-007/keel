@@ -1,5 +1,9 @@
 import type { NewDeliverableInput } from "@/lib/data/deliverables";
-import { optionalEstimateMinutes } from "@/lib/forms/estimate";
+import type { Deliverable } from "@/lib/db/schema";
+import {
+  estimateInput,
+  optionalEstimateMinutes,
+} from "@/lib/forms/estimate";
 import { readFields } from "@/lib/forms/form-data";
 import {
   collect,
@@ -122,6 +126,31 @@ export function parseDeliverableForm(
   return {
     ok: true,
     value: { title, description, estimatedMinutes: estimate },
+  };
+}
+
+/**
+ * A stored deliverable as the fields that describe it, which is what the edit
+ * form starts from.
+ *
+ * Every value here is a string the validators accept back unchanged, so opening
+ * a line and saving it untouched writes the same row rather than quietly
+ * normalising it into something else. The two places that could go wrong are
+ * the ones that have their own functions: a null description is an empty box
+ * rather than the word "null", and a zero estimate is an empty box rather than
+ * a zero somebody chose.
+ *
+ * Status and position are not here because they are not the form's to change.
+ * The row's controls own both, and a form that carried them could rearrange a
+ * scope list while claiming to fix a typo.
+ */
+export function deliverableFormFields(
+  deliverable: Deliverable,
+): DeliverableFormFields {
+  return {
+    title: deliverable.title,
+    description: deliverable.description ?? "",
+    estimate: estimateInput(deliverable.estimatedMinutes),
   };
 }
 
