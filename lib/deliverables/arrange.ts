@@ -378,6 +378,18 @@ export type StatusScopeAction = (
 ) => Promise<ScopeWriteResult>;
 
 /**
+ * Deleting a line, which takes the id and nothing else.
+ *
+ * There is no `from` to check against, and unlike a status press there does not
+ * need to be. A status press names where the row was because pressing "Mark
+ * done" on a line somebody else has already started would overrule them
+ * silently; a deletion is not a step in a cycle — it is the same act whatever
+ * the row says, and the reader has just been shown what the row says in the
+ * step that asked them to confirm it.
+ */
+export type DeleteScopeAction = (id: string) => Promise<ScopeWriteResult>;
+
+/**
  * Why a status press cannot be applied to the row as it now stands, or null
  * when it can.
  *
