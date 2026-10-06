@@ -8,6 +8,7 @@ import {
   deleteButtonLabel,
   deletedAnnouncement,
   describeDeletion,
+  rowAfterDelete,
   keepDeliverableLabel,
 } from "./remove";
 
@@ -91,5 +92,27 @@ describe("the ids a row's delete controls are found by", () => {
 
   it("does not run one row's id into another's", () => {
     expect(deletePromptId("dlv_a")).not.toBe(deletePromptId("dlv_a_b"));
+  });
+});
+
+describe("where the cursor goes once a line is deleted", () => {
+  const ids = ["a", "b", "c"];
+
+  it("goes to the line that took its place", () => {
+    expect(rowAfterDelete(ids, "a")).toBe("b");
+    expect(rowAfterDelete(ids, "b")).toBe("c");
+  });
+
+  it("goes to the line above when the last one is deleted", () => {
+    expect(rowAfterDelete(ids, "c")).toBe("b");
+  });
+
+  it("has nowhere to go when the only line is deleted", () => {
+    expect(rowAfterDelete(["a"], "a")).toBeNull();
+  });
+
+  it("has nowhere to go for a line the list does not have", () => {
+    expect(rowAfterDelete(ids, "z")).toBeNull();
+    expect(rowAfterDelete([], "a")).toBeNull();
   });
 });

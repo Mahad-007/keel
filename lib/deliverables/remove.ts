@@ -118,3 +118,31 @@ export function confirmDeleteId(id: string): string {
 export function deleteButtonId(id: string): string {
   return `delete-${id}-ask`;
 }
+
+/**
+ * Which line the cursor should move to once one is deleted, or null when the
+ * list has none left.
+ *
+ * Deleting a row removes the button the press was made from, and a press that
+ * destroys its own control leaves the focus on nothing: the browser falls back
+ * to the document, so the reader's next Tab starts again from the top of the
+ * page. On a list of eight that is a hunt back to where they were, every time.
+ *
+ * The line that takes the deleted one's place, because that is where the eye
+ * already is — the list closed up, and the row now under the cursor's old
+ * position is the next thing to act on. Deleting the last line has nothing
+ * below it, so the cursor goes to the line above instead.
+ *
+ * A line the list does not have gets null rather than a guess. There is nothing
+ * to move to and nothing was deleted.
+ */
+export function rowAfterDelete(
+  ids: readonly string[],
+  deleted: string,
+): string | null {
+  const index = ids.indexOf(deleted);
+  if (index === -1) return null;
+  const left = ids.filter((id) => id !== deleted);
+  if (left.length === 0) return null;
+  return left[Math.min(index, left.length - 1)];
+}
