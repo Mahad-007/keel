@@ -5,6 +5,7 @@ import {
   type ArrangedDeliverable,
 } from "@/lib/deliverables/arrange";
 import { editButtonLabel } from "@/lib/deliverables/edit";
+import { deleteButtonId, deleteButtonLabel } from "@/lib/deliverables/remove";
 import { canMove, MOVE_DIRECTIONS, MOVE_LABELS } from "@/lib/deliverables/order";
 import {
   deliverableStatusVerb,
@@ -32,6 +33,7 @@ export function DeliverableControls({
   count,
   arrange,
   onEdit,
+  onDelete,
 }: {
   deliverable: ArrangedDeliverable;
   /** Its place in the list as rendered, counting from one. */
@@ -42,6 +44,11 @@ export function DeliverableControls({
   arrange: (formData: FormData) => void;
   /** Open this row for editing. Nothing is submitted and nothing is written. */
   onEdit: () => void;
+  /**
+   * Ask about deleting this row, which opens the step that explains what would
+   * be lost. The press itself deletes nothing.
+   */
+  onDelete: () => void;
 }) {
   return (
     <form action={arrange} className="flex shrink-0 items-center gap-1">
@@ -104,6 +111,19 @@ export function DeliverableControls({
           {MOVE_LABELS[direction]}
         </ScopeButton>
       ))}
+      {/*
+        Last, because it is the one press on the row that cannot be taken back —
+        a reader tabbing along should not have to pass it to reach anything. It
+        carries an id because the step it opens has to be able to put the cursor
+        back here when it closes.
+      */}
+      <ScopeButton
+        id={deleteButtonId(deliverable.id)}
+        onPress={onDelete}
+        label={deleteButtonLabel(deliverable.title)}
+      >
+        Delete
+      </ScopeButton>
     </form>
   );
 }

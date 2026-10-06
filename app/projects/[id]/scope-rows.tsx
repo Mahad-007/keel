@@ -27,6 +27,7 @@ import {
   type OpenScopeRow,
 } from "@/lib/deliverables/open-row";
 
+import { DeleteDeliverablePrompt } from "./delete-deliverable-prompt";
 import { DeliverableControls } from "./deliverable-controls";
 import { DeliverableItem } from "./deliverable-item";
 import { EditDeliverableForm } from "./edit-deliverable-form";
@@ -226,13 +227,15 @@ export function ScopeRows({
   }
 
   /**
-   * An editor has finished with its row: the save landed, or the reader left.
+   * A row is done with whatever it was open for: the save landed, the reader
+   * left the editor, or they decided to keep the deliverable after all.
    *
-   * The sentence comes from the form rather than from here, because only the
-   * form knows what was saved — and it has to be said from here, because the
-   * live region is this component's and the form is about to be unmounted.
+   * Any sentence worth saying comes from the thing that was open rather than
+   * from here, because only it knows what happened — and it has to be said from
+   * here, because the live region is this component's and the row is about to go
+   * back to being a line.
    */
-  function closeEditor(id: string, notice: string | null) {
+  function closeRow(id: string, notice: string | null) {
     say(notice);
     setOpen((open) => closeScopeRow(open, id));
   }
@@ -295,8 +298,8 @@ export function ScopeRows({
               <EditDeliverableForm
                 deliverable={deliverable}
                 save={edit}
-                onSaved={(notice) => closeEditor(deliverable.id, notice)}
-                onCancel={() => closeEditor(deliverable.id, null)}
+                onSaved={(notice) => closeRow(deliverable.id, notice)}
+                onCancel={() => closeRow(deliverable.id, null)}
               />
             </ScopeRow>
           ) : (
@@ -311,7 +314,21 @@ export function ScopeRows({
                   count={rows.length}
                   arrange={arrange}
                   onEdit={() => setOpen(openScopeRow(deliverable.id, "edit"))}
+                  onDelete={() =>
+                    setOpen(openScopeRow(deliverable.id, "confirm"))
+                  }
                 />
+              }
+              prompt={
+                scopeRowMode(open, deliverable.id) === "confirm" ? (
+                  <DeleteDeliverablePrompt
+                    id={deliverable.id}
+                    title={deliverable.title}
+                    estimatedMinutes={deliverable.estimatedMinutes}
+                    confirm={arrange}
+                    onKeep={() => closeRow(deliverable.id, null)}
+                  />
+                ) : null
               }
             />
           ),

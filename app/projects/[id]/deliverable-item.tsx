@@ -29,6 +29,7 @@ export function DeliverableItem({
   deliverable,
   position,
   controls,
+  prompt,
 }: {
   deliverable: Deliverable;
   /** Its place in the list as rendered, counting from one. */
@@ -38,6 +39,13 @@ export function DeliverableItem({
    * rather than worked on.
    */
   controls?: ReactNode;
+  /**
+   * A question about this line, asked underneath it — today, whether to delete
+   * it. Below rather than beside, so the line it is about stays readable while
+   * it is being asked, and full width because it is a sentence rather than a
+   * figure.
+   */
+  prompt?: ReactNode;
 }) {
   /*
     A missing estimate is set in the colour the rest of the page uses for
@@ -94,6 +102,7 @@ export function DeliverableItem({
         which is why the title block keeps the whole width it can get.
       */}
       {controls}
+      {prompt}
     </ScopeRow>
   );
 }
