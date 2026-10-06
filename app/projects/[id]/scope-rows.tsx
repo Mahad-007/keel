@@ -33,6 +33,7 @@ import {
 import {
   closeScopeRow,
   NO_OPEN_ROW,
+  openRowStillThere,
   openScopeRow,
   scopeRowMode,
   type OpenScopeRow,
@@ -101,7 +102,26 @@ export function ScopeRows({
     One at a time, which is `openScopeRow`'s rule rather than this component's —
     see the module for why a list of half-open forms is not a list.
   */
-  const [open, setOpen] = useState<OpenScopeRow>(NO_OPEN_ROW);
+  const [opened, setOpen] = useState<OpenScopeRow>(NO_OPEN_ROW);
+
+  /*
+    What is open, as the list as it now stands allows.
+
+    A deliverable can leave the list while a row is open on it: somebody else
+    deleted it, or this reader confirmed the deletion they were being asked
+    about. Either way the form or the step is open on a line that is not there —
+    it would offer to save a row the list cannot show, and hold the reader's
+    focus inside it.
+
+    Worked out from the rows on every render rather than put back by an effect.
+    The alternative is a second copy of the answer that is briefly wrong, and
+    "briefly wrong" here means one frame in which a deleted row is still
+    rendering a form.
+  */
+  const open = openRowStillThere(
+    opened,
+    rows.map((row) => row.id),
+  );
 
   const [said, setSaid] = useState<Announcement | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
