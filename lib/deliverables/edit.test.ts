@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import type { Deliverable } from "@/lib/db/schema";
 
 import {
+  changesDeliverable,
+  deliverableChanges,
   editDeliverableState,
   failedEditState,
   rejectedEditState,
@@ -87,5 +89,73 @@ describe("an edit that was refused", () => {
     expect(state.errors).toEqual({});
     expect(state.formError).toBe("Could not save that change.");
     expect(state.saved).toBeNull();
+  });
+});
+
+describe("what an edit changes about the stored row", () => {
+  const before = stored();
+
+  function changes(values: Partial<Parameters<typeof deliverableChanges>[1]>) {
+    return deliverableChanges(before, {
+      title: "Wireframes",
+      description: "Six screens.",
+      estimatedMinutes: 90,
+      ...values,
+    });
+  }
+
+  it("is nothing at all when the form was saved untouched", () => {
+    expect(changes({})).toEqual({});
+    expect(changesDeliverable(changes({}))).toBe(false);
+  });
+
+  it("names only the field that moved", () => {
+    expect(changes({ title: "Wireframes, revised" })).toEqual({
+      title: "Wireframes, revised",
+    });
+    expect(changes({ estimatedMinutes: 120 })).toEqual({
+      estimatedMinutes: 120,
+    });
+  });
+
+  it("carries a cleared description as null rather than leaving it alone", () => {
+    expect(changes({ description: null })).toEqual({ description: null });
+  });
+
+  it("does not see a change when the description was already missing", () => {
+    expect(
+      deliverableChanges(stored({ description: null }), {
+        title: "Wireframes",
+        description: null,
+        estimatedMinutes: 90,
+      }),
+    ).toEqual({});
+  });
+
+  it("reads an absent description as the empty box it came from", () => {
+    // `title` is the only field the form requires, so a value built from one
+    // may leave the other two out — and out means blank, not unchanged.
+    expect(
+      deliverableChanges(stored(), { title: "Wireframes" }),
+    ).toEqual({ description: null, estimatedMinutes: 0 });
+  });
+
+  it("carries an estimate cleared back to nothing", () => {
+    expect(changes({ estimatedMinutes: 0 })).toEqual({ estimatedMinutes: 0 });
+    expect(changesDeliverable(changes({ estimatedMinutes: 0 }))).toBe(true);
+  });
+
+  it("names all three when all three moved", () => {
+    expect(
+      changes({ title: "Flows", description: null, estimatedMinutes: 0 }),
+    ).toEqual({ title: "Flows", description: null, estimatedMinutes: 0 });
+  });
+
+  it("leaves the status and the position out of a patch entirely", () => {
+    // Neither is the form's to change: the row's controls own both, and a save
+    // that could rearrange the list would be a save nobody could trust.
+    expect(
+      Object.keys(changes({ title: "Flows", estimatedMinutes: 15 })),
+    ).toEqual(["title", "estimatedMinutes"]);
   });
 });
