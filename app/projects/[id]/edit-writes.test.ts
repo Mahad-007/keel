@@ -137,3 +137,92 @@ describe("an edit that changed nothing", () => {
     expect(saved).not.toHaveBeenCalled();
   });
 });
+
+describe("an edit the form should have refused", () => {
+  it("does not write, and keeps what was typed", async () => {
+    const state = await edit({ title: "   " });
+
+    expect(saved).not.toHaveBeenCalled();
+    expect(state.errors.title).toMatch(/required/i);
+    expect(state.fields.description).toBe("Six screens.");
+    expect(state.saved).toBeNull();
+  });
+
+  it("refuses an estimate that is not a number of hours", async () => {
+    const state = await edit({ estimate: "half a day" });
+
+    expect(saved).not.toHaveBeenCalled();
+    expect(state.errors.estimate).toMatch(/number of hours/);
+  });
+
+  it("checks the fields before it reads the row, so a bad save is free", async () => {
+    await edit({ title: "" });
+
+    expect(loaded).not.toHaveBeenCalled();
+  });
+});
+
+describe("an edit aimed at a deliverable this page cannot write", () => {
+  it("refuses a row belonging to another project", async () => {
+    loaded.mockResolvedValue({ ...wireframes, projectId: "prj_other" });
+    const state = await edit({ title: "Flows" });
+
+    expect(saved).not.toHaveBeenCalled();
+    expect(state.formError).toBe(EDIT_PROBLEMS.missing);
+  });
+
+  it("refuses a row that is not there at all", async () => {
+    loaded.mockResolvedValue(null);
+    const state = await edit({ title: "Flows" });
+
+    expect(state.formError).toBe(EDIT_PROBLEMS.missing);
+  });
+
+  it("refuses a submission that did not say which row", async () => {
+    const state = await writeDeliverableEdit(
+      "prj_engine",
+      editDeliverableState(wireframes),
+      submit({ title: "Flows", description: "", estimate: "1.5" }),
+    );
+
+    expect(loaded).not.toHaveBeenCalled();
+    expect(state.formError).toBe(EDIT_PROBLEMS.missing);
+  });
+
+  it("writes to the project the page bound, not one the form named", async () => {
+    await edit({ title: "Flows", projectId: "prj_somebody_else" });
+
+    expect(revalidatePath).toHaveBeenCalledWith("/projects/prj_engine");
+  });
+
+  it("says the row has gone if it is deleted mid-save", async () => {
+    saved.mockResolvedValue(null);
+    const state = await edit({ title: "Flows" });
+
+    expect(state.formError).toBe(EDIT_PROBLEMS.missing);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("an edit that could not be written", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("keeps what was typed and says to try again", async () => {
+    saved.mockRejectedValue(new Error("database is locked"));
+    const state = await edit({ title: "Flows" });
+
+    expect(state.formError).toBe(EDIT_PROBLEMS.failed);
+    expect(state.fields.title).toBe("Flows");
+    expect(state.saved).toBeNull();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("keeps the driver error in the log", async () => {
+    saved.mockRejectedValue(new Error("database is locked"));
+    await edit({ title: "Flows" });
+
+    expect(console.error).toHaveBeenCalled();
+  });
+});
