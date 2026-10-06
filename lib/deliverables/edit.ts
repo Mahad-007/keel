@@ -160,3 +160,36 @@ export function deliverableChanges(
 export function changesDeliverable(patch: DeliverablePatch): boolean {
   return Object.keys(patch).length > 0;
 }
+
+/**
+ * What to say once an edit lands, which the reader may otherwise not notice at
+ * all: the row closes back into a line of the list, and a line that now reads
+ * slightly differently is not an event anybody is told about.
+ *
+ * Two sentences, because there are two things that can have happened. A save
+ * that wrote something names the line and says so. A save that wrote nothing
+ * says *that*, because the alternative — "Saved" over a row nothing happened to
+ * — is the kind of confirmation that teaches people not to read confirmations.
+ */
+export function savedNotice(state: EditDeliverableState): string | null {
+  if (state.saved === null) return null;
+  if (!state.saved.changed) {
+    return `No changes to save — “${state.saved.title}” is as it was.`;
+  }
+  return `Saved “${state.saved.title}”.`;
+}
+
+/**
+ * What to say when an edit never got an answer — the connection dropped, the
+ * tab was suspended mid-request, the request was aborted.
+ *
+ * It does not say nothing was written, because from here there is no way to
+ * know: the request may have been lost on the way out, or the answer lost on
+ * the way back with the row already saved. Unlike the add line it can safely
+ * suggest trying again — saving the same edit twice writes the same row, where
+ * adding the same deliverable twice makes two of them — but reloading is the
+ * instruction that answers the question, because the list is what the server
+ * says.
+ */
+export const EDIT_NO_ANSWER =
+  "Could not tell whether that edit was saved — the answer never arrived. Reload to see what the scope list says now.";
