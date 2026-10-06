@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   confirmDeleteLabel,
   deleteButtonLabel,
+  deletedAnnouncement,
   describeDeletion,
   keepDeliverableLabel,
 } from "./remove";
@@ -45,5 +46,25 @@ describe("the sentence in front of a deletion", () => {
     // The question is not about their state of mind. It is about what is lost,
     // which is the thing a browser dialogue cannot be made to say.
     expect(describeDeletion("Wireframes", 90)).not.toMatch(/sure/i);
+  });
+});
+
+describe("the sentence after a deletion", () => {
+  it("names the line and counts what is left", () => {
+    expect(deletedAnnouncement("Wireframes", 3)).toBe(
+      "Deleted “Wireframes”. 3 deliverables left.",
+    );
+  });
+
+  it("says one deliverable in words, not as a figure with a plural", () => {
+    expect(deletedAnnouncement("Wireframes", 1)).toBe(
+      "Deleted “Wireframes”. One deliverable left.",
+    );
+  });
+
+  it("says the list is empty rather than counting zero of them", () => {
+    expect(deletedAnnouncement("Wireframes", 0)).toBe(
+      "Deleted “Wireframes”. The scope list is now empty.",
+    );
   });
 });
