@@ -90,6 +90,17 @@ export function DeliverableControls({
         same place — and the first line of a list has no "up" to offer, which is
         a fact about the list worth showing rather than hiding.
       */}
+      {MOVE_DIRECTIONS.map((direction) => (
+        <ScopeButton
+          key={direction}
+          name={SCOPE_FIELD_NAMES.direction}
+          value={direction}
+          label={moveButtonLabel(deliverable.title, direction)}
+          unavailable={!canMove(position, count, direction)}
+        >
+          {MOVE_LABELS[direction]}
+        </ScopeButton>
+      ))}
       {/*
         Edit comes after the controls that change the list and before the one
         that ends it, which is the order of consequence: a status press and a
@@ -104,17 +115,6 @@ export function DeliverableControls({
       >
         Edit
       </ScopeButton>
-      {MOVE_DIRECTIONS.map((direction) => (
-        <ScopeButton
-          key={direction}
-          name={SCOPE_FIELD_NAMES.direction}
-          value={direction}
-          label={moveButtonLabel(deliverable.title, direction)}
-          unavailable={!canMove(position, count, direction)}
-        >
-          {MOVE_LABELS[direction]}
-        </ScopeButton>
-      ))}
       {/*
         Last, because it is the one press on the row that cannot be taken back —
         a reader tabbing along should not have to pass it to reach anything. It
