@@ -30,6 +30,7 @@ import {
   type ScopeWriteResult,
   type StatusScopeAction,
 } from "@/lib/deliverables/arrange";
+import { describeScopeList } from "@/lib/deliverables/list";
 import {
   closeScopeRow,
   NO_OPEN_ROW,
@@ -356,6 +357,15 @@ export function ScopeRows({
 
   return (
     <>
+      {/*
+        Counted from the rows on screen rather than from the server's list,
+        because a deletion shortens the list a beat before the server agrees to
+        it. A count that waited would spend that beat saying there are three
+        deliverables above a list showing two.
+      */}
+      <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
+        {describeScopeList(rows.length)}
+      </p>
       {/*
         The list rearranges itself under the reader with no page load and no
         form submission to notice, so to anyone working from a screen reader a

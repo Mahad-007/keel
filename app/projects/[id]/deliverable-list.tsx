@@ -1,6 +1,5 @@
 import type { Deliverable } from "@/lib/db/schema";
 import type { EditDeliverableState } from "@/lib/deliverables/edit";
-import { describeScopeList } from "@/lib/deliverables/list";
 import type { MoveDirection } from "@/lib/deliverables/order";
 import type { DeliverableStatus } from "@/lib/deliverables/status";
 
@@ -28,9 +27,10 @@ import { ScopeRows } from "./scope-rows";
  * would be talking about.
  *
  * The rows themselves are a client component, because they can be rearranged
- * and the rearranging shows before the server has agreed to it. The sentence
- * above them is not: the count does not change when a line moves or is marked
- * done, so there is nothing for it to be optimistic about.
+ * and the rearranging shows before the server has agreed to it — and so is the
+ * sentence above them, which counts the list and therefore has to count the
+ * list on screen. What this component does is read the project's scope and bind
+ * the four writes to the project it was served for.
  */
 export function DeliverableList({
   projectId,
@@ -84,17 +84,12 @@ export function DeliverableList({
   }
 
   return (
-    <>
-      <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
-        {describeScopeList(deliverables.length)}
-      </p>
-      <ScopeRows
-        deliverables={deliverables}
-        move={move}
-        changeStatus={changeStatus}
-        edit={edit}
-        remove={remove}
-      />
-    </>
+    <ScopeRows
+      deliverables={deliverables}
+      move={move}
+      changeStatus={changeStatus}
+      edit={edit}
+      remove={remove}
+    />
   );
 }
