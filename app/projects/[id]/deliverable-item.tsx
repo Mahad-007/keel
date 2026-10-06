@@ -4,6 +4,8 @@ import type { Deliverable } from "@/lib/db/schema";
 import { describeEstimate, isEstimated } from "@/lib/deliverables/list";
 import { deliverableStatusLabel } from "@/lib/deliverables/status";
 
+import { ScopeRow } from "./scope-row";
+
 /**
  * One line of a project's scope: what was agreed, and what it was sized at.
  *
@@ -48,7 +50,7 @@ export function DeliverableItem({
     : "text-zinc-500 dark:text-zinc-400";
 
   return (
-    <li className="flex flex-wrap items-baseline gap-x-4 gap-y-2 border-b border-zinc-100 py-3 dark:border-zinc-900">
+    <ScopeRow>
       <span
         aria-hidden="true"
         className="w-5 shrink-0 text-right text-sm tabular-nums text-zinc-400 dark:text-zinc-500"
@@ -92,6 +94,6 @@ export function DeliverableItem({
         which is why the title block keeps the whole width it can get.
       */}
       {controls}
-    </li>
+    </ScopeRow>
   );
 }
