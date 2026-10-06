@@ -142,6 +142,7 @@ export const SCOPE_FIELD_NAMES = {
   direction: "direction",
   status: "status",
   from: "from",
+  remove: "remove",
 } as const;
 
 /**
@@ -162,6 +163,16 @@ export const SCOPE_FIELD_NAMES = {
 export function readScopeChange(formData: FormData): ScopeChange | null {
   const id = readField(formData, SCOPE_FIELD_NAMES.id).trim();
   if (id === "") return null;
+
+  /*
+    Read before the other two, so a submission asking for a deletion can never
+    be taken for something else. It is not in the row's own form — the step that
+    asks for it renders a form of its own — so the only way this field arrives
+    is from the button inside that step.
+  */
+  if (readField(formData, SCOPE_FIELD_NAMES.remove) !== "") {
+    return { kind: "remove", id };
+  }
 
   const direction = readField(formData, SCOPE_FIELD_NAMES.direction);
   if (direction !== "") {
