@@ -67,3 +67,21 @@ export function describeDeletion(
     : " It has no estimate, so no scope figure changes.";
   return `Delete “${title}”?${estimate} This cannot be undone.`;
 }
+
+/**
+ * What to say out loud once a line is gone.
+ *
+ * The row vanishes from under the reader with no page load, which on screen is
+ * obvious and to anyone working from a screen reader is silence: removing a
+ * node announces nothing, and the focus that was on the Delete button is now on
+ * nothing at all. So the deletion gets a sentence, and the sentence counts what
+ * is left — the one fact the reader has lost the ability to check at a glance,
+ * and the one that says the list did what it was told rather than more.
+ */
+export function deletedAnnouncement(title: string, remaining: number): string {
+  if (remaining === 0) {
+    return `Deleted “${title}”. The scope list is now empty.`;
+  }
+  if (remaining === 1) return `Deleted “${title}”. One deliverable left.`;
+  return `Deleted “${title}”. ${remaining} deliverables left.`;
+}
