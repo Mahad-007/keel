@@ -251,6 +251,14 @@ export function ScopeRows({
       next anyway.
     */
     if (change.kind === "remove") {
+      /*
+        The step has been answered, so it closes now rather than when the row
+        goes. If it waited, a deletion the server refuses would roll the row back
+        and bring the question with it — asking again about a line the reader has
+        already decided on, under a message saying the line is not there.
+      */
+      setOpen(NO_OPEN_ROW);
+
       const next = rowAfterDelete(
         list.map((row) => row.id),
         change.id,
