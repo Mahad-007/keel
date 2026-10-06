@@ -50,13 +50,18 @@ against the build and not from memory:
 
 ```
 rm -rf .next && npm run build
-grep -rho 'encryptActionBoundArgs)("[0-9a-f]*",[a-z]*)' .next/server/chunks/ssr/*.js | wc -l   # 3
+grep -rho 'encryptActionBoundArgs)("[0-9a-f]*",[a-z]*)' .next/server/chunks/ssr/*.js | wc -l   # 5
 python3 -c "import json;m=json.load(open('.next/server/server-reference-manifest.json'));print(len([k for k,v in m['node'].items() if 'app/projects/[id]/page' in v['workers']]))"
 ```
 
-Three encrypted captures, and references for the project page down from seven to
-four — the three closures plus Day 010's `transitionProjectAction`, which is
-still a bare export. If either number moves, the check has stopped being one.
+Five encrypted captures, and six references for the project page — the five
+closures plus Day 010's `transitionProjectAction`, which is still a bare export.
+If either number moves, the check has stopped being one.
+
+Day 013 left those at three and four. Day 014 added the edit and the delete the
+same way, each as a `"use server"` closure in `deliverable-list.tsx` calling into
+`scope-writes.ts`, which is why both numbers went up by two. The counts are only
+useful if they are updated with the writes, so: five captures, six references.
 
 It is still **not** an ownership check. It establishes which page made the call,
 not who was holding it. Phase 8 must derive the project from the session and
