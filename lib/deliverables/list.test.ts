@@ -40,8 +40,13 @@ describe("isEstimated", () => {
 describe("describeScopeList", () => {
   it("counts the lines, says the order is deliberate, and how to change it", () => {
     expect(describeScopeList(4)).toBe(
-      "4 deliverables, in the order they were agreed — move a line with the Up and Down buttons beside it.",
+      "4 deliverables, in the order they were agreed. Each line can be moved with the Up and Down buttons beside it, edited, or deleted.",
     );
+  });
+
+  it("says a line can be edited and deleted, however long the list", () => {
+    expect(describeScopeList(4)).toMatch(/edited, or deleted/);
+    expect(describeScopeList(1)).toMatch(/edited or deleted/);
   });
 
   it("does not offer to rearrange a list with nothing to rearrange", () => {
@@ -50,7 +55,8 @@ describe("describeScopeList", () => {
   });
 
   it("does not claim an order for a list of one", () => {
-    expect(describeScopeList(1)).toBe("One deliverable agreed so far.");
+    expect(describeScopeList(1)).toMatch(/^One deliverable agreed so far\./);
+    expect(describeScopeList(1)).not.toMatch(/order/);
   });
 
   it("has something to say about an empty list too", () => {

@@ -44,10 +44,13 @@ export function describeEstimate(minutes: number): string {
  * Saying where those controls are costs a clause and saves a hunt: they sit at
  * the end of each row, which is the last place a reader scanning a list of
  * titles would look. A list of one has nowhere to move to, so it is not told
- * about a pair of buttons that are both greyed out.
+ * about a pair of buttons that are both greyed out — but it can still be
+ * edited and deleted, which is worth saying for the same reason.
  */
 export function describeScopeList(count: number): string {
   if (count === 0) return "No deliverables agreed yet.";
-  if (count === 1) return "One deliverable agreed so far.";
-  return `${count} deliverables, in the order they were agreed — move a line with the Up and Down buttons beside it.`;
+  if (count === 1) {
+    return "One deliverable agreed so far. It can be edited or deleted with the buttons beside it.";
+  }
+  return `${count} deliverables, in the order they were agreed. Each line can be moved with the Up and Down buttons beside it, edited, or deleted.`;
 }
