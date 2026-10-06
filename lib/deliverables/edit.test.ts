@@ -9,6 +9,7 @@ import {
   editFormLabel,
   readEditId,
   EDIT_NO_ANSWER,
+  EDIT_PROBLEMS,
   savedNotice,
   deliverableChanges,
   editDeliverableState,
@@ -243,5 +244,21 @@ describe("what the edit controls are called", () => {
     // Both are in the document at once on a row being edited, and two controls
     // with the same name is the thing the title was added to avoid.
     expect(editButtonLabel("Flows")).not.toBe(editFormLabel("Flows"));
+  });
+});
+
+describe("the sentences a refused save comes back with", () => {
+  it("sends a reader whose row has gone to reload, not to try again", () => {
+    expect(EDIT_PROBLEMS.missing).toMatch(/Reload/);
+    expect(EDIT_PROBLEMS.missing).not.toMatch(/try again/);
+  });
+
+  it("tells a reader whose write failed to try again, since the row is there", () => {
+    expect(EDIT_PROBLEMS.failed).toMatch(/try again/);
+  });
+
+  it("says nothing was saved either way", () => {
+    expect(EDIT_PROBLEMS.missing).toMatch(/nothing was saved/i);
+    expect(EDIT_PROBLEMS.failed).toMatch(/Nothing was written/);
   });
 });
