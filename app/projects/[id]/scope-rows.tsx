@@ -3,6 +3,7 @@
 import { useEffect, useOptimistic, useRef, useState } from "react";
 
 import type { Deliverable } from "@/lib/db/schema";
+import type { EditDeliverableAction } from "@/lib/deliverables/edit";
 import {
   announceScopeChange,
   applyScopeChange,
@@ -18,10 +19,19 @@ import {
   type ScopeWriteResult,
   type StatusScopeAction,
 } from "@/lib/deliverables/arrange";
+import {
+  closeScopeRow,
+  NO_OPEN_ROW,
+  openScopeRow,
+  scopeRowMode,
+  type OpenScopeRow,
+} from "@/lib/deliverables/open-row";
 
 import { DeliverableControls } from "./deliverable-controls";
 import { DeliverableItem } from "./deliverable-item";
+import { EditDeliverableForm } from "./edit-deliverable-form";
 import { ScopeProblem } from "./scope-problem";
+import { ScopeRow } from "./scope-row";
 
 /**
  * The lines of a project's scope, and the controls that rearrange them.
@@ -41,6 +51,7 @@ export function ScopeRows({
   deliverables,
   move,
   changeStatus,
+  edit,
   remove,
 }: {
   deliverables: readonly Deliverable[];
@@ -52,6 +63,7 @@ export function ScopeRows({
    */
   move: MoveScopeAction;
   changeStatus: StatusScopeAction;
+  edit: EditDeliverableAction;
   remove: DeleteScopeAction;
 }) {
   /*
@@ -69,6 +81,13 @@ export function ScopeRows({
     deliverables,
     applyScopeChange,
   );
+
+  /*
+    Which row has unfolded into something bigger than a line, and into what.
+    One at a time, which is `openScopeRow`'s rule rather than this component's —
+    see the module for why a list of half-open forms is not a list.
+  */
+  const [open, setOpen] = useState<OpenScopeRow>(NO_OPEN_ROW);
 
   const [said, setSaid] = useState<Announcement | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -206,6 +225,18 @@ export function ScopeRows({
     return changeStatus(change.id, change.from, change.status);
   }
 
+  /**
+   * An editor has finished with its row: the save landed, or the reader left.
+   *
+   * The sentence comes from the form rather than from here, because only the
+   * form knows what was saved — and it has to be said from here, because the
+   * live region is this component's and the form is about to be unmounted.
+   */
+  function closeEditor(id: string, notice: string | null) {
+    say(notice);
+    setOpen((open) => closeScopeRow(open, id));
+  }
+
   function report(result: ScopeWriteResult, press: number) {
     /*
       React has already rolled the optimistic change back by now: the action has
@@ -253,21 +284,38 @@ export function ScopeRows({
         role="list"
         className="mt-3 border-t border-zinc-200 dark:border-zinc-800"
       >
-        {rows.map((deliverable, index) => (
-          <DeliverableItem
-            key={deliverable.id}
-            deliverable={deliverable}
-            position={index + 1}
-            controls={
-              <DeliverableControls
+        {rows.map((deliverable, index) =>
+          scopeRowMode(open, deliverable.id) === "edit" ? (
+            /*
+              The editor replaces the line rather than appearing beside it. A row
+              showing both would be the same three values twice over, and the
+              reader would have to work out which copy they are changing.
+            */
+            <ScopeRow key={deliverable.id} align="start">
+              <EditDeliverableForm
                 deliverable={deliverable}
-                position={index + 1}
-                count={rows.length}
-                arrange={arrange}
+                save={edit}
+                onSaved={(notice) => closeEditor(deliverable.id, notice)}
+                onCancel={() => closeEditor(deliverable.id, null)}
               />
-            }
-          />
-        ))}
+            </ScopeRow>
+          ) : (
+            <DeliverableItem
+              key={deliverable.id}
+              deliverable={deliverable}
+              position={index + 1}
+              controls={
+                <DeliverableControls
+                  deliverable={deliverable}
+                  position={index + 1}
+                  count={rows.length}
+                  arrange={arrange}
+                  onEdit={() => setOpen(openScopeRow(deliverable.id, "edit"))}
+                />
+              }
+            />
+          ),
+        )}
       </ol>
     </>
   );

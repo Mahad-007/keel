@@ -1,10 +1,12 @@
 import type { Deliverable } from "@/lib/db/schema";
+import type { EditDeliverableState } from "@/lib/deliverables/edit";
 import { describeScopeList } from "@/lib/deliverables/list";
 import type { MoveDirection } from "@/lib/deliverables/order";
 import type { DeliverableStatus } from "@/lib/deliverables/status";
 
 import {
   writeDeliverableDelete,
+  writeDeliverableEdit,
   writeDeliverableStatus,
   writeDeliverableMove,
 } from "./scope-writes";
@@ -71,6 +73,11 @@ export function DeliverableList({
     return writeDeliverableStatus(projectId, id, from, status);
   }
 
+  async function edit(previous: EditDeliverableState, formData: FormData) {
+    "use server";
+    return writeDeliverableEdit(projectId, previous, formData);
+  }
+
   async function remove(id: string) {
     "use server";
     return writeDeliverableDelete(projectId, id);
@@ -85,6 +92,7 @@ export function DeliverableList({
         deliverables={deliverables}
         move={move}
         changeStatus={changeStatus}
+        edit={edit}
         remove={remove}
       />
     </>

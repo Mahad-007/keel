@@ -4,6 +4,7 @@ import {
   statusButtonLabel,
   type ArrangedDeliverable,
 } from "@/lib/deliverables/arrange";
+import { editButtonLabel } from "@/lib/deliverables/edit";
 import { canMove, MOVE_DIRECTIONS, MOVE_LABELS } from "@/lib/deliverables/order";
 import {
   deliverableStatusVerb,
@@ -30,6 +31,7 @@ export function DeliverableControls({
   position,
   count,
   arrange,
+  onEdit,
 }: {
   deliverable: ArrangedDeliverable;
   /** Its place in the list as rendered, counting from one. */
@@ -38,6 +40,8 @@ export function DeliverableControls({
   count: number;
   /** What to do with a press. The list reads it and applies it on screen. */
   arrange: (formData: FormData) => void;
+  /** Open this row for editing. Nothing is submitted and nothing is written. */
+  onEdit: () => void;
 }) {
   return (
     <form action={arrange} className="flex shrink-0 items-center gap-1">
@@ -79,6 +83,16 @@ export function DeliverableControls({
         same place — and the first line of a list has no "up" to offer, which is
         a fact about the list worth showing rather than hiding.
       */}
+      {/*
+        Edit comes after the controls that change the list and before the one
+        that ends it, which is the order of consequence: a status press and a
+        move are a keystroke each and reversible, an edit is a form, and a
+        deletion is final. A reader tabbing along the row meets them in that
+        order rather than meeting Delete on the way to Up.
+      */}
+      <ScopeButton onPress={onEdit} label={editButtonLabel(deliverable.title)}>
+        Edit
+      </ScopeButton>
       {MOVE_DIRECTIONS.map((direction) => (
         <ScopeButton
           key={direction}
