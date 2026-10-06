@@ -5,6 +5,7 @@ import type { Deliverable } from "@/lib/db/schema";
 import {
   cancelEditLabel,
   changesDeliverable,
+  editButtonId,
   editButtonLabel,
   editFormLabel,
   readEditId,
@@ -238,6 +239,14 @@ describe("what the edit controls are called", () => {
     expect(editButtonLabel("Wireframes")).toBe("Edit “Wireframes”");
     expect(editFormLabel("Wireframes")).toBe("Editing “Wireframes”");
     expect(cancelEditLabel("Wireframes")).toBe("Stop editing “Wireframes”");
+  });
+
+  it("gives each row's edit button its own id", () => {
+    expect(editButtonId("dlv_wire")).not.toBe(editButtonId("dlv_flows"));
+  });
+
+  it("does not run one row's id into another's", () => {
+    expect(editButtonId("dlv_a")).not.toBe(editButtonId("dlv_a_b"));
   });
 
   it("tells the button apart from the form it opens", () => {

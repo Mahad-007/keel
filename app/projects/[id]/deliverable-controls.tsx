@@ -4,7 +4,7 @@ import {
   statusButtonLabel,
   type ArrangedDeliverable,
 } from "@/lib/deliverables/arrange";
-import { editButtonLabel } from "@/lib/deliverables/edit";
+import { editButtonId, editButtonLabel } from "@/lib/deliverables/edit";
 import { deleteButtonId, deleteButtonLabel } from "@/lib/deliverables/remove";
 import { canMove, MOVE_DIRECTIONS, MOVE_LABELS } from "@/lib/deliverables/order";
 import {
@@ -97,7 +97,11 @@ export function DeliverableControls({
         deletion is final. A reader tabbing along the row meets them in that
         order rather than meeting Delete on the way to Up.
       */}
-      <ScopeButton onPress={onEdit} label={editButtonLabel(deliverable.title)}>
+      <ScopeButton
+        id={editButtonId(deliverable.id)}
+        onPress={onEdit}
+        label={editButtonLabel(deliverable.title)}
+      >
         Edit
       </ScopeButton>
       {MOVE_DIRECTIONS.map((direction) => (

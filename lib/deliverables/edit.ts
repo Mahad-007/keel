@@ -251,6 +251,18 @@ export function editButtonLabel(title: string): string {
 }
 
 /**
+ * The id the control that opens an edit is known by.
+ *
+ * Needed from outside the row, because the cursor has to come back here when an
+ * editor closes — and by then the button is being rendered again for the first
+ * time, since the editor had replaced it. There is no ref to hold onto across
+ * that, so the id is derived from the deliverable instead.
+ */
+export function editButtonId(id: string): string {
+  return `edit-${id}-ask`;
+}
+
+/**
  * What the open editor is called, which is not the same as the button that
  * opened it: the form replaces the line, so a reader arriving in it needs to be
  * told which line they are now inside.
