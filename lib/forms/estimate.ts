@@ -1,4 +1,4 @@
-import { MINUTES_PER_HOUR, parseHours } from "@/lib/minutes";
+import { hoursInput, MINUTES_PER_HOUR, parseHours } from "@/lib/minutes";
 
 import { invalid, valid, type FieldResult } from "./result";
 
@@ -42,4 +42,17 @@ export function optionalEstimateMinutes(
     );
   }
   return valid(minutes);
+}
+
+/**
+ * The inverse of `optionalEstimateMinutes`, for prefilling an edit form from a
+ * stored deliverable.
+ *
+ * Zero renders as an empty box rather than as `0`, which is the same reading
+ * the parse direction gives a blank: nobody has estimated this line. A literal
+ * zero in the field would say somebody sized the work at nothing, and saving
+ * the form untouched would then be a statement rather than a no-op.
+ */
+export function estimateInput(minutes: number): string {
+  return minutes === 0 ? "" : hoursInput(minutes);
 }
