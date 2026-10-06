@@ -407,6 +407,32 @@ describe("announcing a status press", () => {
   });
 });
 
+describe("announcing a deletion", () => {
+  it("names the line and counts what is left", () => {
+    expect(announceScopeChange(scope, { kind: "remove", id: "b" })).toBe(
+      "Deleted “Build the booking flow”. 2 deliverables left.",
+    );
+  });
+
+  it("counts from the list the deletion produces, not the one pressed in", () => {
+    const two = [row("a", "Wireframes"), row("b", "Launch checklist")];
+    expect(announceScopeChange(two, { kind: "remove", id: "a" })).toBe(
+      "Deleted “Wireframes”. One deliverable left.",
+    );
+  });
+
+  it("says the scope list is empty when the last line goes", () => {
+    const only = [row("a", "Wireframes")];
+    expect(announceScopeChange(only, { kind: "remove", id: "a" })).toBe(
+      "Deleted “Wireframes”. The scope list is now empty.",
+    );
+  });
+
+  it("has nothing to say about a line the list no longer has", () => {
+    expect(announceScopeChange(scope, { kind: "remove", id: "z" })).toBeNull();
+  });
+});
+
 describe("a status press aimed at a row that has moved on", () => {
   it("passes when the row still says what the press said it did", () => {
     expect(staleStatusProblem(row("a", "Wireframes", "started"), "started")).toBeNull();
