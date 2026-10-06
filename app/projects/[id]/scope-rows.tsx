@@ -272,7 +272,22 @@ export function ScopeRows({
     showChange(change);
     shown.current = applyScopeChange(list, change);
 
-    report(await write(change), press);
+    const result = await write(change);
+
+    /*
+      A refused deletion puts the row back, which puts its Delete button back
+      with it — and the cursor is by then on the *next* row's, moved there when
+      the line disappeared. Left alone, the reader's next press would open the
+      question for a deliverable they never named.
+
+      Set before the complaint, so the render the complaint schedules is the one
+      that moves the cursor.
+    */
+    if (!result.ok && change.kind === "remove") {
+      moveFocusTo.current = deleteButtonId(change.id);
+    }
+
+    report(result, press);
   }
 
   /**
