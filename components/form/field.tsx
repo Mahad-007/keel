@@ -20,11 +20,24 @@ export type FieldProps = {
   label: string;
   hint?: string;
   error?: string;
+  /**
+   * Which of several forms on the page this field belongs to, so two forms
+   * asking for the same thing do not render two controls with one id. Omitted
+   * on a page with one form — see `fieldId`.
+   */
+  scope?: string;
   children: (description: FieldDescription) => ReactNode;
 };
 
-export function Field({ name, label, hint, error, children }: FieldProps) {
-  const description = describeField({ name, hint, error });
+export function Field({
+  name,
+  label,
+  hint,
+  error,
+  scope,
+  children,
+}: FieldProps) {
+  const description = describeField({ name, hint, error, scope });
 
   return (
     <div className="flex flex-col gap-1.5">

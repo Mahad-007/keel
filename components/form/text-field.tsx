@@ -24,6 +24,12 @@ export type TextFieldProps = {
   autoComplete?: string;
   placeholder?: string;
   maxLength?: number;
+  /**
+   * Which of several forms on the page this field belongs to, so two forms
+   * asking for the same thing do not render two controls with one id. Omitted
+   * on a page with one form — see `fieldId`.
+   */
+  scope?: string;
 };
 
 export function TextField({
@@ -37,9 +43,10 @@ export function TextField({
   autoComplete = "off",
   placeholder,
   maxLength,
+  scope,
 }: TextFieldProps) {
   return (
-    <Field name={name} label={label} hint={hint} error={error}>
+    <Field name={name} label={label} hint={hint} error={error} scope={scope}>
       {(description) => (
         <input
           {...controlAttributes(description)}

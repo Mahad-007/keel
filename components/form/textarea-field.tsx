@@ -17,6 +17,12 @@ export type TextAreaFieldProps = {
   defaultValue?: string;
   rows?: number;
   maxLength?: number;
+  /**
+   * Which of several forms on the page this field belongs to, so two forms
+   * asking for the same thing do not render two controls with one id. Omitted
+   * on a page with one form — see `fieldId`.
+   */
+  scope?: string;
 };
 
 export function TextAreaField({
@@ -27,9 +33,10 @@ export function TextAreaField({
   defaultValue,
   rows = 4,
   maxLength,
+  scope,
 }: TextAreaFieldProps) {
   return (
-    <Field name={name} label={label} hint={hint} error={error}>
+    <Field name={name} label={label} hint={hint} error={error} scope={scope}>
       {(description) => (
         <textarea
           {...controlAttributes(description)}
