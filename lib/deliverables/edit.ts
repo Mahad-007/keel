@@ -1,7 +1,17 @@
 import type { Deliverable } from "@/lib/db/schema";
-import { initialFormState } from "@/lib/forms/state";
+import type { FieldErrors } from "@/lib/forms/result";
+import {
+  failedFormState,
+  initialFormState,
+  rejectedFormState,
+} from "@/lib/forms/state";
 
-import { deliverableFormFields, type DeliverableFormState } from "./form";
+import {
+  deliverableFormFields,
+  type DeliverableFieldName,
+  type DeliverableFormFields,
+  type DeliverableFormState,
+} from "./form";
 
 /**
  * Editing one line of a scope list: what the form holds, and what it hands
@@ -72,3 +82,36 @@ export type EditDeliverableAction = (
   previous: EditDeliverableState,
   formData: FormData,
 ) => Promise<EditDeliverableState>;
+
+/**
+ * The edit landed. The fields come back as the row now reads rather than as
+ * they were submitted, so a form that stays open after a save — one the reader
+ * reopens, or one whose close is still a render away — shows the saved line
+ * and not an untrimmed copy of what they typed.
+ */
+export function savedEditState(
+  saved: EditedDeliverable,
+  fields: DeliverableFormFields,
+): EditDeliverableState {
+  return { ...initialFormState(fields), saved };
+}
+
+/**
+ * Validation refused the submission. Nothing was written, and the row stays
+ * open holding exactly what was typed: an edit form that closed on a rejection
+ * would throw away the work and leave the reader to find the line again.
+ */
+export function rejectedEditState(
+  fields: DeliverableFormFields,
+  errors: FieldErrors<DeliverableFieldName>,
+): EditDeliverableState {
+  return { ...rejectedFormState(fields, errors), saved: null };
+}
+
+/** The submission was good and could not be saved. */
+export function failedEditState(
+  fields: DeliverableFormFields,
+  formError: string,
+): EditDeliverableState {
+  return { ...failedFormState(fields, formError), saved: null };
+}
