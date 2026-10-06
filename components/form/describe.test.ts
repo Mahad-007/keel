@@ -83,3 +83,32 @@ describe("describeField with a blank message", () => {
     expect(description.describedBy).toBeUndefined();
   });
 });
+
+describe("a field in one of several forms on a page", () => {
+  it("takes its control id from the scope it was given", () => {
+    expect(describeField({ name: "title", scope: "dlv_wire" }).id).toBe(
+      fieldId("title", "dlv_wire"),
+    );
+  });
+
+  it("points at its own error, not the same field's in another form", () => {
+    const description = describeField({
+      name: "title",
+      error: "Title is required.",
+      scope: "dlv_wire",
+    });
+
+    expect(description.describedBy).toBe(fieldErrorId("title", "dlv_wire"));
+    expect(description.describedBy).not.toBe(fieldErrorId("title"));
+  });
+
+  it("points at its own hint as well", () => {
+    const description = describeField({
+      name: "estimate",
+      hint: "Hours, like 2 or 1.5.",
+      scope: "dlv_wire",
+    });
+
+    expect(description.describedBy).toBe(fieldHintId("estimate", "dlv_wire"));
+  });
+});
