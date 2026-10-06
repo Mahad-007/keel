@@ -38,6 +38,11 @@ export type FieldDescriptionInput = {
   name: string;
   hint?: string;
   error?: string;
+  /**
+   * Which of several forms on the page this field belongs to. Omitted on a page
+   * with one form, where a prefix on every id would be noise — see `fieldId`.
+   */
+  scope?: string;
 };
 
 /**
@@ -57,16 +62,17 @@ export function describeField({
   name,
   hint,
   error,
+  scope,
 }: FieldDescriptionInput): FieldDescription {
-  const hintMessage = message(hint, fieldHintId(name));
-  const errorMessage = message(error, fieldErrorId(name));
+  const hintMessage = message(hint, fieldHintId(name, scope));
+  const errorMessage = message(error, fieldErrorId(name, scope));
 
   // The error comes first: a screen reader reads the description in order,
   // and the problem matters more than the advice that failed to prevent it.
   const described = [errorMessage, hintMessage].filter((part) => part !== null);
 
   return {
-    id: fieldId(name),
+    id: fieldId(name, scope),
     hint: hintMessage,
     error: errorMessage,
     describedBy:
