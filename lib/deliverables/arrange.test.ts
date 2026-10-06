@@ -261,6 +261,38 @@ describe("reading a press of a row's controls", () => {
     });
   });
 
+  it("reads a confirmed deletion", () => {
+    expect(
+      readScopeChange(press({ id: "dlv_wire", remove: "yes" })),
+    ).toEqual({ kind: "remove", id: "dlv_wire" });
+  });
+
+  it("reads a deletion whatever the button's value was", () => {
+    expect(readScopeChange(press({ id: "dlv_wire", remove: "1" }))).toEqual({
+      kind: "remove",
+      id: "dlv_wire",
+    });
+  });
+
+  it("does not read an empty remove field as a deletion", () => {
+    // A form submitted some other way than by pressing the button in the step.
+    expect(readScopeChange(press({ id: "dlv_wire", remove: "" }))).toBeNull();
+  });
+
+  it("refuses a deletion that names no deliverable", () => {
+    expect(readScopeChange(press({ remove: "yes" }))).toBeNull();
+  });
+
+  it("takes a deletion for a deletion even beside other fields", () => {
+    // The step's form carries nothing else, so this can only be a hand-made
+    // submission — and a request to delete must not be read as a move.
+    expect(
+      readScopeChange(
+        press({ id: "dlv_wire", remove: "yes", direction: "up" }),
+      ),
+    ).toEqual({ kind: "remove", id: "dlv_wire" });
+  });
+
   it("uses the field names the row's controls are built from", () => {
     const form = new FormData();
     form.set(SCOPE_FIELD_NAMES.id, "dlv_wire");
