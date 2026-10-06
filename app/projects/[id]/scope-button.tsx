@@ -1,9 +1,14 @@
 /**
  * One of the small controls on a line of a scope list.
  *
- * A submit button rather than something with an `onClick`, because the row is a
- * form: the press has to say which deliverable it was aimed at and what it
- * asked for, and a button's own name and value is how a browser says that.
+ * Usually a submit button, because the row is a form: a press that changes the
+ * list has to say which deliverable it was aimed at and what it asked for, and
+ * a button's own name and value is how a browser says that.
+ *
+ * Two of them change nothing, though — Edit and Delete only open something on
+ * the page — and those pass `onPress` instead and submit nothing. They have to
+ * be the same control to look at: five buttons in a row where two of them are
+ * built somewhere else is five buttons that will not stay the same size.
  *
  * It is deliberately not `SubmitButton`. That one disables itself while the
  * form is in flight, which is right for a save — an impatient second press
@@ -28,13 +33,26 @@ const UNAVAILABLE =
 export function ScopeButton({
   name,
   value,
+  onPress,
+  id,
   label,
   unavailable = false,
   children,
 }: {
-  /** The field this press contributes, which is how the action reads it. */
-  name: string;
-  value: string;
+  /**
+   * The field this press contributes, which is how the action reads it. Absent
+   * on a control that opens something instead of submitting the row.
+   */
+  name?: string;
+  value?: string;
+  /**
+   * What a press does, for a control that acts on the page rather than on the
+   * list. Given one, the button stops being a submit — a press of Edit that
+   * also submitted the row would send a change nobody asked for.
+   */
+  onPress?: () => void;
+  /** For a control the page has to move the cursor back to. */
+  id?: string;
   /**
    * The accessible name, which carries the deliverable's title: a column of
    * buttons reading "Up" is one control repeated to anyone who cannot see
@@ -57,9 +75,11 @@ export function ScopeButton({
       sentence saying so.
     */
     <button
-      type="submit"
+      type={onPress === undefined ? "submit" : "button"}
+      id={id}
       name={name}
       value={value}
+      onClick={onPress}
       aria-label={label}
       aria-disabled={unavailable || undefined}
       className={`${SHAPE} ${unavailable ? UNAVAILABLE : AVAILABLE}`}
