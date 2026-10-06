@@ -27,7 +27,7 @@ as an atomic commit and what does not.
 - [x] **Day 011** — `deliverables` table and data layer: projectId, title, description, estimatedMinutes, status, sortOrder. CRUD plus reordering, with tests.
 - [x] **Day 012** — Deliverables section on the project page: ordered list, inline add, and an empty state that explains why scope matters.
 - [x] **Day 013** — Deliverable status toggling and drag-free reordering (move up/down server actions), with optimistic UI.
-- [ ] **Day 014** — Deliverable edit and delete, with a confirmation flow that does not rely on `window.confirm`.
+- [x] **Day 014** — Deliverable edit and delete, with a confirmation flow that does not rely on `window.confirm`.
 - [ ] **Day 015** — `lib/scope.ts`: estimated hours, implied effective rate, and remaining estimate from deliverables plus contract value. Pure functions, exhaustively tested including zero and negative cases.
 - [ ] **Day 016** — Scope summary panel on the project page rendering the Day 015 numbers with plain-language labels.
 - [ ] **Day 017** — Deliverable templates: save a set of deliverables from a project, apply them to a new one. Table, data layer, and UI.
