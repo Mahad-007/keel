@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  confirmDeleteId,
   confirmDeleteLabel,
+  deleteButtonId,
+  deletePromptId,
   deleteButtonLabel,
   deletedAnnouncement,
   describeDeletion,
@@ -66,5 +69,27 @@ describe("the sentence after a deletion", () => {
     expect(deletedAnnouncement("Wireframes", 0)).toBe(
       "Deleted “Wireframes”. The scope list is now empty.",
     );
+  });
+});
+
+describe("the ids a row's delete controls are found by", () => {
+  it("gives the step, the confirming button and the asking button their own", () => {
+    const ids = [
+      deletePromptId("dlv_wire"),
+      confirmDeleteId("dlv_wire"),
+      deleteButtonId("dlv_wire"),
+    ];
+    expect(new Set(ids).size).toBe(3);
+  });
+
+  it("keeps two rows' controls apart", () => {
+    expect(deleteButtonId("dlv_wire")).not.toBe(deleteButtonId("dlv_flows"));
+    expect(confirmDeleteId("dlv_wire")).not.toBe(
+      confirmDeleteId("dlv_flows"),
+    );
+  });
+
+  it("does not run one row's id into another's", () => {
+    expect(deletePromptId("dlv_a")).not.toBe(deletePromptId("dlv_a_b"));
   });
 });

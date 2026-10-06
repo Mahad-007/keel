@@ -85,3 +85,36 @@ export function deletedAnnouncement(title: string, remaining: number): string {
   if (remaining === 1) return `Deleted “${title}”. One deliverable left.`;
   return `Deleted “${title}”. ${remaining} deliverables left.`;
 }
+
+/**
+ * What the confirming button submits, which only has to be something: the
+ * parser reads any non-empty value as "delete this", because the field's
+ * presence is the whole message.
+ */
+export const DELETE_CONFIRM_VALUE = "yes";
+
+/**
+ * The ids the step and the row's own button are known by.
+ *
+ * Derived from the deliverable rather than generated, because they are needed
+ * from outside the components that render them: opening the step moves the
+ * cursor into it, and closing it has to put the cursor back on the button that
+ * opened it. Neither is a thing a parent can do by holding a ref — the step is
+ * not mounted when the press happens, and the button is unmounted again by the
+ * time the step closes on a stale list.
+ *
+ * A deliverable id is unique on the page, so these cannot collide between rows.
+ */
+export function deletePromptId(id: string): string {
+  return `delete-${id}-prompt`;
+}
+
+/** The button inside the step, which the cursor moves to when it opens. */
+export function confirmDeleteId(id: string): string {
+  return `delete-${id}-confirm`;
+}
+
+/** The button in the row that opens the step, and takes the cursor back. */
+export function deleteButtonId(id: string): string {
+  return `delete-${id}-ask`;
+}
