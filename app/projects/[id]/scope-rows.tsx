@@ -3,7 +3,10 @@
 import { useEffect, useOptimistic, useRef, useState } from "react";
 
 import type { Deliverable } from "@/lib/db/schema";
-import type { EditDeliverableAction } from "@/lib/deliverables/edit";
+import {
+  editButtonId,
+  type EditDeliverableAction,
+} from "@/lib/deliverables/edit";
 import {
   announceScopeChange,
   applyScopeChange,
@@ -25,7 +28,9 @@ import {
   openScopeRow,
   scopeRowMode,
   type OpenScopeRow,
+  type ScopeRowMode,
 } from "@/lib/deliverables/open-row";
+import { deleteButtonId } from "@/lib/deliverables/remove";
 
 import { DeleteDeliverablePrompt } from "./delete-deliverable-prompt";
 import { DeliverableControls } from "./deliverable-controls";
@@ -92,6 +97,27 @@ export function ScopeRows({
 
   const [said, setSaid] = useState<Announcement | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+
+  /*
+    Where the cursor goes once the list has been drawn again.
+
+    A row that closes takes the control the reader was using with it — the Save
+    button, the Keep button — and the browser answers that by dropping focus to
+    the document, so the next Tab starts from the top of the page. On a list of
+    eight lines that is a hunt back to where they were, every time.
+
+    It cannot be done in the handler: the control to move to is the one the row
+    is about to render *instead*, and it is not in the document yet. So the
+    handler leaves the id here and the effect below acts on it once React has
+    caught up.
+  */
+  const moveFocusTo = useRef<string | null>(null);
+  useEffect(() => {
+    const id = moveFocusTo.current;
+    if (id === null) return;
+    moveFocusTo.current = null;
+    document.getElementById(id)?.focus();
+  });
 
   /*
     The write the next press has to wait for.
@@ -235,9 +261,16 @@ export function ScopeRows({
    * here, because the live region is this component's and the row is about to go
    * back to being a line.
    */
-  function closeRow(id: string, notice: string | null) {
+  function closeRow(
+    id: string,
+    mode: ScopeRowMode,
+    notice: string | null,
+  ) {
     say(notice);
     setOpen((open) => closeScopeRow(open, id));
+    // Back to the control that opened it, which is where the reader was before
+    // the row unfolded and is the only place that still makes sense afterwards.
+    moveFocusTo.current = mode === "edit" ? editButtonId(id) : deleteButtonId(id);
   }
 
   function report(result: ScopeWriteResult, press: number) {
@@ -298,8 +331,8 @@ export function ScopeRows({
               <EditDeliverableForm
                 deliverable={deliverable}
                 save={edit}
-                onSaved={(notice) => closeRow(deliverable.id, notice)}
-                onCancel={() => closeRow(deliverable.id, null)}
+                onSaved={(notice) => closeRow(deliverable.id, "edit", notice)}
+                onCancel={() => closeRow(deliverable.id, "edit", null)}
               />
             </ScopeRow>
           ) : (
@@ -326,7 +359,7 @@ export function ScopeRows({
                     title={deliverable.title}
                     estimatedMinutes={deliverable.estimatedMinutes}
                     confirm={arrange}
-                    onKeep={() => closeRow(deliverable.id, null)}
+                    onKeep={() => closeRow(deliverable.id, "confirm", null)}
                   />
                 ) : null
               }
