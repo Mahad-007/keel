@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import type { Deliverable } from "@/lib/db/schema";
+
 import {
   ADD_NO_ANSWER,
   DELIVERABLE_FIELD_LIMITS,
+  deliverableFormFields,
   EMPTY_DELIVERABLE_FIELDS,
   parseDeliverableForm,
   type DeliverableFormFields,
@@ -117,5 +120,58 @@ describe("the sentence an add with no answer comes back with", () => {
 
   it("sends the reader to the list, which is what the server says", () => {
     expect(ADD_NO_ANSWER).toMatch(/Reload/);
+  });
+});
+
+function stored(values: Partial<Deliverable> = {}): Deliverable {
+  return {
+    id: "dlv_wire",
+    projectId: "prj_engine",
+    title: "Wireframes",
+    description: "Six screens.",
+    estimatedMinutes: 90,
+    status: "pending",
+    sortOrder: 0,
+    createdAt: "2026-10-03T09:00:00.000Z",
+    updatedAt: "2026-10-03T09:00:00.000Z",
+    ...values,
+  };
+}
+
+describe("a stored deliverable as form fields", () => {
+  it("offers the title, the detail and the estimate in hours", () => {
+    expect(deliverableFormFields(stored())).toEqual({
+      title: "Wireframes",
+      description: "Six screens.",
+      estimate: "1.5",
+    });
+  });
+
+  it("shows a missing description as an empty box", () => {
+    expect(deliverableFormFields(stored({ description: null }))).toMatchObject({
+      description: "",
+    });
+  });
+
+  it("shows an unestimated line as an empty box, not a zero", () => {
+    expect(
+      deliverableFormFields(stored({ estimatedMinutes: 0 })),
+    ).toMatchObject({ estimate: "" });
+  });
+
+  it("parses back to exactly what was stored, so an untouched save is a no-op", () => {
+    const deliverable = stored({ description: null, estimatedMinutes: 0 });
+    expect(parseDeliverableForm(deliverableFormFields(deliverable))).toEqual({
+      ok: true,
+      value: { title: "Wireframes", description: null, estimatedMinutes: 0 },
+    });
+  });
+
+  it("keeps a title that is all the form will allow", () => {
+    const title = "x".repeat(DELIVERABLE_FIELD_LIMITS.title);
+    expect(parseDeliverableForm(deliverableFormFields(stored({ title })))).toMatchObject({
+      ok: true,
+      value: { title },
+    });
   });
 });
