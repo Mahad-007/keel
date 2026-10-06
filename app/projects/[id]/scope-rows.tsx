@@ -2,6 +2,8 @@
 
 import { useEffect, useOptimistic, useRef, useState } from "react";
 
+import { fieldId } from "@/components/form";
+
 import type { Deliverable } from "@/lib/db/schema";
 import {
   editButtonId,
@@ -30,7 +32,7 @@ import {
   type OpenScopeRow,
   type ScopeRowMode,
 } from "@/lib/deliverables/open-row";
-import { deleteButtonId } from "@/lib/deliverables/remove";
+import { deleteButtonId, rowAfterDelete } from "@/lib/deliverables/remove";
 
 import { DeleteDeliverablePrompt } from "./delete-deliverable-prompt";
 import { DeliverableControls } from "./deliverable-controls";
@@ -213,6 +215,22 @@ export function ScopeRows({
       write would be a round trip whose answer is the list as it already reads.
     */
     if (!changesScope(list, change)) return;
+
+    /*
+      A deletion destroys the button it was pressed from, so the cursor has to
+      be sent somewhere before the row goes. The line that takes its place,
+      normally; the add line at the bottom of the page when there is no line
+      left, which is where somebody who has just emptied a scope list is going
+      next anyway.
+    */
+    if (change.kind === "remove") {
+      const next = rowAfterDelete(
+        list.map((row) => row.id),
+        change.id,
+      );
+      moveFocusTo.current =
+        next === null ? fieldId("title") : deleteButtonId(next);
+    }
 
     // On screen first. A press that waited for the round trip would make
     // rearranging a list feel like it had to be done one keystroke at a time.
