@@ -220,3 +220,28 @@ export const EDIT_FIELD_NAMES = { id: "id" } as const;
 export function readEditId(formData: FormData): string {
   return readField(formData, EDIT_FIELD_NAMES.id).trim();
 }
+
+/**
+ * What the control that opens an edit is called.
+ *
+ * The title is in the name for the same reason it is in the move buttons': a
+ * scope list of eight lines holds eight buttons saying "Edit", and to anyone
+ * who cannot see which line they are on that is one control repeated.
+ */
+export function editButtonLabel(title: string): string {
+  return `Edit “${title}”`;
+}
+
+/**
+ * What the open editor is called, which is not the same as the button that
+ * opened it: the form replaces the line, so a reader arriving in it needs to be
+ * told which line they are now inside.
+ */
+export function editFormLabel(title: string): string {
+  return `Editing “${title}”`;
+}
+
+/** The way out of an open editor without writing anything. */
+export function cancelEditLabel(title: string): string {
+  return `Stop editing “${title}”`;
+}
