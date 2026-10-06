@@ -23,6 +23,7 @@ import { revalidatePath } from "next/cache";
 
 import {
   createDeliverable,
+  deleteDeliverable,
   getDeliverable,
   moveDeliverable,
   setDeliverableStatus,
@@ -324,4 +325,45 @@ export async function writeDeliverableEdit(
     { id: saved.id, title: saved.title, changed: true },
     deliverableFormFields(saved),
   );
+}
+
+/**
+ * Deleting one line of a project's scope.
+ *
+ * The deliverable is gone for good and the positions of the lines after it
+ * close up, both inside one transaction — that part is `deleteDeliverable`'s.
+ * What is here is the same pair of questions every press on this page asks:
+ * whether the row named is one of this project's, and what to say when it is
+ * not.
+ *
+ * The confirmation is not here either, and it is worth saying why: it is a step
+ * in the page, taken before this is ever called. A second check in the write
+ * would be a second thing to get past rather than a second thing to think
+ * about — the press that arrives here has already been made twice.
+ */
+export async function writeDeliverableDelete(
+  projectId: string,
+  id: string,
+): Promise<ScopeWriteResult> {
+  const deliverable = await projectDeliverable(projectId, id);
+  if (deliverable === null) return scopeWriteProblem(SCOPE_PROBLEMS.missing);
+
+  try {
+    /*
+      A null answer means it had already gone between the read above and the
+      delete itself — somebody else, or a second press of the same button. That
+      is not a problem to report: what was asked for is true. The page is still
+      revalidated below, because it is the page that is out of date.
+    */
+    await deleteDeliverable(deliverable.id);
+  } catch (error) {
+    // The user cannot act on a driver error, but the logs should keep it.
+    console.error("writeDeliverableDelete: failed to delete deliverable", error);
+    return scopeWriteProblem(SCOPE_PROBLEMS.failed);
+  }
+
+  // The list is part of the page, so the line only disappears for good once the
+  // page is re-rendered. Until then what the reader sees is the optimistic copy.
+  revalidatePath(projectPath(projectId));
+  return SCOPE_WRITE_DONE;
 }
