@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import type { Deliverable } from "@/lib/db/schema";
 
 import {
+  cancelEditLabel,
   changesDeliverable,
+  editButtonLabel,
+  editFormLabel,
+  readEditId,
   EDIT_NO_ANSWER,
   savedNotice,
   deliverableChanges,
@@ -204,5 +208,40 @@ describe("the sentence an edit with no answer comes back with", () => {
 
   it("sends the reader to the list, which is what the server says", () => {
     expect(EDIT_NO_ANSWER).toMatch(/Reload/);
+  });
+});
+
+describe("which row an edit submission names", () => {
+  function submit(values: Record<string, string>): FormData {
+    const form = new FormData();
+    for (const [name, value] of Object.entries(values)) form.set(name, value);
+    return form;
+  }
+
+  it("reads the id out of the submission", () => {
+    expect(readEditId(submit({ id: "dlv_wire" }))).toBe("dlv_wire");
+  });
+
+  it("trims it, since whitespace is not a different row", () => {
+    expect(readEditId(submit({ id: " dlv_wire\n" }))).toBe("dlv_wire");
+  });
+
+  it("is empty when the submission did not say", () => {
+    expect(readEditId(submit({}))).toBe("");
+    expect(readEditId(submit({ id: "   " }))).toBe("");
+  });
+});
+
+describe("what the edit controls are called", () => {
+  it("names the line each one acts on", () => {
+    expect(editButtonLabel("Wireframes")).toBe("Edit “Wireframes”");
+    expect(editFormLabel("Wireframes")).toBe("Editing “Wireframes”");
+    expect(cancelEditLabel("Wireframes")).toBe("Stop editing “Wireframes”");
+  });
+
+  it("tells the button apart from the form it opens", () => {
+    // Both are in the document at once on a row being edited, and two controls
+    // with the same name is the thing the title was added to avoid.
+    expect(editButtonLabel("Flows")).not.toBe(editFormLabel("Flows"));
   });
 });
