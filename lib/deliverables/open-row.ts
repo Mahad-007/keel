@@ -54,3 +54,41 @@ export function scopeRowMode(
   if (open === null || open.id !== id) return null;
   return open.mode;
 }
+
+/**
+ * Close a row, as asked by that row.
+ *
+ * It takes the id and checks it, rather than simply returning null, because the
+ * asking is asynchronous. A save answers some time after the press, and by then
+ * the reader may have cancelled and opened a different line; the answer still
+ * belongs to the row that sent it, and a blind close would shut the editor they
+ * are now typing in. The same goes for an editor closing itself on an effect
+ * one render after something else opened.
+ *
+ * A row that is not the open one closes nothing, which is the honest answer:
+ * it is already closed.
+ */
+export function closeScopeRow(open: OpenScopeRow, id: string): OpenScopeRow {
+  if (open === null || open.id !== id) return open;
+  return null;
+}
+
+/**
+ * The open row, dropped if the list no longer has it.
+ *
+ * A deliverable can leave the list while a row is open on it: somebody else
+ * deleted it, or this reader deleted the line they were being asked about and
+ * the question has now been answered. Either way the form or the step is open
+ * on nothing — it would keep the reader's focus inside a line the list cannot
+ * show and offer to save a row that is not there.
+ *
+ * Nothing open stays nothing open without looking at the list, which is the
+ * common case on every render.
+ */
+export function openRowStillThere(
+  open: OpenScopeRow,
+  ids: readonly string[],
+): OpenScopeRow {
+  if (open === null) return open;
+  return ids.includes(open.id) ? open : null;
+}
