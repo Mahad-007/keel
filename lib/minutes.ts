@@ -64,3 +64,24 @@ export function parseHours(input: string): number {
   }
   return Math.round(Number(cleaned) * MINUTES_PER_HOUR);
 }
+
+/**
+ * Minutes as the string the hours field would have been typed with: `90`
+ * becomes `1.5`, `120` becomes `2`, `20` becomes `0.3333`.
+ *
+ * The inverse of `parseHours`, and it has to be a true inverse: an edit form
+ * prefills from this, and a reader who opens a deliverable and saves it
+ * untouched must write the estimate back unchanged. Four decimal places is what
+ * guarantees that — the rounding error is at most three thousandths of a
+ * minute, so `parseHours` lands back on the same integer for every minute value
+ * a scope list can hold.
+ *
+ * Trailing zeros come off because the field is for people: an estimate of two
+ * hours is `2`, not `2.0000`. `formatMinutes` is the other direction of the
+ * same idea and deliberately different — `1h 30m` is for reading, `1.5` is for
+ * editing, and neither is usable as the other.
+ */
+export function hoursInput(minutes: number): string {
+  const hours = (minutes / MINUTES_PER_HOUR).toFixed(4);
+  return hours.replace(/\.?0+$/, "");
+}
