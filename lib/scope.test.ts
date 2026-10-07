@@ -12,6 +12,7 @@ import {
 import {
   deliveredEstimatedMinutes,
   estimatedHours,
+  impliedRateCents,
   isDelivered,
   remainingEstimatedMinutes,
   totalEstimatedMinutes,
@@ -268,5 +269,31 @@ describe("estimatedHours", () => {
   it("does not hand the page a negative zero to render", () => {
     expect(Object.is(estimatedHours(-0.2), 0)).toBe(true);
     expect(Object.is(estimatedHours(-0), 0)).toBe(true);
+  });
+});
+
+describe("impliedRateCents", () => {
+  it("divides the contract by the hours the estimate comes to", () => {
+    // $4,000 against 40 hours is $100/hr.
+    expect(impliedRateCents(400_000, 2400)).toBe(10_000);
+  });
+
+  it("works out the rate on an estimate of part of an hour", () => {
+    // $50 for half an hour is $100/hr.
+    expect(impliedRateCents(5_000, 30)).toBe(10_000);
+  });
+
+  it("shows the rate a generous estimate has quietly agreed to", () => {
+    // The same $4,000, estimated at 80 hours instead: half the rate.
+    expect(impliedRateCents(400_000, 4800)).toBe(5_000);
+  });
+
+  it("rounds to the nearest cent rather than a shade under", () => {
+    // $100 over seven hours is $14.2857…/hr.
+    expect(impliedRateCents(10_000, 420)).toBe(1_429);
+  });
+
+  it("reports a rate of nothing for work agreed at no charge", () => {
+    expect(impliedRateCents(0, 2400)).toBe(0);
   });
 });
