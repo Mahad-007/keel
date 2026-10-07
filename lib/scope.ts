@@ -69,3 +69,26 @@ export function totalEstimatedMinutes(lines: readonly ScopeLine[]): number {
 export function unestimatedCount(lines: readonly ScopeLine[]): number {
   return lines.filter((line) => !isEstimated(line.estimatedMinutes)).length;
 }
+
+/**
+ * Whether a line of scope is finished.
+ *
+ * One comparison, named, because it is the hinge every "how much is left"
+ * number in this file swings on and the choice it encodes is not obvious: a
+ * deliverable in progress is **not** partly delivered. Its whole estimate
+ * stays in the remaining total until somebody marks it done.
+ *
+ * The alternative — half credit for a started line — is a number nobody
+ * supplied. Progress on a deliverable is a fact about how much time has gone
+ * into it, which the scope list does not know and Phase 3 measures properly.
+ * Guessing it here would make the remaining estimate drift downwards every
+ * time somebody pressed Start, which is the one direction a scope total must
+ * never move on its own.
+ *
+ * A status the list does not recognise — the column is plain TEXT — counts as
+ * still to do, which keeps its estimate in the total. Dropping it instead
+ * would shrink the work left on the strength of a value nobody can read.
+ */
+export function isDelivered(line: ScopeLine): boolean {
+  return line.status === "done";
+}
