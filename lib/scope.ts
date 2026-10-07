@@ -92,3 +92,20 @@ export function unestimatedCount(lines: readonly ScopeLine[]): number {
 export function isDelivered(line: ScopeLine): boolean {
   return line.status === "done";
 }
+
+/**
+ * What the scope list says is still to do, in whole minutes.
+ *
+ * The estimate of every line not marked done — including the ones in
+ * progress, for the reason `isDelivered` gives.
+ *
+ * Built by filtering and then calling `totalEstimatedMinutes`, rather than by
+ * a second reduce with its own condition in it. Two sums written out
+ * separately is how a scope panel ends up showing a remaining total that does
+ * not fit the overall one, and nobody can tell which of the two is wrong.
+ */
+export function remainingEstimatedMinutes(
+  lines: readonly ScopeLine[],
+): number {
+  return totalEstimatedMinutes(lines.filter((line) => !isDelivered(line)));
+}
