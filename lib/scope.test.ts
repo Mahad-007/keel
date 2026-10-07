@@ -366,3 +366,29 @@ describe("impliedRateCents with nothing to divide by", () => {
     expect(impliedRateCents(400_000, -60)).toBeNull();
   });
 });
+
+describe("impliedRateCents on a contract below zero", () => {
+  /**
+   * The contract value column takes a negative — `parseCents` accepts a minus
+   * sign, because a credit on an invoice needs one. A negative contract value
+   * is somebody's mistake, and the rate it implies is the clearest possible
+   * statement of it. Reporting null here would hide a bad row behind the same
+   * blank a missing estimate shows.
+   */
+  it("reports the negative rate a negative contract implies", () => {
+    expect(impliedRateCents(-400_000, 2400)).toBe(-10_000);
+  });
+
+  it("tells a negative contract apart from a missing estimate", () => {
+    expect(impliedRateCents(-400_000, 2400)).not.toBeNull();
+  });
+
+  it("still refuses when both the contract and the estimate are negative", () => {
+    expect(impliedRateCents(-400_000, -2400)).toBeNull();
+  });
+
+  it("rounds a negative rate to the nearest cent, not towards zero", () => {
+    // -$100 over seven hours is -$14.2857…/hr.
+    expect(impliedRateCents(-10_000, 420)).toBe(-1_429);
+  });
+});
