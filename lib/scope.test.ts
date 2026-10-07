@@ -670,3 +670,69 @@ describe("summariseScope on rows that should not exist", () => {
     expect(bad.deliveredShare).toBe(good.deliveredShare);
   });
 });
+
+describe("the summary over every arrangement of statuses", () => {
+  /**
+   * Four lines, one of them unsized, in all eighty-one combinations of the
+   * three statuses. The individual tests pick the interesting cases; this one
+   * exists so that no arrangement of a list is special, and so that the
+   * identities a panel relies on are checked rather than reasoned about.
+   */
+  const ESTIMATES = [480, 180, 0, 60];
+  const CONTRACT = 400_000;
+
+  function arrangements(): ScopeLine[][] {
+    let lists: ScopeLine[][] = [[]];
+    for (const minutes of ESTIMATES) {
+      lists = lists.flatMap((prefix) =>
+        DELIVERABLE_STATUSES.map((status) => [
+          ...prefix,
+          line(minutes, status),
+        ]),
+      );
+    }
+    return lists;
+  }
+
+  it("covers every combination", () => {
+    expect(arrangements()).toHaveLength(3 ** ESTIMATES.length);
+  });
+
+  it("splits the estimate in two with nothing lost or double counted", () => {
+    for (const lines of arrangements()) {
+      const summary = summariseScope(lines, CONTRACT);
+      expect(summary.estimatedMinutes).toBe(720);
+      expect(summary.deliveredMinutes + summary.remainingMinutes).toBe(
+        summary.estimatedMinutes,
+      );
+    }
+  });
+
+  it("counts every line exactly once", () => {
+    for (const lines of arrangements()) {
+      const summary = summariseScope(lines, CONTRACT);
+      expect(summary.lineCount).toBe(ESTIMATES.length);
+      expect(summary.deliveredCount).toBeLessThanOrEqual(summary.lineCount);
+      expect(summary.unestimatedCount).toBe(1);
+    }
+  });
+
+  it("keeps the share between nothing and all of it", () => {
+    for (const lines of arrangements()) {
+      const share = summariseScope(lines, CONTRACT).deliveredShare;
+      expect(share).not.toBeNull();
+      expect(share as number).toBeGreaterThanOrEqual(0);
+      expect(share as number).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("reports the same rate however the work has progressed", () => {
+    for (const lines of arrangements()) {
+      // The estimate does not change as lines are delivered, so neither does
+      // what the contract works out to per hour.
+      expect(summariseScope(lines, CONTRACT).impliedRateCents).toBe(
+        impliedRateCents(CONTRACT, 720),
+      );
+    }
+  });
+});
