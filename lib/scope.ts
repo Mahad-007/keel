@@ -182,8 +182,8 @@ export function estimatedHours(minutes: number): number {
  * how long the work will take, agreed in separate conversations. Divide one by
  * the other and you get the rate the engagement is actually being billed at,
  * which is the number that tells somebody they agreed to work for half of
- * what they charge. It is the inverse of `costOfMinutes`, and a round trip
- * through the two lands back where it started.
+ * what they charge. It is the inverse of `costOfMinutes`, within the rounding
+ * described below.
  *
  * Whole cents per hour, because that is what a rate is everywhere else in the
  * codebase — the client's default, the project override. Rounded rather than
@@ -248,8 +248,8 @@ export function deliveredCount(lines: readonly ScopeLine[]): number {
  * estimate is the only reading that matches what is left to do.
  *
  * A fraction rather than a percentage, because a percentage is a thing you
- * print. And unrounded, because the only caller is a formatter — rounding here
- * and again there would move the figure twice.
+ * print. And unrounded, because the only thing that prints it is a formatter —
+ * rounding here and again there would move the figure twice.
  *
  * Null when nothing has been estimated: there is no denominator, and zero
  * would say the work has not started when the truth is that nobody can tell.
@@ -271,9 +271,10 @@ export function deliveredShare(lines: readonly ScopeLine[]): number | null {
  *
  * The individual functions above are the ones worth testing and the ones a
  * later calculation will reach for; this is the shape a page reads. Computing
- * it in one call rather than nine means the numbers on screen are all from the
- * same list — and that a reader who notices the totals do not add up has found
- * a bug here, not a page that summed two different reads of the database.
+ * it in one call rather than a dozen means the numbers on screen are all from
+ * the same list — and that a reader who notices the totals do not add up has
+ * found a bug here, not a page that summed two different reads of the
+ * database.
  *
  * Both units are carried where there are two of them: the minutes are the
  * truth and the hours are what the sentence says. Nothing downstream has to
