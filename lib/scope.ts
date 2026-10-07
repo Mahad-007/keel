@@ -34,3 +34,20 @@ export type ScopeLine = {
   /** Where the line stands, which is what decides whether it is still to do. */
   status: DeliverableStatus;
 };
+
+/**
+ * Everything the scope list was estimated at, in whole minutes.
+ *
+ * A plain sum, with no opinion about the lines in it. Zeroes are added as
+ * zeroes and a negative is added as a negative, because this number's only job
+ * is to be the total of what is actually in the column — a total that quietly
+ * repaired its inputs would disagree with the list a reader is looking at, and
+ * the reader would believe the total.
+ *
+ * What a zero means is a separate question, and `unestimatedCount` is the one
+ * that answers it: the total says how much work was sized, and the count says
+ * how much of the list the total does not speak for.
+ */
+export function totalEstimatedMinutes(lines: readonly ScopeLine[]): number {
+  return lines.reduce((total, line) => total + line.estimatedMinutes, 0);
+}
