@@ -29,4 +29,20 @@ describe("totalEstimatedMinutes", () => {
   it("totals an empty scope list as nothing", () => {
     expect(totalEstimatedMinutes([])).toBe(0);
   });
+
+  it("adds a zero as a zero rather than skipping an unsized line", () => {
+    expect(totalEstimatedMinutes([line(0), line(60), line(0)])).toBe(60);
+  });
+
+  it("totals a list nobody has estimated at all as nothing", () => {
+    expect(totalEstimatedMinutes([line(0), line(0)])).toBe(0);
+  });
+
+  it("carries a negative row into the total instead of clamping it", () => {
+    expect(totalEstimatedMinutes([line(120), line(-30)])).toBe(90);
+  });
+
+  it("reports a total below zero when the rows add up that way", () => {
+    expect(totalEstimatedMinutes([line(-30), line(-60)])).toBe(-90);
+  });
 });
