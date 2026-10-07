@@ -17,6 +17,7 @@ import {
   impliedRateCents,
   isDelivered,
   remainingEstimatedMinutes,
+  summariseScope,
   totalEstimatedMinutes,
   unestimatedCount,
   type ScopeLine,
@@ -471,5 +472,59 @@ describe("deliveredShare with no estimate behind it", () => {
     expect(
       deliveredShare([line(-30, "done"), line(120, "pending")]),
     ).toBeCloseTo(-30 / 90, 10);
+  });
+});
+
+describe("summariseScope", () => {
+  /** Twelve hours of scope, a third of it delivered, agreed at $4,000. */
+  const LINES = [
+    line(240, "done"),
+    line(180, "started"),
+    line(300, "pending"),
+  ];
+
+  it("summarises an ordinary project", () => {
+    expect(summariseScope(LINES, 400_000)).toEqual({
+      lineCount: 3,
+      unestimatedCount: 0,
+      estimatedMinutes: 720,
+      estimatedHours: 12,
+      remainingMinutes: 480,
+      remainingHours: 8,
+      deliveredMinutes: 240,
+      deliveredShare: 240 / 720,
+      contractValueCents: 400_000,
+      // $4,000 over twelve hours.
+      impliedRateCents: 33_333,
+    });
+  });
+
+  it("echoes the contract value the rate was worked out from", () => {
+    expect(summariseScope(LINES, 400_000).contractValueCents).toBe(400_000);
+  });
+
+  it("agrees with each function it is built from", () => {
+    const summary = summariseScope(LINES, 400_000);
+    expect(summary.estimatedMinutes).toBe(totalEstimatedMinutes(LINES));
+    expect(summary.remainingMinutes).toBe(remainingEstimatedMinutes(LINES));
+    expect(summary.deliveredMinutes).toBe(deliveredEstimatedMinutes(LINES));
+    expect(summary.deliveredShare).toBe(deliveredShare(LINES));
+    expect(summary.unestimatedCount).toBe(unestimatedCount(LINES));
+    expect(summary.impliedRateCents).toBe(
+      impliedRateCents(400_000, totalEstimatedMinutes(LINES)),
+    );
+  });
+
+  it("quotes both totals in hours as well as minutes", () => {
+    const summary = summariseScope(LINES, 400_000);
+    expect(summary.estimatedHours).toBe(estimatedHours(720));
+    expect(summary.remainingHours).toBe(estimatedHours(480));
+  });
+
+  it("keeps the delivered and remaining minutes adding up", () => {
+    const summary = summariseScope(LINES, 400_000);
+    expect(summary.deliveredMinutes + summary.remainingMinutes).toBe(
+      summary.estimatedMinutes,
+    );
   });
 });
