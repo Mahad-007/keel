@@ -528,3 +528,53 @@ describe("summariseScope", () => {
     );
   });
 });
+
+describe("summariseScope with nothing agreed yet", () => {
+  it("summarises a project with no deliverables at all", () => {
+    expect(summariseScope([], 400_000)).toEqual({
+      lineCount: 0,
+      unestimatedCount: 0,
+      estimatedMinutes: 0,
+      estimatedHours: 0,
+      remainingMinutes: 0,
+      remainingHours: 0,
+      deliveredMinutes: 0,
+      deliveredShare: null,
+      contractValueCents: 400_000,
+      impliedRateCents: null,
+    });
+  });
+
+  it("does not claim a rate or a share for an empty scope list", () => {
+    const summary = summariseScope([], 400_000);
+    expect(summary.impliedRateCents).toBeNull();
+    expect(summary.deliveredShare).toBeNull();
+  });
+
+  it("counts the lines of an unestimated list and totals none of them", () => {
+    const summary = summariseScope([line(0), line(0)], 400_000);
+    expect(summary.lineCount).toBe(2);
+    expect(summary.unestimatedCount).toBe(2);
+    expect(summary.estimatedMinutes).toBe(0);
+    expect(summary.impliedRateCents).toBeNull();
+  });
+
+  it("totals the sized part of a half-estimated list", () => {
+    const summary = summariseScope(
+      [line(0, "pending"), line(120, "pending")],
+      400_000,
+    );
+    expect(summary.unestimatedCount).toBe(1);
+    expect(summary.estimatedMinutes).toBe(120);
+    expect(summary.estimatedHours).toBe(2);
+    // $4,000 for the two hours anybody has actually sized.
+    expect(summary.impliedRateCents).toBe(200_000);
+  });
+
+  it("summarises a project nobody has priced", () => {
+    const summary = summariseScope([line(120, "done")], 0);
+    expect(summary.contractValueCents).toBe(0);
+    expect(summary.impliedRateCents).toBe(0);
+    expect(summary.deliveredShare).toBe(1);
+  });
+});
