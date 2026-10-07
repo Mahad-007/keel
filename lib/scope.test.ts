@@ -578,3 +578,54 @@ describe("summariseScope with nothing agreed yet", () => {
     expect(summary.deliveredShare).toBe(1);
   });
 });
+
+describe("summariseScope on rows that should not exist", () => {
+  /**
+   * Neither a negative estimate nor a negative contract value can be written
+   * through the forms or the data layer. Both are reachable by hand, and the
+   * summary is what somebody will be looking at when they try to work out
+   * what went wrong — so it reports the numbers rather than refusing.
+   */
+  it("summarises a list with a negative estimate in it", () => {
+    const summary = summariseScope(
+      [line(120, "done"), line(-30, "pending")],
+      400_000,
+    );
+    expect(summary.estimatedMinutes).toBe(90);
+    expect(summary.remainingMinutes).toBe(-30);
+    expect(summary.deliveredMinutes).toBe(120);
+    // Past one, which is the visible sign that a row is wrong.
+    expect(summary.deliveredShare).toBeCloseTo(120 / 90, 10);
+  });
+
+  it("has no rate when the estimates cancel each other out", () => {
+    const summary = summariseScope(
+      [line(120, "done"), line(-120, "pending")],
+      400_000,
+    );
+    expect(summary.estimatedMinutes).toBe(0);
+    expect(summary.estimatedHours).toBe(0);
+    expect(summary.impliedRateCents).toBeNull();
+  });
+
+  it("has no rate when the estimates total below zero", () => {
+    const summary = summariseScope([line(-120, "pending")], 400_000);
+    expect(summary.estimatedMinutes).toBe(-120);
+    expect(summary.estimatedHours).toBe(-2);
+    expect(summary.impliedRateCents).toBeNull();
+  });
+
+  it("shows the negative rate a mistyped contract value implies", () => {
+    const summary = summariseScope([line(120, "pending")], -400_000);
+    expect(summary.contractValueCents).toBe(-400_000);
+    expect(summary.impliedRateCents).toBe(-200_000);
+  });
+
+  it("does not let a bad contract value disturb the estimate totals", () => {
+    const good = summariseScope([line(120, "pending")], 400_000);
+    const bad = summariseScope([line(120, "pending")], -400_000);
+    expect(bad.estimatedMinutes).toBe(good.estimatedMinutes);
+    expect(bad.remainingMinutes).toBe(good.remainingMinutes);
+    expect(bad.deliveredShare).toBe(good.deliveredShare);
+  });
+});
