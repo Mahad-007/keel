@@ -430,3 +430,46 @@ describe("deliveredShare", () => {
     );
   });
 });
+
+describe("deliveredShare with no estimate behind it", () => {
+  it("has no share to report on an empty scope list", () => {
+    expect(deliveredShare([])).toBeNull();
+  });
+
+  it("has no share when no line has been sized", () => {
+    expect(deliveredShare([line(0, "done"), line(0, "pending")])).toBeNull();
+  });
+
+  it("does not say a list of unsized lines is untouched", () => {
+    expect(deliveredShare([line(0, "done")])).not.toBe(0);
+  });
+
+  it("ignores unsized lines when some of the list is estimated", () => {
+    expect(
+      deliveredShare([line(0, "pending"), line(60, "done")]),
+    ).toBe(1);
+  });
+
+  it("has no share when the estimates cancel out to nothing", () => {
+    expect(
+      deliveredShare([line(60, "done"), line(-60, "pending")]),
+    ).toBeNull();
+  });
+
+  it("has no share when the estimates total below zero", () => {
+    expect(deliveredShare([line(-60, "done")])).toBeNull();
+  });
+
+  it("reports a share past one rather than hiding a bad row", () => {
+    // The delivered line is sized above the total, which cannot be right.
+    expect(
+      deliveredShare([line(120, "done"), line(-30, "pending")]),
+    ).toBeCloseTo(120 / 90, 10);
+  });
+
+  it("reports a share below zero for the same reason", () => {
+    expect(
+      deliveredShare([line(-30, "done"), line(120, "pending")]),
+    ).toBeCloseTo(-30 / 90, 10);
+  });
+});
