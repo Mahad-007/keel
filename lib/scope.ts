@@ -1,5 +1,6 @@
 import { isEstimated } from "@/lib/deliverables/list";
 import type { DeliverableStatus } from "@/lib/deliverables/status";
+import { MINUTES_PER_HOUR } from "@/lib/minutes";
 
 /**
  * What a project's scope adds up to.
@@ -127,4 +128,30 @@ export function deliveredEstimatedMinutes(
   lines: readonly ScopeLine[],
 ): number {
   return totalEstimatedMinutes(lines.filter(isDelivered));
+}
+
+/**
+ * Hundredths of an hour — 36 seconds — which is as fine as a quoted estimate
+ * is ever meant to be read. A scope list of ten deliverables summing to
+ * 1.6833333333333333 hours is a number that has stopped being an estimate.
+ */
+const HOURS_PRECISION = 100;
+
+/**
+ * Whole minutes as the hours an estimate gets quoted in.
+ *
+ * The one place in this file where a number stops being an integer, and it is
+ * a derived figure for a person to read rather than a value anything else
+ * computes from. Minutes stay the unit: the implied rate below divides the
+ * contract by *minutes*, not by this, so the rounding here cannot find its way
+ * into an amount of money.
+ *
+ * Nothing in the database holds hours and nothing ever should. "Forty hours"
+ * is how the work was discussed; 2400 is what was stored.
+ */
+export function estimatedHours(minutes: number): number {
+  return (
+    Math.round((minutes / MINUTES_PER_HOUR) * HOURS_PRECISION) /
+    HOURS_PRECISION
+  );
 }
