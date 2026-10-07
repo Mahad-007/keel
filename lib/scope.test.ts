@@ -10,6 +10,7 @@ import {
 } from "@/lib/deliverables/status";
 
 import {
+  deliveredEstimatedMinutes,
   isDelivered,
   remainingEstimatedMinutes,
   totalEstimatedMinutes,
@@ -170,5 +171,62 @@ describe("remainingEstimatedMinutes", () => {
     expect(
       remainingEstimatedMinutes([line(-30, "pending"), line(90, "pending")]),
     ).toBe(60);
+  });
+});
+
+describe("deliveredEstimatedMinutes", () => {
+  it("adds up only the lines marked done", () => {
+    expect(
+      deliveredEstimatedMinutes([
+        line(120, "done"),
+        line(60, "started"),
+        line(30, "pending"),
+      ]),
+    ).toBe(120);
+  });
+
+  it("is nothing while no line is done", () => {
+    expect(
+      deliveredEstimatedMinutes([line(120, "started"), line(60, "pending")]),
+    ).toBe(0);
+  });
+
+  it("is nothing on an empty scope list", () => {
+    expect(deliveredEstimatedMinutes([])).toBe(0);
+  });
+
+  it("counts a delivered line nobody sized as nothing delivered", () => {
+    expect(
+      deliveredEstimatedMinutes([line(0, "done"), line(90, "done")]),
+    ).toBe(90);
+  });
+});
+
+describe("the three estimate totals together", () => {
+  const lists: ScopeLine[][] = [
+    [],
+    [line(90, "pending")],
+    [line(90, "done")],
+    [line(120, "done"), line(60, "started"), line(30, "pending")],
+    [line(0, "pending"), line(0, "done")],
+    [line(-30, "pending"), line(90, "done")],
+    [line(-30, "done"), line(-60, "started")],
+  ];
+
+  it("splits every list into delivered and remaining with nothing lost", () => {
+    for (const lines of lists) {
+      expect(
+        deliveredEstimatedMinutes(lines) + remainingEstimatedMinutes(lines),
+      ).toBe(totalEstimatedMinutes(lines));
+    }
+  });
+
+  it("puts each line on exactly one side of the split", () => {
+    for (const lines of lists) {
+      const delivered = lines.filter(isDelivered).length;
+      expect(lines.length - delivered).toBe(
+        lines.filter((candidate) => !isDelivered(candidate)).length,
+      );
+    }
   });
 });
