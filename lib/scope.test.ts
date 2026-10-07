@@ -264,4 +264,9 @@ describe("estimatedHours", () => {
   it("rounds a single minute to a hundredth rather than to zero", () => {
     expect(estimatedHours(1)).toBe(0.02);
   });
+
+  it("does not hand the page a negative zero to render", () => {
+    expect(Object.is(estimatedHours(-0.2), 0)).toBe(true);
+    expect(Object.is(estimatedHours(-0), 0)).toBe(true);
+  });
 });

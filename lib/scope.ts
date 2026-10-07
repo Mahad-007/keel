@@ -150,8 +150,11 @@ const HOURS_PRECISION = 100;
  * is how the work was discussed; 2400 is what was stored.
  */
 export function estimatedHours(minutes: number): number {
-  return (
+  const hours =
     Math.round((minutes / MINUTES_PER_HOUR) * HOURS_PRECISION) /
-    HOURS_PRECISION
-  );
+    HOURS_PRECISION;
+  // A tiny negative — a hand-edited fractional row — rounds to -0, which
+  // `Intl.NumberFormat` renders as "-0". "-0 hours estimated" reads as a
+  // defect in the page rather than as a number, so the sign goes.
+  return hours === 0 ? 0 : hours;
 }
