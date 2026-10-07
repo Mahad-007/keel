@@ -790,3 +790,49 @@ describe("what marking one line done does to the totals", () => {
     }
   });
 });
+
+describe("what the estimate does to the implied rate", () => {
+  /**
+   * The thing the number is for. A fixed price does not change when somebody
+   * adds another week to the estimate — the rate does, and this is the only
+   * place in the codebase that says so. Each extra hour agreed for the same
+   * money buys the work at a lower rate, strictly, with no plateau where
+   * padding the estimate is free.
+   */
+  const CONTRACT = 400_000;
+
+  it("falls as the estimate grows", () => {
+    const rates = [60, 120, 600, 2400, 4800].map(
+      (minutes) => impliedRateCents(CONTRACT, minutes) as number,
+    );
+    for (let at = 1; at < rates.length; at++) {
+      expect(rates[at]).toBeLessThan(rates[at - 1]);
+    }
+  });
+
+  it("halves when the estimate doubles", () => {
+    expect(impliedRateCents(CONTRACT, 4800)).toBe(
+      (impliedRateCents(CONTRACT, 2400) as number) / 2,
+    );
+  });
+
+  it("rises as the contract value grows against a fixed estimate", () => {
+    const rates = [100, 10_000, 400_000, 1_000_000].map(
+      (contract) => impliedRateCents(contract, 2400) as number,
+    );
+    for (let at = 1; at < rates.length; at++) {
+      expect(rates[at]).toBeGreaterThan(rates[at - 1]);
+    }
+  });
+
+  it("drops a line's worth of rate when a line is added to the scope", () => {
+    const agreed = [line(1200, "pending"), line(1200, "pending")];
+    const widened = [...agreed, line(1200, "pending")];
+    const before = summariseScope(agreed, CONTRACT);
+    const after = summariseScope(widened, CONTRACT);
+    // $4,000 over forty hours, then over sixty.
+    expect(before.impliedRateCents).toBe(10_000);
+    expect(after.impliedRateCents).toBe(6_667);
+    expect(after.remainingMinutes).toBeGreaterThan(before.remainingMinutes);
+  });
+});
