@@ -131,6 +131,24 @@ export function deliveredEstimatedMinutes(
 }
 
 /**
+ * Negative zero, written as zero.
+ *
+ * Rounding a quantity that is a shade below zero lands on `-0`, and JavaScript
+ * keeps the sign: `Intl.NumberFormat` renders it as "-0" and `formatCents` as
+ * "-$0.00". Both read as a broken page rather than as a number, and neither
+ * says anything true that plain zero does not — the input was below zero by
+ * less than the unit being reported in.
+ *
+ * Only the two rounded figures in this file need it, and both are reachable
+ * only from a hand-edited row. One helper rather than the comparison written
+ * out twice, so the next rounded figure added here does not have to rediscover
+ * the problem.
+ */
+function withoutNegativeZero(value: number): number {
+  return value === 0 ? 0 : value;
+}
+
+/**
  * Hundredths of an hour — 36 seconds — which is as fine as a quoted estimate
  * is ever meant to be read. A scope list of ten deliverables summing to
  * 1.6833333333333333 hours is a number that has stopped being an estimate.
@@ -150,13 +168,10 @@ const HOURS_PRECISION = 100;
  * is how the work was discussed; 2400 is what was stored.
  */
 export function estimatedHours(minutes: number): number {
-  const hours =
+  return withoutNegativeZero(
     Math.round((minutes / MINUTES_PER_HOUR) * HOURS_PRECISION) /
-    HOURS_PRECISION;
-  // A tiny negative — a hand-edited fractional row — rounds to -0, which
-  // `Intl.NumberFormat` renders as "-0". "-0 hours estimated" reads as a
-  // defect in the page rather than as a number, so the sign goes.
-  return hours === 0 ? 0 : hours;
+      HOURS_PRECISION,
+  );
 }
 
 /**
@@ -206,13 +221,9 @@ export function impliedRateCents(
   estimatedMinutes: number,
 ): number | null {
   if (estimatedMinutes <= 0) return null;
-  const rate = Math.round(
-    (contractValueCents * MINUTES_PER_HOUR) / estimatedMinutes,
+  return withoutNegativeZero(
+    Math.round((contractValueCents * MINUTES_PER_HOUR) / estimatedMinutes),
   );
-  // A contract value a few cents below zero against a large estimate rounds
-  // to -0, which `formatCents` writes as "-$0.00/hr". The same reason the
-  // hours drop their sign: that reads as a broken page, not as a rate.
-  return rate === 0 ? 0 : rate;
 }
 
 /**
