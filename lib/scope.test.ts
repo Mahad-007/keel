@@ -537,6 +537,7 @@ describe("summariseScope", () => {
       remainingMinutes: 480,
       remainingHours: 8,
       deliveredMinutes: 240,
+      deliveredHours: 4,
       deliveredShare: 240 / 720,
       contractValueCents: 400_000,
       // $4,000 over twelve hours.
@@ -565,6 +566,7 @@ describe("summariseScope", () => {
     const summary = summariseScope(LINES, 400_000);
     expect(summary.estimatedHours).toBe(estimatedHours(720));
     expect(summary.remainingHours).toBe(estimatedHours(480));
+    expect(summary.deliveredHours).toBe(estimatedHours(240));
   });
 
   it("keeps the delivered and remaining minutes adding up", () => {
@@ -586,6 +588,7 @@ describe("summariseScope with nothing agreed yet", () => {
       remainingMinutes: 0,
       remainingHours: 0,
       deliveredMinutes: 0,
+      deliveredHours: 0,
       deliveredShare: null,
       contractValueCents: 400_000,
       impliedRateCents: null,

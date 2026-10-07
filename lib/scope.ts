@@ -296,6 +296,8 @@ export type ScopeSummary = {
   remainingHours: number;
   /** The estimate of everything marked done, in minutes. */
   deliveredMinutes: number;
+  /** The same, in hours. */
+  deliveredHours: number;
   /** Share of the estimate delivered, or null with nothing estimated. */
   deliveredShare: number | null;
   /** What the project was agreed for, in cents, as it was handed in. */
@@ -323,6 +325,7 @@ export function summariseScope(
 ): ScopeSummary {
   const estimatedMinutes = totalEstimatedMinutes(lines);
   const remainingMinutes = remainingEstimatedMinutes(lines);
+  const deliveredMinutes = deliveredEstimatedMinutes(lines);
 
   return {
     lineCount: lines.length,
@@ -332,7 +335,8 @@ export function summariseScope(
     estimatedHours: estimatedHours(estimatedMinutes),
     remainingMinutes,
     remainingHours: estimatedHours(remainingMinutes),
-    deliveredMinutes: deliveredEstimatedMinutes(lines),
+    deliveredMinutes,
+    deliveredHours: estimatedHours(deliveredMinutes),
     deliveredShare: deliveredShare(lines),
     contractValueCents,
     impliedRateCents: impliedRateCents(contractValueCents, estimatedMinutes),
