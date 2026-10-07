@@ -736,3 +736,57 @@ describe("the summary over every arrangement of statuses", () => {
     }
   });
 });
+
+describe("what marking one line done does to the totals", () => {
+  /**
+   * The direction a scope summary is allowed to move. Delivering work can
+   * only take minutes out of what is left, and nothing else about the project
+   * — its estimate, its contract, its implied rate — may move at all. A panel
+   * that drifted in any other direction would be reporting progress nobody
+   * made.
+   */
+  const LINES = [line(480, "pending"), line(180, "started"), line(60, "done")];
+
+  function withLineDone(index: number): ScopeLine[] {
+    return LINES.map((held, at) =>
+      at === index ? { ...held, status: "done" as const } : held,
+    );
+  }
+
+  it("never leaves more work outstanding than before", () => {
+    const before = summariseScope(LINES, 400_000);
+    for (let index = 0; index < LINES.length; index++) {
+      const after = summariseScope(withLineDone(index), 400_000);
+      expect(after.remainingMinutes).toBeLessThanOrEqual(
+        before.remainingMinutes,
+      );
+      expect(after.deliveredMinutes).toBeGreaterThanOrEqual(
+        before.deliveredMinutes,
+      );
+    }
+  });
+
+  it("moves exactly that line's estimate across", () => {
+    const before = summariseScope(LINES, 400_000);
+    const after = summariseScope(withLineDone(0), 400_000);
+    expect(before.remainingMinutes - after.remainingMinutes).toBe(480);
+    expect(after.deliveredMinutes - before.deliveredMinutes).toBe(480);
+  });
+
+  it("changes nothing when the line was already done", () => {
+    expect(summariseScope(withLineDone(2), 400_000)).toEqual(
+      summariseScope(LINES, 400_000),
+    );
+  });
+
+  it("leaves the estimate, the contract, and the rate alone", () => {
+    const before = summariseScope(LINES, 400_000);
+    for (let index = 0; index < LINES.length; index++) {
+      const after = summariseScope(withLineDone(index), 400_000);
+      expect(after.estimatedMinutes).toBe(before.estimatedMinutes);
+      expect(after.estimatedHours).toBe(before.estimatedHours);
+      expect(after.contractValueCents).toBe(before.contractValueCents);
+      expect(after.impliedRateCents).toBe(before.impliedRateCents);
+    }
+  });
+});
