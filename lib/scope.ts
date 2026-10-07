@@ -235,3 +235,39 @@ export function deliveredShare(lines: readonly ScopeLine[]): number | null {
   if (total <= 0) return null;
   return deliveredEstimatedMinutes(lines) / total;
 }
+
+/**
+ * Everything a scope panel needs about one project, worked out once.
+ *
+ * The individual functions above are the ones worth testing and the ones a
+ * later calculation will reach for; this is the shape a page reads. Computing
+ * it in one call rather than nine means the numbers on screen are all from the
+ * same list — and that a reader who notices the totals do not add up has found
+ * a bug here, not a page that summed two different reads of the database.
+ *
+ * Both units are carried where there are two of them: the minutes are the
+ * truth and the hours are what the sentence says. Nothing downstream has to
+ * divide by sixty, which is where that kind of number goes wrong.
+ */
+export type ScopeSummary = {
+  /** How many deliverables the scope was written as. */
+  lineCount: number;
+  /** How many of them have no estimate, and so are missing from the totals. */
+  unestimatedCount: number;
+  /** The whole estimate, in minutes. */
+  estimatedMinutes: number;
+  /** The whole estimate, in hours, for reading. */
+  estimatedHours: number;
+  /** The estimate of everything not marked done, in minutes. */
+  remainingMinutes: number;
+  /** The same, in hours. */
+  remainingHours: number;
+  /** The estimate of everything marked done, in minutes. */
+  deliveredMinutes: number;
+  /** Share of the estimate delivered, or null with nothing estimated. */
+  deliveredShare: number | null;
+  /** What the project was agreed for, in cents, as it was handed in. */
+  contractValueCents: number;
+  /** Cents per hour the contract implies, or null with nothing estimated. */
+  impliedRateCents: number | null;
+};
