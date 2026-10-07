@@ -4,9 +4,13 @@ import {
   describeEstimate,
   UNESTIMATED_LABEL,
 } from "@/lib/deliverables/list";
-import type { DeliverableStatus } from "@/lib/deliverables/status";
+import {
+  DELIVERABLE_STATUSES,
+  type DeliverableStatus,
+} from "@/lib/deliverables/status";
 
 import {
+  isDelivered,
   totalEstimatedMinutes,
   unestimatedCount,
   type ScopeLine,
@@ -82,5 +86,38 @@ describe("unestimatedCount", () => {
         describeEstimate(minutes) === UNESTIMATED_LABEL ? 1 : 0,
       );
     }
+  });
+});
+
+describe("isDelivered", () => {
+  it("counts a line marked done as delivered", () => {
+    expect(isDelivered(line(60, "done"))).toBe(true);
+  });
+
+  it("counts a line nobody has touched as still to do", () => {
+    expect(isDelivered(line(60, "pending"))).toBe(false);
+  });
+
+  it("counts a line in progress as still to do, not half delivered", () => {
+    expect(isDelivered(line(60, "started"))).toBe(false);
+  });
+
+  it("covers every status the list knows", () => {
+    expect(
+      DELIVERABLE_STATUSES.map((status) => isDelivered(line(60, status))),
+    ).toEqual([false, false, true]);
+  });
+
+  it("keeps a status it cannot read in the work still to do", () => {
+    const hand = {
+      estimatedMinutes: 60,
+      status: "shipped",
+    } as unknown as ScopeLine;
+    expect(isDelivered(hand)).toBe(false);
+  });
+
+  it("does not care what a delivered line was estimated at", () => {
+    expect(isDelivered(line(0, "done"))).toBe(true);
+    expect(isDelivered(line(-30, "done"))).toBe(true);
   });
 });
