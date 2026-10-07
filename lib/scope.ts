@@ -278,6 +278,12 @@ export function deliveredShare(lines: readonly ScopeLine[]): number | null {
  * Both units are carried where there are two of them: the minutes are the
  * truth and the hours are what the sentence says. Nothing downstream has to
  * divide by sixty, which is where that kind of number goes wrong.
+ *
+ * The minutes add up; the hours need not. Each hour figure is the honest
+ * rounding of its own total to the hundredth, so ten minutes delivered and ten
+ * remaining are 0.17 and 0.17 against a total of 0.33. Thirty-six seconds is
+ * well below anything an estimate means, but a panel putting all three on one
+ * line should take the minutes as the arithmetic and the hours as the reading.
  */
 export type ScopeSummary = {
   /** How many deliverables the scope was written as. */

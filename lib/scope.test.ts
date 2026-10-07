@@ -845,3 +845,60 @@ describe("what the estimate does to the implied rate", () => {
     expect(after.remainingMinutes).toBeGreaterThan(before.remainingMinutes);
   });
 });
+
+describe("the hours a summary quotes beside its minutes", () => {
+  /**
+   * Each hour figure is its own total rounded to the hundredth, so the three
+   * of them need not add up the way the minutes do. The discrepancy is a
+   * hundredth of an hour and it is documented rather than engineered away —
+   * but it is pinned here, because the alternative is a panel author
+   * discovering it from a screenshot.
+   */
+  it("adds up exactly when the totals fall on whole hundredths", () => {
+    const summary = summariseScope(
+      [line(240, "done"), line(480, "pending")],
+      400_000,
+    );
+    expect(summary.deliveredHours + summary.remainingHours).toBe(
+      summary.estimatedHours,
+    );
+  });
+
+  it("can be a hundredth of an hour out when they do not", () => {
+    const summary = summariseScope(
+      [line(10, "done"), line(10, "pending")],
+      400_000,
+    );
+    expect(summary.deliveredHours).toBe(0.17);
+    expect(summary.remainingHours).toBe(0.17);
+    expect(summary.estimatedHours).toBe(0.33);
+  });
+
+  it("is never more than a hundredth out, however the list is split", () => {
+    for (let delivered = 0; delivered <= 120; delivered++) {
+      const summary = summariseScope(
+        [line(delivered, "done"), line(120 - delivered, "pending")],
+        400_000,
+      );
+      expect(
+        Math.abs(
+          summary.deliveredHours +
+            summary.remainingHours -
+            summary.estimatedHours,
+        ),
+      ).toBeLessThanOrEqual(0.01);
+    }
+  });
+
+  it("keeps the minutes adding up exactly whatever the hours do", () => {
+    for (let delivered = 0; delivered <= 120; delivered++) {
+      const summary = summariseScope(
+        [line(delivered, "done"), line(120 - delivered, "pending")],
+        400_000,
+      );
+      expect(summary.deliveredMinutes + summary.remainingMinutes).toBe(
+        summary.estimatedMinutes,
+      );
+    }
+  });
+});
