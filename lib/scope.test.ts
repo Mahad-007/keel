@@ -343,3 +343,26 @@ describe("impliedRateCents against costOfMinutes", () => {
     }
   });
 });
+
+describe("impliedRateCents with nothing to divide by", () => {
+  it("has no rate to report when nobody has estimated the work", () => {
+    expect(impliedRateCents(400_000, 0)).toBeNull();
+  });
+
+  it("does not call an unestimated project a project that pays nothing", () => {
+    expect(impliedRateCents(400_000, 0)).not.toBe(0);
+  });
+
+  it("has no rate for an unestimated project worth nothing either", () => {
+    expect(impliedRateCents(0, 0)).toBeNull();
+  });
+
+  it("refuses to divide by an estimate below zero", () => {
+    expect(impliedRateCents(400_000, -2400)).toBeNull();
+  });
+
+  it("will not flip the sign of a contract on a negative estimate", () => {
+    // Dividing straight through would read as the client being paid.
+    expect(impliedRateCents(400_000, -60)).toBeNull();
+  });
+});
