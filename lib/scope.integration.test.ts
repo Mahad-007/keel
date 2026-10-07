@@ -4,6 +4,7 @@ import { createClient } from "@/lib/data/clients";
 import {
   createDeliverable,
   listDeliverables,
+  setDeliverableStatus,
 } from "@/lib/data/deliverables";
 import { createProject, getProject } from "@/lib/data/projects";
 import type { Database } from "@/lib/db";
@@ -74,5 +75,55 @@ describe("summariseScope over real deliverable rows", () => {
     expect(summary.estimatedHours).toBe(40);
     // $4,000 over forty hours.
     expect(summary.impliedRateCents).toBe(10_000);
+  });
+});
+
+describe("a summary following the work", () => {
+  beforeEach(async () => {
+    for (const [title, estimatedMinutes] of [
+      ["Discovery", 480],
+      ["Build", 1_440],
+      ["Handover", 480],
+    ] as const) {
+      await createDeliverable({ projectId, title, estimatedMinutes }, db);
+    }
+  });
+
+  it("starts with everything still to do", async () => {
+    const summary = await summarise();
+    expect(summary.remainingMinutes).toBe(2400);
+    expect(summary.deliveredMinutes).toBe(0);
+    expect(summary.deliveredShare).toBe(0);
+  });
+
+  it("does not move when a deliverable is started", async () => {
+    const [first] = await listDeliverables(projectId, db);
+    await setDeliverableStatus(first.id, first.status, "started", db);
+
+    const summary = await summarise();
+    expect(summary.remainingMinutes).toBe(2400);
+    expect(summary.deliveredShare).toBe(0);
+  });
+
+  it("moves the finished line across when it is marked done", async () => {
+    const [first] = await listDeliverables(projectId, db);
+    await setDeliverableStatus(first.id, first.status, "done", db);
+
+    const summary = await summarise();
+    expect(summary.deliveredMinutes).toBe(480);
+    expect(summary.remainingMinutes).toBe(1920);
+    expect(summary.deliveredShare).toBe(480 / 2400);
+    // The rate the contract implies does not change as work completes.
+    expect(summary.impliedRateCents).toBe(10_000);
+  });
+
+  it("reaches a whole share once every line is done", async () => {
+    for (const row of await listDeliverables(projectId, db)) {
+      await setDeliverableStatus(row.id, row.status, "done", db);
+    }
+
+    const summary = await summarise();
+    expect(summary.deliveredShare).toBe(1);
+    expect(summary.remainingMinutes).toBe(0);
   });
 });
