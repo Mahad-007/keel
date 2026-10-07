@@ -328,4 +328,18 @@ describe("impliedRateCents against costOfMinutes", () => {
       expect(costOfMinutes(2400, rate as number)).toBe(contract);
     }
   });
+
+  it("loses no more than the stated rounding on an awkward estimate", () => {
+    for (const minutes of [1, 7, 20, 95, 2401]) {
+      for (const contract of [10_000, 400_000, 123_456]) {
+        const rate = impliedRateCents(contract, minutes);
+        expect(rate).not.toBeNull();
+        // Half a cent an hour, plus half a cent for every hour estimated.
+        const slack = 0.5 + 0.5 * (minutes / 60);
+        expect(
+          Math.abs(costOfMinutes(minutes, rate as number) - contract),
+        ).toBeLessThanOrEqual(slack);
+      }
+    }
+  });
 });

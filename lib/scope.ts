@@ -175,6 +175,14 @@ export function estimatedHours(minutes: number): number {
  * truncated, so the figure is the nearest cent to the division rather than
  * always a shade under it.
  *
+ * The round trip is exact when the estimate is a whole number of hours, which
+ * is how estimates are given. It is not exact otherwise, and cannot be: an
+ * estimate of seven minutes against a $100 contract implies $857.14 an hour,
+ * and the two cents a year of that rounding throws away have nowhere to go.
+ * The error is bounded by half a cent an hour plus half a cent for every hour
+ * estimated, which no engagement will notice — but it is why the rate is a
+ * figure to read and not a number to bill from.
+ *
  * Null, not zero, when there is no positive estimate to divide by:
  *
  *   - **No estimate at all.** Nobody has sized the work, so the contract
