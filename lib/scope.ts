@@ -1,3 +1,4 @@
+import { isEstimated } from "@/lib/deliverables/list";
 import type { DeliverableStatus } from "@/lib/deliverables/status";
 
 /**
@@ -50,4 +51,21 @@ export type ScopeLine = {
  */
 export function totalEstimatedMinutes(lines: readonly ScopeLine[]): number {
   return lines.reduce((total, line) => total + line.estimatedMinutes, 0);
+}
+
+/**
+ * How many lines of the scope list have no estimate on them.
+ *
+ * The number that says how far to trust every other number in this file. A
+ * total of twelve hours across ten deliverables means something quite
+ * different when four of them are unsized, and the difference is invisible in
+ * the total — so it is reported beside it rather than left for a reader to
+ * work out by scrolling the list.
+ *
+ * `isEstimated` rather than a second `=== 0` written out here, so this count
+ * and the words the scope list puts on an unsized line can never come apart.
+ * A row the list calls "Not estimated" is a row this counts.
+ */
+export function unestimatedCount(lines: readonly ScopeLine[]): number {
+  return lines.filter((line) => !isEstimated(line.estimatedMinutes)).length;
 }
