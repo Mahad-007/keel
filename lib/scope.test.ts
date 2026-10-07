@@ -12,6 +12,7 @@ import { costOfMinutes } from "@/lib/money";
 
 import {
   deliveredEstimatedMinutes,
+  deliveredShare,
   estimatedHours,
   impliedRateCents,
   isDelivered,
@@ -390,5 +391,42 @@ describe("impliedRateCents on a contract below zero", () => {
   it("rounds a negative rate to the nearest cent, not towards zero", () => {
     // -$100 over seven hours is -$14.2857…/hr.
     expect(impliedRateCents(-10_000, 420)).toBe(-1_429);
+  });
+});
+
+describe("deliveredShare", () => {
+  it("weighs the share by estimate, not by line count", () => {
+    // Four short lines done, one long one left: a quarter of the work.
+    const lines = [
+      line(60, "done"),
+      line(60, "done"),
+      line(60, "done"),
+      line(60, "done"),
+      line(720, "pending"),
+    ];
+    expect(deliveredShare(lines)).toBeCloseTo(240 / 960, 10);
+  });
+
+  it("is a half when half the estimate is done", () => {
+    expect(deliveredShare([line(60, "done"), line(60, "pending")])).toBe(0.5);
+  });
+
+  it("is one when every line is delivered", () => {
+    expect(deliveredShare([line(60, "done"), line(30, "done")])).toBe(1);
+  });
+
+  it("is zero when nothing is delivered yet", () => {
+    expect(deliveredShare([line(60, "pending"), line(30, "started")])).toBe(0);
+  });
+
+  it("does not credit a line merely for being in progress", () => {
+    expect(deliveredShare([line(60, "started"), line(60, "done")])).toBe(0.5);
+  });
+
+  it("reads back as the two minute totals it came from", () => {
+    const lines = [line(90, "done"), line(30, "started"), line(60, "pending")];
+    expect(deliveredShare(lines)).toBe(
+      deliveredEstimatedMinutes(lines) / totalEstimatedMinutes(lines),
+    );
   });
 });
