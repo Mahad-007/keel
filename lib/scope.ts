@@ -267,6 +267,8 @@ export type ScopeSummary = {
   lineCount: number;
   /** How many of them have no estimate, and so are missing from the totals. */
   unestimatedCount: number;
+  /** How many are done, to be read beside the share rather than instead. */
+  deliveredCount: number;
   /** The whole estimate, in minutes. */
   estimatedMinutes: number;
   /** The whole estimate, in hours, for reading. */
@@ -308,6 +310,7 @@ export function summariseScope(
   return {
     lineCount: lines.length,
     unestimatedCount: unestimatedCount(lines),
+    deliveredCount: deliveredCount(lines),
     estimatedMinutes,
     estimatedHours: estimatedHours(estimatedMinutes),
     remainingMinutes,
