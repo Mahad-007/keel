@@ -11,6 +11,7 @@ import {
 import { costOfMinutes } from "@/lib/money";
 
 import {
+  deliveredCount,
   deliveredEstimatedMinutes,
   deliveredShare,
   estimatedHours,
@@ -392,6 +393,43 @@ describe("impliedRateCents on a contract below zero", () => {
   it("rounds a negative rate to the nearest cent, not towards zero", () => {
     // -$100 over seven hours is -$14.2857…/hr.
     expect(impliedRateCents(-10_000, 420)).toBe(-1_429);
+  });
+});
+
+describe("deliveredCount", () => {
+  it("counts the lines marked done", () => {
+    expect(
+      deliveredCount([
+        line(60, "done"),
+        line(60, "started"),
+        line(60, "done"),
+      ]),
+    ).toBe(2);
+  });
+
+  it("counts nothing while no line is done", () => {
+    expect(deliveredCount([line(60, "pending"), line(60, "started")])).toBe(0);
+  });
+
+  it("counts nothing on an empty scope list", () => {
+    expect(deliveredCount([])).toBe(0);
+  });
+
+  it("counts a delivered line that nobody ever sized", () => {
+    expect(deliveredCount([line(0, "done")])).toBe(1);
+  });
+
+  it("tells a different story from the share when the lines differ in size", () => {
+    // Four short lines done, one long one left.
+    const lines = [
+      line(60, "done"),
+      line(60, "done"),
+      line(60, "done"),
+      line(60, "done"),
+      line(720, "pending"),
+    ];
+    expect(deliveredCount(lines)).toBe(4);
+    expect(deliveredShare(lines)).toBeCloseTo(0.25, 10);
   });
 });
 
