@@ -158,3 +158,45 @@ export function estimatedHours(minutes: number): number {
   // defect in the page rather than as a number, so the sign goes.
   return hours === 0 ? 0 : hours;
 }
+
+/**
+ * What a contract value works out to per hour, given the estimate — the
+ * number this whole file exists for.
+ *
+ * A fixed-price project does not have a rate; it has a price and a guess at
+ * how long the work will take, agreed in separate conversations. Divide one by
+ * the other and you get the rate the engagement is actually being billed at,
+ * which is the number that tells somebody they agreed to work for half of
+ * what they charge. It is the inverse of `costOfMinutes`, and a round trip
+ * through the two lands back where it started.
+ *
+ * Whole cents per hour, because that is what a rate is everywhere else in the
+ * codebase — the client's default, the project override. Rounded rather than
+ * truncated, so the figure is the nearest cent to the division rather than
+ * always a shade under it.
+ *
+ * Null, not zero, when there is no positive estimate to divide by:
+ *
+ *   - **No estimate at all.** Nobody has sized the work, so the contract
+ *     implies nothing about an hourly rate. Zero would say the engagement
+ *     pays nothing per hour, which is a claim about the money rather than an
+ *     admission that the estimate is missing — and it is the claim that would
+ *     put a project at the top of a worst-rates list for the sole reason that
+ *     nobody had filled the estimates in.
+ *   - **A total below zero.** Only a hand-edited row gets there, and dividing
+ *     by it returns a rate with its sign flipped — a client appearing to be
+ *     paid for the work. There is no rate to report, so none is.
+ *
+ * A contract value of zero is different, and is reported as a rate of zero: a
+ * project agreed at no charge really does pay nothing an hour, and that is a
+ * fact about the engagement rather than a gap in the data.
+ */
+export function impliedRateCents(
+  contractValueCents: number,
+  estimatedMinutes: number,
+): number | null {
+  if (estimatedMinutes <= 0) return null;
+  return Math.round(
+    (contractValueCents * MINUTES_PER_HOUR) / estimatedMinutes,
+  );
+}
