@@ -11,6 +11,7 @@ import {
 
 import {
   isDelivered,
+  remainingEstimatedMinutes,
   totalEstimatedMinutes,
   unestimatedCount,
   type ScopeLine,
@@ -119,5 +120,55 @@ describe("isDelivered", () => {
   it("does not care what a delivered line was estimated at", () => {
     expect(isDelivered(line(0, "done"))).toBe(true);
     expect(isDelivered(line(-30, "done"))).toBe(true);
+  });
+});
+
+describe("remainingEstimatedMinutes", () => {
+  it("leaves out the lines already delivered", () => {
+    expect(
+      remainingEstimatedMinutes([
+        line(120, "done"),
+        line(60, "pending"),
+        line(30, "pending"),
+      ]),
+    ).toBe(90);
+  });
+
+  it("keeps a line in progress in the total at its full estimate", () => {
+    expect(
+      remainingEstimatedMinutes([line(120, "started"), line(60, "pending")]),
+    ).toBe(180);
+  });
+
+  it("does not move when a pending line is merely started", () => {
+    const before = remainingEstimatedMinutes([line(120, "pending")]);
+    expect(remainingEstimatedMinutes([line(120, "started")])).toBe(before);
+  });
+
+  it("is the whole total when nothing has been delivered", () => {
+    const lines = [line(120, "pending"), line(60, "started")];
+    expect(remainingEstimatedMinutes(lines)).toBe(totalEstimatedMinutes(lines));
+  });
+
+  it("is nothing when every line is done", () => {
+    expect(
+      remainingEstimatedMinutes([line(120, "done"), line(60, "done")]),
+    ).toBe(0);
+  });
+
+  it("is nothing on an empty scope list", () => {
+    expect(remainingEstimatedMinutes([])).toBe(0);
+  });
+
+  it("leaves an unsized line in the list without adding to the total", () => {
+    expect(
+      remainingEstimatedMinutes([line(0, "pending"), line(60, "pending")]),
+    ).toBe(60);
+  });
+
+  it("carries a negative row into what is left rather than dropping it", () => {
+    expect(
+      remainingEstimatedMinutes([line(-30, "pending"), line(90, "pending")]),
+    ).toBe(60);
   });
 });
