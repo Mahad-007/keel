@@ -8,6 +8,7 @@ import {
   DELIVERABLE_STATUSES,
   type DeliverableStatus,
 } from "@/lib/deliverables/status";
+import { costOfMinutes } from "@/lib/money";
 
 import {
   deliveredEstimatedMinutes,
@@ -295,5 +296,36 @@ describe("impliedRateCents", () => {
 
   it("reports a rate of nothing for work agreed at no charge", () => {
     expect(impliedRateCents(0, 2400)).toBe(0);
+  });
+});
+
+describe("impliedRateCents against costOfMinutes", () => {
+  /**
+   * The two are inverses, and it matters that they stay inverses: Phase 4
+   * values burned time with `costOfMinutes` and compares it against a contract
+   * this function reads a rate out of. If they drift, a project exactly on
+   * budget reads as over it.
+   *
+   * Exactly inverse when the estimate is a whole number of hours, which is
+   * what the estimate field asks for and what these cases use.
+   */
+  const RATES = [10_000, 12_500, 7_550, 1, 0];
+  const WHOLE_HOURS = [60, 120, 2400];
+
+  it("recovers the rate a whole-hour contract was priced at", () => {
+    for (const rateCents of RATES) {
+      for (const minutes of WHOLE_HOURS) {
+        const contract = costOfMinutes(minutes, rateCents);
+        expect(impliedRateCents(contract, minutes)).toBe(rateCents);
+      }
+    }
+  });
+
+  it("prices a contract that divides evenly by its hours back out", () => {
+    for (const contract of [400_000, 123_480, 400, 0]) {
+      const rate = impliedRateCents(contract, 2400);
+      expect(rate).not.toBeNull();
+      expect(costOfMinutes(2400, rate as number)).toBe(contract);
+    }
   });
 });
