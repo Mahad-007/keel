@@ -197,16 +197,22 @@ export function estimatedHours(minutes: number): number {
  *
  * A contract value of zero is different, and is reported as a rate of zero: a
  * project agreed at no charge really does pay nothing an hour, and that is a
- * fact about the engagement rather than a gap in the data.
+ * fact about the engagement rather than a gap in the data. A rate of zero is
+ * always written as a positive zero, so no project is ever described as
+ * paying "-$0.00/hr".
  */
 export function impliedRateCents(
   contractValueCents: number,
   estimatedMinutes: number,
 ): number | null {
   if (estimatedMinutes <= 0) return null;
-  return Math.round(
+  const rate = Math.round(
     (contractValueCents * MINUTES_PER_HOUR) / estimatedMinutes,
   );
+  // A contract value a few cents below zero against a large estimate rounds
+  // to -0, which `formatCents` writes as "-$0.00/hr". The same reason the
+  // hours drop their sign: that reads as a broken page, not as a rate.
+  return rate === 0 ? 0 : rate;
 }
 
 /**

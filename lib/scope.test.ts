@@ -8,7 +8,7 @@ import {
   DELIVERABLE_STATUSES,
   type DeliverableStatus,
 } from "@/lib/deliverables/status";
-import { costOfMinutes } from "@/lib/money";
+import { costOfMinutes, formatCents } from "@/lib/money";
 
 import {
   deliveredCount,
@@ -393,6 +393,12 @@ describe("impliedRateCents on a contract below zero", () => {
   it("rounds a negative rate to the nearest cent, not towards zero", () => {
     // -$100 over seven hours is -$14.2857…/hr.
     expect(impliedRateCents(-10_000, 420)).toBe(-1_429);
+  });
+
+  it("does not describe a project as paying minus nothing an hour", () => {
+    // -25c over sixty hours rounds to nothing, with a sign on it.
+    expect(Object.is(impliedRateCents(-25, 3600), 0)).toBe(true);
+    expect(formatCents(impliedRateCents(-25, 3600) as number)).toBe("$0.00");
   });
 });
 
