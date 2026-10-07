@@ -208,3 +208,30 @@ export function impliedRateCents(
     (contractValueCents * MINUTES_PER_HOUR) / estimatedMinutes,
   );
 }
+
+/**
+ * How much of the estimate has been delivered, as a fraction of one.
+ *
+ * Measured in estimated minutes rather than in lines, because the lines are
+ * not the same size: four deliverables done out of five is three quarters of
+ * the way through if the fifth one was the month-long piece. Weighting by the
+ * estimate is the only reading that matches what is left to do.
+ *
+ * A fraction rather than a percentage, because a percentage is a thing you
+ * print. And unrounded, because the only caller is a formatter — rounding here
+ * and again there would move the figure twice.
+ *
+ * Null when nothing has been estimated: there is no denominator, and zero
+ * would say the work has not started when the truth is that nobody can tell.
+ * This is the same distinction `impliedRateCents` makes, for the same reason.
+ *
+ * Not clamped to the range. A list with a negative row in it can produce a
+ * share above one or below zero, and that is the clearest sign available that
+ * the estimates need looking at — clamping would hide the bad row behind a
+ * plausible-looking percentage.
+ */
+export function deliveredShare(lines: readonly ScopeLine[]): number | null {
+  const total = totalEstimatedMinutes(lines);
+  if (total <= 0) return null;
+  return deliveredEstimatedMinutes(lines) / total;
+}
