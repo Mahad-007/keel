@@ -109,3 +109,22 @@ export function remainingEstimatedMinutes(
 ): number {
   return totalEstimatedMinutes(lines.filter((line) => !isDelivered(line)));
 }
+
+/**
+ * What the scope list says has been delivered, in whole minutes.
+ *
+ * The other half of `remainingEstimatedMinutes`, and deliberately its mirror
+ * image: both filter on the same predicate and both total through the same
+ * sum, so the two always add up to `totalEstimatedMinutes` whatever is in the
+ * list. That identity is what lets a panel show all three numbers without a
+ * reader having to check the arithmetic.
+ *
+ * Note what this is not: it is the estimate of the delivered work, not what
+ * the delivered work cost. Those two differing is the entire subject of
+ * Phase 4, and conflating them here would hide it.
+ */
+export function deliveredEstimatedMinutes(
+  lines: readonly ScopeLine[],
+): number {
+  return totalEstimatedMinutes(lines.filter(isDelivered));
+}
