@@ -271,3 +271,37 @@ export type ScopeSummary = {
   /** Cents per hour the contract implies, or null with nothing estimated. */
   impliedRateCents: number | null;
 };
+
+/**
+ * The whole summary of one project's scope: its deliverables, and what it was
+ * agreed for.
+ *
+ * The two arguments are the two halves of the comparison, and they come from
+ * different tables — which is exactly why nobody ever makes it. One call, one
+ * list, one contract value, and all the numbers are consistent with each
+ * other by construction.
+ *
+ * `contractValueCents` is echoed back rather than left for the caller to pass
+ * around beside the result. A panel showing the implied rate has to show the
+ * amount it came from, or the rate is a number with no working.
+ */
+export function summariseScope(
+  lines: readonly ScopeLine[],
+  contractValueCents: number,
+): ScopeSummary {
+  const estimatedMinutes = totalEstimatedMinutes(lines);
+  const remainingMinutes = remainingEstimatedMinutes(lines);
+
+  return {
+    lineCount: lines.length,
+    unestimatedCount: unestimatedCount(lines),
+    estimatedMinutes,
+    estimatedHours: estimatedHours(estimatedMinutes),
+    remainingMinutes,
+    remainingHours: estimatedHours(remainingMinutes),
+    deliveredMinutes: deliveredEstimatedMinutes(lines),
+    deliveredShare: deliveredShare(lines),
+    contractValueCents,
+    impliedRateCents: impliedRateCents(contractValueCents, estimatedMinutes),
+  };
+}
