@@ -11,6 +11,7 @@ import {
 
 import {
   deliveredEstimatedMinutes,
+  estimatedHours,
   isDelivered,
   remainingEstimatedMinutes,
   totalEstimatedMinutes,
@@ -228,5 +229,39 @@ describe("the three estimate totals together", () => {
         lines.filter((candidate) => !isDelivered(candidate)).length,
       );
     }
+  });
+});
+
+describe("estimatedHours", () => {
+  it("turns a whole number of hours into itself", () => {
+    expect(estimatedHours(60)).toBe(1);
+    expect(estimatedHours(2400)).toBe(40);
+  });
+
+  it("writes a part hour as a decimal", () => {
+    expect(estimatedHours(90)).toBe(1.5);
+    expect(estimatedHours(15)).toBe(0.25);
+  });
+
+  it("rounds a third of an hour to hundredths rather than trailing off", () => {
+    expect(estimatedHours(20)).toBe(0.33);
+    expect(estimatedHours(100)).toBe(1.67);
+  });
+
+  it("keeps a total that does not divide evenly readable", () => {
+    expect(estimatedHours(101)).toBe(1.68);
+  });
+
+  it("says nothing is nothing", () => {
+    expect(estimatedHours(0)).toBe(0);
+  });
+
+  it("keeps the sign of an estimate below zero", () => {
+    expect(estimatedHours(-90)).toBe(-1.5);
+    expect(estimatedHours(-20)).toBe(-0.33);
+  });
+
+  it("rounds a single minute to a hundredth rather than to zero", () => {
+    expect(estimatedHours(1)).toBe(0.02);
   });
 });
