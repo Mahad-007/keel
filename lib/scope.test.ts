@@ -1,8 +1,16 @@
 import { describe, expect, it } from "vitest";
 
+import {
+  describeEstimate,
+  UNESTIMATED_LABEL,
+} from "@/lib/deliverables/list";
 import type { DeliverableStatus } from "@/lib/deliverables/status";
 
-import { totalEstimatedMinutes, type ScopeLine } from "./scope";
+import {
+  totalEstimatedMinutes,
+  unestimatedCount,
+  type ScopeLine,
+} from "./scope";
 
 /**
  * A scope line, written as the two things these functions read. Everything
@@ -44,5 +52,35 @@ describe("totalEstimatedMinutes", () => {
 
   it("reports a total below zero when the rows add up that way", () => {
     expect(totalEstimatedMinutes([line(-30), line(-60)])).toBe(-90);
+  });
+});
+
+describe("unestimatedCount", () => {
+  it("counts the lines sitting at zero", () => {
+    expect(unestimatedCount([line(0), line(60), line(0)])).toBe(2);
+  });
+
+  it("counts nothing when every line has been sized", () => {
+    expect(unestimatedCount([line(60), line(90)])).toBe(0);
+  });
+
+  it("counts every line of a list nobody has estimated", () => {
+    expect(unestimatedCount([line(0), line(0), line(0)])).toBe(3);
+  });
+
+  it("counts nothing on an empty scope list", () => {
+    expect(unestimatedCount([])).toBe(0);
+  });
+
+  it("treats a negative row as estimated, badly, rather than missing", () => {
+    expect(unestimatedCount([line(-30)])).toBe(0);
+  });
+
+  it("agrees with the words the scope list puts on each line", () => {
+    for (const minutes of [0, 1, 90, -30]) {
+      expect(unestimatedCount([line(minutes)])).toBe(
+        describeEstimate(minutes) === UNESTIMATED_LABEL ? 1 : 0,
+      );
+    }
   });
 });
