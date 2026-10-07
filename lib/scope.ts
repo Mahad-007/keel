@@ -210,6 +210,19 @@ export function impliedRateCents(
 }
 
 /**
+ * How many lines of the scope list are done.
+ *
+ * The count and the share answer the same question two ways, and a panel
+ * wants both: "four of five deliverables, a quarter of the estimated work" is
+ * the sentence, and either half of it alone is misleading. The count is what
+ * somebody can check against the list in front of them; the share is what
+ * says how much is actually left.
+ */
+export function deliveredCount(lines: readonly ScopeLine[]): number {
+  return lines.filter(isDelivered).length;
+}
+
+/**
  * How much of the estimate has been delivered, as a fraction of one.
  *
  * Measured in estimated minutes rather than in lines, because the lines are
