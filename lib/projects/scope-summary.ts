@@ -330,8 +330,20 @@ export function remainingFigure(summary: ScopeSummary): ScopeFigure {
 function remainingValue(summary: ScopeSummary): string {
   if (hasNegativeLine(summary)) return formatMinutes(summary.remainingMinutes);
   if (summary.lineCount === 0) return "Nothing agreed";
-  if (summary.deliveredCount >= summary.lineCount) return "Nothing left";
+  if (openCount(summary) === 0) return "Nothing left";
   return describeEstimate(summary.remainingMinutes);
+}
+
+/**
+ * How many lines are not marked done — which is what "still to do" is about.
+ *
+ * The figure and the sentence under it both turn on this, and they were asking
+ * it two different ways: one comparing the delivered count against the line
+ * count, the other subtracting. Two spellings of one question is how a row
+ * ends up saying nothing is left above a sentence counting what is.
+ */
+function openCount(summary: ScopeSummary): number {
+  return summary.lineCount - summary.deliveredCount;
 }
 
 /**
@@ -347,8 +359,8 @@ function remainingValue(summary: ScopeSummary): string {
  * its estimate column.
  */
 function describeRemaining(summary: ScopeSummary): string | null {
-  const open = summary.lineCount - summary.deliveredCount;
-  if (open <= 0 || hasNegativeLine(summary)) return null;
+  const open = openCount(summary);
+  if (open === 0 || hasNegativeLine(summary)) return null;
   if (summary.remainingMinutes === 0) {
     return open === 1
       ? "The one deliverable still open has no estimate on it."
