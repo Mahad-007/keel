@@ -367,6 +367,10 @@ function describeRemaining(summary: ScopeSummary): string | null {
  * either trusts blindly or ignores, and this one is too consequential for
  * either.
  *
+ * Five sentences, as flat guards in the order the figures go wrong rather than
+ * nested inside a test for a missing rate — the rate is missing for three
+ * different reasons and the nesting hid which test was deciding which.
+ *
  * Estimates that cancel out to nothing get their own sentence too, for the
  * same reason the other way round: the list is sized, so telling the reader
  * that nothing on it is estimated would send them to fill in fields that are
@@ -393,19 +397,36 @@ function describeRemaining(summary: ScopeSummary): string | null {
  * quoting.
  */
 export function describeImpliedRate(summary: ScopeSummary): string {
+  if (summary.estimatedMinutes < 0) {
+    return "The estimates on this list total below zero, so there is no rate to work out. One of the lines has a negative number of hours on it.";
+  }
+  if (summary.estimatedMinutes === 0 && hasNegativeLine(summary)) {
+    return "The estimates on this list cancel out to no hours at all, so there is nothing to divide the contract value by. One of the lines has a negative estimate on it.";
+  }
   if (summary.impliedRateCents === null) {
-    if (summary.estimatedMinutes < 0) {
-      return "The estimates on this list total below zero, so there is no rate to work out. One of the lines has a negative number of hours on it.";
-    }
-    if (summary.negativeEstimateCount > 0) {
-      return "The estimates on this list cancel out to no hours at all, so there is nothing to divide the contract value by. One of the lines has a negative estimate on it.";
-    }
     return "Nothing on the list is estimated, so there are no hours to divide the contract value by.";
   }
-  if (summary.contractValueCents === 0) {
+  if (!hasContractValue(summary)) {
     return "No contract value is set on this project, so there is no rate to work out — the estimate is here, the price is not.";
   }
   return `${formatCents(summary.contractValueCents)} over ${hoursPhrase(summary.estimatedHours)} estimated. It moves whenever an estimate does, so it is a figure to read rather than a rate to bill at.`;
+}
+
+/**
+ * Whether the project has a price on it at all.
+ *
+ * Zero cents is the column's default, so it means "nobody has said" far more
+ * often than it means "agreed at no charge" — which is the reading the project
+ * list and the page header already take, and the reason the header prints
+ * "Not set" rather than an amount.
+ *
+ * One predicate, consulted by the figure and by the sentence under it, because
+ * these two cannot be allowed to disagree: a row reading "$0.00/hr" above a
+ * note saying no contract value is set would leave a reader with nothing to
+ * believe.
+ */
+function hasContractValue(summary: ScopeSummary): boolean {
+  return summary.contractValueCents !== 0;
 }
 
 /**
@@ -426,15 +447,26 @@ export function describeImpliedRate(summary: ScopeSummary): string {
  * row that vanished would take the explanation with it.
  */
 export function impliedRateFigure(summary: ScopeSummary): ScopeFigure {
-  const rate = summary.impliedRateCents;
   return {
     label: "Implied hourly rate",
-    value:
-      rate === null || summary.contractValueCents === 0
-        ? "No rate yet"
-        : `${formatCents(rate)}/hr`,
+    value: impliedRateValue(summary),
     note: describeImpliedRate(summary),
   };
+}
+
+/**
+ * The rate, or the two words that stand in for one.
+ *
+ * A rate needs both halves of the division, so the absence of either is the
+ * same answer here and the note is what distinguishes them. The same two
+ * conditions the note's first sentences turn on, asked through the same
+ * predicate, so the figure and its explanation are always about the same
+ * project.
+ */
+function impliedRateValue(summary: ScopeSummary): string {
+  const rate = summary.impliedRateCents;
+  if (rate === null || !hasContractValue(summary)) return "No rate yet";
+  return `${formatCents(rate)}/hr`;
 }
 
 /**
