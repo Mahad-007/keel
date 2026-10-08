@@ -66,6 +66,15 @@ describe("formatSharePercent", () => {
     expect(formatSharePercent(0.0001)).toBe("less than 1%");
   });
 
+  it("says more than 99 percent rather than rounding a project finished", () => {
+    expect(formatSharePercent(0.999)).toBe("more than 99%");
+    expect(formatSharePercent(0.9951)).toBe("more than 99%");
+  });
+
+  it("keeps 100% for a scope list that really is all delivered", () => {
+    expect(formatSharePercent(1)).toBe("100%");
+  });
+
   it("does not clamp a share a bad estimate pushed over one", () => {
     expect(formatSharePercent(1.5)).toBe("150%");
   });
