@@ -197,6 +197,29 @@ export function describeDelivered(summary: ScopeSummary): string {
 }
 
 /**
+ * A part of the estimate as a figure, or the words for why there is no figure.
+ *
+ * Any part of an unsized estimate has to read as unsized rather than as zero:
+ * a list nobody has put hours against has not delivered no time and does not
+ * have no time left, it has nothing to say either way. One helper, so the
+ * parts of the panel that report a piece of the total cannot answer that
+ * differently from each other.
+ *
+ * The absence a sized list genuinely has is the caller's word, because the two
+ * are not the same absence — nothing handed over yet is not nothing left to
+ * do.
+ */
+function partOfEstimate(
+  summary: ScopeSummary,
+  minutes: number,
+  none: string,
+): string {
+  if (!isEstimated(summary.estimatedMinutes)) return UNESTIMATED_LABEL;
+  if (minutes === 0) return none;
+  return formatMinutes(minutes);
+}
+
+/**
  * What has been handed over, as a line of the panel.
  *
  * The figure is the estimate of the delivered lines, not what delivering them
@@ -213,11 +236,7 @@ export function describeDelivered(summary: ScopeSummary): string {
 export function deliveredFigure(summary: ScopeSummary): ScopeFigure {
   return {
     label: "Delivered",
-    value: !isEstimated(summary.estimatedMinutes)
-      ? UNESTIMATED_LABEL
-      : summary.deliveredMinutes === 0
-        ? "None yet"
-        : formatMinutes(summary.deliveredMinutes),
+    value: partOfEstimate(summary, summary.deliveredMinutes, "None yet"),
     note: describeDelivered(summary),
   };
 }
