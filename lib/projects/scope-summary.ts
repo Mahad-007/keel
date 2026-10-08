@@ -427,6 +427,11 @@ export function scopeSummaryFigures(summary: ScopeSummary): ScopeFigure[] {
  * fixed its inputs would disagree with the list the reader is looking at — so
  * the panel has to say what happened instead.
  *
+ * Counted off the lines rather than inferred from the totals, because the
+ * worst case leaves the totals looking fine: minus two hours against plus two
+ * hours reads as nought estimated minutes, and every figure here would then
+ * describe the project as unsized while two of its lines carry estimates.
+ *
  * The form refuses a negative estimate, so a row holding one was written
  * directly to the database. Saying so is the useful half: a reader who knows
  * the figures are off wants to know which line to look at, and the list below
@@ -437,12 +442,10 @@ export function scopeSummaryFigures(summary: ScopeSummary): ScopeFigure[] {
  * project.
  */
 export function describeEstimateProblem(summary: ScopeSummary): string | null {
-  const negative =
-    summary.estimatedMinutes < 0 ||
-    summary.deliveredMinutes < 0 ||
-    summary.remainingMinutes < 0;
-  if (!negative) return null;
-  return "At least one deliverable has a negative estimate, so these figures do not add up to each other. The form will not accept one, so the line was written straight to the database — it shows a negative figure in the list below.";
+  const bad = summary.negativeEstimateCount;
+  if (bad === 0) return null;
+  const lines = bad === 1 ? "One deliverable has" : `${bad} deliverables have`;
+  return `${lines} a negative estimate, so the figures here do not add up the way they should. The form will not accept one, so the line was written straight to the database — it shows a negative figure in the list below.`;
 }
 
 /**
