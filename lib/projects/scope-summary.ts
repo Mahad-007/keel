@@ -1,4 +1,8 @@
-import { isEstimated, UNESTIMATED_LABEL } from "@/lib/deliverables/list";
+import {
+  describeEstimate,
+  isEstimated,
+  UNESTIMATED_LABEL,
+} from "@/lib/deliverables/list";
 import { formatMinutes } from "@/lib/minutes";
 import { formatCents } from "@/lib/money";
 import type { ScopeSummary } from "@/lib/scope";
@@ -250,7 +254,9 @@ export function deliveredFigure(summary: ScopeSummary): ScopeFigure {
  * Nothing marked done is a real answer and "None yet" is it — `0m` would be a
  * duration where the truth is an absence. A line marked done that nobody
  * sized is a different answer again: something was handed over, and the panel
- * cannot say how much of the work it was.
+ * cannot say how much of the work it was. That one is `describeEstimate`'s to
+ * word, the same function the list calls on each line, so a total of nothing
+ * is never described here in words the list would not use.
  *
  * Decided by the count before the minutes, the way the still-to-do figure is,
  * so the two rows cannot describe the same list differently — one of them
@@ -260,8 +266,7 @@ export function deliveredFigure(summary: ScopeSummary): ScopeFigure {
 function deliveredValue(summary: ScopeSummary): string {
   if (hasNegativeLine(summary)) return formatMinutes(summary.deliveredMinutes);
   if (summary.deliveredCount === 0) return "None yet";
-  if (summary.deliveredMinutes === 0) return UNESTIMATED_LABEL;
-  return formatMinutes(summary.deliveredMinutes);
+  return describeEstimate(summary.deliveredMinutes);
 }
 
 /**
@@ -305,16 +310,15 @@ export function remainingFigure(summary: ScopeSummary): ScopeFigure {
  * misleading thing this panel could say — and an estimate is optional on the
  * add form, so it takes no hand-edited row to get there.
  *
- * So the order is: is anything still open, then is there anything sized to
- * total. What is left over is an open line nobody has estimated, and
- * `UNESTIMATED_LABEL` is the honest figure for it.
+ * So the order is: is anything still open, then what does the estimate of
+ * what is open come to — which is `describeEstimate`'s question, and it gives
+ * the same answer here that the list gives on a line of its own.
  */
 function remainingValue(summary: ScopeSummary): string {
   if (hasNegativeLine(summary)) return formatMinutes(summary.remainingMinutes);
   if (summary.lineCount === 0) return "Nothing agreed";
   if (summary.deliveredCount >= summary.lineCount) return "Nothing left";
-  if (summary.remainingMinutes === 0) return UNESTIMATED_LABEL;
-  return formatMinutes(summary.remainingMinutes);
+  return describeEstimate(summary.remainingMinutes);
 }
 
 /**
