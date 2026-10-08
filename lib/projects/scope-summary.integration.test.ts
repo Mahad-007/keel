@@ -94,3 +94,61 @@ describe("the panel over a scope list just written", () => {
     expect(rate.note).toContain("$4,000.00 over 40 hours estimated.");
   });
 });
+
+describe("the panel as the work goes on", () => {
+  beforeEach(async () => {
+    for (const [title, estimatedMinutes] of [
+      ["Discovery", 480],
+      ["Build", 1_440],
+      ["Handover", 480],
+    ] as const) {
+      await createDeliverable({ projectId, title, estimatedMinutes }, db);
+    }
+  });
+
+  async function markFirst(status: "started" | "done") {
+    const [first] = await listDeliverables(projectId, db);
+    await setDeliverableStatus(first.id, first.status, status, db);
+  }
+
+  it("leaves every figure alone when a line is only started", async () => {
+    await markFirst("started");
+    const all = await figures();
+    expect(figure(all, "Delivered").value).toBe("None yet");
+    expect(figure(all, "Still to do").value).toBe("40h");
+  });
+
+  it("moves a finished line across and counts it in the share", async () => {
+    await markFirst("done");
+    const all = await figures();
+    expect(figure(all, "Delivered")).toEqual({
+      label: "Delivered",
+      value: "8h",
+      note: "1 of 3 deliverables marked done, 20% of the estimated work.",
+    });
+    expect(figure(all, "Still to do").value).toBe("32h");
+  });
+
+  it("holds the rate still while the work completes", async () => {
+    await markFirst("done");
+    expect(figure(await figures(), "Implied hourly rate").value).toBe(
+      "$100.00/hr",
+    );
+  });
+
+  it("says the list is finished once every line is done", async () => {
+    for (const row of await listDeliverables(projectId, db)) {
+      await setDeliverableStatus(row.id, row.status, "done", db);
+    }
+
+    const all = await figures();
+    expect(figure(all, "Delivered").note).toBe(
+      "All 3 deliverables are marked done.",
+    );
+    expect(figure(all, "Still to do")).toEqual({
+      label: "Still to do",
+      value: "Nothing left",
+      note: null,
+    });
+  });
+});
