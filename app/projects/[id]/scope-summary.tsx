@@ -1,5 +1,6 @@
 import type { ScopeSummary } from "@/lib/scope";
 import {
+  describeEstimateProblem,
   SCOPE_FROM_ESTIMATES,
   scopeSummaryFigures,
 } from "@/lib/projects/scope-summary";
@@ -24,11 +25,25 @@ import { SummaryFigure } from "./summary-figure";
  * maps one over the other.
  */
 export function ScopeSummaryPanel({ summary }: { summary: ScopeSummary }) {
+  const problem = describeEstimateProblem(summary);
+
   return (
     <section className="mt-6">
       <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
         Scope summary
       </h3>
+      {/*
+        Above the figures, because it changes how all four of them are read and
+        a caveat found underneath them arrives too late. Amber rather than red:
+        the same tone the deletion step uses, for the same reason — nothing has
+        failed and nothing is being refused, but a reader should not take these
+        numbers at face value until the row behind them is fixed.
+      */}
+      {problem === null ? null : (
+        <p className="mt-2 max-w-prose rounded border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+          {problem}
+        </p>
+      )}
       <dl className="mt-2 text-sm">
         {scopeSummaryFigures(summary).map((figure) => (
           <SummaryFigure key={figure.label} {...figure} />
