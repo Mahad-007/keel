@@ -385,6 +385,12 @@ describe("describeImpliedRate", () => {
     );
   });
 
+  it("says the estimates cancelled out rather than calling them missing", () => {
+    expect(describeImpliedRate(summary([line(120), line(-120)], 500000))).toBe(
+      "The estimates on this list cancel out to no hours at all, so there is nothing to divide the contract value by. One of the lines has a negative estimate on it.",
+    );
+  });
+
   it("names the negative estimate when the list totals below zero", () => {
     expect(describeImpliedRate(summary([line(60), line(-120)], 500000))).toBe(
       "The estimates on this list total below zero, so there is no rate to work out. One of the lines has a negative number of hours on it.",
