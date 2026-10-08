@@ -1,3 +1,7 @@
+import { isEstimated, UNESTIMATED_LABEL } from "@/lib/deliverables/list";
+import { formatMinutes } from "@/lib/minutes";
+import type { ScopeSummary } from "@/lib/scope";
+
 /**
  * The words a scope summary is read in.
  *
@@ -125,4 +129,27 @@ export function describeUnestimated(
   }
   const verb = unestimated === 1 ? "has" : "have";
   return `${unestimated} of ${deliverablesPhrase(lineCount)} ${verb} no estimate, so this total does not cover the whole list.`;
+}
+
+/**
+ * What the scope list was sized at, as a line of the panel.
+ *
+ * "Estimated work" rather than "Total" or "Scope": the figure is a sum of
+ * guesses about how long things will take, and the label is the one place to
+ * say so before a reader starts treating it as a measurement.
+ *
+ * An unsized list says `UNESTIMATED_LABEL` — the same two words the list puts
+ * on an unsized line — rather than `0m`. A total of zero minutes is a claim
+ * that the work takes no time, which is the reading that makes a scope panel
+ * lie, and importing the words rather than retyping them is what stops the
+ * summary and the list disagreeing about what a missing estimate is called.
+ */
+export function estimatedFigure(summary: ScopeSummary): ScopeFigure {
+  return {
+    label: "Estimated work",
+    value: isEstimated(summary.estimatedMinutes)
+      ? formatMinutes(summary.estimatedMinutes)
+      : UNESTIMATED_LABEL,
+    note: describeUnestimated(summary.lineCount, summary.unestimatedCount),
+  };
 }
