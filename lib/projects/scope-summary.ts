@@ -83,7 +83,15 @@ export function deliverablesPhrase(count: number): string {
  * not clamped here either: a list with a negative estimate in it can be over
  * a hundred percent delivered, and a panel quietly printing "100%" would hide
  * the bad row behind a plausible figure.
+ *
+ * A share that is greater than nothing but rounds to nothing is written as
+ * "less than 1%" instead. "0%" beside a line saying one deliverable is done
+ * says the rounding's answer rather than the truth, and the reader would
+ * conclude the done line was a mistake — a half-day handed over against a
+ * three-month estimate really is less than one percent of it.
  */
 export function formatSharePercent(share: number): string {
-  return `${Math.round(share * 100)}%`;
+  const percent = Math.round(share * 100);
+  if (percent === 0 && share > 0) return "less than 1%";
+  return `${percent}%`;
 }
