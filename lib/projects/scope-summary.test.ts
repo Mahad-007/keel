@@ -5,6 +5,7 @@ import type { DeliverableStatus } from "@/lib/deliverables/status";
 import { summariseScope, type ScopeLine } from "@/lib/scope";
 
 import {
+  deliveredFigure,
   describeDelivered,
   estimatedFigure,
   deliverablesPhrase,
@@ -232,5 +233,33 @@ describe("describeDelivered", () => {
     expect(describeDelivered(summary(lines))).toBe(
       "1 of 2 deliverables marked done, 50% of the estimated work.",
     );
+  });
+});
+
+describe("deliveredFigure", () => {
+  it("totals the estimates of the lines marked done", () => {
+    const lines = [line(60, "done"), line(30, "done"), line(90)];
+    expect(deliveredFigure(summary(lines))).toEqual({
+      label: "Delivered",
+      value: "1h 30m",
+      note: "2 of 3 deliverables marked done, 50% of the estimated work.",
+    });
+  });
+
+  it("says none yet rather than nought minutes on a sized list", () => {
+    expect(deliveredFigure(summary([line(60), line(30)])).value).toBe(
+      "None yet",
+    );
+  });
+
+  it("says not estimated when the list was never sized", () => {
+    expect(deliveredFigure(summary([line(0, "done"), line(0)])).value).toBe(
+      UNESTIMATED_LABEL,
+    );
+  });
+
+  it("leaves a started line out of the figure", () => {
+    const lines = [line(60, "started"), line(30, "done")];
+    expect(deliveredFigure(summary(lines)).value).toBe("30m");
   });
 });
