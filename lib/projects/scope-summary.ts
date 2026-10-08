@@ -168,6 +168,11 @@ export function estimatedFigure(summary: ScopeSummary): ScopeFigure {
  * appears exactly in the mixed case, which is the one where the two figures can
  * disagree.
  *
+ * A finished list says so as a fact rather than as a fraction. "All 5
+ * deliverables are marked done" is the sentence somebody reads once and stops;
+ * "5 of 5 deliverables marked done, 100% of the estimated work" is the same
+ * news with two sums to check first.
+ *
  * With nothing to take a share of, the sentence says so rather than quoting a
  * percentage of zero. That covers an unsized list and the stranger case of
  * estimates that cancel each other out, both of which `deliveredShare`
@@ -178,6 +183,11 @@ export function describeDelivered(summary: ScopeSummary): string {
   if (lineCount === 0) return "Nothing has been agreed yet.";
   if (delivered === 0) {
     return `None of ${deliverablesPhrase(lineCount)} is marked done yet.`;
+  }
+  if (delivered >= lineCount) {
+    return lineCount === 1
+      ? "The one deliverable on the list is marked done."
+      : `All ${lineCount} deliverables are marked done.`;
   }
   const counted = `${delivered} of ${deliverablesPhrase(lineCount)} marked done`;
   if (deliveredShare === null) {
