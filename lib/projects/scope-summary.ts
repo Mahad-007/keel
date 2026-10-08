@@ -71,3 +71,19 @@ export function hoursPhrase(hours: number): string {
 export function deliverablesPhrase(count: number): string {
   return `${count} ${count === 1 ? "deliverable" : "deliverables"}`;
 }
+
+/**
+ * A share of the estimate as a percentage to read.
+ *
+ * Whole percent, because the share is derived from estimates and a figure of
+ * "30.4%" claims a precision the inputs never had. Rounded rather than
+ * truncated, so the figure is the nearest percent to the fraction.
+ *
+ * The share arrives unrounded and unclamped from `deliveredShare`, and it is
+ * not clamped here either: a list with a negative estimate in it can be over
+ * a hundred percent delivered, and a panel quietly printing "100%" would hide
+ * the bad row behind a plausible figure.
+ */
+export function formatSharePercent(share: number): string {
+  return `${Math.round(share * 100)}%`;
+}
