@@ -322,6 +322,12 @@ describe("describeImpliedRate", () => {
     );
   });
 
+  it("names the negative estimate when the list totals below zero", () => {
+    expect(describeImpliedRate(summary([line(60), line(-120)], 500000))).toBe(
+      "The estimates on this list total below zero, so there is no rate to work out. One of the lines has a negative number of hours on it.",
+    );
+  });
+
   it("says the same for a project with no scope list at all", () => {
     expect(describeImpliedRate(summary([], 500000))).toBe(
       "Nothing on the list is estimated, so there are no hours to divide the contract value by.",
