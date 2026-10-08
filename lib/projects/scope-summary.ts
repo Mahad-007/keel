@@ -133,6 +133,21 @@ export function describeUnestimated(
 }
 
 /**
+ * Whether the list holds an estimate nobody could have typed in.
+ *
+ * Every "Not estimated", "None yet" and "Nothing left" in this file is an
+ * interpretation of a zero, and one negative line makes those interpretations
+ * wrong: two lines cancelling out is not an unsized list, and nought minutes
+ * left is not a finished one. Where this is true the figures go back to being
+ * plain arithmetic — the banner above them is what explains why they do not
+ * add up, and a panel that paraphrased them as well would be stating things
+ * about the project that are not so.
+ */
+function hasNegativeLine(summary: ScopeSummary): boolean {
+  return summary.negativeEstimateCount > 0;
+}
+
+/**
  * What the scope list was sized at, as a line of the panel.
  *
  * "Estimated work" rather than "Total" or "Scope": the figure is a sum of
@@ -148,9 +163,10 @@ export function describeUnestimated(
 export function estimatedFigure(summary: ScopeSummary): ScopeFigure {
   return {
     label: "Estimated work",
-    value: isEstimated(summary.estimatedMinutes)
-      ? formatMinutes(summary.estimatedMinutes)
-      : UNESTIMATED_LABEL,
+    value:
+      isEstimated(summary.estimatedMinutes) || hasNegativeLine(summary)
+        ? formatMinutes(summary.estimatedMinutes)
+        : UNESTIMATED_LABEL,
     note: describeUnestimated(summary.lineCount, summary.unestimatedCount),
   };
 }
@@ -242,6 +258,7 @@ export function deliveredFigure(summary: ScopeSummary): ScopeFigure {
  * was.
  */
 function deliveredValue(summary: ScopeSummary): string {
+  if (hasNegativeLine(summary)) return formatMinutes(summary.deliveredMinutes);
   if (summary.deliveredCount === 0) return "None yet";
   if (summary.deliveredMinutes === 0) return UNESTIMATED_LABEL;
   return formatMinutes(summary.deliveredMinutes);
@@ -293,6 +310,7 @@ export function remainingFigure(summary: ScopeSummary): ScopeFigure {
  * `UNESTIMATED_LABEL` is the honest figure for it.
  */
 function remainingValue(summary: ScopeSummary): string {
+  if (hasNegativeLine(summary)) return formatMinutes(summary.remainingMinutes);
   if (summary.lineCount === 0) return "Nothing agreed";
   if (summary.deliveredCount >= summary.lineCount) return "Nothing left";
   if (summary.remainingMinutes === 0) return UNESTIMATED_LABEL;
@@ -313,7 +331,7 @@ function remainingValue(summary: ScopeSummary): string {
  */
 function describeRemaining(summary: ScopeSummary): string | null {
   const open = summary.lineCount - summary.deliveredCount;
-  if (open <= 0) return null;
+  if (open <= 0 || hasNegativeLine(summary)) return null;
   if (summary.remainingMinutes === 0) {
     return open === 1
       ? "The one deliverable still open has no estimate on it."
