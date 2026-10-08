@@ -320,3 +320,32 @@ export function describeImpliedRate(summary: ScopeSummary): string {
   }
   return `${formatCents(summary.contractValueCents)} over ${hoursPhrase(summary.estimatedHours)} estimated. It moves whenever an estimate does, so it is a figure to read rather than a rate to bill at.`;
 }
+
+/**
+ * What the contract works out to an hour, as a line of the panel.
+ *
+ * "Implied" is the word doing the work in the label: a fixed-price project
+ * does not have an hourly rate, it has a price and a guess at how long the job
+ * will take, and this is what dividing one by the other says. A reader who
+ * takes it for the project's rate will go looking for the field it came out
+ * of, and there isn't one — the rate override on the overview tab is a
+ * different number with a different job.
+ *
+ * `/hr` rather than "per hour", matching the rate override and the client's
+ * default, so the three rates on this project read as the same kind of figure.
+ *
+ * Where there is no rate the row stays rather than disappearing. The note is
+ * the only place that says what is missing — an estimate, or a price — and a
+ * row that vanished would take the explanation with it.
+ */
+export function impliedRateFigure(summary: ScopeSummary): ScopeFigure {
+  const rate = summary.impliedRateCents;
+  return {
+    label: "Implied hourly rate",
+    value:
+      rate === null || summary.contractValueCents === 0
+        ? "No rate yet"
+        : `${formatCents(rate)}/hr`,
+    note: describeImpliedRate(summary),
+  };
+}
