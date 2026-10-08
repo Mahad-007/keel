@@ -288,6 +288,13 @@ export function remainingFigure(summary: ScopeSummary): ScopeFigure {
  * either trusts blindly or ignores, and this one is too consequential for
  * either.
  *
+ * A total below zero gets its own sentence rather than being folded in with a
+ * missing estimate, because the two want different things done about them. A
+ * list nobody has sized needs estimating; a list totalling below zero has a
+ * row with a negative estimate on it, which is a typo somebody should go and
+ * find — and only the database can produce it, so saying so plainly saves the
+ * hunt.
+ *
  * It also says what the figure is for. A rate that moves whenever somebody
  * edits an estimate is not a rate to bill at; it is the sentence "you agreed
  * to work for this much an hour", which is worth reading and not worth
@@ -295,6 +302,9 @@ export function remainingFigure(summary: ScopeSummary): ScopeFigure {
  */
 export function describeImpliedRate(summary: ScopeSummary): string {
   if (summary.impliedRateCents === null) {
+    if (summary.estimatedMinutes < 0) {
+      return "The estimates on this list total below zero, so there is no rate to work out. One of the lines has a negative number of hours on it.";
+    }
     return "Nothing on the list is estimated, so there are no hours to divide the contract value by.";
   }
   return `${formatCents(summary.contractValueCents)} over ${hoursPhrase(summary.estimatedHours)} estimated. It moves whenever an estimate does, so it is a figure to read rather than a rate to bill at.`;
