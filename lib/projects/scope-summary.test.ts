@@ -322,6 +322,18 @@ describe("describeImpliedRate", () => {
     );
   });
 
+  it("says the price is missing when no contract value is set", () => {
+    expect(describeImpliedRate(summary([line(2400)], 0))).toBe(
+      "No contract value is set on this project, so there is no rate to work out — the estimate is here, the price is not.",
+    );
+  });
+
+  it("prefers the missing estimate when neither figure is there", () => {
+    expect(describeImpliedRate(summary([line(0)], 0))).toBe(
+      "Nothing on the list is estimated, so there are no hours to divide the contract value by.",
+    );
+  });
+
   it("names the negative estimate when the list totals below zero", () => {
     expect(describeImpliedRate(summary([line(60), line(-120)], 500000))).toBe(
       "The estimates on this list total below zero, so there is no rate to work out. One of the lines has a negative number of hours on it.",
