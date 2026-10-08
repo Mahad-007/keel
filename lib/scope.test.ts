@@ -12,6 +12,7 @@ import { costOfMinutes, formatCents } from "@/lib/money";
 
 import {
   deliveredCount,
+  negativeEstimateCount,
   deliveredEstimatedMinutes,
   deliveredShare,
   estimatedHours,
@@ -94,6 +95,34 @@ describe("unestimatedCount", () => {
         describeEstimate(minutes) === UNESTIMATED_LABEL ? 1 : 0,
       );
     }
+  });
+});
+
+describe("negativeEstimateCount", () => {
+  it("counts nothing on a list of ordinary estimates", () => {
+    expect(negativeEstimateCount([line(90), line(0), line(480)])).toBe(0);
+  });
+
+  it("counts a line somebody wrote a negative estimate onto", () => {
+    expect(negativeEstimateCount([line(90), line(-60)])).toBe(1);
+  });
+
+  it("counts every bad line, not just the first", () => {
+    expect(negativeEstimateCount([line(-30), line(60), line(-90)])).toBe(2);
+  });
+
+  it("counts the lines a cancelling pair leaves the totals silent about", () => {
+    const lines = [line(120), line(-120)];
+    expect(totalEstimatedMinutes(lines)).toBe(0);
+    expect(negativeEstimateCount(lines)).toBe(1);
+  });
+
+  it("counts zero as an estimate nobody gave, not a negative one", () => {
+    expect(negativeEstimateCount([line(0), line(0)])).toBe(0);
+  });
+
+  it("counts nothing on an empty scope list", () => {
+    expect(negativeEstimateCount([])).toBe(0);
   });
 });
 
