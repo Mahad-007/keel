@@ -72,6 +72,24 @@ export function unestimatedCount(lines: readonly ScopeLine[]): number {
 }
 
 /**
+ * How many lines of the scope list carry an estimate below zero.
+ *
+ * Nothing in the app writes one — the estimate field refuses a negative — so
+ * this counts rows that were written straight to the database. It is here
+ * because the totals cannot be asked: two lines of minus two hours and plus
+ * two hours leave every figure in this file reading zero, which is
+ * indistinguishable from a list nobody has estimated and is the one state the
+ * panel would describe wrongly.
+ *
+ * A count rather than a flag, for the same reason `unestimatedCount` is one: a
+ * reader going to look for the bad row wants to know whether there is one of
+ * them or four.
+ */
+export function negativeEstimateCount(lines: readonly ScopeLine[]): number {
+  return lines.filter((line) => line.estimatedMinutes < 0).length;
+}
+
+/**
  * Whether a line of scope is finished.
  *
  * One comparison, named, because it is the hinge every "how much is left"
