@@ -153,3 +153,35 @@ export function estimatedFigure(summary: ScopeSummary): ScopeFigure {
     note: describeUnestimated(summary.lineCount, summary.unestimatedCount),
   };
 }
+
+/**
+ * How much of the list has been handed over, counted two ways.
+ *
+ * The count and the share answer the same question differently and the
+ * sentence needs both: four of five deliverables is nearly finished unless the
+ * fifth was the month-long piece, and the share weighted by estimate is the
+ * half that says which. `lib/scope.ts` works both out; this decides when each
+ * is worth saying.
+ *
+ * A share is left out where it would only repeat the count — nothing done is
+ * nought percent, and everything done is all of it by construction — so it
+ * appears exactly in the mixed case, which is the one where the two figures can
+ * disagree.
+ *
+ * With nothing to take a share of, the sentence says so rather than quoting a
+ * percentage of zero. That covers an unsized list and the stranger case of
+ * estimates that cancel each other out, both of which `deliveredShare`
+ * reports as no share at all.
+ */
+export function describeDelivered(summary: ScopeSummary): string {
+  const { deliveredCount: delivered, deliveredShare, lineCount } = summary;
+  if (lineCount === 0) return "Nothing has been agreed yet.";
+  if (delivered === 0) {
+    return `None of ${deliverablesPhrase(lineCount)} is marked done yet.`;
+  }
+  const counted = `${delivered} of ${deliverablesPhrase(lineCount)} marked done`;
+  if (deliveredShare === null) {
+    return `${counted}, though the estimates do not total to anything a share can be taken of.`;
+  }
+  return `${counted}, ${formatSharePercent(deliveredShare)} of the estimated work.`;
+}
