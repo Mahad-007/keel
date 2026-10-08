@@ -560,6 +560,7 @@ describe("summariseScope", () => {
     expect(summariseScope(LINES, 400_000)).toEqual({
       lineCount: 3,
       unestimatedCount: 0,
+      negativeEstimateCount: 0,
       deliveredCount: 1,
       estimatedMinutes: 720,
       estimatedHours: 12,
@@ -585,6 +586,7 @@ describe("summariseScope", () => {
     expect(summary.deliveredMinutes).toBe(deliveredEstimatedMinutes(LINES));
     expect(summary.deliveredShare).toBe(deliveredShare(LINES));
     expect(summary.unestimatedCount).toBe(unestimatedCount(LINES));
+    expect(summary.negativeEstimateCount).toBe(negativeEstimateCount(LINES));
     expect(summary.deliveredCount).toBe(deliveredCount(LINES));
     expect(summary.impliedRateCents).toBe(
       impliedRateCents(400_000, totalEstimatedMinutes(LINES)),
@@ -611,6 +613,7 @@ describe("summariseScope with nothing agreed yet", () => {
     expect(summariseScope([], 400_000)).toEqual({
       lineCount: 0,
       unestimatedCount: 0,
+      negativeEstimateCount: 0,
       deliveredCount: 0,
       estimatedMinutes: 0,
       estimatedHours: 0,

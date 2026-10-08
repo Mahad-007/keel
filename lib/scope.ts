@@ -309,6 +309,14 @@ export type ScopeSummary = {
   lineCount: number;
   /** How many of them have no estimate, and so are missing from the totals. */
   unestimatedCount: number;
+  /**
+   * How many carry an estimate below zero, which nothing in the app writes.
+   *
+   * Carried because it cannot be recovered from the figures below it: a
+   * cancelling pair of lines leaves every one of them reading zero, and a
+   * panel comparing them would call the project unestimated.
+   */
+  negativeEstimateCount: number;
   /** How many are done, to be read beside the share rather than instead. */
   deliveredCount: number;
   /** The whole estimate, in minutes. */
@@ -355,6 +363,7 @@ export function summariseScope(
   return {
     lineCount: lines.length,
     unestimatedCount: unestimatedCount(lines),
+    negativeEstimateCount: negativeEstimateCount(lines),
     deliveredCount: deliveredCount(lines),
     estimatedMinutes,
     estimatedHours: estimatedHours(estimatedMinutes),
