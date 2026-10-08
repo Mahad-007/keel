@@ -6,6 +6,7 @@ import { summariseScope, type ScopeLine } from "@/lib/scope";
 
 import {
   deliveredFigure,
+  impliedRateFigure,
   describeImpliedRate,
   REMAINING_INCLUDES_STARTED,
   remainingFigure,
@@ -343,6 +344,40 @@ describe("describeImpliedRate", () => {
   it("says the same for a project with no scope list at all", () => {
     expect(describeImpliedRate(summary([], 500000))).toBe(
       "Nothing on the list is estimated, so there are no hours to divide the contract value by.",
+    );
+  });
+});
+
+describe("impliedRateFigure", () => {
+  it("divides the contract value by the hours estimated", () => {
+    expect(impliedRateFigure(summary([line(2400)], 500000))).toEqual({
+      label: "Implied hourly rate",
+      value: "$125.00/hr",
+      note: "$5,000.00 over 40 hours estimated. It moves whenever an estimate does, so it is a figure to read rather than a rate to bill at.",
+    });
+  });
+
+  it("keeps the row when nothing is estimated, so the note can explain", () => {
+    const figure = impliedRateFigure(summary([line(0)], 500000));
+    expect(figure.value).toBe("No rate yet");
+    expect(figure.note).toContain("Nothing on the list is estimated");
+  });
+
+  it("shows no rate rather than nothing an hour for an unset price", () => {
+    const figure = impliedRateFigure(summary([line(2400)], 0));
+    expect(figure.value).toBe("No rate yet");
+    expect(figure.note).toContain("No contract value is set");
+  });
+
+  it("shows no rate for a list whose estimates total below zero", () => {
+    expect(impliedRateFigure(summary([line(-60)], 500000)).value).toBe(
+      "No rate yet",
+    );
+  });
+
+  it("writes the rate to the cent, the way every other rate is written", () => {
+    expect(impliedRateFigure(summary([line(7)], 10000)).value).toBe(
+      "$857.14/hr",
     );
   });
 });
