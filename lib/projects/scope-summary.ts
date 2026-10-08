@@ -263,19 +263,58 @@ export const REMAINING_INCLUDES_STARTED =
  * uses and would invite the reading that this figure knows about time logged.
  * It does not: this is the estimate of the lines nobody has ticked, and it
  * moves when a status changes rather than when the clock runs.
- *
- * The caveat is dropped on a finished list, where "Nothing left" has already
- * said it, and on an unsized one, where the estimated-work line above has
- * explained why no figure in the panel means much.
  */
 export function remainingFigure(summary: ScopeSummary): ScopeFigure {
-  const showsAFigure =
-    isEstimated(summary.estimatedMinutes) && summary.remainingMinutes !== 0;
   return {
     label: "Still to do",
-    value: partOfEstimate(summary, summary.remainingMinutes, "Nothing left"),
-    note: showsAFigure ? REMAINING_INCLUDES_STARTED : null,
+    value: remainingValue(summary),
+    note: describeRemaining(summary),
   };
+}
+
+/**
+ * The figure itself, decided by what is still open rather than by what the
+ * minutes come to.
+ *
+ * The two come apart, and the difference matters: a project with one
+ * eight-hour line done and one unsized line still to write has nought minutes
+ * left on the clock and a deliverable outstanding. Keying "Nothing left" off
+ * the minutes would call that project finished, which is the single most
+ * misleading thing this panel could say — and an estimate is optional on the
+ * add form, so it takes no hand-edited row to get there.
+ *
+ * So the order is: is anything still open, then is there anything sized to
+ * total. What is left over is an open line nobody has estimated, and
+ * `UNESTIMATED_LABEL` is the honest figure for it.
+ */
+function remainingValue(summary: ScopeSummary): string {
+  if (summary.lineCount === 0) return "Nothing agreed";
+  if (summary.deliveredCount >= summary.lineCount) return "Nothing left";
+  if (summary.remainingMinutes === 0) return UNESTIMATED_LABEL;
+  return formatMinutes(summary.remainingMinutes);
+}
+
+/**
+ * How to read the figure, which depends on why it says what it says.
+ *
+ * A finished list and an empty one need nothing: "Nothing left" and "Nothing
+ * agreed" are their own explanations, and the delivered line above has already
+ * counted the deliverables.
+ *
+ * An open line with no estimate on it is the case worth a sentence. The figure
+ * reads "Not estimated" where a reader expected hours, and the reason is not
+ * in the list below at a glance — the line is there, it just has nothing in
+ * its estimate column.
+ */
+function describeRemaining(summary: ScopeSummary): string | null {
+  const open = summary.lineCount - summary.deliveredCount;
+  if (open <= 0) return null;
+  if (summary.remainingMinutes === 0) {
+    return open === 1
+      ? "The one deliverable still open has no estimate on it."
+      : `None of the ${open} deliverables still open has an estimate on it.`;
+  }
+  return REMAINING_INCLUDES_STARTED;
 }
 
 /**

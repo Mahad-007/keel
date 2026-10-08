@@ -294,10 +294,35 @@ describe("remainingFigure", () => {
     });
   });
 
-  it("says not estimated when the list was never sized", () => {
+  it("says not estimated when the open lines were never sized", () => {
     const figure = remainingFigure(summary([line(0), line(0, "done")]));
     expect(figure.value).toBe(UNESTIMATED_LABEL);
-    expect(figure.note).toBeNull();
+    expect(figure.note).toBe(
+      "The one deliverable still open has no estimate on it.",
+    );
+  });
+
+  it("does not call a list finished while an unsized line is open", () => {
+    const figure = remainingFigure(summary([line(480, "done"), line(0)]));
+    expect(figure.value).toBe(UNESTIMATED_LABEL);
+    expect(figure.note).toBe(
+      "The one deliverable still open has no estimate on it.",
+    );
+  });
+
+  it("counts the open lines when several of them are unsized", () => {
+    const lines = [line(480, "done"), line(0), line(0)];
+    expect(remainingFigure(summary(lines)).note).toBe(
+      "None of the 2 deliverables still open has an estimate on it.",
+    );
+  });
+
+  it("says nothing is agreed for a project with no scope list", () => {
+    expect(remainingFigure(summary([]))).toEqual({
+      label: "Still to do",
+      value: "Nothing agreed",
+      note: null,
+    });
   });
 
   it("counts an unsized line as nothing left to do, not as unknown", () => {
