@@ -6,6 +6,8 @@ import { summariseScope, type ScopeLine } from "@/lib/scope";
 
 import {
   deliveredFigure,
+  REMAINING_INCLUDES_STARTED,
+  remainingFigure,
   describeDelivered,
   estimatedFigure,
   deliverablesPhrase,
@@ -261,5 +263,41 @@ describe("deliveredFigure", () => {
   it("leaves a started line out of the figure", () => {
     const lines = [line(60, "started"), line(30, "done")];
     expect(deliveredFigure(summary(lines)).value).toBe("30m");
+  });
+});
+
+describe("remainingFigure", () => {
+  it("totals the estimates of everything not marked done", () => {
+    const lines = [line(60, "done"), line(30), line(90)];
+    expect(remainingFigure(summary(lines))).toEqual({
+      label: "Still to do",
+      value: "2h",
+      note: REMAINING_INCLUDES_STARTED,
+    });
+  });
+
+  it("keeps the whole estimate of a line that is in progress", () => {
+    const lines = [line(120, "started"), line(60, "done")];
+    expect(remainingFigure(summary(lines)).value).toBe("2h");
+  });
+
+  it("says nothing is left on a finished list, and drops the caveat", () => {
+    const lines = [line(60, "done"), line(30, "done")];
+    expect(remainingFigure(summary(lines))).toEqual({
+      label: "Still to do",
+      value: "Nothing left",
+      note: null,
+    });
+  });
+
+  it("says not estimated when the list was never sized", () => {
+    const figure = remainingFigure(summary([line(0), line(0, "done")]));
+    expect(figure.value).toBe(UNESTIMATED_LABEL);
+    expect(figure.note).toBeNull();
+  });
+
+  it("counts an unsized line as nothing left to do, not as unknown", () => {
+    const lines = [line(60), line(0)];
+    expect(remainingFigure(summary(lines)).value).toBe("1h");
   });
 });
