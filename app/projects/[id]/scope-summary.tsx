@@ -25,6 +25,18 @@ import { SummaryFigure } from "./summary-figure";
  * maps one over the other.
  */
 export function ScopeSummaryPanel({ summary }: { summary: ScopeSummary }) {
+  /*
+    A project with no deliverables has nothing to summarise, and four rows of
+    "Not estimated" above an empty state that has just explained why the list
+    matters would answer a question nobody asked. The empty state is the whole
+    content of the tab until there is a first line.
+
+    Decided here rather than by the caller so that every page which grows a
+    scope summary later makes the same call — the condition is a fact about the
+    summary, not about this tab.
+  */
+  if (summary.lineCount === 0) return null;
+
   const problem = describeEstimateProblem(summary);
 
   return (
