@@ -240,3 +240,39 @@ export function deliveredFigure(summary: ScopeSummary): ScopeFigure {
     note: describeDelivered(summary),
   };
 }
+
+/**
+ * Why the still-to-do figure is bigger than a reader who has started things
+ * expects.
+ *
+ * The rule it describes is `isDelivered`'s: a deliverable in progress is not
+ * partly delivered, so its whole estimate stays here until somebody marks it
+ * done. Said once, plainly, because the alternative is a reader deciding the
+ * figure is broken — and the rule is deliberate. Half credit for a started
+ * line would make the work left shrink every time somebody pressed Start,
+ * which is the one direction this figure must never move on its own.
+ */
+export const REMAINING_INCLUDES_STARTED =
+  "Everything not marked done, which includes anything in progress — a started deliverable keeps its whole estimate here until it is handed over.";
+
+/**
+ * What the list says is left, as a line of the panel.
+ *
+ * "Still to do" rather than "Remaining", which is the word a burn-down chart
+ * uses and would invite the reading that this figure knows about time logged.
+ * It does not: this is the estimate of the lines nobody has ticked, and it
+ * moves when a status changes rather than when the clock runs.
+ *
+ * The caveat is dropped on a finished list, where "Nothing left" has already
+ * said it, and on an unsized one, where the estimated-work line above has
+ * explained why no figure in the panel means much.
+ */
+export function remainingFigure(summary: ScopeSummary): ScopeFigure {
+  const showsAFigure =
+    isEstimated(summary.estimatedMinutes) && summary.remainingMinutes !== 0;
+  return {
+    label: "Still to do",
+    value: partOfEstimate(summary, summary.remainingMinutes, "Nothing left"),
+    note: showsAFigure ? REMAINING_INCLUDES_STARTED : null,
+  };
+}
