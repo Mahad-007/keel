@@ -6,6 +6,7 @@ import { summariseScope, type ScopeLine } from "@/lib/scope";
 
 import {
   deliveredFigure,
+  describeImpliedRate,
   REMAINING_INCLUDES_STARTED,
   remainingFigure,
   describeDelivered,
@@ -299,5 +300,31 @@ describe("remainingFigure", () => {
   it("counts an unsized line as nothing left to do, not as unknown", () => {
     const lines = [line(60), line(0)];
     expect(remainingFigure(summary(lines)).value).toBe("1h");
+  });
+});
+
+describe("describeImpliedRate", () => {
+  it("writes the division out, contract value over hours estimated", () => {
+    const text = describeImpliedRate(summary([line(2400)], 500000));
+    expect(text).toBe(
+      "$5,000.00 over 40 hours estimated. It moves whenever an estimate does, so it is a figure to read rather than a rate to bill at.",
+    );
+  });
+
+  it("quotes the hours the estimate actually came to", () => {
+    const text = describeImpliedRate(summary([line(90)], 20000));
+    expect(text.startsWith("$200.00 over 1.5 hours estimated.")).toBe(true);
+  });
+
+  it("says there are no hours to divide by when nothing is estimated", () => {
+    expect(describeImpliedRate(summary([line(0), line(0)], 500000))).toBe(
+      "Nothing on the list is estimated, so there are no hours to divide the contract value by.",
+    );
+  });
+
+  it("says the same for a project with no scope list at all", () => {
+    expect(describeImpliedRate(summary([], 500000))).toBe(
+      "Nothing on the list is estimated, so there are no hours to divide the contract value by.",
+    );
   });
 });
