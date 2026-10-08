@@ -89,9 +89,15 @@ export function deliverablesPhrase(count: number): string {
  * says the rounding's answer rather than the truth, and the reader would
  * conclude the done line was a mistake — a half-day handed over against a
  * three-month estimate really is less than one percent of it.
+ *
+ * A share short of the whole that rounds up to it is written as "more than
+ * 99%", which is the same rule at the other end and the more consequential
+ * one: "100% of the estimated work" says the project is finished, and the
+ * reader stops looking for the deliverable that is still open.
  */
 export function formatSharePercent(share: number): string {
   const percent = Math.round(share * 100);
   if (percent === 0 && share > 0) return "less than 1%";
+  if (percent === 100 && share < 1) return "more than 99%";
   return `${percent}%`;
 }
