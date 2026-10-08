@@ -203,6 +203,26 @@ describe("describeDelivered", () => {
     );
   });
 
+  it("says a finished list is finished rather than counting it out", () => {
+    const lines = [line(60, "done"), line(30, "done")];
+    expect(describeDelivered(summary(lines))).toBe(
+      "All 2 deliverables are marked done.",
+    );
+  });
+
+  it("names the single line of a one-line list that is done", () => {
+    expect(describeDelivered(summary([line(60, "done")]))).toBe(
+      "The one deliverable on the list is marked done.",
+    );
+  });
+
+  it("says a finished list is finished even where nothing was sized", () => {
+    const lines = [line(0, "done"), line(0, "done")];
+    expect(describeDelivered(summary(lines))).toBe(
+      "All 2 deliverables are marked done.",
+    );
+  });
+
   it("says there is nothing agreed for an empty scope list", () => {
     expect(describeDelivered(summary([]))).toBe("Nothing has been agreed yet.");
   });
