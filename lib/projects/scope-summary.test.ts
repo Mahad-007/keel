@@ -264,6 +264,15 @@ describe("deliveredFigure", () => {
     );
   });
 
+  it("says not estimated when the done line is the unsized one", () => {
+    const lines = [line(0, "done"), line(480)];
+    const figure = deliveredFigure(summary(lines));
+    expect(figure.value).toBe(UNESTIMATED_LABEL);
+    expect(figure.note).toBe(
+      "1 of 2 deliverables marked done, 0% of the estimated work.",
+    );
+  });
+
   it("leaves a started line out of the figure", () => {
     const lines = [line(60, "started"), line(30, "done")];
     expect(deliveredFigure(summary(lines)).value).toBe("30m");
