@@ -352,7 +352,7 @@ function describeRemaining(summary: ScopeSummary): string | null {
   if (summary.remainingMinutes === 0) {
     return open === 1
       ? "The one deliverable still open has no estimate on it."
-      : `None of the ${open} deliverables still open has an estimate on it.`;
+      : `None of the ${deliverablesPhrase(open)} still open has an estimate on it.`;
   }
   return REMAINING_INCLUDES_STARTED;
 }
@@ -517,10 +517,11 @@ export function scopeSummaryFigures(summary: ScopeSummary): ScopeFigure[] {
  * project.
  */
 export function describeEstimateProblem(summary: ScopeSummary): string | null {
+  if (!hasNegativeLine(summary)) return null;
   const bad = summary.negativeEstimateCount;
-  if (bad === 0) return null;
-  const lines = bad === 1 ? "One deliverable has" : `${bad} deliverables have`;
-  return `${lines} a negative estimate, so the figures here do not add up the way they should. The form will not accept one, so the line was written straight to the database — it shows a negative figure in the list below.`;
+  const subject =
+    bad === 1 ? "One deliverable has" : `${deliverablesPhrase(bad)} have`;
+  return `${subject} a negative estimate, so the figures here do not add up the way they should. The form will not accept one, so the line was written straight to the database — it shows a negative figure in the list below.`;
 }
 
 /**
