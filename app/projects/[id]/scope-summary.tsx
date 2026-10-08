@@ -1,5 +1,8 @@
 import type { ScopeSummary } from "@/lib/scope";
-import { scopeSummaryFigures } from "@/lib/projects/scope-summary";
+import {
+  SCOPE_FROM_ESTIMATES,
+  scopeSummaryFigures,
+} from "@/lib/projects/scope-summary";
 
 import { SummaryFigure } from "./summary-figure";
 
@@ -31,6 +34,14 @@ export function ScopeSummaryPanel({ summary }: { summary: ScopeSummary }) {
           <SummaryFigure key={figure.label} {...figure} />
         ))}
       </dl>
+      {/*
+        Under the figures rather than over them: a reader who has come for the
+        implied rate should reach it without a paragraph in the way, and the
+        caveat is what they need on the way back out.
+      */}
+      <p className="mt-3 max-w-prose text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+        {SCOPE_FROM_ESTIMATES}
+      </p>
     </section>
   );
 }
