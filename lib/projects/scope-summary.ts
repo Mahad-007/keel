@@ -195,3 +195,29 @@ export function describeDelivered(summary: ScopeSummary): string {
   }
   return `${counted}, ${formatSharePercent(deliveredShare)} of the estimated work.`;
 }
+
+/**
+ * What has been handed over, as a line of the panel.
+ *
+ * The figure is the estimate of the delivered lines, not what delivering them
+ * cost — nothing in Keel knows that yet, and the two differing is the subject
+ * of a later phase. So the label says "Delivered" and the sentence under it
+ * counts deliverables, which keeps the figure attached to the list it came
+ * from.
+ *
+ * Three readings of a zero, and they are not the same thing. An unsized list
+ * has nothing to report either way. A sized list with nothing handed over has
+ * a real answer, and "None yet" is it — `0m` would be a duration where the
+ * truth is an absence.
+ */
+export function deliveredFigure(summary: ScopeSummary): ScopeFigure {
+  return {
+    label: "Delivered",
+    value: !isEstimated(summary.estimatedMinutes)
+      ? UNESTIMATED_LABEL
+      : summary.deliveredMinutes === 0
+        ? "None yet"
+        : formatMinutes(summary.deliveredMinutes),
+    note: describeDelivered(summary),
+  };
+}
