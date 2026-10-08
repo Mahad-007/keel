@@ -203,6 +203,20 @@ describe("describeDelivered", () => {
     );
   });
 
+  it("will not say all the work is done while a line is still open", () => {
+    const lines = [line(480, "done"), line(0)];
+    expect(describeDelivered(summary(lines))).toBe(
+      "1 of 2 deliverables marked done, which is all of the estimated work — what is still open has no estimate on it.",
+    );
+  });
+
+  it("keeps an impossible share as the oddity it is", () => {
+    const lines = [line(600, "done"), line(-60)];
+    expect(describeDelivered(summary(lines))).toBe(
+      "1 of 2 deliverables marked done, 111% of the estimated work.",
+    );
+  });
+
   it("says there is no share to take when nothing is estimated", () => {
     const lines = [line(0, "done"), line(0)];
     expect(describeDelivered(summary(lines))).toBe(
