@@ -38,3 +38,20 @@ export type ScopeFigure = {
   /** How to read it, where the figure alone would mislead. */
   note: string | null;
 };
+
+/**
+ * An hours figure as it reads inside a sentence.
+ *
+ * Hours rather than `1h 30m` here, because this is the unit the estimate was
+ * agreed in: the working behind the implied rate is "five thousand dollars
+ * over forty hours", which is the sentence somebody said out loud when the
+ * project was quoted. `formatMinutes` is for the figures in the column, where
+ * an exact duration is what a reader wants to compare.
+ *
+ * The number arrives already rounded to the hundredth by `estimatedHours`, so
+ * nothing is rounded again here — rounding a figure twice is how a panel ends
+ * up disagreeing with itself.
+ */
+export function hoursPhrase(hours: number): string {
+  return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+}
