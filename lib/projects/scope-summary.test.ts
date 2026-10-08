@@ -61,6 +61,11 @@ describe("formatSharePercent", () => {
     expect(formatSharePercent(1)).toBe("100%");
   });
 
+  it("says less than a percent rather than rounding a delivery away", () => {
+    expect(formatSharePercent(0.004)).toBe("less than 1%");
+    expect(formatSharePercent(0.0001)).toBe("less than 1%");
+  });
+
   it("does not clamp a share a bad estimate pushed over one", () => {
     expect(formatSharePercent(1.5)).toBe("150%");
   });
