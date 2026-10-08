@@ -400,3 +400,19 @@ export function describeEstimateProblem(summary: ScopeSummary): string | null {
   if (!negative) return null;
   return "At least one deliverable has a negative estimate, so these figures do not add up to each other. The form will not accept one, so the line was written straight to the database — it shows a negative figure in the list below.";
 }
+
+/**
+ * What the whole panel is and is not, said once underneath it.
+ *
+ * Every figure in it comes off the estimates on the scope list. None of it
+ * knows how long the work has actually taken, because nothing in Keel records
+ * that yet — and a panel of hours against a contract value looks exactly like
+ * a panel that does. A reader who takes "Still to do: 28h" for a measurement
+ * is being misled by a figure that is only ever a restatement of what was
+ * agreed.
+ *
+ * One sentence under the figures rather than a caveat on each: the rows carry
+ * the caveats that are specific to them, and this one is true of all four.
+ */
+export const SCOPE_FROM_ESTIMATES =
+  "These are the estimates on the list, not time spent — a line counts as delivered when somebody marks it done, not when the hours run out.";
