@@ -174,6 +174,16 @@ export function estimatedFigure(summary: ScopeSummary): ScopeFigure {
  * "5 of 5 deliverables marked done, 100% of the estimated work" is the same
  * news with two sums to check first.
  *
+ * The whole estimate delivered with lines still open is the one share that
+ * must not be printed as a percentage. "100% of the estimated work" beside a
+ * count of three out of four says the project is finished and the reader stops
+ * looking for the fourth line — when what has actually happened is that the
+ * fourth line has no estimate on it, which is the thing worth saying.
+ *
+ * A share above one keeps its percentage, oddity and all. That only happens
+ * with a negative estimate on the list, and the panel flags the row rather
+ * than trying to narrate it.
+ *
  * With nothing to take a share of, the sentence says so rather than quoting a
  * percentage of zero. That covers an unsized list and the stranger case of
  * estimates that cancel each other out, both of which `deliveredShare`
@@ -193,6 +203,9 @@ export function describeDelivered(summary: ScopeSummary): string {
   const counted = `${delivered} of ${deliverablesPhrase(lineCount)} marked done`;
   if (deliveredShare === null) {
     return `${counted}, though the estimates do not total to anything a share can be taken of.`;
+  }
+  if (deliveredShare === 1) {
+    return `${counted}, which is all of the estimated work — what is still open has no estimate on it.`;
   }
   return `${counted}, ${formatSharePercent(deliveredShare)} of the estimated work.`;
 }
