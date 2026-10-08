@@ -67,7 +67,8 @@ export default async function ProjectPage({
 
   // Same rule for the scope list: the tab that shows it is the only one that
   // reads it.
-  const deliverables = tab === "scope" ? await listDeliverables(project.id) : [];
+  const deliverables =
+    tab === "scope" ? await listDeliverables(project.id) : [];
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 font-sans">
@@ -91,7 +92,11 @@ export default async function ProjectPage({
         {tab === "overview" ? (
           <OverviewPanel project={project} statusEvents={statusEvents} />
         ) : tab === "scope" ? (
-          <ScopePanel projectId={project.id} deliverables={deliverables} />
+          <ScopePanel
+            projectId={project.id}
+            deliverables={deliverables}
+            contractValueCents={project.contractValueCents}
+          />
         ) : (
           <UnbuiltTabPanel tab={tab} />
         )}

@@ -1,4 +1,5 @@
 import type { Deliverable } from "@/lib/db/schema";
+import { summariseScope } from "@/lib/scope";
 import {
   INITIAL_ADD_DELIVERABLE_STATE,
   type AddDeliverableState,
@@ -9,21 +10,35 @@ import { writeNewDeliverable } from "./scope-writes";
 import { AddDeliverableForm } from "./add-deliverable-form";
 import { DeliverableList } from "./deliverable-list";
 import { NoDeliverables } from "./scope-empty";
+import { ScopeSummaryPanel } from "./scope-summary";
 
 /**
- * The scope tab: what was agreed, and the line where the next one is written.
+ * The scope tab: what it adds up to, what was agreed, and the line where the
+ * next one is written.
  *
  * The list is above the form rather than beside it, which is the order the
  * work happens in — you read what is already down, then add what is missing.
  * The form stays on the page whether or not there is a list, so an empty
  * project is one keystroke from not being empty.
+ *
+ * The summary goes first, because it is what a reader who already knows the
+ * list comes back for. It is worked out here, from this one read of the
+ * deliverables and the contract value the page was served with, so every
+ * figure in it is consistent with the list underneath it by construction.
  */
 export function ScopePanel({
   projectId,
   deliverables,
+  contractValueCents,
 }: {
   projectId: string;
   deliverables: readonly Deliverable[];
+  /**
+   * What the project was agreed for. The other half of the comparison the
+   * summary exists to make, and it lives on the project rather than on any of
+   * these rows.
+   */
+  contractValueCents: number;
 }) {
   /*
     The first line of a scope list is a different act from the fifth: one is
@@ -49,8 +64,11 @@ export function ScopePanel({
     return writeNewDeliverable(projectId, previous, formData);
   }
 
+  const summary = summariseScope(deliverables, contractValueCents);
+
   return (
     <>
+      <ScopeSummaryPanel summary={summary} />
       {empty ? (
         <NoDeliverables />
       ) : (
