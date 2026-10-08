@@ -349,3 +349,26 @@ export function impliedRateFigure(summary: ScopeSummary): ScopeFigure {
     note: describeImpliedRate(summary),
   };
 }
+
+/**
+ * The whole summary, in the order it is read.
+ *
+ * The estimate first, because every figure under it is a part or a quotient of
+ * it and none of them means anything until a reader knows what the list adds
+ * up to. Then what is done and what is left, which are the two halves of that
+ * total and are put next to each other so they can be seen to add up. The rate
+ * last, because it is the conclusion: the one figure that is about the deal
+ * rather than about the work.
+ *
+ * One array rather than four calls from the panel, so the order is a decision
+ * made once, in the place that explains it, and a figure added later cannot
+ * land in a different position on a different screen.
+ */
+export function scopeSummaryFigures(summary: ScopeSummary): ScopeFigure[] {
+  return [
+    estimatedFigure(summary),
+    deliveredFigure(summary),
+    remainingFigure(summary),
+    impliedRateFigure(summary),
+  ];
+}
