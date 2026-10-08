@@ -477,8 +477,19 @@ describe("describeEstimateProblem", () => {
 
   it("flags a list whose estimates total below zero", () => {
     const text = describeEstimateProblem(summary([line(-60)]));
-    expect(text).toContain("negative estimate");
+    expect(text).toContain("One deliverable has a negative estimate");
     expect(text).toContain("list below");
+  });
+
+  it("counts the bad lines when there is more than one", () => {
+    const text = describeEstimateProblem(summary([line(-60), line(-30)]));
+    expect(text).toContain("2 deliverables have a negative estimate");
+  });
+
+  it("flags a cancelling pair the totals say nothing about", () => {
+    const lines = [line(120), line(-120)];
+    expect(summary(lines).estimatedMinutes).toBe(0);
+    expect(describeEstimateProblem(summary(lines))).not.toBeNull();
   });
 
   it("flags a negative line even where the total stays positive", () => {
