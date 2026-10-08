@@ -198,29 +198,6 @@ export function describeDelivered(summary: ScopeSummary): string {
 }
 
 /**
- * A part of the estimate as a figure, or the words for why there is no figure.
- *
- * Any part of an unsized estimate has to read as unsized rather than as zero:
- * a list nobody has put hours against has not delivered no time and does not
- * have no time left, it has nothing to say either way. One helper, so the
- * parts of the panel that report a piece of the total cannot answer that
- * differently from each other.
- *
- * The absence a sized list genuinely has is the caller's word, because the two
- * are not the same absence — nothing handed over yet is not nothing left to
- * do.
- */
-function partOfEstimate(
-  summary: ScopeSummary,
-  minutes: number,
-  none: string,
-): string {
-  if (!isEstimated(summary.estimatedMinutes)) return UNESTIMATED_LABEL;
-  if (minutes === 0) return none;
-  return formatMinutes(minutes);
-}
-
-/**
  * What has been handed over, as a line of the panel.
  *
  * The figure is the estimate of the delivered lines, not what delivering them
@@ -228,18 +205,33 @@ function partOfEstimate(
  * of a later phase. So the label says "Delivered" and the sentence under it
  * counts deliverables, which keeps the figure attached to the list it came
  * from.
- *
- * Three readings of a zero, and they are not the same thing. An unsized list
- * has nothing to report either way. A sized list with nothing handed over has
- * a real answer, and "None yet" is it — `0m` would be a duration where the
- * truth is an absence.
  */
 export function deliveredFigure(summary: ScopeSummary): ScopeFigure {
   return {
     label: "Delivered",
-    value: partOfEstimate(summary, summary.deliveredMinutes, "None yet"),
+    value: deliveredValue(summary),
     note: describeDelivered(summary),
   };
+}
+
+/**
+ * Three readings of nought minutes delivered, and they are not the same
+ * thing.
+ *
+ * Nothing marked done is a real answer and "None yet" is it — `0m` would be a
+ * duration where the truth is an absence. A line marked done that nobody
+ * sized is a different answer again: something was handed over, and the panel
+ * cannot say how much of the work it was.
+ *
+ * Decided by the count before the minutes, the way the still-to-do figure is,
+ * so the two rows cannot describe the same list differently — one of them
+ * claiming nothing has been delivered while the other counts the line that
+ * was.
+ */
+function deliveredValue(summary: ScopeSummary): string {
+  if (summary.deliveredCount === 0) return "None yet";
+  if (summary.deliveredMinutes === 0) return UNESTIMATED_LABEL;
+  return formatMinutes(summary.deliveredMinutes);
 }
 
 /**
