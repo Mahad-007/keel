@@ -55,3 +55,19 @@ export type ScopeFigure = {
 export function hoursPhrase(hours: number): string {
   return `${hours} ${hours === 1 ? "hour" : "hours"}`;
 }
+
+/**
+ * A count of scope lines with the word for them attached.
+ *
+ * The noun agrees with the count it is attached to, which is what makes "1 of
+ * 1 deliverable" read as English — the summary's sentences are mostly a count
+ * of part of the list against the whole of it, and the whole is what the noun
+ * belongs to.
+ *
+ * "Deliverable" rather than "line" or "item", because that is the word the
+ * form, the list and the empty state all use. A summary that renamed them
+ * would read as being about something else on the page.
+ */
+export function deliverablesPhrase(count: number): string {
+  return `${count} ${count === 1 ? "deliverable" : "deliverables"}`;
+}
