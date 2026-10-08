@@ -5,6 +5,7 @@ import type { DeliverableStatus } from "@/lib/deliverables/status";
 import { summariseScope, type ScopeLine } from "@/lib/scope";
 
 import {
+  describeDelivered,
   estimatedFigure,
   deliverablesPhrase,
   describeUnestimated,
@@ -171,5 +172,45 @@ describe("estimatedFigure", () => {
 
   it("shows a total driven below zero rather than hiding it", () => {
     expect(estimatedFigure(summary([line(-60)])).value).toBe("-1h");
+  });
+});
+
+describe("describeDelivered", () => {
+  it("counts the done lines and weights them by estimate", () => {
+    const lines = [line(60, "done"), line(60), line(120)];
+    expect(describeDelivered(summary(lines))).toBe(
+      "1 of 3 deliverables marked done, 25% of the estimated work.",
+    );
+  });
+
+  it("says nothing is done yet rather than quoting a nought percent", () => {
+    expect(describeDelivered(summary([line(60), line(30)]))).toBe(
+      "None of 2 deliverables is marked done yet.",
+    );
+  });
+
+  it("counts a share that disagrees with the count, which is the point", () => {
+    const lines = [line(60, "done"), line(60, "done"), line(600)];
+    expect(describeDelivered(summary(lines))).toBe(
+      "2 of 3 deliverables marked done, 17% of the estimated work.",
+    );
+  });
+
+  it("says there is no share to take when nothing is estimated", () => {
+    const lines = [line(0, "done"), line(0)];
+    expect(describeDelivered(summary(lines))).toBe(
+      "1 of 2 deliverables marked done, though the estimates do not total to anything a share can be taken of.",
+    );
+  });
+
+  it("says there is nothing agreed for an empty scope list", () => {
+    expect(describeDelivered(summary([]))).toBe("Nothing has been agreed yet.");
+  });
+
+  it("counts a line in progress as not delivered", () => {
+    const lines = [line(60, "started"), line(60, "done")];
+    expect(describeDelivered(summary(lines))).toBe(
+      "1 of 2 deliverables marked done, 50% of the estimated work.",
+    );
   });
 });
