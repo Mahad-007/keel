@@ -6,7 +6,7 @@ import {
   listDeliverables,
   setDeliverableStatus,
 } from "@/lib/data/deliverables";
-import { createProject, getProject } from "@/lib/data/projects";
+import { createProject, getProject, updateProject } from "@/lib/data/projects";
 import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 import { summariseScope } from "@/lib/scope";
@@ -150,5 +150,42 @@ describe("the panel as the work goes on", () => {
       value: "Nothing left",
       note: null,
     });
+  });
+});
+
+describe("the panel when something has not been filled in", () => {
+  it("caveats the total as soon as one line goes in unsized", async () => {
+    await createDeliverable(
+      { projectId, title: "Discovery", estimatedMinutes: 480 },
+      db,
+    );
+    await createDeliverable({ projectId, title: "Support, maybe" }, db);
+
+    const all = await figures();
+    expect(figure(all, "Estimated work")).toEqual({
+      label: "Estimated work",
+      value: "8h",
+      note: "1 of 2 deliverables has no estimate, so this total does not cover the whole list.",
+    });
+  });
+
+  it("says the price is missing when the project has no value on it", async () => {
+    await updateProject(projectId, { contractValueCents: 0 }, db);
+    await createDeliverable(
+      { projectId, title: "Discovery", estimatedMinutes: 480 },
+      db,
+    );
+
+    const rate = figure(await figures(), "Implied hourly rate");
+    expect(rate.value).toBe("No rate yet");
+    expect(rate.note).toBe(
+      "No contract value is set on this project, so there is no rate to work out — the estimate is here, the price is not.",
+    );
+  });
+
+  it("has no figures to show for a project with no scope list", async () => {
+    const all = await figures();
+    expect(figure(all, "Estimated work").value).toBe("Not estimated");
+    expect(figure(all, "Delivered").note).toBe("Nothing has been agreed yet.");
   });
 });
