@@ -295,6 +295,14 @@ export function remainingFigure(summary: ScopeSummary): ScopeFigure {
  * find — and only the database can produce it, so saying so plainly saves the
  * hunt.
  *
+ * A contract value of zero is treated as one nobody has filled in, which is
+ * what the rest of the app takes it for — the column defaults to zero and the
+ * header renders it as "Not set". The arithmetic disagrees, and quite
+ * reasonably: `impliedRateCents` reports a rate of zero, because a project
+ * agreed at no charge really does pay nothing an hour. But a panel cannot tell
+ * those two apart from the column alone, and "$0.00/hr" against an unfilled
+ * field reads as a discovery rather than as a blank.
+ *
  * It also says what the figure is for. A rate that moves whenever somebody
  * edits an estimate is not a rate to bill at; it is the sentence "you agreed
  * to work for this much an hour", which is worth reading and not worth
@@ -306,6 +314,9 @@ export function describeImpliedRate(summary: ScopeSummary): string {
       return "The estimates on this list total below zero, so there is no rate to work out. One of the lines has a negative number of hours on it.";
     }
     return "Nothing on the list is estimated, so there are no hours to divide the contract value by.";
+  }
+  if (summary.contractValueCents === 0) {
+    return "No contract value is set on this project, so there is no rate to work out — the estimate is here, the price is not.";
   }
   return `${formatCents(summary.contractValueCents)} over ${hoursPhrase(summary.estimatedHours)} estimated. It moves whenever an estimate does, so it is a figure to read rather than a rate to bill at.`;
 }
