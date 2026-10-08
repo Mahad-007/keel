@@ -513,3 +513,29 @@ describe("describeEstimateProblem", () => {
     expect(describeEstimateProblem(summary([]))).toBeNull();
   });
 });
+
+describe("the figures on a list with a negative estimate", () => {
+  /** Two lines that cancel each other out, as only a hand-edited row can. */
+  const CANCELLING = [line(120), line(-120)];
+
+  it("totals the estimate as the arithmetic rather than as unsized", () => {
+    expect(estimatedFigure(summary(CANCELLING)).value).toBe("0m");
+  });
+
+  it("does not claim the open lines have no estimate on them", () => {
+    expect(remainingFigure(summary(CANCELLING))).toEqual({
+      label: "Still to do",
+      value: "0m",
+      note: null,
+    });
+  });
+
+  it("shows a negative figure still to do rather than reading it", () => {
+    const lines = [line(600, "done"), line(-120)];
+    expect(remainingFigure(summary(lines)).value).toBe("-2h");
+  });
+
+  it("flags the list, which is where the explanation lives", () => {
+    expect(describeEstimateProblem(summary(CANCELLING))).not.toBeNull();
+  });
+});
