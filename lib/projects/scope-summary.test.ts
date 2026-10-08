@@ -6,6 +6,7 @@ import { summariseScope, type ScopeLine } from "@/lib/scope";
 
 import {
   deliveredFigure,
+  scopeSummaryFigures,
   impliedRateFigure,
   describeImpliedRate,
   REMAINING_INCLUDES_STARTED,
@@ -379,5 +380,42 @@ describe("impliedRateFigure", () => {
     expect(impliedRateFigure(summary([line(7)], 10000)).value).toBe(
       "$857.14/hr",
     );
+  });
+});
+
+describe("scopeSummaryFigures", () => {
+  it("reads the estimate, then the two halves of it, then the rate", () => {
+    const lines = [line(2400, "done"), line(2400)];
+    expect(
+      scopeSummaryFigures(summary(lines, 1000000)).map((f) => f.label),
+    ).toEqual([
+      "Estimated work",
+      "Delivered",
+      "Still to do",
+      "Implied hourly rate",
+    ]);
+  });
+
+  it("shows the delivered and still-to-do figures adding up to the total", () => {
+    const lines = [line(60, "done"), line(90)];
+    const [estimated, delivered, remaining] = scopeSummaryFigures(
+      summary(lines, 100000),
+    );
+    expect(estimated.value).toBe("2h 30m");
+    expect(delivered.value).toBe("1h");
+    expect(remaining.value).toBe("1h 30m");
+  });
+
+  it("keeps all four rows on a project with nothing filled in", () => {
+    const figures = scopeSummaryFigures(summary([line(0)], 0));
+    expect(figures).toHaveLength(4);
+    expect(figures.every((figure) => figure.value !== "")).toBe(true);
+  });
+
+  it("labels every row distinctly", () => {
+    const labels = scopeSummaryFigures(summary([line(60)], 100000)).map(
+      (figure) => figure.label,
+    );
+    expect(new Set(labels).size).toBe(labels.length);
   });
 });
