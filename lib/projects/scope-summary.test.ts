@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   deliverablesPhrase,
+  describeUnestimated,
   formatSharePercent,
   hoursPhrase,
 } from "./scope-summary";
@@ -81,5 +82,35 @@ describe("formatSharePercent", () => {
 
   it("does not clamp a share a bad estimate pushed below zero", () => {
     expect(formatSharePercent(-0.2)).toBe("-20%");
+  });
+});
+
+describe("describeUnestimated", () => {
+  it("says nothing when every line has been sized", () => {
+    expect(describeUnestimated(5, 0)).toBeNull();
+  });
+
+  it("counts the unsized lines and says what they do to the total", () => {
+    expect(describeUnestimated(5, 2)).toBe(
+      "2 of 5 deliverables have no estimate, so this total does not cover the whole list.",
+    );
+  });
+
+  it("agrees the verb with a single unsized line", () => {
+    expect(describeUnestimated(5, 1)).toBe(
+      "1 of 5 deliverables has no estimate, so this total does not cover the whole list.",
+    );
+  });
+
+  it("says there is nothing to total when no line is sized at all", () => {
+    expect(describeUnestimated(3, 3)).toBe(
+      "No line on the list has an estimate on it, so there is nothing to total.",
+    );
+  });
+
+  it("says the same of a one-line list nobody has sized", () => {
+    expect(describeUnestimated(1, 1)).toBe(
+      "No line on the list has an estimate on it, so there is nothing to total.",
+    );
   });
 });
