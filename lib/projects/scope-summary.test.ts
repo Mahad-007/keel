@@ -1,11 +1,36 @@
 import { describe, expect, it } from "vitest";
 
+import { UNESTIMATED_LABEL } from "@/lib/deliverables/list";
+import type { DeliverableStatus } from "@/lib/deliverables/status";
+import { summariseScope, type ScopeLine } from "@/lib/scope";
+
 import {
+  estimatedFigure,
   deliverablesPhrase,
   describeUnestimated,
   formatSharePercent,
   hoursPhrase,
 } from "./scope-summary";
+
+/**
+ * A scope line, as the summary reads one: an estimate in whole minutes and
+ * where the work stands.
+ */
+function line(
+  estimatedMinutes: number,
+  status: DeliverableStatus = "pending",
+): ScopeLine {
+  return { estimatedMinutes, status };
+}
+
+/**
+ * The figures are tested against summaries the real calculation produced, not
+ * against hand-written ones — a note that is right about a `ScopeSummary`
+ * nothing can generate is not right about anything.
+ */
+function summary(lines: readonly ScopeLine[], contractValueCents = 0) {
+  return summariseScope(lines, contractValueCents);
+}
 
 describe("hoursPhrase", () => {
   it("writes a whole figure with its unit", () => {
@@ -112,5 +137,39 @@ describe("describeUnestimated", () => {
     expect(describeUnestimated(1, 1)).toBe(
       "No line on the list has an estimate on it, so there is nothing to total.",
     );
+  });
+});
+
+describe("estimatedFigure", () => {
+  it("totals the list and labels it as an estimate", () => {
+    expect(estimatedFigure(summary([line(90), line(30)]))).toEqual({
+      label: "Estimated work",
+      value: "2h",
+      note: null,
+    });
+  });
+
+  it("writes an unsized list as not estimated rather than as no time", () => {
+    const figure = estimatedFigure(summary([line(0), line(0)]));
+    expect(figure.value).toBe(UNESTIMATED_LABEL);
+    expect(figure.note).toBe(
+      "No line on the list has an estimate on it, so there is nothing to total.",
+    );
+  });
+
+  it("carries the caveat when part of the list is unsized", () => {
+    const figure = estimatedFigure(summary([line(60), line(0), line(0)]));
+    expect(figure.value).toBe("1h");
+    expect(figure.note).toBe(
+      "2 of 3 deliverables have no estimate, so this total does not cover the whole list.",
+    );
+  });
+
+  it("shows the hours and minutes a mixed total comes to", () => {
+    expect(estimatedFigure(summary([line(90), line(45)])).value).toBe("2h 15m");
+  });
+
+  it("shows a total driven below zero rather than hiding it", () => {
+    expect(estimatedFigure(summary([line(-60)])).value).toBe("-1h");
   });
 });
