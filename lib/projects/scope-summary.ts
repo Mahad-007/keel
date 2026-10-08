@@ -1,5 +1,6 @@
 import { isEstimated, UNESTIMATED_LABEL } from "@/lib/deliverables/list";
 import { formatMinutes } from "@/lib/minutes";
+import { formatCents } from "@/lib/money";
 import type { ScopeSummary } from "@/lib/scope";
 
 /**
@@ -275,4 +276,26 @@ export function remainingFigure(summary: ScopeSummary): ScopeFigure {
     value: partOfEstimate(summary, summary.remainingMinutes, "Nothing left"),
     note: showsAFigure ? REMAINING_INCLUDES_STARTED : null,
   };
+}
+
+/**
+ * The working behind the implied rate, or why there is none.
+ *
+ * The rate is the one figure in the panel nobody typed in: it is the contract
+ * value divided by the estimate, and both of those are on screen elsewhere. So
+ * the note is the division written out — "$5,000.00 over 40 hours estimated" —
+ * because a derived number with no working beside it is a number a reader
+ * either trusts blindly or ignores, and this one is too consequential for
+ * either.
+ *
+ * It also says what the figure is for. A rate that moves whenever somebody
+ * edits an estimate is not a rate to bill at; it is the sentence "you agreed
+ * to work for this much an hour", which is worth reading and not worth
+ * quoting.
+ */
+export function describeImpliedRate(summary: ScopeSummary): string {
+  if (summary.impliedRateCents === null) {
+    return "Nothing on the list is estimated, so there are no hours to divide the contract value by.";
+  }
+  return `${formatCents(summary.contractValueCents)} over ${hoursPhrase(summary.estimatedHours)} estimated. It moves whenever an estimate does, so it is a figure to read rather than a rate to bill at.`;
 }
