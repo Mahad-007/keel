@@ -1,8 +1,4 @@
-import {
-  describeEstimate,
-  isEstimated,
-  UNESTIMATED_LABEL,
-} from "@/lib/deliverables/list";
+import { describeEstimate, UNESTIMATED_LABEL } from "@/lib/deliverables/list";
 import { formatMinutes } from "@/lib/minutes";
 import { formatCents } from "@/lib/money";
 import type { ScopeSummary } from "@/lib/scope";
@@ -167,12 +163,29 @@ function hasNegativeLine(summary: ScopeSummary): boolean {
 export function estimatedFigure(summary: ScopeSummary): ScopeFigure {
   return {
     label: "Estimated work",
-    value:
-      isEstimated(summary.estimatedMinutes) || hasNegativeLine(summary)
-        ? formatMinutes(summary.estimatedMinutes)
-        : UNESTIMATED_LABEL,
+    value: estimatedValue(summary),
     note: describeUnestimated(summary.lineCount, summary.unestimatedCount),
   };
+}
+
+/**
+ * Whether there is a total to show, asked of the lines rather than of the
+ * total.
+ *
+ * `isEstimated` is a question about one row — has anything been typed into its
+ * estimate column — and a sum of rows is not a row. Asking it of the total is
+ * what made this figure need a negative-line guard: two lines of minus two
+ * hours and plus two hours sum to zero, and a total of zero answered "no" to a
+ * question about rows that both had estimates on them.
+ *
+ * The count answers it directly. Every line unsized means there is nothing to
+ * total and the label says so; one line sized means there is a figure, whatever
+ * it comes to — including a zero that two lines cancelled out to, which is then
+ * printed as the arithmetic it is.
+ */
+function estimatedValue(summary: ScopeSummary): string {
+  if (summary.unestimatedCount >= summary.lineCount) return UNESTIMATED_LABEL;
+  return formatMinutes(summary.estimatedMinutes);
 }
 
 /**
