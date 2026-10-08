@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { hoursPhrase } from "./scope-summary";
+import { deliverablesPhrase, hoursPhrase } from "./scope-summary";
 
 describe("hoursPhrase", () => {
   it("writes a whole figure with its unit", () => {
@@ -22,5 +22,19 @@ describe("hoursPhrase", () => {
 
   it("writes no hours as a plural, the way nothing is spoken of", () => {
     expect(hoursPhrase(0)).toBe("0 hours");
+  });
+});
+
+describe("deliverablesPhrase", () => {
+  it("counts a list of several", () => {
+    expect(deliverablesPhrase(5)).toBe("5 deliverables");
+  });
+
+  it("counts a list of one in the singular", () => {
+    expect(deliverablesPhrase(1)).toBe("1 deliverable");
+  });
+
+  it("counts an empty list as a plural none", () => {
+    expect(deliverablesPhrase(0)).toBe("0 deliverables");
   });
 });
