@@ -6,6 +6,7 @@ import { summariseScope, type ScopeLine } from "@/lib/scope";
 
 import {
   deliveredFigure,
+  describeEstimateProblem,
   scopeSummaryFigures,
   impliedRateFigure,
   describeImpliedRate,
@@ -417,5 +418,33 @@ describe("scopeSummaryFigures", () => {
       (figure) => figure.label,
     );
     expect(new Set(labels).size).toBe(labels.length);
+  });
+});
+
+describe("describeEstimateProblem", () => {
+  it("says nothing about an ordinary scope list", () => {
+    const lines = [line(60, "done"), line(0), line(120, "started")];
+    expect(describeEstimateProblem(summary(lines, 100000))).toBeNull();
+  });
+
+  it("flags a list whose estimates total below zero", () => {
+    const text = describeEstimateProblem(summary([line(-60)]));
+    expect(text).toContain("negative estimate");
+    expect(text).toContain("list below");
+  });
+
+  it("flags a negative line even where the total stays positive", () => {
+    const lines = [line(600), line(-60, "done")];
+    expect(summary(lines).estimatedMinutes).toBe(540);
+    expect(describeEstimateProblem(summary(lines))).not.toBeNull();
+  });
+
+  it("flags a negative line that is still to do", () => {
+    const lines = [line(600, "done"), line(-60)];
+    expect(describeEstimateProblem(summary(lines))).not.toBeNull();
+  });
+
+  it("says nothing for an empty list, which has nothing wrong with it", () => {
+    expect(describeEstimateProblem(summary([]))).toBeNull();
   });
 });
