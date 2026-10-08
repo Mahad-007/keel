@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { deliverablesPhrase, hoursPhrase } from "./scope-summary";
+import {
+  deliverablesPhrase,
+  formatSharePercent,
+  hoursPhrase,
+} from "./scope-summary";
 
 describe("hoursPhrase", () => {
   it("writes a whole figure with its unit", () => {
@@ -36,5 +40,32 @@ describe("deliverablesPhrase", () => {
 
   it("counts an empty list as a plural none", () => {
     expect(deliverablesPhrase(0)).toBe("0 deliverables");
+  });
+});
+
+describe("formatSharePercent", () => {
+  it("writes a fraction as a whole percent", () => {
+    expect(formatSharePercent(0.25)).toBe("25%");
+  });
+
+  it("rounds to the nearest percent rather than cutting it off", () => {
+    expect(formatSharePercent(0.306)).toBe("31%");
+    expect(formatSharePercent(0.304)).toBe("30%");
+  });
+
+  it("writes nothing delivered as none of it", () => {
+    expect(formatSharePercent(0)).toBe("0%");
+  });
+
+  it("writes the whole estimate delivered as all of it", () => {
+    expect(formatSharePercent(1)).toBe("100%");
+  });
+
+  it("does not clamp a share a bad estimate pushed over one", () => {
+    expect(formatSharePercent(1.5)).toBe("150%");
+  });
+
+  it("does not clamp a share a bad estimate pushed below zero", () => {
+    expect(formatSharePercent(-0.2)).toBe("-20%");
   });
 });
