@@ -372,3 +372,31 @@ export function scopeSummaryFigures(summary: ScopeSummary): ScopeFigure[] {
     impliedRateFigure(summary),
   ];
 }
+
+/**
+ * Why the figures above do not add up, when they do not.
+ *
+ * A negative estimate is the one input that breaks the panel's arithmetic: the
+ * delivered and still-to-do figures stop being parts of the total, a share can
+ * land outside nought to one, and the implied rate disappears or inverts. The
+ * calculation deliberately does not repair any of that — a total that quietly
+ * fixed its inputs would disagree with the list the reader is looking at — so
+ * the panel has to say what happened instead.
+ *
+ * The form refuses a negative estimate, so a row holding one was written
+ * directly to the database. Saying so is the useful half: a reader who knows
+ * the figures are off wants to know which line to look at, and the list below
+ * the panel shows the negative figure on the line that holds it.
+ *
+ * Null the rest of the time, which is almost always. This is a sentence that
+ * appears when something is genuinely wrong, not a disclaimer under every
+ * project.
+ */
+export function describeEstimateProblem(summary: ScopeSummary): string | null {
+  const negative =
+    summary.estimatedMinutes < 0 ||
+    summary.deliveredMinutes < 0 ||
+    summary.remainingMinutes < 0;
+  if (!negative) return null;
+  return "At least one deliverable has a negative estimate, so these figures do not add up to each other. The form will not accept one, so the line was written straight to the database — it shows a negative figure in the list below.";
+}
