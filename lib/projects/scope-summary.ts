@@ -332,6 +332,11 @@ function describeRemaining(summary: ScopeSummary): string | null {
  * either trusts blindly or ignores, and this one is too consequential for
  * either.
  *
+ * Estimates that cancel out to nothing get their own sentence too, for the
+ * same reason the other way round: the list is sized, so telling the reader
+ * that nothing on it is estimated would send them to fill in fields that are
+ * already full.
+ *
  * A total below zero gets its own sentence rather than being folded in with a
  * missing estimate, because the two want different things done about them. A
  * list nobody has sized needs estimating; a list totalling below zero has a
@@ -356,6 +361,9 @@ export function describeImpliedRate(summary: ScopeSummary): string {
   if (summary.impliedRateCents === null) {
     if (summary.estimatedMinutes < 0) {
       return "The estimates on this list total below zero, so there is no rate to work out. One of the lines has a negative number of hours on it.";
+    }
+    if (summary.negativeEstimateCount > 0) {
+      return "The estimates on this list cancel out to no hours at all, so there is nothing to divide the contract value by. One of the lines has a negative estimate on it.";
     }
     return "Nothing on the list is estimated, so there are no hours to divide the contract value by.";
   }
