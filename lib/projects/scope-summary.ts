@@ -101,3 +101,28 @@ export function formatSharePercent(share: number): string {
   if (percent === 100 && share < 1) return "more than 99%";
   return `${percent}%`;
 }
+
+/**
+ * What the unsized lines do to the total, in words — or nothing at all when
+ * every line has an estimate on it.
+ *
+ * This is the caveat that decides how far to trust the rest of the panel, so
+ * it says the consequence rather than only the count: a total that does not
+ * cover the whole list is a different number from one that does, and a reader
+ * who is told four of ten are unsized still has to work out what follows.
+ *
+ * Taking the two counts rather than the whole summary, because that is what it
+ * reads and a caller with a count in each hand should not have to build a
+ * summary to ask.
+ */
+export function describeUnestimated(
+  lineCount: number,
+  unestimated: number,
+): string | null {
+  if (unestimated === 0) return null;
+  if (unestimated >= lineCount) {
+    return "No line on the list has an estimate on it, so there is nothing to total.";
+  }
+  const verb = unestimated === 1 ? "has" : "have";
+  return `${unestimated} of ${deliverablesPhrase(lineCount)} ${verb} no estimate, so this total does not cover the whole list.`;
+}
