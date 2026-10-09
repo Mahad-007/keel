@@ -30,7 +30,7 @@ as an atomic commit and what does not.
 - [x] **Day 014** — Deliverable edit and delete, with a confirmation flow that does not rely on `window.confirm`.
 - [x] **Day 015** — `lib/scope.ts`: estimated hours, implied effective rate, and remaining estimate from deliverables plus contract value. Pure functions, exhaustively tested including zero and negative cases.
 - [x] **Day 016** — Scope summary panel on the project page rendering the Day 015 numbers with plain-language labels.
-- [ ] **Day 017** — Deliverable templates: save a set of deliverables from a project, apply them to a new one. Table, data layer, and UI.
+- [x] **Day 017** — Deliverable templates: save a set of deliverables from a project, apply them to a new one. Table, data layer, and UI.
 - [ ] **Day 018** — Project duplication, carrying deliverables and rates but not time or invoices, with tests asserting exactly what is and is not copied.
 - [ ] **Day 019** — Bulk deliverable import from pasted text, one per line, with a preview step before committing.
 - [ ] **Day 020** — Scope diffing: snapshot a project's scope at a point in time and show what changed since. Table, comparison function, and UI.
