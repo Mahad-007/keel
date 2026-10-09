@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import type { Database } from "@/lib/db";
@@ -6,6 +7,7 @@ import { createTestDb } from "@/lib/db/testing";
 import {
   createDeliverableTemplate,
   getDeliverableTemplate,
+  listDeliverableTemplates,
   listTemplateLines,
 } from "./deliverable-templates";
 
@@ -165,5 +167,91 @@ describe("listTemplateLines", () => {
 
   it("answers with nothing for a template that does not exist", async () => {
     expect(await listTemplateLines("tpl_nope", db)).toEqual([]);
+  });
+});
+
+describe("listDeliverableTemplates", () => {
+  it("counts and totals each template's lines", async () => {
+    await createDeliverableTemplate(
+      { name: "Website build", description: "The usual.", lines: LINES },
+      db,
+    );
+
+    const [summary] = await listDeliverableTemplates(db);
+    expect(summary.name).toBe("Website build");
+    expect(summary.description).toBe("The usual.");
+    expect(summary.lineCount).toBe(2);
+    expect(summary.estimatedMinutes).toBe(2_880);
+    expect(summary.unestimatedCount).toBe(0);
+  });
+
+  it("counts the lines nobody estimated", async () => {
+    await createDeliverableTemplate(
+      {
+        name: "Retainer month",
+        lines: [
+          { title: "Support", description: null, estimatedMinutes: 600 },
+          { title: "Whatever comes up", description: null, estimatedMinutes: 0 },
+        ],
+      },
+      db,
+    );
+
+    const [summary] = await listDeliverableTemplates(db);
+    expect(summary.unestimatedCount).toBe(1);
+    expect(summary.estimatedMinutes).toBe(600);
+  });
+
+  it("totals each template separately rather than across the table", async () => {
+    await createDeliverableTemplate(
+      { name: "Website build", lines: LINES },
+      db,
+    );
+    await createDeliverableTemplate(
+      {
+        name: "Retainer month",
+        lines: [{ title: "Support", description: null, estimatedMinutes: 600 }],
+      },
+      db,
+    );
+
+    const summaries = await listDeliverableTemplates(db);
+    expect(summaries.map((s) => [s.name, s.lineCount, s.estimatedMinutes])).toEqual([
+      ["Retainer month", 1, 600],
+      ["Website build", 2, 2_880],
+    ]);
+  });
+
+  it("orders by name without regard to case", async () => {
+    for (const name of ["zephyr", "Anvil", "beta"]) {
+      await createDeliverableTemplate(
+        { name, lines: [{ title: "Build", description: null, estimatedMinutes: 60 }] },
+        db,
+      );
+    }
+
+    expect((await listDeliverableTemplates(db)).map((s) => s.name)).toEqual([
+      "Anvil",
+      "beta",
+      "zephyr",
+    ]);
+  });
+
+  it("answers with nothing when no template has been saved", async () => {
+    expect(await listDeliverableTemplates(db)).toEqual([]);
+  });
+
+  it("still lists a template whose lines were written away behind its back", async () => {
+    const template = await createDeliverableTemplate(
+      { name: "Website build", lines: LINES },
+      db,
+    );
+    await db.run(sql`delete from deliverable_template_lines`);
+
+    const [summary] = await listDeliverableTemplates(db);
+    expect(summary.id).toBe(template.id);
+    expect(summary.lineCount).toBe(0);
+    expect(summary.estimatedMinutes).toBe(0);
+    expect(summary.unestimatedCount).toBe(0);
   });
 });
