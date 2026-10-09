@@ -5,9 +5,10 @@ import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 
 import { createClient } from "./clients";
-import { createDeliverable } from "./deliverables";
+import { createDeliverable, listDeliverables } from "./deliverables";
 import { createProject } from "./projects";
 import {
+  applyTemplateToProject,
   createDeliverableTemplate,
   getDeliverableTemplate,
   listDeliverableTemplates,
@@ -379,5 +380,136 @@ describe("saveTemplateFromProject", () => {
 
     const lines = await listTemplateLines(result.template.id, db);
     expect(lines.map((line) => line.title)).not.toContain("Not this one");
+  });
+});
+
+describe("applyTemplateToProject", () => {
+  let projectId: string;
+  let templateId: string;
+
+  beforeEach(async () => {
+    const clientId = (await createClient({ name: "Anvil Co" }, db)).id;
+    projectId = (await createProject({ clientId, name: "New build" }, db)).id;
+    templateId = (
+      await createDeliverableTemplate(
+        {
+          name: "Website build",
+          lines: [
+            {
+              title: "Discovery",
+              description: "Two workshops.",
+              estimatedMinutes: 480,
+            },
+            { title: "Build", description: null, estimatedMinutes: 2_400 },
+            { title: "Handover", description: null, estimatedMinutes: 0 },
+          ],
+        },
+        db,
+      )
+    ).id;
+  });
+
+  it("writes the template's lines as the project's deliverables", async () => {
+    const result = await applyTemplateToProject(templateId, projectId, db);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.template.name).toBe("Website build");
+
+    const scope = await listDeliverables(projectId, db);
+    expect(scope.map((line) => line.title)).toEqual([
+      "Discovery",
+      "Build",
+      "Handover",
+    ]);
+    expect(scope.map((line) => line.sortOrder)).toEqual([0, 1, 2]);
+  });
+
+  it("carries the detail and the estimates onto the new deliverables", async () => {
+    await applyTemplateToProject(templateId, projectId, db);
+
+    const scope = await listDeliverables(projectId, db);
+    expect(scope[0].description).toBe("Two workshops.");
+    expect(scope.map((line) => line.estimatedMinutes)).toEqual([480, 2_400, 0]);
+  });
+
+  it("starts every applied line as pending", async () => {
+    await applyTemplateToProject(templateId, projectId, db);
+
+    const scope = await listDeliverables(projectId, db);
+    expect(scope.map((line) => line.status)).toEqual([
+      "pending",
+      "pending",
+      "pending",
+    ]);
+  });
+
+  it("appends after what the project already agreed", async () => {
+    await createDeliverable({ projectId, title: "Kickoff call" }, db);
+
+    await applyTemplateToProject(templateId, projectId, db);
+
+    const scope = await listDeliverables(projectId, db);
+    expect(scope.map((line) => line.title)).toEqual([
+      "Kickoff call",
+      "Discovery",
+      "Build",
+      "Handover",
+    ]);
+    expect(scope.map((line) => line.sortOrder)).toEqual([0, 1, 2, 3]);
+  });
+
+  it("hands back the rows it wrote, in the order they now read", async () => {
+    const result = await applyTemplateToProject(templateId, projectId, db);
+    if (!result.ok) throw new Error("expected the template to be applied");
+
+    expect(result.deliverables.map((line) => line.title)).toEqual([
+      "Discovery",
+      "Build",
+      "Handover",
+    ]);
+    expect(result.deliverables.every((line) => line.projectId === projectId)).toBe(
+      true,
+    );
+  });
+
+  it("leaves the template itself untouched, so it can be applied again", async () => {
+    const other = (
+      await createProject(
+        {
+          clientId: (await createClient({ name: "Other Co" }, db)).id,
+          name: "Second",
+        },
+        db,
+      )
+    ).id;
+
+    await applyTemplateToProject(templateId, projectId, db);
+    await applyTemplateToProject(templateId, other, db);
+
+    expect(await listTemplateLines(templateId, db)).toHaveLength(3);
+    expect(await listDeliverables(other, db)).toHaveLength(3);
+  });
+
+  it("refuses a project that does not exist, writing nothing", async () => {
+    const result = await applyTemplateToProject(templateId, "prj_nope", db);
+
+    expect(result).toEqual({ ok: false, reason: "no-such-project" });
+  });
+
+  it("refuses a template that does not exist, writing nothing", async () => {
+    const result = await applyTemplateToProject("tpl_nope", projectId, db);
+
+    expect(result).toEqual({ ok: false, reason: "no-such-template" });
+    expect(await listDeliverables(projectId, db)).toEqual([]);
+  });
+
+  it("refuses a template with no lines left on it", async () => {
+    await db.run(sql`delete from deliverable_template_lines`);
+
+    const result = await applyTemplateToProject(templateId, projectId, db);
+
+    expect(result).toEqual({ ok: false, reason: "empty-template" });
+    expect(await listDeliverables(projectId, db)).toEqual([]);
   });
 });
