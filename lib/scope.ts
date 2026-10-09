@@ -30,9 +30,19 @@ import { MINUTES_PER_HOUR } from "@/lib/minutes";
  * Totalling scope does not need a title or a position, and taking them would
  * make every caller build a row it does not have.
  */
-export type ScopeLine = {
+export type EstimatedLine = {
   /** The estimate in whole minutes. Zero means nobody has sized it. */
   estimatedMinutes: number;
+};
+
+/**
+ * A scope line is an estimate plus where it stands. The estimate is split out
+ * above because three of the functions here read nothing else, and a template's
+ * lines — which have no status, deliberately — are exactly that shape. Asking
+ * for a status in order to add up a column of minutes would make every caller
+ * invent one.
+ */
+export type ScopeLine = EstimatedLine & {
   /** Where the line stands, which is what decides whether it is still to do. */
   status: DeliverableStatus;
 };
@@ -50,7 +60,7 @@ export type ScopeLine = {
  * that answers it: the total says how much work was sized, and the count says
  * how much of the list the total does not speak for.
  */
-export function totalEstimatedMinutes(lines: readonly ScopeLine[]): number {
+export function totalEstimatedMinutes(lines: readonly EstimatedLine[]): number {
   return lines.reduce((total, line) => total + line.estimatedMinutes, 0);
 }
 
@@ -67,7 +77,7 @@ export function totalEstimatedMinutes(lines: readonly ScopeLine[]): number {
  * and the words the scope list puts on an unsized line can never come apart.
  * A row the list calls "Not estimated" is a row this counts.
  */
-export function unestimatedCount(lines: readonly ScopeLine[]): number {
+export function unestimatedCount(lines: readonly EstimatedLine[]): number {
   return lines.filter((line) => !isEstimated(line.estimatedMinutes)).length;
 }
 
@@ -85,7 +95,7 @@ export function unestimatedCount(lines: readonly ScopeLine[]): number {
  * reader going to look for the bad row wants to know whether there is one of
  * them or four.
  */
-export function negativeEstimateCount(lines: readonly ScopeLine[]): number {
+export function negativeEstimateCount(lines: readonly EstimatedLine[]): number {
   return lines.filter((line) => line.estimatedMinutes < 0).length;
 }
 
