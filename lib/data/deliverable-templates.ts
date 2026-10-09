@@ -6,13 +6,14 @@ import {
   deliverableTemplates,
   type DeliverableTemplate,
   type DeliverableTemplateLine,
+  type Deliverable,
 } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
 import { capturedTemplateLines } from "@/lib/templates/capture";
 import type { TemplateLineDraft } from "@/lib/templates/capture";
 import type { SummarisedTemplate } from "@/lib/templates/summary";
 
-import { listDeliverables } from "./deliverables";
+import { createDeliverable, listDeliverables } from "./deliverables";
 import { optionalText, requiredText, wholeMinutes } from "./fields";
 import { getProject } from "./projects";
 
@@ -247,6 +248,88 @@ export async function saveTemplateFromProject(
         tx,
       );
       return { ok: true, template, lineCount: lines.length };
+    },
+    { behavior: "immediate" },
+  );
+}
+
+/**
+ * Why a template was not applied to a project.
+ *
+ * Codes rather than sentences, for the reason `TemplateCaptureReason` gives:
+ * every one of these is reachable from a page that was correct when it
+ * rendered, and the words for a reader live with the form.
+ */
+export type TemplateApplyReason =
+  | "no-such-project"
+  | "no-such-template"
+  | "empty-template";
+
+/** The outcome of asking for a template to be added to a project's scope. */
+export type TemplateApplyResult =
+  | {
+      readonly ok: true;
+      readonly template: DeliverableTemplate;
+      /** The rows written, in the order they now read on the project. */
+      readonly deliverables: Deliverable[];
+    }
+  | { readonly ok: false; readonly reason: TemplateApplyReason };
+
+/**
+ * Adds a template's lines to the end of a project's scope list.
+ *
+ * Appended, never substituted: whatever was already agreed stays exactly where
+ * it was. A template that replaced the list would delete the two lines
+ * somebody had typed before reaching for it, and there is nowhere to put those
+ * back from.
+ *
+ * Each line goes through `createDeliverable` rather than being inserted here.
+ * That is the one door new scope comes through — it is what keeps positions
+ * dense from zero, what defaults a new line to `pending`, and what validates
+ * the fields — and a second insert path would be a second set of rules for the
+ * same table to drift from. The cost is a few statements per line, which for a
+ * template of eight is not worth a column of duplicated logic.
+ *
+ * One immediate transaction around the lot. Half a template is the one outcome
+ * worth ruling out: a reader told four deliverables were added and looking at
+ * two has no way to know which two are missing, and no way to ask for the rest
+ * without getting duplicates of the four.
+ */
+export async function applyTemplateToProject(
+  templateId: string,
+  projectId: string,
+  database: Database = db,
+): Promise<TemplateApplyResult> {
+  return database.transaction(
+    async (tx) => {
+      const project = await getProject(projectId, tx);
+      if (project === null) return { ok: false, reason: "no-such-project" };
+
+      const template = await getDeliverableTemplate(templateId, tx);
+      if (template === null) return { ok: false, reason: "no-such-template" };
+
+      const lines = await listTemplateLines(templateId, tx);
+      // Nothing writes a lineless template, so this is a row that was put
+      // there by hand. An apply that reported success and added nothing would
+      // be worse than saying so.
+      if (lines.length === 0) return { ok: false, reason: "empty-template" };
+
+      const deliverables: Deliverable[] = [];
+      for (const line of lines) {
+        deliverables.push(
+          await createDeliverable(
+            {
+              projectId,
+              title: line.title,
+              description: line.description,
+              estimatedMinutes: line.estimatedMinutes,
+            },
+            tx,
+          ),
+        );
+      }
+
+      return { ok: true, template, deliverables };
     },
     { behavior: "immediate" },
   );
