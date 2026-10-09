@@ -522,6 +522,17 @@ describe("applyTemplateToProject", () => {
     expect(await listDeliverables(projectId, db)).toEqual([]);
   });
 
+  it("refuses a template holding an estimate below zero", async () => {
+    await db.run(
+      sql`update deliverable_template_lines set estimated_minutes = -60 where title = 'Build'`,
+    );
+
+    const result = await applyTemplateToProject(templateId, projectId, db);
+
+    expect(result).toEqual({ ok: false, reason: "unusable-template" });
+    expect(await listDeliverables(projectId, db)).toEqual([]);
+  });
+
   it("refuses a template with no lines left on it", async () => {
     await db.run(sql`delete from deliverable_template_lines`);
 

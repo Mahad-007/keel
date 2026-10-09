@@ -244,6 +244,15 @@ describe("writeAppliedTemplate", () => {
     expect(state.formError).toBe(APPLY_PROBLEMS.emptyTemplate);
   });
 
+  it("blames the template when one of its lines cannot be applied", async () => {
+    applied.mockResolvedValue({ ok: false, reason: "unusable-template" });
+
+    const state = await apply({ template: "tpl_engine" });
+
+    expect(state.formError).toBe(APPLY_PROBLEMS.unusableTemplate);
+    expect(state.formError).not.toContain("try again");
+  });
+
   it("turns a driver error into a sentence rather than a crash", async () => {
     applied.mockRejectedValue(new Error("database is locked"));
 
