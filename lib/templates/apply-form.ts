@@ -117,3 +117,55 @@ export function failedApplyState(
 ): ApplyTemplateState {
   return { ...failedFormState(fields, formError), applied: null };
 }
+
+/**
+ * The things that can stop an apply that the picker itself cannot see.
+ *
+ * `emptyTemplate` should be unreachable — nothing saves a template with no
+ * lines — but the table allows one and a template's lines can be deleted
+ * independently of it, so the alternative is a press that reports success and
+ * changes nothing. Saying so is cheap; a silent no-op is a bug report.
+ */
+export const APPLY_PROBLEMS = {
+  missingProject:
+    "That project no longer exists, so there is nothing to apply a template to.",
+  missingTemplate:
+    "That template has been deleted. Nothing was added — reload to see what is on offer now.",
+  emptyTemplate:
+    "That template has no deliverables on it, so there was nothing to add.",
+  failed:
+    "Could not apply that template. Nothing was added to the scope list — try again.",
+} as const;
+
+/**
+ * What to say when the apply never got an answer.
+ *
+ * It does not say "try again", which is the instruction that would append the
+ * same five deliverables twice. The scope list above the form is what the
+ * server says, so reading it answers the question — the same reasoning as the
+ * add line, and a sharper version of it: a duplicated add is one line to
+ * delete, and a duplicated apply is five.
+ */
+export const APPLY_NO_ANSWER =
+  "Could not tell whether that template was applied — the answer never arrived. Reload to see what the scope list says now.";
+
+/**
+ * What to say after a template is applied, or null when there is nothing to
+ * say.
+ *
+ * It names the template and says where the lines went, because that is the
+ * part a reader cannot verify at a glance: five new rows at the end of a list
+ * of eight look much like the eight that were already there. "the end" is the
+ * load-bearing word — applying a template does not touch what was already
+ * agreed, and a reader who thinks it might have is about to check all
+ * thirteen.
+ */
+export function appliedTemplateNotice(
+  state: ApplyTemplateState,
+): string | null {
+  if (state.applied === null) return null;
+  const { name, lineCount } = state.applied;
+  const lines =
+    lineCount === 1 ? "one deliverable" : `${lineCount} deliverables`;
+  return `Added ${lines} from “${name}” to the end of the scope list.`;
+}
