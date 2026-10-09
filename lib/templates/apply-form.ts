@@ -121,10 +121,11 @@ export function failedApplyState(
 /**
  * The things that can stop an apply that the picker itself cannot see.
  *
- * `emptyTemplate` should be unreachable — nothing saves a template with no
- * lines — but the table allows one and a template's lines can be deleted
- * independently of it, so the alternative is a press that reports success and
- * changes nothing. Saying so is cheap; a silent no-op is a bug report.
+ * `emptyTemplate` should be unreachable: the data layer refuses to write a
+ * template with no lines on it. It is here because the tables would hold one
+ * if a row were written straight to the database, and the alternative is a
+ * press that reports success and changes nothing. Saying so is cheap; a silent
+ * no-op is a bug report.
  */
 export const APPLY_PROBLEMS = {
   missingProject:
