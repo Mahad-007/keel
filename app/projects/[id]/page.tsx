@@ -66,18 +66,23 @@ export default async function ProjectPage({
   const statusEvents =
     tab === "overview" ? await listProjectStatusEvents(project.id) : [];
 
-  // Same rule for the scope list: the tab that shows it is the only one that
-  // reads it.
-  const deliverables =
-    tab === "scope" ? await listDeliverables(project.id) : [];
-
   /*
-    And for the templates on offer, which only the scope tab has a picker for.
-    Read beside the deliverables rather than inside the panel, so the page keeps
-    every query it makes in one place — and so the list the picker is built from
-    is the same list the write checks a submission against.
+    Same rule for the scope tab, which reads two things: the project's own list
+    and the templates on offer. Both are read here rather than inside the panel,
+    so the page keeps every query it makes in one place — and so the list the
+    picker is built from is the same list the write checks a submission against.
+
+    Together rather than one after the other: neither read depends on the other,
+    and awaiting them in sequence would make the tab wait for the sum of two
+    round trips to show one page.
   */
-  const templates = tab === "scope" ? await listDeliverableTemplates() : [];
+  const [deliverables, templates] =
+    tab === "scope"
+      ? await Promise.all([
+          listDeliverables(project.id),
+          listDeliverableTemplates(),
+        ])
+      : [[], []];
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 font-sans">
