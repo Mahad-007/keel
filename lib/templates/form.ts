@@ -1,6 +1,15 @@
 import { readFields } from "@/lib/forms/form-data";
-import { collect, type ParseResult } from "@/lib/forms/result";
-import { initialFormState, type FormState } from "@/lib/forms/state";
+import {
+  collect,
+  type FieldErrors,
+  type ParseResult,
+} from "@/lib/forms/result";
+import {
+  failedFormState,
+  initialFormState,
+  rejectedFormState,
+  type FormState,
+} from "@/lib/forms/state";
 import { optionalText, requiredText } from "@/lib/forms/text";
 
 /**
@@ -160,3 +169,32 @@ export type SavedTemplate = {
 export type SaveTemplateState = TemplateFormState & {
   readonly saved: SavedTemplate | null;
 };
+
+/**
+ * A template was written. The fields come back as submitted rather than
+ * cleared: the form is still on screen under a sentence naming what was saved,
+ * and a box that emptied itself would leave the reader unsure which of the two
+ * things happened.
+ */
+export function savedTemplateState(
+  fields: TemplateFormFields,
+  saved: SavedTemplate,
+): SaveTemplateState {
+  return { ...initialFormState(fields), saved };
+}
+
+/** Validation refused the submission. Nothing was written. */
+export function rejectedSaveState(
+  fields: TemplateFormFields,
+  errors: FieldErrors<TemplateFieldName>,
+): SaveTemplateState {
+  return { ...rejectedFormState(fields, errors), saved: null };
+}
+
+/** The submission was good and could not be saved. */
+export function failedSaveState(
+  fields: TemplateFormFields,
+  formError: string,
+): SaveTemplateState {
+  return { ...failedFormState(fields, formError), saved: null };
+}
