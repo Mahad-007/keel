@@ -71,13 +71,6 @@ export const EMPTY_TEMPLATE_FIELDS: TemplateFormFields = {
 
 export type TemplateFormState = FormState<TemplateFieldName>;
 
-/**
- * What the form starts from. Defined here rather than beside the action,
- * because a `"use server"` module may only export async functions.
- */
-export const INITIAL_TEMPLATE_FORM_STATE: TemplateFormState =
-  initialFormState(EMPTY_TEMPLATE_FIELDS);
-
 export function readTemplateFields(formData: FormData): TemplateFormFields {
   return readFields(formData, TEMPLATE_FIELD_NAMES);
 }
@@ -150,8 +143,8 @@ export function initialSaveTemplateState(
 ): SaveTemplateState {
   return {
     ...initialFormState({
+      ...EMPTY_TEMPLATE_FIELDS,
       name: suggestedTemplateName(projectName),
-      description: "",
     }),
     saved: null,
   };

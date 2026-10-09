@@ -30,6 +30,16 @@ export type TemplateSize = {
   readonly unestimatedCount: number;
 };
 
+/**
+ * A template's size worked out from its lines.
+ *
+ * The list query counts the same three figures in SQL, because a picker must
+ * not read every line of every template to label twelve options. This is the
+ * definition those aggregates are held to: the round-trip test totals a
+ * captured scope list through here and asserts the query agrees, so a `sum`
+ * that stops matching `isEstimated` fails a test rather than quietly
+ * mislabelling a template.
+ */
 export function templateSize(lines: readonly EstimatedLine[]): TemplateSize {
   return {
     lineCount: lines.length,
