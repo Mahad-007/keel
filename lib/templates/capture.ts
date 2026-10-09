@@ -37,3 +37,23 @@ export type TemplateLineDraft = {
   readonly description: string | null;
   readonly estimatedMinutes: number;
 };
+
+/**
+ * A project's scope list as the lines of a template.
+ *
+ * The order is preserved exactly — a scope list is read in the sequence the
+ * two parties agreed it in, and that sequence is most of what makes the list
+ * worth saving. Nothing is filtered: a line nobody estimated captures as a
+ * zero, because an unestimated deliverable is still part of the shape of the
+ * engagement, and leaving it out would make the template quietly smaller than
+ * the project it was taken from.
+ */
+export function capturedTemplateLines(
+  deliverables: readonly CapturedDeliverable[],
+): TemplateLineDraft[] {
+  return deliverables.map((deliverable) => ({
+    title: deliverable.title,
+    description: deliverable.description,
+    estimatedMinutes: deliverable.estimatedMinutes,
+  }));
+}
