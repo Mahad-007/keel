@@ -17,10 +17,21 @@
 import { revalidatePath } from "next/cache";
 
 import {
+  applyTemplateToProject,
   saveTemplateFromProject,
+  type TemplateApplyReason,
   type TemplateCaptureReason,
 } from "@/lib/data/deliverable-templates";
 import { projectPath } from "@/lib/projects/detail";
+import {
+  APPLY_PROBLEMS,
+  appliedTemplateState,
+  failedApplyState,
+  parseApplyTemplateForm,
+  readApplyFields,
+  rejectedApplyState,
+  type ApplyTemplateState,
+} from "@/lib/templates/apply-form";
 import {
   failedSaveState,
   parseTemplateForm,
@@ -84,5 +95,64 @@ export async function writeTemplateFromProject(
     id: result.template.id,
     name: result.template.name,
     lineCount: result.lineCount,
+  });
+}
+
+/** The same exhaustive map for the apply side's refusals. */
+const APPLY_REASONS: Record<TemplateApplyReason, string> = {
+  "no-such-project": APPLY_PROBLEMS.missingProject,
+  "no-such-template": APPLY_PROBLEMS.missingTemplate,
+  "empty-template": APPLY_PROBLEMS.emptyTemplate,
+};
+
+/**
+ * Adding a saved template's lines to this project's scope.
+ *
+ * Two things arrive from the page and only one of them is forgeable. The
+ * project and the ids that were on offer are captured by the page's closure,
+ * encrypted; the picked template rides in the submission like any other field.
+ * So the picked id is checked against the offered ones, which is a check with
+ * something real on one side of it — the list this page actually rendered,
+ * rather than the list a caller says it rendered.
+ *
+ * It is still not an entitlement check. Any template may be applied to any
+ * project the reader can reach, because templates are not filed against a
+ * client and the whole point of one is being reused. What the offered-ids
+ * check buys is that a POST cannot name a row this page never showed, which
+ * keeps this endpoint from becoming a way to read the template table.
+ *
+ * The data layer checks the template exists as well, inside the transaction,
+ * which is the check this one cannot make: a template deleted between the
+ * render and the press is on the offered list and gone from the table.
+ */
+export async function writeAppliedTemplate(
+  projectId: string,
+  offeredTemplateIds: readonly string[],
+  _previous: ApplyTemplateState,
+  formData: FormData,
+): Promise<ApplyTemplateState> {
+  const fields = readApplyFields(formData);
+
+  const parsed = parseApplyTemplateForm(fields, offeredTemplateIds);
+  if (!parsed.ok) return rejectedApplyState(fields, parsed.errors);
+
+  let result;
+  try {
+    result = await applyTemplateToProject(parsed.value.templateId, projectId);
+  } catch (error) {
+    // The user cannot act on a driver error, but the logs should keep it.
+    console.error("writeAppliedTemplate: failed to apply template", error);
+    return failedApplyState(fields, APPLY_PROBLEMS.failed);
+  }
+
+  if (!result.ok) return failedApplyState(fields, APPLY_REASONS[result.reason]);
+
+  // The scope list and the summary above this form are both part of the page,
+  // so neither shows the new lines until it is re-rendered.
+  revalidatePath(projectPath(projectId));
+  return appliedTemplateState({
+    id: result.template.id,
+    name: result.template.name,
+    lineCount: result.deliverables.length,
   });
 }
