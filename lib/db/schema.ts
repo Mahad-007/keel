@@ -215,3 +215,53 @@ export const deliverableTemplates = sqliteTable("deliverable_templates", {
 
 export type DeliverableTemplate = typeof deliverableTemplates.$inferSelect;
 export type NewDeliverableTemplate = typeof deliverableTemplates.$inferInsert;
+
+/**
+ * One line of a template: a deliverable without a project.
+ *
+ * It carries exactly the three things a person decides about a deliverable —
+ * what it is, the detail behind it, and how long it was estimated at — and
+ * none of the three that belong to an engagement. There is no status, because
+ * a template describes work to be agreed rather than work in progress, and a
+ * template saved off a half-finished project would otherwise hand the next
+ * engagement two lines already marked done. There is no project, which is the
+ * point of the table. And `sortOrder` is the template's own dense order rather
+ * than the positions the source project happened to hold, so a template
+ * captured from a list with a gap in it still applies as 1, 2, 3.
+ *
+ * Rows cascade with the template, for the same reason a deliverable cascades
+ * with its project: a line is part of a template, not a record of one.
+ */
+export const deliverableTemplateLines = sqliteTable(
+  "deliverable_template_lines",
+  {
+    id: text("id").primaryKey(),
+    templateId: text("template_id")
+      .notNull()
+      .references(() => deliverableTemplates.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    /** The detail behind the title. NULL when the title said it all. */
+    description: text("description"),
+    /** The estimate in whole minutes. Zero means nobody has estimated it. */
+    estimatedMinutes: integer("estimated_minutes").notNull().default(0),
+    /** Position in the template's list, dense from zero. */
+    sortOrder: integer("sort_order").notNull(),
+    ...timestamps,
+  },
+  /**
+   * A template's lines are only ever read one template at a time and always
+   * in order, so the index covers both halves of that query — the same shape
+   * as the deliverables index, because it is the same query.
+   */
+  (table) => [
+    index("deliverable_template_lines_template_id_sort_order_idx").on(
+      table.templateId,
+      table.sortOrder,
+    ),
+  ],
+);
+
+export type DeliverableTemplateLine =
+  typeof deliverableTemplateLines.$inferSelect;
+export type NewDeliverableTemplateLine =
+  typeof deliverableTemplateLines.$inferInsert;
