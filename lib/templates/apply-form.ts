@@ -1,7 +1,16 @@
 import { readFields } from "@/lib/forms/form-data";
 import { requiredChoice } from "@/lib/forms/choice";
-import { collect, type ParseResult } from "@/lib/forms/result";
-import { initialFormState, type FormState } from "@/lib/forms/state";
+import {
+  collect,
+  type FieldErrors,
+  type ParseResult,
+} from "@/lib/forms/result";
+import {
+  failedFormState,
+  initialFormState,
+  rejectedFormState,
+  type FormState,
+} from "@/lib/forms/state";
 
 /**
  * The form that applies a saved template to a project: one picker, and the
@@ -80,3 +89,31 @@ export type AppliedTemplate = {
 export type ApplyTemplateState = ApplyTemplateFormState & {
   readonly applied: AppliedTemplate | null;
 };
+
+/**
+ * A template was applied. The picker comes back on its placeholder rather
+ * than holding what was just applied: the lines are now on the list above, and
+ * leaving the template selected invites a second press that would append the
+ * same five deliverables again.
+ */
+export function appliedTemplateState(
+  applied: AppliedTemplate,
+): ApplyTemplateState {
+  return { ...INITIAL_APPLY_TEMPLATE_STATE, applied };
+}
+
+/** Validation refused the submission. Nothing was written. */
+export function rejectedApplyState(
+  fields: ApplyFormFields,
+  errors: FieldErrors<ApplyFieldName>,
+): ApplyTemplateState {
+  return { ...rejectedFormState(fields, errors), applied: null };
+}
+
+/** The submission was good and nothing could be written. */
+export function failedApplyState(
+  fields: ApplyFormFields,
+  formError: string,
+): ApplyTemplateState {
+  return { ...failedFormState(fields, formError), applied: null };
+}
