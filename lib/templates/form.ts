@@ -198,3 +198,48 @@ export function failedSaveState(
 ): SaveTemplateState {
   return { ...failedFormState(fields, formError), saved: null };
 }
+
+/**
+ * The things that can stop a save that the form itself cannot see.
+ *
+ * `emptyScope` is the one worth having: a template of no lines is not a
+ * template, and the reader pressing the button is looking at the scope list it
+ * would have been made from, so the sentence says what to do about it rather
+ * than only what went wrong.
+ */
+export const SAVE_PROBLEMS = {
+  emptyScope:
+    "There is nothing to save as a template yet — add a deliverable to this project first.",
+  missingProject:
+    "That project no longer exists, so there is no scope list to save.",
+  failed: "Could not save that template. Nothing was written — try again.",
+} as const;
+
+/**
+ * What to say when the save never got an answer — the connection dropped, the
+ * tab was suspended mid-request, the request was aborted.
+ *
+ * It does not claim nothing was written, because from the client there is no
+ * way to know: the request may have been lost on the way out, or the answer
+ * lost on the way back with the template already saved. Nor does it say "try
+ * again", which is the instruction that would save the same template twice.
+ */
+export const SAVE_NO_ANSWER =
+  "Could not tell whether that template was saved — the answer never arrived. Reload and check the template list before saving again.";
+
+/**
+ * What to say after a template is saved, or null when there is nothing to say.
+ *
+ * The press changes nothing a reader can see: the scope list above is
+ * untouched, and the template it went into is somewhere else entirely. So the
+ * sentence has to carry the whole result — the name it was filed under, and
+ * how many lines went with it, which is the number that would otherwise only
+ * be discovered on the project it is applied to.
+ */
+export function savedTemplateNotice(state: SaveTemplateState): string | null {
+  if (state.saved === null) return null;
+  const { name, lineCount } = state.saved;
+  const lines =
+    lineCount === 1 ? "one deliverable" : `${lineCount} deliverables`;
+  return `Saved “${name}” as a template, with ${lines} on it.`;
+}
