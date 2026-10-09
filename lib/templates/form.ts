@@ -224,6 +224,8 @@ export const SAVE_PROBLEMS = {
     "There is nothing to save as a template yet — add a deliverable to this project first.",
   missingProject:
     "That project no longer exists, so there is no scope list to save.",
+  negativeEstimate:
+    "A deliverable on this project has an estimate below zero, which a template cannot carry. The scope summary above names how many — fix those lines and save again.",
   failed: "Could not save that template. Nothing was written — try again.",
 } as const;
 

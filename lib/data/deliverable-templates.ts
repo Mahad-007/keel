@@ -9,6 +9,7 @@ import {
   type Deliverable,
 } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
+import { negativeEstimateCount } from "@/lib/scope";
 import { capturedTemplateLines } from "@/lib/templates/capture";
 import type { TemplateLineDraft } from "@/lib/templates/capture";
 import type { SummarisedTemplate } from "@/lib/templates/summary";
@@ -192,7 +193,10 @@ export async function listDeliverableTemplates(
  * reader. Two spellings of "there is nothing to save" is how a data layer and
  * a page end up disagreeing about what happened.
  */
-export type TemplateCaptureReason = "no-such-project" | "empty-scope";
+export type TemplateCaptureReason =
+  | "no-such-project"
+  | "empty-scope"
+  | "negative-estimate";
 
 /** The outcome of asking a project for a template. */
 export type TemplateCaptureResult =
@@ -242,6 +246,19 @@ export async function saveTemplateFromProject(
       // phrased as an answer rather than an exception, because an empty scope
       // list is a situation rather than a mistake.
       if (lines.length === 0) return { ok: false, reason: "empty-scope" };
+
+      /*
+        An estimate below zero is a row somebody wrote straight to the
+        database — the form refuses one — and `createDeliverableTemplate`
+        would throw on it from inside this transaction, which reaches the
+        reader as "nothing was written, try again". Retrying cannot fix a bad
+        row, so it is an answer rather than an exception: the scope panel is
+        already flagging the line, and this says that is the thing to go and
+        fix. One spelling of the rule, shared with the panel that flags it.
+      */
+      if (negativeEstimateCount(lines) > 0) {
+        return { ok: false, reason: "negative-estimate" };
+      }
 
       const template = await createDeliverableTemplate(
         { name: input.name, description: input.description, lines },

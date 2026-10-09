@@ -50,6 +50,7 @@ import {
 const CAPTURE_PROBLEMS: Record<TemplateCaptureReason, string> = {
   "no-such-project": SAVE_PROBLEMS.missingProject,
   "empty-scope": SAVE_PROBLEMS.emptyScope,
+  "negative-estimate": SAVE_PROBLEMS.negativeEstimate,
 };
 
 /**
