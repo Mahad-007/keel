@@ -59,10 +59,10 @@ describe("appliedTemplateState", () => {
     const state = appliedTemplateState({
       id: "tpl_web",
       name: "Website build",
-      lineCount: 5,
+      deliverableIds: ["dlv_1", "dlv_2"],
     });
 
-    expect(state.applied?.lineCount).toBe(5);
+    expect(state.applied?.deliverableIds).toEqual(["dlv_1", "dlv_2"]);
     expect(state.fields.template).toBe("");
     expect(state.formError).toBeNull();
   });
@@ -100,7 +100,7 @@ describe("appliedTemplateNotice", () => {
       appliedTemplateState({
         id: "tpl_web",
         name: "Website build",
-        lineCount: 5,
+        deliverableIds: ["a", "b", "c", "d", "e"],
       }),
     );
 
@@ -114,7 +114,7 @@ describe("appliedTemplateNotice", () => {
       appliedTemplateState({
         id: "tpl_one",
         name: "Kickoff",
-        lineCount: 1,
+        deliverableIds: ["dlv_only"],
       }),
     );
 

@@ -78,12 +78,19 @@ export const INITIAL_APPLY_TEMPLATE_STATE: ApplyTemplateState =
  * name and the count are what the sentence afterwards needs: a template of
  * five lines appended to a list of three changes the list by more than a
  * reader's eye will take in at a glance.
+ *
+ * The rows are carried as their ids rather than as a count, which is two
+ * things in one. The count is `length`, so there is no second number that can
+ * disagree with it — and the ids are what tell two applies of the same
+ * template apart, which the live region needs: identical text under an
+ * identical key is no change to the DOM, and the second apply would be
+ * announced to nobody.
  */
 export type AppliedTemplate = {
   readonly id: string;
   readonly name: string;
-  /** How many deliverables were written. */
-  readonly lineCount: number;
+  /** The deliverables written, in the order they now read on the project. */
+  readonly deliverableIds: readonly string[];
 };
 
 export type ApplyTemplateState = ApplyTemplateFormState & {
@@ -165,8 +172,10 @@ export function appliedTemplateNotice(
   state: ApplyTemplateState,
 ): string | null {
   if (state.applied === null) return null;
-  const { name, lineCount } = state.applied;
+  const { name, deliverableIds } = state.applied;
   const lines =
-    lineCount === 1 ? "one deliverable" : `${lineCount} deliverables`;
+    deliverableIds.length === 1
+      ? "one deliverable"
+      : `${deliverableIds.length} deliverables`;
   return `Added ${lines} from “${name}” to the end of the scope list.`;
 }

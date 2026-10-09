@@ -153,6 +153,6 @@ export async function writeAppliedTemplate(
   return appliedTemplateState({
     id: result.template.id,
     name: result.template.name,
-    lineCount: result.deliverables.length,
+    deliverableIds: result.deliverables.map((deliverable) => deliverable.id),
   });
 }

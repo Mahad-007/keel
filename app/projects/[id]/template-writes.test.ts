@@ -160,8 +160,8 @@ describe("writeAppliedTemplate", () => {
       updatedAt: "2026-10-09T09:00:00.000Z",
     },
     deliverables: [
-      { title: "Discovery" },
-      { title: "Build" },
+      { id: "dlv_discovery", title: "Discovery" },
+      { id: "dlv_build", title: "Build" },
     ] as unknown as TemplateApplyDeliverables,
   };
 
@@ -185,7 +185,7 @@ describe("writeAppliedTemplate", () => {
     expect(state.applied).toEqual({
       id: "tpl_engine",
       name: "Engine rewrite",
-      lineCount: 2,
+      deliverableIds: ["dlv_discovery", "dlv_build"],
     });
   });
 

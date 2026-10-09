@@ -105,9 +105,14 @@ export function ApplyTemplateForm({
         <SubmitButton pendingLabel="Adding…">Apply template</SubmitButton>
         {/*
           Empty rather than conditional, so the live region is in the document
-          before the sentence arrives. Keyed on the template, because applying
-          the same one twice has to change the node for a screen reader to
-          notice the second one.
+          before the sentence arrives.
+
+          Keyed on the first deliverable the press wrote, not on the template:
+          applying the same template twice says the same sentence, and an
+          identical keyed node holding identical text is no change to the DOM,
+          so the second apply would be announced to nobody. Every apply writes
+          at least one row — an empty template is refused — so there is always
+          an id here.
         */}
         <p
           role="status"
@@ -115,7 +120,9 @@ export function ApplyTemplateForm({
           className="text-sm text-zinc-600 dark:text-zinc-400"
         >
           {state.applied === null ? null : (
-            <span key={state.applied.id}>{appliedTemplateNotice(state)}</span>
+            <span key={state.applied.deliverableIds[0]}>
+              {appliedTemplateNotice(state)}
+            </span>
           )}
         </p>
       </div>
