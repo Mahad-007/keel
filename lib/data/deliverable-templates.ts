@@ -8,10 +8,13 @@ import {
   type DeliverableTemplateLine,
 } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
+import { capturedTemplateLines } from "@/lib/templates/capture";
 import type { TemplateLineDraft } from "@/lib/templates/capture";
 import type { SummarisedTemplate } from "@/lib/templates/summary";
 
+import { listDeliverables } from "./deliverables";
 import { optionalText, requiredText, wholeMinutes } from "./fields";
+import { getProject } from "./projects";
 
 /**
  * Data access for the two template tables: a saved scope list and the lines it
@@ -177,4 +180,74 @@ export async function listDeliverableTemplates(
     )
     .groupBy(deliverableTemplates.id)
     .orderBy(sql`lower(${deliverableTemplates.name})`, asc(deliverableTemplates.id));
+}
+
+/**
+ * Why a project's scope list was not saved as a template.
+ *
+ * A code rather than a thrown error, and rather than a sentence: neither of
+ * these is a bug — both are reachable from a page that was right when it
+ * rendered — and the words belong to the form, which already has them for the
+ * reader. Two spellings of "there is nothing to save" is how a data layer and
+ * a page end up disagreeing about what happened.
+ */
+export type TemplateCaptureReason = "no-such-project" | "empty-scope";
+
+/** The outcome of asking a project for a template. */
+export type TemplateCaptureResult =
+  | {
+      readonly ok: true;
+      readonly template: DeliverableTemplate;
+      /** How many lines were captured, which is what the notice reports. */
+      readonly lineCount: number;
+    }
+  | { readonly ok: false; readonly reason: TemplateCaptureReason };
+
+/** What saving a template off a project asks the person for. */
+export type TemplateCaptureInput = {
+  name: string;
+  description?: string | null;
+};
+
+/**
+ * Saves a project's scope list as a template.
+ *
+ * Reading the deliverables and writing the template are one transaction, and
+ * an immediate one. A deferred transaction takes no write lock until the first
+ * insert, so a deliverable added between the read and the write would be
+ * missing from a template that claims to be the project's scope — and the
+ * reader would have no way to tell, because the count in the notice would
+ * agree with the list that was read rather than the one on screen.
+ *
+ * Which columns cross over is `capturedTemplateLines`' decision, not this
+ * function's. The status and the positions stay behind, so a template taken
+ * off a half-finished project is still a description of work to be agreed.
+ */
+export async function saveTemplateFromProject(
+  projectId: string,
+  input: TemplateCaptureInput,
+  database: Database = db,
+): Promise<TemplateCaptureResult> {
+  return database.transaction(
+    async (tx) => {
+      const project = await getProject(projectId, tx);
+      if (project === null) return { ok: false, reason: "no-such-project" };
+
+      const lines = capturedTemplateLines(
+        await listDeliverables(projectId, tx),
+      );
+      // A template of nothing would sit in the picker offering to add nothing.
+      // `createDeliverableTemplate` refuses one; this is the same refusal,
+      // phrased as an answer rather than an exception, because an empty scope
+      // list is a situation rather than a mistake.
+      if (lines.length === 0) return { ok: false, reason: "empty-scope" };
+
+      const template = await createDeliverableTemplate(
+        { name: input.name, description: input.description, lines },
+        tx,
+      );
+      return { ok: true, template, lineCount: lines.length };
+    },
+    { behavior: "immediate" },
+  );
 }
