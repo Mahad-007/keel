@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseTemplateForm,
   readTemplateFields,
+  suggestedTemplateName,
   TEMPLATE_FIELD_LIMITS,
 } from "./form";
 
@@ -93,5 +94,36 @@ describe("readTemplateFields", () => {
       name: "",
       description: "",
     });
+  });
+});
+
+describe("suggestedTemplateName", () => {
+  it("suggests the project's own name", () => {
+    expect(suggestedTemplateName("Harbour Co — site rebuild")).toBe(
+      "Harbour Co — site rebuild",
+    );
+  });
+
+  it("trims the suggestion", () => {
+    expect(suggestedTemplateName("  Retainer month \n")).toBe("Retainer month");
+  });
+
+  it("cuts a project name longer than a template name may be", () => {
+    const suggestion = suggestedTemplateName("x".repeat(400));
+
+    expect(suggestion).toHaveLength(TEMPLATE_FIELD_LIMITS.name);
+  });
+
+  it("suggests a name the form would then accept", () => {
+    const parsed = parseTemplateForm({
+      name: suggestedTemplateName("y".repeat(400)),
+      description: "",
+    });
+
+    expect(parsed.ok).toBe(true);
+  });
+
+  it("suggests nothing for a project named only whitespace", () => {
+    expect(suggestedTemplateName("   ")).toBe("");
   });
 });
