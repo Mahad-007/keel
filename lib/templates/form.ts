@@ -96,3 +96,22 @@ export function parseTemplateForm(
   if (!parsed.ok) return parsed;
   return { ok: true, value: parsed.value };
 }
+
+/**
+ * What the name box starts with: the project's own name.
+ *
+ * A template saved off "Harbour Co — site rebuild" is almost always going to
+ * be called that, or that with a word changed, and a prefilled box is the
+ * difference between a press and a sentence to compose. It is a suggestion in
+ * the ordinary sense — the field is editable and nothing defaults to it if the
+ * reader clears it, because a template nobody named is one nobody will
+ * recognise in a picker a month from now.
+ *
+ * Trimmed and cut to the limit, so the box never opens holding a value its own
+ * validator would refuse. A project name is allowed to be longer than a
+ * template name, and a prefill that is instantly an error is worse than an
+ * empty box.
+ */
+export function suggestedTemplateName(projectName: string): string {
+  return projectName.trim().slice(0, TEMPLATE_FIELD_LIMITS.name);
+}
