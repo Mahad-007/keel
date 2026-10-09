@@ -127,6 +127,15 @@ describe("writeTemplateFromProject", () => {
     expect(state.formError).toBe(SAVE_PROBLEMS.missingProject);
   });
 
+  it("names the bad line when an estimate is below zero", async () => {
+    captured.mockResolvedValue({ ok: false, reason: "negative-estimate" });
+
+    const state = await save({ name: "Engine rewrite", description: "" });
+
+    expect(state.formError).toBe(SAVE_PROBLEMS.negativeEstimate);
+    expect(state.formError).not.toContain("try again");
+  });
+
   it("turns a driver error into a sentence rather than a crash", async () => {
     captured.mockRejectedValue(new Error("database is locked"));
 

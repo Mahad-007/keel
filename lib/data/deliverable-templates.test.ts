@@ -365,6 +365,24 @@ describe("saveTemplateFromProject", () => {
     expect(result).toEqual({ ok: false, reason: "no-such-project" });
   });
 
+  it("refuses a project holding an estimate below zero", async () => {
+    await addScope();
+    // Nothing in the app writes one; the column is a plain integer, so a row
+    // written by hand can hold it and the scope panel flags exactly this.
+    await db.run(
+      sql`update deliverables set estimated_minutes = -60 where title = 'Build'`,
+    );
+
+    const result = await saveTemplateFromProject(
+      projectId,
+      { name: "Website build" },
+      db,
+    );
+
+    expect(result).toEqual({ ok: false, reason: "negative-estimate" });
+    expect(await listDeliverableTemplates(db)).toEqual([]);
+  });
+
   it("captures only the project asked for", async () => {
     await addScope();
     const clientId = (await createClient({ name: "Other Co" }, db)).id;
