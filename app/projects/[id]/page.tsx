@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
+import { listDeliverableTemplates } from "@/lib/data/deliverable-templates";
 import { listDeliverables } from "@/lib/data/deliverables";
 import { listProjectStatusEvents } from "@/lib/data/project-status-events";
 import { getProjectWithClient } from "@/lib/data/projects";
@@ -70,6 +71,14 @@ export default async function ProjectPage({
   const deliverables =
     tab === "scope" ? await listDeliverables(project.id) : [];
 
+  /*
+    And for the templates on offer, which only the scope tab has a picker for.
+    Read beside the deliverables rather than inside the panel, so the page keeps
+    every query it makes in one place — and so the list the picker is built from
+    is the same list the write checks a submission against.
+  */
+  const templates = tab === "scope" ? await listDeliverableTemplates() : [];
+
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 font-sans">
       <ProjectHeader project={project} />
@@ -94,8 +103,10 @@ export default async function ProjectPage({
         ) : tab === "scope" ? (
           <ScopePanel
             projectId={project.id}
+            projectName={project.name}
             deliverables={deliverables}
             contractValueCents={project.contractValueCents}
+            templates={templates}
           />
         ) : (
           <UnbuiltTabPanel tab={tab} />

@@ -5,12 +5,21 @@ import {
   type AddDeliverableState,
 } from "@/lib/deliverables/form";
 
+import type { ApplyTemplateState } from "@/lib/templates/apply-form";
+import type { SaveTemplateState } from "@/lib/templates/form";
+import type { SummarisedTemplate } from "@/lib/templates/summary";
+
 import { writeNewDeliverable } from "./scope-writes";
+import {
+  writeAppliedTemplate,
+  writeTemplateFromProject,
+} from "./template-writes";
 
 import { AddDeliverableForm } from "./add-deliverable-form";
 import { DeliverableList } from "./deliverable-list";
 import { NoDeliverables } from "./scope-empty";
 import { ScopeSummaryPanel } from "./scope-summary";
+import { TemplateSection } from "./template-section";
 
 /**
  * The scope tab: what it adds up to, what was agreed, and the line where the
@@ -28,10 +37,14 @@ import { ScopeSummaryPanel } from "./scope-summary";
  */
 export function ScopePanel({
   projectId,
+  projectName,
   deliverables,
   contractValueCents,
+  templates,
 }: {
   projectId: string;
+  /** What the save-as-template form suggests calling the template. */
+  projectName: string;
   deliverables: readonly Deliverable[];
   /**
    * What the project was agreed for. The other half of the comparison the
@@ -39,6 +52,8 @@ export function ScopePanel({
    * these rows.
    */
   contractValueCents: number;
+  /** Every saved template, each with its size, for the picker to offer. */
+  templates: readonly SummarisedTemplate[];
 }) {
   /*
     The first line of a scope list is a different act from the fifth: one is
@@ -64,6 +79,29 @@ export function ScopePanel({
     return writeNewDeliverable(projectId, previous, formData);
   }
 
+  async function save(previous: SaveTemplateState, formData: FormData) {
+    "use server";
+    return writeTemplateFromProject(projectId, previous, formData);
+  }
+
+  /*
+    The ids the picker was built from, captured alongside the project so the
+    write can check the submitted one against the list this page actually
+    rendered. Derived here rather than inside the write, which would otherwise
+    have to re-read the table and check a submission against a list nobody saw.
+  */
+  const offeredTemplateIds = templates.map((template) => template.id);
+
+  async function apply(previous: ApplyTemplateState, formData: FormData) {
+    "use server";
+    return writeAppliedTemplate(
+      projectId,
+      offeredTemplateIds,
+      previous,
+      formData,
+    );
+  }
+
   const summary = summariseScope(deliverables, contractValueCents);
 
   return (
@@ -83,6 +121,13 @@ export function ScopePanel({
           initialState={INITIAL_ADD_DELIVERABLE_STATE}
         />
       </section>
+      <TemplateSection
+        projectName={projectName}
+        templates={templates}
+        scopeIsEmpty={empty}
+        apply={apply}
+        save={save}
+      />
     </>
   );
 }
