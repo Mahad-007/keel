@@ -59,3 +59,18 @@ export function templateSizeLabel(size: TemplateSize): string {
   if (size.unestimatedCount === 0) return `${count} · ${total}`;
   return `${count} · ${total}, ${size.unestimatedCount} not estimated`;
 }
+
+/**
+ * A template as a list or a picker needs it: what it is called, what it is
+ * for, and what it adds up to.
+ *
+ * The size is flattened onto the row rather than nested, because that is the
+ * shape a single query can return — the counts are aggregates over the lines,
+ * and a template list that read every line of every template to count them
+ * would read the whole table to render one `<select>`.
+ */
+export type SummarisedTemplate = TemplateSize & {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string | null;
+};
