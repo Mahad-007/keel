@@ -280,7 +280,8 @@ export async function saveTemplateFromProject(
 export type TemplateApplyReason =
   | "no-such-project"
   | "no-such-template"
-  | "empty-template";
+  | "empty-template"
+  | "unusable-template";
 
 /** The outcome of asking for a template to be added to a project's scope. */
 export type TemplateApplyResult =
@@ -330,6 +331,18 @@ export async function applyTemplateToProject(
       // there by hand. An apply that reported success and added nothing would
       // be worse than saying so.
       if (lines.length === 0) return { ok: false, reason: "empty-template" };
+
+      /*
+        Same guard as the capture, at the other end. A template line below zero
+        is a hand-written row — nothing saves one — and `createDeliverable`
+        would throw on it halfway through the loop below, which rolls the apply
+        back and tells the reader to try again. The template is the thing that
+        needs fixing, and the reader cannot see its lines from here, so the
+        answer has to say so.
+      */
+      if (negativeEstimateCount(lines) > 0) {
+        return { ok: false, reason: "unusable-template" };
+      }
 
       const deliverables: Deliverable[] = [];
       for (const line of lines) {

@@ -104,6 +104,7 @@ const APPLY_REASONS: Record<TemplateApplyReason, string> = {
   "no-such-project": APPLY_PROBLEMS.missingProject,
   "no-such-template": APPLY_PROBLEMS.missingTemplate,
   "empty-template": APPLY_PROBLEMS.emptyTemplate,
+  "unusable-template": APPLY_PROBLEMS.unusableTemplate,
 };
 
 /**

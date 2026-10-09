@@ -141,6 +141,8 @@ export const APPLY_PROBLEMS = {
     "That template has been deleted. Nothing was added — reload to see what is on offer now.",
   emptyTemplate:
     "That template has no deliverables on it, so there was nothing to add.",
+  unusableTemplate:
+    "A line on that template has an estimate below zero, so it cannot be applied. Nothing was added to this project — the template itself needs fixing.",
   failed:
     "Could not apply that template. Nothing was added to the scope list — try again.",
 } as const;
