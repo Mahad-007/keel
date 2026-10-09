@@ -37,3 +37,25 @@ export function templateSize(lines: readonly EstimatedLine[]): TemplateSize {
     unestimatedCount: unestimatedCount(lines),
   };
 }
+
+/**
+ * A template's size on one line, for the option that offers it.
+ *
+ * The count leads, because it is the thing a reader is choosing between, and
+ * the estimate follows it. A template with nothing sized says so instead of
+ * claiming `0m`, which is the same lie a zero estimate tells anywhere else in
+ * this app: no deliverable takes no time, so a zero is a missing number.
+ *
+ * A middle dot rather than a comma between the two, because both halves are
+ * already phrases with their own commas once there is something unsized to
+ * mention.
+ */
+export function templateSizeLabel(size: TemplateSize): string {
+  const count = deliverablesPhrase(size.lineCount);
+  if (size.lineCount === 0) return "empty";
+  if (size.unestimatedCount >= size.lineCount) return `${count} · not estimated`;
+
+  const total = formatMinutes(size.estimatedMinutes);
+  if (size.unestimatedCount === 0) return `${count} · ${total}`;
+  return `${count} · ${total}, ${size.unestimatedCount} not estimated`;
+}
