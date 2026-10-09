@@ -1,5 +1,7 @@
 import { readFields } from "@/lib/forms/form-data";
+import { collect, type ParseResult } from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
+import { optionalText, requiredText } from "@/lib/forms/text";
 
 /**
  * The form that saves a project's scope list as a template, from submitted
@@ -57,4 +59,40 @@ export const INITIAL_TEMPLATE_FORM_STATE: TemplateFormState =
 
 export function readTemplateFields(formData: FormData): TemplateFormFields {
   return readFields(formData, TEMPLATE_FIELD_NAMES);
+}
+
+/**
+ * What the form yields once both fields are good: exactly the two columns of
+ * a template row that a person decides.
+ */
+export type TemplateFormValue = {
+  readonly name: string;
+  readonly description: string | null;
+};
+
+/**
+ * The submitted form, checked.
+ *
+ * The name is required and the description is not, which is the opposite way
+ * round from how a template is usually described to somebody — "it's the one
+ * we use for retainers" is a description, not a name. It is required anyway,
+ * because the name is what the picker shows: a nameless template is an option
+ * nobody can pick deliberately.
+ */
+export function parseTemplateForm(
+  fields: TemplateFormFields,
+): ParseResult<TemplateFormValue, TemplateFieldName> {
+  const parsed = collect({
+    name: requiredText(fields.name, {
+      label: "Template name",
+      max: TEMPLATE_FIELD_LIMITS.name,
+    }),
+    description: optionalText(fields.description, {
+      label: "Description",
+      max: TEMPLATE_FIELD_LIMITS.description,
+    }),
+  });
+
+  if (!parsed.ok) return parsed;
+  return { ok: true, value: parsed.value };
 }
