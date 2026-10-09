@@ -52,6 +52,18 @@ export const TEMPLATE_FIELD_LIMITS = {
   description: 2000,
 } as const;
 
+/**
+ * Which form these fields belong to, for the ids they render under.
+ *
+ * The scope tab holds three forms at once and two of them ask for a
+ * "description", so the ids have to be namespaced or a label focuses the wrong
+ * box. It is a constant rather than a string typed into each component because
+ * the fields and the focus hook have to agree on it exactly: a form whose
+ * controls are scoped and whose hook is not puts the cursor in somebody else's
+ * textarea, which is worse than not moving it at all.
+ */
+export const TEMPLATE_FIELD_SCOPE = "template";
+
 export const EMPTY_TEMPLATE_FIELDS: TemplateFormFields = {
   name: "",
   description: "",

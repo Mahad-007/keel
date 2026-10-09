@@ -1,6 +1,7 @@
 import { TextAreaField, TextField } from "@/components/form";
 import {
   TEMPLATE_FIELD_LIMITS,
+  TEMPLATE_FIELD_SCOPE,
   type TemplateFormState,
 } from "@/lib/templates/form";
 
@@ -26,7 +27,7 @@ export function TemplateFields({ state }: { state: TemplateFormState }) {
         error={state.errors.name}
         defaultValue={state.fields.name}
         maxLength={TEMPLATE_FIELD_LIMITS.name}
-        scope="template"
+        scope={TEMPLATE_FIELD_SCOPE}
       />
       <TextAreaField
         name="description"
@@ -36,7 +37,7 @@ export function TemplateFields({ state }: { state: TemplateFormState }) {
         error={state.errors.description}
         defaultValue={state.fields.description}
         maxLength={TEMPLATE_FIELD_LIMITS.description}
-        scope="template"
+        scope={TEMPLATE_FIELD_SCOPE}
       />
     </>
   );

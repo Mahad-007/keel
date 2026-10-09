@@ -13,6 +13,7 @@ import {
   SAVE_NO_ANSWER,
   savedTemplateNotice,
   TEMPLATE_FIELD_NAMES,
+  TEMPLATE_FIELD_SCOPE,
   type SaveTemplateState,
 } from "@/lib/templates/form";
 
@@ -73,7 +74,13 @@ export function SaveTemplateForm({
 
   const [state, formAction] = useActionState(attempt, initialState);
 
-  useFirstErrorFocus(state, TEMPLATE_FIELD_NAMES);
+  /*
+    Scoped, because `TemplateFields` renders its ids under the same scope. The
+    cursor would otherwise stay on the button for a bad name, and for a bad
+    description it would land in the add-deliverable textarea at the bottom of
+    the page — under a message belonging to a different form.
+  */
+  useFirstErrorFocus(state, TEMPLATE_FIELD_NAMES, TEMPLATE_FIELD_SCOPE);
 
   return (
     <form action={formAction} noValidate className="mt-4 flex flex-col gap-4">
