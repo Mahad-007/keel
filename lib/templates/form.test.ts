@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  EMPTY_TEMPLATE_FIELDS,
+  failedSaveState,
+  initialSaveTemplateState,
   parseTemplateForm,
   readTemplateFields,
+  rejectedSaveState,
+  SAVE_PROBLEMS,
+  savedTemplateNotice,
+  savedTemplateState,
   suggestedTemplateName,
   TEMPLATE_FIELD_LIMITS,
 } from "./form";
@@ -125,5 +132,99 @@ describe("suggestedTemplateName", () => {
 
   it("suggests nothing for a project named only whitespace", () => {
     expect(suggestedTemplateName("   ")).toBe("");
+  });
+});
+
+describe("initialSaveTemplateState", () => {
+  it("opens with the project's name in the name box", () => {
+    const state = initialSaveTemplateState("Harbour Co — site rebuild");
+
+    expect(state.fields.name).toBe("Harbour Co — site rebuild");
+    expect(state.fields.description).toBe("");
+  });
+
+  it("opens with nothing saved and nothing wrong", () => {
+    const state = initialSaveTemplateState("Rebuild");
+
+    expect(state.saved).toBeNull();
+    expect(state.errors).toEqual({});
+    expect(state.formError).toBeNull();
+  });
+});
+
+describe("savedTemplateState", () => {
+  it("echoes the fields back and carries the saved template", () => {
+    const state = savedTemplateState(
+      { name: "Website build", description: "The usual." },
+      { id: "tpl_1", name: "Website build", lineCount: 4 },
+    );
+
+    expect(state.fields.name).toBe("Website build");
+    expect(state.saved).toEqual({
+      id: "tpl_1",
+      name: "Website build",
+      lineCount: 4,
+    });
+    expect(state.formError).toBeNull();
+  });
+});
+
+describe("rejectedSaveState", () => {
+  it("keeps what was typed and says nothing was saved", () => {
+    const state = rejectedSaveState(
+      { name: "", description: "The usual." },
+      { name: "Template name is required." },
+    );
+
+    expect(state.fields.description).toBe("The usual.");
+    expect(state.errors.name).toBe("Template name is required.");
+    expect(state.saved).toBeNull();
+  });
+});
+
+describe("failedSaveState", () => {
+  it("carries the problem and marks no field", () => {
+    const state = failedSaveState(
+      { name: "Website build", description: "" },
+      SAVE_PROBLEMS.emptyScope,
+    );
+
+    expect(state.formError).toBe(SAVE_PROBLEMS.emptyScope);
+    expect(state.errors).toEqual({});
+    expect(state.saved).toBeNull();
+  });
+});
+
+describe("savedTemplateNotice", () => {
+  it("names the template and counts the lines", () => {
+    const notice = savedTemplateNotice(
+      savedTemplateState(EMPTY_TEMPLATE_FIELDS, {
+        id: "tpl_1",
+        name: "Website build",
+        lineCount: 4,
+      }),
+    );
+
+    expect(notice).toBe(
+      "Saved “Website build” as a template, with 4 deliverables on it.",
+    );
+  });
+
+  it("agrees the noun with a template of one line", () => {
+    const notice = savedTemplateNotice(
+      savedTemplateState(EMPTY_TEMPLATE_FIELDS, {
+        id: "tpl_1",
+        name: "Retainer month",
+        lineCount: 1,
+      }),
+    );
+
+    expect(notice).toBe(
+      "Saved “Retainer month” as a template, with one deliverable on it.",
+    );
+  });
+
+  it("has nothing to say before anything is saved", () => {
+    expect(savedTemplateNotice(initialSaveTemplateState("Rebuild"))).toBeNull();
   });
 });
