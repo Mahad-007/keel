@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  APPLY_PROBLEMS,
+  appliedTemplateNotice,
+  appliedTemplateState,
+  failedApplyState,
+  INITIAL_APPLY_TEMPLATE_STATE,
   parseApplyTemplateForm,
   readApplyFields,
+  rejectedApplyState,
 } from "./apply-form";
 
 const OFFERED = ["tpl_web", "tpl_ret"];
@@ -45,5 +51,79 @@ describe("readApplyFields", () => {
 
   it("reads a picker the browser never sent as blank", () => {
     expect(readApplyFields(new FormData())).toEqual({ template: "" });
+  });
+});
+
+describe("appliedTemplateState", () => {
+  it("carries what landed and puts the picker back on its placeholder", () => {
+    const state = appliedTemplateState({
+      id: "tpl_web",
+      name: "Website build",
+      lineCount: 5,
+    });
+
+    expect(state.applied?.lineCount).toBe(5);
+    expect(state.fields.template).toBe("");
+    expect(state.formError).toBeNull();
+  });
+});
+
+describe("rejectedApplyState", () => {
+  it("keeps the picked value and marks the field", () => {
+    const state = rejectedApplyState(
+      { template: "tpl_gone" },
+      { template: "That template is no longer on the list." },
+    );
+
+    expect(state.fields.template).toBe("tpl_gone");
+    expect(state.errors.template).toContain("no longer on the list");
+    expect(state.applied).toBeNull();
+  });
+});
+
+describe("failedApplyState", () => {
+  it("carries the problem and applies nothing", () => {
+    const state = failedApplyState(
+      { template: "tpl_web" },
+      APPLY_PROBLEMS.missingTemplate,
+    );
+
+    expect(state.formError).toBe(APPLY_PROBLEMS.missingTemplate);
+    expect(state.errors).toEqual({});
+    expect(state.applied).toBeNull();
+  });
+});
+
+describe("appliedTemplateNotice", () => {
+  it("names the template, the count, and where the lines went", () => {
+    const notice = appliedTemplateNotice(
+      appliedTemplateState({
+        id: "tpl_web",
+        name: "Website build",
+        lineCount: 5,
+      }),
+    );
+
+    expect(notice).toBe(
+      "Added 5 deliverables from “Website build” to the end of the scope list.",
+    );
+  });
+
+  it("agrees the noun with a template of one line", () => {
+    const notice = appliedTemplateNotice(
+      appliedTemplateState({
+        id: "tpl_one",
+        name: "Kickoff",
+        lineCount: 1,
+      }),
+    );
+
+    expect(notice).toBe(
+      "Added one deliverable from “Kickoff” to the end of the scope list.",
+    );
+  });
+
+  it("has nothing to say before anything is applied", () => {
+    expect(appliedTemplateNotice(INITIAL_APPLY_TEMPLATE_STATE)).toBeNull();
   });
 });
