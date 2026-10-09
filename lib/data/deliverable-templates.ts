@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, count, eq, sql } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import {
@@ -9,6 +9,7 @@ import {
 } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
 import type { TemplateLineDraft } from "@/lib/templates/capture";
+import type { SummarisedTemplate } from "@/lib/templates/summary";
 
 import { optionalText, requiredText, wholeMinutes } from "./fields";
 
@@ -131,4 +132,49 @@ export async function listTemplateLines(
     .from(deliverableTemplateLines)
     .where(eq(deliverableTemplateLines.templateId, templateId))
     .orderBy(...IN_ORDER);
+}
+
+/**
+ * Every template, each with what it adds up to, ordered the way a person
+ * reads a list: by name.
+ *
+ * One query with the counts done in SQL, rather than a list of templates
+ * followed by a read of each one's lines. A picker with twelve templates on it
+ * is one line of text per template, and reading sixty rows to render twelve
+ * labels is the kind of thing that is invisible until the table is a year old.
+ *
+ * A left join, so a template with no lines still appears. Nothing writes one —
+ * `createDeliverableTemplate` refuses — but an inner join would make such a
+ * row vanish from every list in the app rather than show up as the `empty`
+ * label the size words already have for it, and a row nothing can see is a row
+ * nobody can fix.
+ *
+ * `lower(name)` for the same reason the client list uses it: a reader scanning
+ * for "Website build" does not expect it filed after "retainer" because of a
+ * capital letter. The id breaks ties, because two templates are allowed to
+ * share a name and a list that reorders itself between reloads is a list
+ * nobody trusts.
+ */
+export async function listDeliverableTemplates(
+  database: Database = db,
+): Promise<SummarisedTemplate[]> {
+  return database
+    .select({
+      id: deliverableTemplates.id,
+      name: deliverableTemplates.name,
+      description: deliverableTemplates.description,
+      lineCount: count(deliverableTemplateLines.id),
+      // `coalesce` on both aggregates, because a left join with no match
+      // sums over no rows at all and SQLite answers NULL — which would reach
+      // the summary as a missing number rather than as a zero.
+      estimatedMinutes: sql<number>`coalesce(sum(${deliverableTemplateLines.estimatedMinutes}), 0)`,
+      unestimatedCount: sql<number>`coalesce(sum(case when ${deliverableTemplateLines.estimatedMinutes} = 0 then 1 else 0 end), 0)`,
+    })
+    .from(deliverableTemplates)
+    .leftJoin(
+      deliverableTemplateLines,
+      eq(deliverableTemplateLines.templateId, deliverableTemplates.id),
+    )
+    .groupBy(deliverableTemplates.id)
+    .orderBy(sql`lower(${deliverableTemplates.name})`, asc(deliverableTemplates.id));
 }
