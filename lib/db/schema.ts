@@ -183,3 +183,35 @@ export const deliverables = sqliteTable(
 
 export type Deliverable = typeof deliverables.$inferSelect;
 export type NewDeliverable = typeof deliverables.$inferInsert;
+
+/**
+ * A saved set of deliverables, reusable as the starting scope of a project.
+ *
+ * Agencies and freelancers do the same engagement repeatedly — a brand
+ * refresh, a site build, a retainer month — and the scope list is the part
+ * that barely changes between them. Retyping it is how a line gets left off
+ * the fourth one, and the line left off is the one nobody is paid for.
+ *
+ * The template is not attached to the project it was captured from, and there
+ * is deliberately no `sourceProjectId`. A template outlives the engagement it
+ * came from: the project gets closed, archived, eventually deleted, and the
+ * template is still the right starting point for the next one. A column
+ * pointing at a row that cascades away would make every read of this table
+ * either nullable or wrong, to record a fact nothing asks for.
+ *
+ * `name` is what the picker shows and the only thing that distinguishes two
+ * templates, which is why it is required where a deliverable's description is
+ * not. Nothing enforces uniqueness: "Website build" and "Website build" are a
+ * person's problem to name apart, and refusing the second one would refuse a
+ * genuine variant mid-save with nowhere to put the work.
+ */
+export const deliverableTemplates = sqliteTable("deliverable_templates", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  /** What the template is for, when the name does not say it. NULL if it does. */
+  description: text("description"),
+  ...timestamps,
+});
+
+export type DeliverableTemplate = typeof deliverableTemplates.$inferSelect;
+export type NewDeliverableTemplate = typeof deliverableTemplates.$inferInsert;
