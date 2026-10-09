@@ -4,11 +4,15 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 
+import { createClient } from "./clients";
+import { createDeliverable } from "./deliverables";
+import { createProject } from "./projects";
 import {
   createDeliverableTemplate,
   getDeliverableTemplate,
   listDeliverableTemplates,
   listTemplateLines,
+  saveTemplateFromProject,
 } from "./deliverable-templates";
 
 let db: Database;
@@ -253,5 +257,127 @@ describe("listDeliverableTemplates", () => {
     expect(summary.lineCount).toBe(0);
     expect(summary.estimatedMinutes).toBe(0);
     expect(summary.unestimatedCount).toBe(0);
+  });
+});
+
+describe("saveTemplateFromProject", () => {
+  let projectId: string;
+
+  beforeEach(async () => {
+    const clientId = (await createClient({ name: "Anvil Co" }, db)).id;
+    projectId = (await createProject({ clientId, name: "Rebuild" }, db)).id;
+  });
+
+  async function addScope() {
+    await createDeliverable(
+      {
+        projectId,
+        title: "Discovery",
+        description: "Two workshops.",
+        estimatedMinutes: 480,
+      },
+      db,
+    );
+    await createDeliverable(
+      { projectId, title: "Build", estimatedMinutes: 2_400, status: "started" },
+      db,
+    );
+    await createDeliverable({ projectId, title: "Handover" }, db);
+  }
+
+  it("captures every line of the project's scope, in order", async () => {
+    await addScope();
+
+    const result = await saveTemplateFromProject(
+      projectId,
+      { name: "Website build" },
+      db,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.lineCount).toBe(3);
+
+    const lines = await listTemplateLines(result.template.id, db);
+    expect(lines.map((line) => line.title)).toEqual([
+      "Discovery",
+      "Build",
+      "Handover",
+    ]);
+    expect(lines.map((line) => line.sortOrder)).toEqual([0, 1, 2]);
+  });
+
+  it("carries the detail and the estimates across", async () => {
+    await addScope();
+
+    const result = await saveTemplateFromProject(
+      projectId,
+      { name: "Website build", description: "The usual three." },
+      db,
+    );
+    if (!result.ok) throw new Error("expected the template to be saved");
+
+    expect(result.template.name).toBe("Website build");
+    expect(result.template.description).toBe("The usual three.");
+
+    const lines = await listTemplateLines(result.template.id, db);
+    expect(lines[0].description).toBe("Two workshops.");
+    expect(lines.map((line) => line.estimatedMinutes)).toEqual([480, 2_400, 0]);
+  });
+
+  it("leaves a started line's status behind", async () => {
+    await addScope();
+
+    const result = await saveTemplateFromProject(
+      projectId,
+      { name: "Website build" },
+      db,
+    );
+    if (!result.ok) throw new Error("expected the template to be saved");
+
+    const lines = await listTemplateLines(result.template.id, db);
+    expect(lines.map((line) => Object.keys(line).includes("status"))).toEqual([
+      false,
+      false,
+      false,
+    ]);
+  });
+
+  it("refuses a project with nothing agreed yet", async () => {
+    const result = await saveTemplateFromProject(
+      projectId,
+      { name: "Website build" },
+      db,
+    );
+
+    expect(result).toEqual({ ok: false, reason: "empty-scope" });
+    expect(await listDeliverableTemplates(db)).toEqual([]);
+  });
+
+  it("refuses a project that does not exist", async () => {
+    const result = await saveTemplateFromProject(
+      "prj_nope",
+      { name: "Website build" },
+      db,
+    );
+
+    expect(result).toEqual({ ok: false, reason: "no-such-project" });
+  });
+
+  it("captures only the project asked for", async () => {
+    await addScope();
+    const clientId = (await createClient({ name: "Other Co" }, db)).id;
+    const other = (await createProject({ clientId, name: "Other" }, db)).id;
+    await createDeliverable({ projectId: other, title: "Not this one" }, db);
+
+    const result = await saveTemplateFromProject(
+      projectId,
+      { name: "Website build" },
+      db,
+    );
+    if (!result.ok) throw new Error("expected the template to be saved");
+
+    const lines = await listTemplateLines(result.template.id, db);
+    expect(lines.map((line) => line.title)).not.toContain("Not this one");
   });
 });
