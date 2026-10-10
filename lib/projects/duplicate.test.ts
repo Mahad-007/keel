@@ -47,3 +47,47 @@ describe("copiedProject", () => {
     expect(copy.rateCents).toBe(0);
   });
 });
+
+/**
+ * The half of this function nobody can see by reading a duplicate: the
+ * columns that stayed behind. A copy that quietly carried `startedAt` would
+ * look right on every page in the app and be wrong in the only place it
+ * matters — a draft claiming it began in March.
+ */
+describe("copiedProject", () => {
+  it("carries nothing beyond the four fields a new project is made of", () => {
+    expect(Object.keys(copiedProject(SOURCE, "Copy")).sort()).toEqual([
+      "clientId",
+      "contractValueCents",
+      "name",
+      "rateCents",
+    ]);
+  });
+
+  it("names no status, so the copy opens as a draft", () => {
+    const copy: Record<string, unknown> = copiedProject(SOURCE, "Copy");
+
+    expect(copy).not.toHaveProperty("status");
+  });
+
+  it("leaves the lifecycle dates of the source behind", () => {
+    // The row as the database hands it over: a project that ran from March to
+    // August, with the two columns the copy must not inherit.
+    const ran = {
+      ...SOURCE,
+      startedAt: "2026-03-01",
+      closedAt: "2026-08-31",
+    };
+    const copy: Record<string, unknown> = copiedProject(ran, "Copy");
+
+    expect(copy).not.toHaveProperty("startedAt");
+    expect(copy).not.toHaveProperty("closedAt");
+  });
+
+  it("does not carry the source's own id", () => {
+    const row = { ...SOURCE, id: "prj_source" };
+    const copy: Record<string, unknown> = copiedProject(row, "Copy");
+
+    expect(copy).not.toHaveProperty("id");
+  });
+});
