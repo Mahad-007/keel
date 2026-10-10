@@ -1,5 +1,7 @@
 import { readFields } from "@/lib/forms/form-data";
+import { collect, type ParseResult } from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
+import { requiredText } from "@/lib/forms/text";
 
 import { PROJECT_FIELD_LIMITS } from "./form";
 
@@ -97,4 +99,36 @@ export function initialDuplicateState(projectName: string): DuplicateFormState {
     ...EMPTY_DUPLICATE_FIELDS,
     name: suggestedDuplicateName(projectName),
   });
+}
+
+/** What the form yields once the name is good: the only thing it asks for. */
+export type DuplicateFormValue = {
+  readonly name: string;
+};
+
+/**
+ * The submitted form, checked.
+ *
+ * The name is required even though the box opens prefilled, because a reader
+ * who clears it has said something: a copy with no name is not what they were
+ * reaching for. Blank is the one answer this form cannot act on — the copy has
+ * to be findable in a list afterwards — so it comes back as a message rather
+ * than quietly falling back to the suggestion.
+ *
+ * The same ceiling as the project form's own name field, taken from it rather
+ * than restated: this writes to that column, and two numbers for one limit is
+ * one of them being wrong.
+ */
+export function parseDuplicateForm(
+  fields: DuplicateFormFields,
+): ParseResult<DuplicateFormValue, DuplicateFieldName> {
+  const parsed = collect({
+    name: requiredText(fields.name, {
+      label: "Name",
+      max: PROJECT_FIELD_LIMITS.name,
+    }),
+  });
+
+  if (!parsed.ok) return parsed;
+  return { ok: true, value: { name: parsed.value.name } };
 }
