@@ -19,6 +19,7 @@ import {
 import {
   copiedDeliverables,
   copiedProject,
+  uncopyableLineCount,
 } from "@/lib/projects/duplicate";
 import {
   checkTransition,
@@ -508,7 +509,10 @@ export async function transitionProject(
  * rendered — and the words belong to the form, which already has them for the
  * reader. The same arrangement as the template capture, for the same reason.
  */
-export type DuplicateProjectReason = "no-such-project" | "negative-estimate";
+export type DuplicateProjectReason =
+  | "no-such-project"
+  | "negative-estimate"
+  | "unusable-scope";
 
 /** What duplicating a project asks the person for: what to call the copy. */
 export type DuplicateProjectInput = {
@@ -575,6 +579,18 @@ export async function duplicateProject(
       */
       if (negativeEstimateCount(scope) > 0) {
         return { ok: false, reason: "negative-estimate" };
+      }
+
+      /*
+        The rest of what the columns refuse: a title of nothing but space, an
+        estimate that is not a whole number of minutes. Hand-written rows
+        again, and `createDeliverable` would throw on one part-way through the
+        loop below — same rollback, same useless "try again". The scope summary
+        does not flag these, so the sentence for them has to say the scope list
+        is where to look.
+      */
+      if (uncopyableLineCount(scope) > 0) {
+        return { ok: false, reason: "unusable-scope" };
       }
 
       const project = await createProject(

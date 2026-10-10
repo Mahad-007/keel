@@ -136,17 +136,20 @@ export function parseDuplicateForm(
 /**
  * The things that can stop a copy that the form itself cannot see.
  *
- * Both of them are reachable from a page that was correct when it rendered:
- * the project can be deleted while this form sits open, and a line of its
- * scope can be edited into a state no copy can carry. The sentences say what
- * to do about it rather than only what went wrong, because in both cases
- * there is something to do.
+ * Every one of them is reachable from a page that was correct when it
+ * rendered: the project can be deleted while this form sits open, and a line
+ * of its scope can be edited into a state no copy can carry. The sentences say
+ * what to do about it rather than only what went wrong, because in each case
+ * there is something to do — and none of the three is fixed by pressing the
+ * button again, so none of them says to.
  */
 export const DUPLICATE_PROBLEMS = {
   missingProject:
     "That project no longer exists, so there is nothing to copy. Nothing was written.",
   negativeEstimate:
     "A deliverable on this project has an estimate below zero, which a copy cannot carry. Nothing was copied — the scope tab names the lines to fix.",
+  unusableScope:
+    "A deliverable on this project cannot be copied — a line with no title, or an estimate that is not a whole number of minutes. Nothing was copied; the scope tab is where to find it.",
   failed: "Could not copy that project. Nothing was written — try again.",
 } as const;
 
