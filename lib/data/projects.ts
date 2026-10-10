@@ -1,7 +1,12 @@
 import { asc, count, desc, eq, getTableColumns } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
-import { clients, projects, type Project } from "@/lib/db/schema";
+import {
+  clients,
+  projects,
+  type Deliverable,
+  type Project,
+} from "@/lib/db/schema";
 import { newId } from "@/lib/id";
 import { lifecycleStamps } from "@/lib/projects/lifecycle";
 import { DEFAULT_PROJECT_SORT, type ProjectSort } from "@/lib/projects/sort";
@@ -488,3 +493,29 @@ export async function transitionProject(
     { behavior: "immediate" },
   );
 }
+
+/**
+ * Why a project was not duplicated.
+ *
+ * A code rather than a thrown error, and rather than a sentence: neither of
+ * these is a bug — both are reachable from a page that was right when it
+ * rendered — and the words belong to the form, which already has them for the
+ * reader. The same arrangement as the template capture, for the same reason.
+ */
+export type DuplicateProjectReason = "no-such-project" | "negative-estimate";
+
+/** What duplicating a project asks the person for: what to call the copy. */
+export type DuplicateProjectInput = {
+  name: string;
+};
+
+/** The outcome of asking for a copy of a project. */
+export type DuplicateProjectResult =
+  | {
+      readonly ok: true;
+      /** The project as written, which is where the reader is sent next. */
+      readonly project: Project;
+      /** The copied scope list, in the order it now reads on the copy. */
+      readonly deliverables: Deliverable[];
+    }
+  | { readonly ok: false; readonly reason: DuplicateProjectReason };
