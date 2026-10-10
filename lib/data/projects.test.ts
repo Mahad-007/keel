@@ -1645,3 +1645,25 @@ describe("duplicateProject on an unusable scope list", () => {
     expect(await listDeliverables(id, db)).toHaveLength(3);
   });
 });
+
+describe("duplicateProject with nothing agreed yet", () => {
+  it("copies a project with no scope list at all", async () => {
+    const project = await createProject({ clientId, name: "Scoping" }, db);
+
+    const result = await duplicateProject(project.id, { name: "Copy" }, db);
+
+    expect(result.ok && result.deliverables).toEqual([]);
+    expect(result.ok && result.project.name).toBe("Copy");
+  });
+
+  it("refuses a copy nobody named, writing nothing", async () => {
+    const id = await source();
+
+    // The form will not submit a blank name; `createProject` is the backstop,
+    // and the transaction is what makes a thrown name error leave no half-copy.
+    await expect(duplicateProject(id, { name: "  " }, db)).rejects.toThrow(
+      /project name/,
+    );
+    expect((await listProjects(db)).map((row) => row.id)).toEqual([id]);
+  });
+});
