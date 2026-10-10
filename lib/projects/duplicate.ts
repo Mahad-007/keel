@@ -7,16 +7,19 @@
  * person does not want to decide twice: who it is for, what it is worth, what
  * it bills at, and the scope list that was argued over.
  *
- * The interesting part is not the copying, it is the deciding, so the decision
- * is made once, here, as pure functions over plain fields. The words a reader
- * sees about it live with the form, in `duplicate-form.ts`; this module is
- * only the choice of what crosses over. A project row has
- * columns describing the agreement and columns recording what happened to it,
- * and a duplicate that carried the second kind would open claiming a history
- * it does not have. Nothing below touches a database, so what does and does
- * not cross over is testable on its own — which is the point, because "it
+ * The interesting part is not the copying, it is the deciding. A project row
+ * has columns describing the agreement and columns recording what happened to
+ * it, and a duplicate that carried the second kind would open claiming a
+ * history it does not have. So the decision is made once, here, as pure
+ * functions over plain fields: nothing below touches a database, which is what
+ * makes "what crosses over" testable on its own — the point being that "it
  * copied the wrong thing" is a bug nobody notices until a duplicate is being
  * invoiced.
+ *
+ * Only the decision lives here. The words a reader sees about it are in
+ * `duplicate-form.ts` with the rest of that form's sentences, and whether a
+ * stored row can be written again at all is `scopeCopyProblem`'s question, in
+ * the data module that owns the columns it would be written to.
  */
 
 /**
