@@ -78,20 +78,13 @@ export function copiedProject(
 }
 
 /**
- * What duplicating reads off each line of the source project's scope.
+ * One line of a scope list as it crosses over: what duplicating reads off the
+ * source row, and exactly what it writes to the copy.
  *
- * The same three fields a template line is captured from, and a subset of the
- * row for the same reason: these are the columns that describe the work rather
- * than the engagement it was agreed for.
- */
-export type DuplicableDeliverable = {
-  title: string;
-  description: string | null;
-  estimatedMinutes: number;
-};
-
-/**
- * One line of the copied scope list, as it is about to be written.
+ * One type for both ends, because the two are the same three fields — a
+ * structural subset of the row, the same way `CapturedDeliverable` is, so a
+ * test can hand over three fields without inventing an id, a status and a
+ * position to go with them.
  *
  * `status` is absent, which is the deliberate part. A duplicate is the next
  * engagement, not a report on the last one: a copy of a project with four
@@ -126,7 +119,7 @@ export type DeliverableCopy = {
  * smaller than the project it came from.
  */
 export function copiedDeliverables(
-  deliverables: readonly DuplicableDeliverable[],
+  deliverables: readonly DeliverableCopy[],
 ): DeliverableCopy[] {
   return deliverables.map((deliverable) => ({
     title: deliverable.title,
