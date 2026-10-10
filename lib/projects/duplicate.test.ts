@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { copiedProject } from "./duplicate";
+import { copiedDeliverables, copiedProject } from "./duplicate";
 
 /**
  * A project worth copying: filed under a client, agreed at a figure, billing
@@ -54,7 +54,7 @@ describe("copiedProject", () => {
  * look right on every page in the app and be wrong in the only place it
  * matters — a draft claiming it began in March.
  */
-describe("copiedProject", () => {
+describe("copiedProject, on what it leaves behind", () => {
   it("carries nothing beyond the four fields a new project is made of", () => {
     expect(Object.keys(copiedProject(SOURCE, "Copy")).sort()).toEqual([
       "clientId",
@@ -89,5 +89,43 @@ describe("copiedProject", () => {
     const copy: Record<string, unknown> = copiedProject(row, "Copy");
 
     expect(copy).not.toHaveProperty("id");
+  });
+});
+
+/** A scope list with the three shapes a real one has: detailed, bare, unestimated. */
+const SCOPE = [
+  { title: "Discovery", description: "Two workshops.", estimatedMinutes: 480 },
+  { title: "Build", description: null, estimatedMinutes: 2_400 },
+  { title: "Handover", description: "Training day.", estimatedMinutes: 0 },
+];
+
+describe("copiedDeliverables", () => {
+  it("copies every line, in the order they were agreed", () => {
+    expect(copiedDeliverables(SCOPE).map((line) => line.title)).toEqual([
+      "Discovery",
+      "Build",
+      "Handover",
+    ]);
+  });
+
+  it("carries the detail behind each title", () => {
+    const [discovery, build] = copiedDeliverables(SCOPE);
+
+    expect(discovery.description).toBe("Two workshops.");
+    expect(build.description).toBeNull();
+  });
+
+  it("carries each estimate as it stands", () => {
+    expect(
+      copiedDeliverables(SCOPE).map((line) => line.estimatedMinutes),
+    ).toEqual([480, 2_400, 0]);
+  });
+
+  it("keeps an unestimated line rather than dropping it", () => {
+    expect(copiedDeliverables(SCOPE)).toHaveLength(3);
+  });
+
+  it("copies nothing from a project with no scope agreed", () => {
+    expect(copiedDeliverables([])).toEqual([]);
   });
 });
