@@ -44,8 +44,6 @@ export type DuplicateFormFields = Record<DuplicateFieldName, string>;
  */
 export const DUPLICATE_FIELD_SCOPE = "duplicate";
 
-export const EMPTY_DUPLICATE_FIELDS: DuplicateFormFields = { name: "" };
-
 export type DuplicateFormState = FormState<DuplicateFieldName>;
 
 export function readDuplicateFields(formData: FormData): DuplicateFormFields {
@@ -96,10 +94,7 @@ export function suggestedDuplicateName(projectName: string): string {
  * reason: a `"use server"` module may only export async functions.
  */
 export function initialDuplicateState(projectName: string): DuplicateFormState {
-  return initialFormState({
-    ...EMPTY_DUPLICATE_FIELDS,
-    name: suggestedDuplicateName(projectName),
-  });
+  return initialFormState({ name: suggestedDuplicateName(projectName) });
 }
 
 /** What the form yields once the name is good: the only thing it asks for. */
@@ -183,11 +178,10 @@ export const DUPLICATE_NO_ANSWER =
  * here either.
  */
 export function describeWhatIsCopied(deliverableCount: number): string {
-  const carried =
-    deliverableCount === 0
-      ? "and the rate it bills at. This project has no deliverables yet, so the copy starts with an empty scope list."
-      : `the rate it bills at, and all ${deliverablesPhrase(deliverableCount)} on the scope list.`;
-  return `The copy is filed under the same client, for the same contract value, ${carried}`;
+  if (deliverableCount === 0) {
+    return "The copy is filed under the same client, for the same contract value, and the rate it bills at. This project has no deliverables yet, so the copy starts with an empty scope list.";
+  }
+  return `The copy is filed under the same client, for the same contract value, the rate it bills at, and all ${deliverablesPhrase(deliverableCount)} on the scope list.`;
 }
 
 /**
