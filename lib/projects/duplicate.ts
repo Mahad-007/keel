@@ -112,3 +112,23 @@ export type DeliverableCopy = {
   readonly description: string | null;
   readonly estimatedMinutes: number;
 };
+
+/**
+ * The source project's scope list as the lines of its copy.
+ *
+ * The order is preserved exactly: a scope list is read in the sequence the two
+ * parties agreed it in, and a copy that shuffled it would be a different
+ * agreement to argue about. Nothing is filtered either — an unestimated line
+ * copies as a zero, because a line nobody has estimated is still part of the
+ * shape of the engagement, and leaving it out would make the copy quietly
+ * smaller than the project it came from.
+ */
+export function copiedDeliverables(
+  deliverables: readonly DuplicableDeliverable[],
+): DeliverableCopy[] {
+  return deliverables.map((deliverable) => ({
+    title: deliverable.title,
+    description: deliverable.description,
+    estimatedMinutes: deliverable.estimatedMinutes,
+  }));
+}
