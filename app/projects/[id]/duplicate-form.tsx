@@ -1,5 +1,6 @@
 "use client";
 
+import { unstable_rethrow } from "next/navigation";
 import { useActionState } from "react";
 
 import {
@@ -57,6 +58,13 @@ export function DuplicateForm({
     mid-request and an aborted request all reject, and the project is captured
     by an encrypted closure, so a page left open across a deploy that rotated
     the key rejects too.
+
+    A successful copy rejects as well, which is the trap here: `redirect`
+    signals by throwing, and the dispatch hands that rejection on. Catching it
+    as a failure would tell somebody their copy may not have been made while
+    the browser was on its way to it. `unstable_rethrow` puts every one of
+    Next's own control-flow errors back, so only a genuine failure to get an
+    answer reaches the sentence below.
   */
   async function attempt(
     previous: DuplicateFormState,
@@ -65,6 +73,7 @@ export function DuplicateForm({
     try {
       return await duplicate(previous, formData);
     } catch (error) {
+      unstable_rethrow(error);
       // Nothing a reader can act on beyond checking the list, but worth a line
       // in the console for whoever is looking into why copies are failing.
       console.error("duplicate project: the server never answered", error);
