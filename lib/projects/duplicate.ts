@@ -17,6 +17,8 @@
  * invoiced.
  */
 
+import { deliverablesPhrase } from "./scope-summary";
+
 /**
  * What duplicating reads off the project row.
  *
@@ -132,3 +134,38 @@ export function copiedDeliverables(
     estimatedMinutes: deliverable.estimatedMinutes,
   }));
 }
+
+/**
+ * What pressing the button will copy, in words, for the project in front of
+ * the reader.
+ *
+ * The count is the load-bearing part. "Copies the deliverables" is a promise
+ * about a list the reader may not have looked at in a month, and the whole
+ * risk of duplication is finding out afterwards that it brought over more or
+ * fewer lines than you had in mind. A number in the sentence is checkable
+ * against the scope tab before anything is written.
+ *
+ * It names the three project columns explicitly rather than saying "the
+ * details", because one of them — the rate override — is the fact a copy is
+ * most likely to be quietly wrong about, and the reader cannot see it from
+ * here either.
+ */
+export function describeWhatIsCopied(deliverableCount: number): string {
+  const carried =
+    deliverableCount === 0
+      ? "and the rate it bills at. This project has no deliverables yet, so the copy starts with an empty scope list."
+      : `the rate it bills at, and all ${deliverablesPhrase(deliverableCount)} on the scope list.`;
+  return `The copy is filed under the same client, for the same contract value, ${carried}`;
+}
+
+/**
+ * What pressing the button will not copy.
+ *
+ * A constant, because it does not depend on the project: nothing recording
+ * what happened to an engagement crosses over, whatever happened. It is worth
+ * saying out loud rather than leaving to be discovered — a reader who assumes
+ * the copy is a snapshot would look at a draft with an empty history and
+ * conclude the duplicate failed.
+ */
+export const DUPLICATE_LEAVES_BEHIND =
+  "Nothing recording what happened to this project comes with it. The copy opens as a draft with its own history and no dates on it, and every deliverable on it starts as pending — so the copy is the work as it was agreed, not the work as it has gone.";
