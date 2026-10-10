@@ -1618,3 +1618,30 @@ describe("duplicateProject on a project that is not there", () => {
     expect(await listProjects(db)).toEqual([]);
   });
 });
+
+describe("duplicateProject on an unusable scope list", () => {
+  it("refuses a project holding an estimate below zero", async () => {
+    const id = await source();
+    // Nothing in the app writes one; the column is a plain integer, so a row
+    // written by hand can hold it and the scope panel flags exactly this.
+    await db.run(
+      sql`update deliverables set estimated_minutes = -60 where title = 'Build'`,
+    );
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(result).toEqual({ ok: false, reason: "negative-estimate" });
+  });
+
+  it("writes neither the project nor a line of it", async () => {
+    const id = await source();
+    await db.run(
+      sql`update deliverables set estimated_minutes = -60 where title = 'Build'`,
+    );
+
+    await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect((await listProjects(db)).map((row) => row.id)).toEqual([id]);
+    expect(await listDeliverables(id, db)).toHaveLength(3);
+  });
+});
