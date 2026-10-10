@@ -17,10 +17,16 @@ import {
   type ProjectStatus,
 } from "@/lib/projects/status";
 import {
+  copiedDeliverables,
+  copiedProject,
+} from "@/lib/projects/duplicate";
+import {
   checkTransition,
   type TransitionProblem,
 } from "@/lib/projects/transitions";
+import { negativeEstimateCount } from "@/lib/scope";
 
+import { createDeliverable, listDeliverables } from "./deliverables";
 import {
   optionalCents,
   optionalText,
@@ -519,3 +525,72 @@ export type DuplicateProjectResult =
       readonly deliverables: Deliverable[];
     }
   | { readonly ok: false; readonly reason: DuplicateProjectReason };
+
+/**
+ * Starts a new project from an existing one and hands back both halves of
+ * what was written.
+ *
+ * Which columns cross over is `copiedProject`' and `copiedDeliverables`'
+ * decision rather than this function's: the agreement is copied and the record
+ * of what happened to it is not. What happens here is the writing, and the
+ * guarantee that it either all happened or none of it did.
+ *
+ * Every row goes through the door it would have come through anyway.
+ * `createProject` is what defaults the copy to a draft, derives its lifecycle
+ * dates and opens its own status trail; `createDeliverable` is what keeps the
+ * copied positions dense from zero and each line `pending`. A second insert
+ * path would be a second set of rules for the same two tables to drift from,
+ * and the cost — a handful of statements per line — is not worth a column of
+ * duplicated logic.
+ *
+ * One immediate transaction around the lot. Half a copy is the outcome worth
+ * ruling out: a project carrying four of its eight deliverables looks like a
+ * real engagement that was agreed smaller, and nothing about it says which
+ * four are missing. Immediate rather than deferred because the scope list is
+ * read before anything is written — a deferred transaction takes no write lock
+ * until the first insert, so a deliverable added in between would be missing
+ * from a copy that claims to be the project as it stands.
+ */
+export async function duplicateProject(
+  id: string,
+  input: DuplicateProjectInput,
+  database: Database = db,
+): Promise<DuplicateProjectResult> {
+  return database.transaction(
+    async (tx) => {
+      const source = await getProject(id, tx);
+      if (source === null) return { ok: false, reason: "no-such-project" };
+
+      const scope = await listDeliverables(id, tx);
+
+      /*
+        An estimate below zero is a row somebody wrote straight to the
+        database — the form refuses one — and `createDeliverable` would throw
+        on it part-way through the loop below, which rolls the copy back and
+        reaches the reader as "nothing was written, try again". Retrying cannot
+        fix a bad row, so it is an answer rather than an exception: the scope
+        panel is already flagging the line, and this says that is the thing to
+        go and fix. One spelling of the rule, shared with the panel that flags
+        it and with the template capture.
+      */
+      if (negativeEstimateCount(scope) > 0) {
+        return { ok: false, reason: "negative-estimate" };
+      }
+
+      const project = await createProject(
+        copiedProject(source, input.name),
+        tx,
+      );
+
+      const copied: Deliverable[] = [];
+      for (const line of copiedDeliverables(scope)) {
+        copied.push(
+          await createDeliverable({ projectId: project.id, ...line }, tx),
+        );
+      }
+
+      return { ok: true, project, deliverables: copied };
+    },
+    { behavior: "immediate" },
+  );
+}
