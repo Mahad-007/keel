@@ -48,3 +48,29 @@ export type ProjectCopy = {
   readonly contractValueCents: number;
   readonly rateCents: number | null;
 };
+
+/**
+ * The source project as the input for its copy.
+ *
+ * The name comes from the caller rather than from the source, because two
+ * projects for one client with identical names is the state this feature would
+ * otherwise create by default — and the thing that tells them apart in every
+ * list in the app is the name. `suggestedDuplicateName` is where the box the
+ * reader types it into gets its opening value.
+ *
+ * The rate override crosses over as it stands, null and zero included. Those
+ * two mean different things — "bill at the client's rate" against "this one
+ * does not bill by the hour" — and collapsing either into the other would
+ * quietly change what the copy is worth per hour.
+ */
+export function copiedProject(
+  project: DuplicableProject,
+  name: string,
+): ProjectCopy {
+  return {
+    clientId: project.clientId,
+    name,
+    contractValueCents: project.contractValueCents,
+    rateCents: project.rateCents,
+  };
+}
