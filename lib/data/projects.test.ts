@@ -1529,3 +1529,78 @@ describe("duplicateProject and the work already done", () => {
     );
   });
 });
+
+describe("duplicateProject and the lifecycle", () => {
+  it("opens the copy as a draft, however far the source has got", async () => {
+    const id = await source();
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(result.ok && result.project.status).toBe("draft");
+  });
+
+  it("opens a copy of a closed project as a draft too", async () => {
+    const project = await createProject(
+      { clientId, name: "Last year's rebuild", status: "closed" },
+      db,
+    );
+
+    const result = await duplicateProject(project.id, { name: "Copy" }, db);
+
+    expect(result.ok && result.project.status).toBe("draft");
+  });
+
+  it("gives the copy no start or close date of its own", async () => {
+    // Through the lifecycle rather than created closed, so the source has
+    // both stamps on it: a project that ran and then finished.
+    const project = await createProject(
+      { clientId, name: "Last year's rebuild", status: "active" },
+      db,
+    );
+    await transitionProject(project.id, "closed", {}, db);
+    const closed = await getProject(project.id, db);
+    expect(closed?.startedAt).not.toBeNull();
+    expect(closed?.closedAt).not.toBeNull();
+
+    const result = await duplicateProject(project.id, { name: "Copy" }, db);
+
+    expect(result.ok && result.project.startedAt).toBeNull();
+    expect(result.ok && result.project.closedAt).toBeNull();
+  });
+
+  it("starts the copy's status trail at its own creation", async () => {
+    const id = await source();
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+    const trail = result.ok
+      ? await listProjectStatusEvents(result.project.id, db)
+      : [];
+
+    expect(trail).toHaveLength(1);
+    expect(trail[0].fromStatus).toBeNull();
+    expect(trail[0].toStatus).toBe("draft");
+  });
+
+  it("copies none of the source's history onto the copy", async () => {
+    const id = await source();
+    await transitionProject(id, "paused", { reason: "Waiting on copy." }, db);
+    expect(await listProjectStatusEvents(id, db)).toHaveLength(2);
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+    const trail = result.ok
+      ? await listProjectStatusEvents(result.project.id, db)
+      : [];
+
+    expect(trail).toHaveLength(1);
+    expect(trail.map((event) => event.reason)).toEqual([null]);
+  });
+
+  it("leaves the source's trail untouched", async () => {
+    const id = await source();
+    const before = await listProjectStatusEvents(id, db);
+
+    await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(await listProjectStatusEvents(id, db)).toEqual(before);
+  });
+});
