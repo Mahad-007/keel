@@ -8,6 +8,7 @@ import { createClient } from "./clients";
 import {
   countDeliverables,
   createDeliverable,
+  scopeCopyProblem,
   deleteDeliverable,
   getDeliverable,
   listDeliverables,
@@ -256,6 +257,67 @@ describe("countDeliverables", () => {
     expect(await countDeliverables(projectId, db)).toBe(
       (await listDeliverables(projectId, db)).length,
     );
+  });
+});
+
+describe("scopeCopyProblem", () => {
+  /** A list the app itself could have written, which is the usual case. */
+  const GOOD = [
+    { title: "Discovery", estimatedMinutes: 480 },
+    { title: "Handover", estimatedMinutes: 0 },
+  ];
+
+  it("finds nothing wrong with a list the columns would accept", () => {
+    expect(scopeCopyProblem(GOOD)).toBeNull();
+  });
+
+  it("finds nothing wrong with a project that has agreed nothing", () => {
+    expect(scopeCopyProblem([])).toBeNull();
+  });
+
+  it("names the negative estimate, which the scope panel already flags", () => {
+    expect(
+      scopeCopyProblem([...GOOD, { title: "Build", estimatedMinutes: -60 }]),
+    ).toBe("negative-estimate");
+  });
+
+  it("names a line with no title left on it", () => {
+    expect(
+      scopeCopyProblem([...GOOD, { title: "   ", estimatedMinutes: 60 }]),
+    ).toBe("unusable-scope");
+  });
+
+  it("names an estimate that is not a whole number of minutes", () => {
+    expect(
+      scopeCopyProblem([...GOOD, { title: "Build", estimatedMinutes: 90.5 }]),
+    ).toBe("unusable-scope");
+  });
+
+  it("names an estimate too large to store exactly", () => {
+    expect(
+      scopeCopyProblem([
+        { title: "Build", estimatedMinutes: Number.MAX_SAFE_INTEGER + 2 },
+      ]),
+    ).toBe("unusable-scope");
+  });
+
+  it("reports the negative estimate first when a list has both faults", () => {
+    expect(
+      scopeCopyProblem([
+        { title: "", estimatedMinutes: 60 },
+        { title: "Build", estimatedMinutes: -60 },
+      ]),
+    ).toBe("negative-estimate");
+  });
+
+  it("accepts every line a created deliverable can hold", async () => {
+    await createDeliverable(
+      { projectId, title: "Discovery", estimatedMinutes: 480 },
+      db,
+    );
+    await createDeliverable({ projectId, title: "Handover" }, db);
+
+    expect(scopeCopyProblem(await listDeliverables(projectId, db))).toBeNull();
   });
 });
 
