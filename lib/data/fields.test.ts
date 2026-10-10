@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  isPresentText,
+  isWholeMinutes,
   optionalCents,
   optionalText,
   requiredText,
@@ -148,5 +150,63 @@ describe("wholeMinutes", () => {
     expect(() => wholeMinutes(Number.POSITIVE_INFINITY, "estimate")).toThrow(
       /whole minutes/,
     );
+  });
+});
+
+describe("isPresentText", () => {
+  it("accepts text with something in it", () => {
+    expect(isPresentText("Discovery")).toBe(true);
+  });
+
+  it("refuses blank and whitespace alike", () => {
+    expect(isPresentText("")).toBe(false);
+    expect(isPresentText("   ")).toBe(false);
+  });
+
+  it("agrees with the guard it is the condition of", () => {
+    for (const value of ["Discovery", " padded ", "", "  "]) {
+      const guarded = (() => {
+        try {
+          requiredText(value, "title");
+          return true;
+        } catch {
+          return false;
+        }
+      })();
+      expect(isPresentText(value)).toBe(guarded);
+    }
+  });
+});
+
+describe("isWholeMinutes", () => {
+  it("accepts whole minutes, zero included", () => {
+    expect(isWholeMinutes(0)).toBe(true);
+    expect(isWholeMinutes(480)).toBe(true);
+  });
+
+  it("refuses a fraction of a minute", () => {
+    expect(isWholeMinutes(90.5)).toBe(false);
+  });
+
+  it("refuses a duration below zero", () => {
+    expect(isWholeMinutes(-1)).toBe(false);
+  });
+
+  it("refuses a value too large to store exactly", () => {
+    expect(isWholeMinutes(Number.MAX_SAFE_INTEGER + 2)).toBe(false);
+  });
+
+  it("agrees with the guard it is the condition of", () => {
+    for (const value of [0, 480, -1, 90.5, Number.MAX_SAFE_INTEGER + 2]) {
+      const guarded = (() => {
+        try {
+          wholeMinutes(value, "estimate");
+          return true;
+        } catch {
+          return false;
+        }
+      })();
+      expect(isWholeMinutes(value)).toBe(guarded);
+    }
   });
 });

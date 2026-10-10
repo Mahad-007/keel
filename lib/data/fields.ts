@@ -9,13 +9,28 @@
  */
 
 /**
+ * Whether a value would satisfy `requiredText`, as an answer rather than an
+ * exception.
+ *
+ * The guards here throw because a bad value reaching them is a bug. That is
+ * the wrong shape for code asking *before* the write whether a stored row
+ * could be written again — copying a project's scope list, say, where a row
+ * somebody hand-edited is a situation to report rather than a bug to crash
+ * on. The predicate is the condition the guard throws on, so the two cannot
+ * drift: a caller that checks this and then writes cannot be refused by the
+ * column it just asked about.
+ */
+export function isPresentText(value: string): boolean {
+  return value.trim() !== "";
+}
+
+/**
  * A column that must hold something. Trims first, so a value of only spaces
  * counts as absent rather than being stored as whitespace.
  */
 export function requiredText(value: string, field: string): string {
-  const trimmed = value.trim();
-  if (trimmed === "") throw new Error(`${field} is required`);
-  return trimmed;
+  if (!isPresentText(value)) throw new Error(`${field} is required`);
+  return value.trim();
 }
 
 /**
@@ -80,4 +95,18 @@ export function wholeMinutes(value: number, field: string): number {
     throw new Error(`${field} cannot be negative, got ${value}`);
   }
   return value;
+}
+
+/**
+ * Whether a value would satisfy `wholeMinutes`, as an answer rather than an
+ * exception — the same arrangement as `isPresentText`, and for the same
+ * caller.
+ *
+ * Both halves of the guard in one predicate, because nothing asking the
+ * question cares which half a bad row failed: a duration that is fractional
+ * and one that is negative are equally unwritable, and the sentence shown for
+ * either names the row rather than the rule.
+ */
+export function isWholeMinutes(value: number): boolean {
+  return Number.isSafeInteger(value) && value >= 0;
 }
