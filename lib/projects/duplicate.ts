@@ -8,7 +8,9 @@
  * it bills at, and the scope list that was argued over.
  *
  * The interesting part is not the copying, it is the deciding, so the decision
- * is made once, here, as pure functions over plain fields. A project row has
+ * is made once, here, as pure functions over plain fields. The words a reader
+ * sees about it live with the form, in `duplicate-form.ts`; this module is
+ * only the choice of what crosses over. A project row has
  * columns describing the agreement and columns recording what happened to it,
  * and a duplicate that carried the second kind would open claiming a history
  * it does not have. Nothing below touches a database, so what does and does
@@ -16,8 +18,6 @@
  * copied the wrong thing" is a bug nobody notices until a duplicate is being
  * invoiced.
  */
-
-import { deliverablesPhrase } from "./scope-summary";
 
 /**
  * What duplicating reads off the project row.
@@ -133,63 +133,5 @@ export function copiedDeliverables(
     description: deliverable.description,
     estimatedMinutes: deliverable.estimatedMinutes,
   }));
-}
-
-/**
- * What pressing the button will copy, in words, for the project in front of
- * the reader.
- *
- * The count is the load-bearing part. "Copies the deliverables" is a promise
- * about a list the reader may not have looked at in a month, and the whole
- * risk of duplication is finding out afterwards that it brought over more or
- * fewer lines than you had in mind. A number in the sentence is checkable
- * against the scope tab before anything is written.
- *
- * It names the three project columns explicitly rather than saying "the
- * details", because one of them — the rate override — is the fact a copy is
- * most likely to be quietly wrong about, and the reader cannot see it from
- * here either.
- */
-export function describeWhatIsCopied(deliverableCount: number): string {
-  const carried =
-    deliverableCount === 0
-      ? "and the rate it bills at. This project has no deliverables yet, so the copy starts with an empty scope list."
-      : `the rate it bills at, and all ${deliverablesPhrase(deliverableCount)} on the scope list.`;
-  return `The copy is filed under the same client, for the same contract value, ${carried}`;
-}
-
-/**
- * What pressing the button will not copy.
- *
- * A constant, because it does not depend on the project: nothing recording
- * what happened to an engagement crosses over, whatever happened. It is worth
- * saying out loud rather than leaving to be discovered — a reader who assumes
- * the copy is a snapshot would look at a draft with an empty history and
- * conclude the duplicate failed.
- */
-export const DUPLICATE_LEAVES_BEHIND =
-  "Nothing recording what happened to this project comes with it. The copy opens as a draft with its own history and no dates on it, and every deliverable on it starts as pending — so the copy is the work as it was agreed, not the work as it has gone.";
-
-/**
- * What to say when the project being copied belongs to a client who is off
- * the books, or null when they are not.
- *
- * Archiving a client hides them from the client list without unfiling their
- * projects, so this project is reachable and perfectly real. A copy of it is
- * a different thing: it is new work, and the form that creates new work from
- * scratch would not offer this client at all. Rather than refuse the copy —
- * re-quoting last year's engagement for a client you are about to restore is
- * a real reason to be here — it says what the copy will be, which is a draft
- * filed under somebody nobody can pick.
- *
- * It names the two ways out, because both are one press from here and neither
- * is obvious: restore the client, or change the copy's client afterwards.
- */
-export function describeArchivedClientCopy(
-  clientName: string,
-  clientArchivedAt: string | null,
-): string | null {
-  if (clientArchivedAt === null) return null;
-  return `${clientName} is archived, so the copy will be filed under a client who is off the client list. Restore them if this is work that is really happening, or change the copy's client once it exists.`;
 }
 

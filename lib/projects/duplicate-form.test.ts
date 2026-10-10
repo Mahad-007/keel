@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import {
+  describeArchivedClientCopy,
+  describeWhatIsCopied,
+  DUPLICATE_LEAVES_BEHIND,
+} from "./duplicate-form";
 import { PROJECT_FIELD_LIMITS } from "./form";
 import {
   initialDuplicateState,
@@ -122,3 +127,63 @@ describe("readDuplicateFields", () => {
     expect(readDuplicateFields(new FormData())).toEqual({ name: "" });
   });
 });
+
+describe("describeWhatIsCopied", () => {
+  it("counts the lines that will come over", () => {
+    expect(describeWhatIsCopied(7)).toContain("all 7 deliverables");
+  });
+
+  it("agrees the noun with a list of one", () => {
+    expect(describeWhatIsCopied(1)).toContain("all 1 deliverable");
+  });
+
+  it("says the copy starts empty when there is no scope to carry", () => {
+    const sentence = describeWhatIsCopied(0);
+
+    expect(sentence).toContain("no deliverables yet");
+    expect(sentence).toContain("empty scope list");
+    expect(sentence).not.toContain("0 deliverables");
+  });
+
+  it("names the client, the value and the rate whatever the scope", () => {
+    for (const count of [0, 1, 12]) {
+      const sentence = describeWhatIsCopied(count);
+      expect(sentence).toContain("same client");
+      expect(sentence).toContain("same contract value");
+      expect(sentence).toContain("rate it bills at");
+    }
+  });
+});
+
+describe("DUPLICATE_LEAVES_BEHIND", () => {
+  it("says the copy opens as a draft of its own", () => {
+    expect(DUPLICATE_LEAVES_BEHIND).toContain("draft");
+  });
+
+  it("says the copied scope starts as pending", () => {
+    expect(DUPLICATE_LEAVES_BEHIND).toContain("pending");
+  });
+});
+
+describe("describeArchivedClientCopy", () => {
+  it("says nothing about a client who is still on the list", () => {
+    expect(describeArchivedClientCopy("Harbour Co", null)).toBeNull();
+  });
+
+  it("names the archived client the copy would be filed under", () => {
+    const note = describeArchivedClientCopy(
+      "Harbour Co",
+      "2026-04-01T09:00:00.000Z",
+    );
+
+    expect(note).toContain("Harbour Co is archived");
+  });
+
+  it("names both ways out of it", () => {
+    const note = describeArchivedClientCopy("Harbour Co", "2026-04-01");
+
+    expect(note).toContain("Restore them");
+    expect(note).toContain("change the copy's client");
+  });
+});
+

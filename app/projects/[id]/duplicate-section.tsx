@@ -2,8 +2,8 @@ import {
   describeArchivedClientCopy,
   describeWhatIsCopied,
   DUPLICATE_LEAVES_BEHIND,
-} from "@/lib/projects/duplicate";
-import { initialDuplicateState } from "@/lib/projects/duplicate-form";
+  initialDuplicateState,
+} from "@/lib/projects/duplicate-form";
 
 import { DuplicateForm } from "./duplicate-form";
 
