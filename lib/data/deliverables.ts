@@ -16,8 +16,15 @@ import {
   type DeliverableStatus,
 } from "@/lib/deliverables/status";
 import { newId } from "@/lib/id";
+import { negativeEstimateCount } from "@/lib/scope";
 
-import { optionalText, requiredText, wholeMinutes } from "./fields";
+import {
+  isPresentText,
+  isWholeMinutes,
+  optionalText,
+  requiredText,
+  wholeMinutes,
+} from "./fields";
 
 /**
  * Data access for the `deliverables` table: the lines a project's scope was
@@ -200,6 +207,58 @@ export async function countDeliverables(
     .from(deliverables)
     .where(eq(deliverables.projectId, projectId));
   return Number(row?.total ?? 0);
+}
+
+/**
+ * Why a scope list cannot be copied. Codes rather than sentences: both are
+ * reachable from a page that was right when it rendered, and the words for a
+ * reader belong with the form that shows them.
+ */
+export type ScopeCopyProblem = "negative-estimate" | "unusable-scope";
+
+/**
+ * The part of a deliverable row that decides whether it can be written again
+ * as another project's: the two columns with guards in front of them.
+ */
+export type CopyableScopeLine = {
+  title: string;
+  estimatedMinutes: number;
+};
+
+/**
+ * Why a stored scope list could not be written again, or null when every line
+ * of it could.
+ *
+ * Copying a scope list — duplicating a project, applying a template — writes
+ * stored rows back through `createDeliverable`, which guards its columns by
+ * throwing. A row somebody hand-edited therefore throws part-way through the
+ * copy, which rolls the whole thing back and reaches the reader as "nothing
+ * was written, try again". Retrying cannot fix a bad row, so the question is
+ * asked here first, before anything is written, and answered rather than
+ * raised.
+ *
+ * The rules are the predicates the guards are built from rather than a second
+ * spelling of them, so the answer cannot drift from what the columns will
+ * actually accept.
+ *
+ * Two problems rather than one, and the order is the whole point: a negative
+ * estimate is the case the scope summary already flags on the page, so it gets
+ * its own answer and its own sentence pointing at that panel. Everything else
+ * — a blank title, a fractional estimate — is invisible on screen, so its
+ * sentence has to say what to look for. Classified here rather than by the
+ * caller asking two questions in the right order, which is a precedence rule
+ * that only a comment could enforce.
+ */
+export function scopeCopyProblem(
+  lines: readonly CopyableScopeLine[],
+): ScopeCopyProblem | null {
+  if (negativeEstimateCount(lines) > 0) return "negative-estimate";
+
+  const unusable = lines.some(
+    (line) =>
+      !isPresentText(line.title) || !isWholeMinutes(line.estimatedMinutes),
+  );
+  return unusable ? "unusable-scope" : null;
 }
 
 /**
