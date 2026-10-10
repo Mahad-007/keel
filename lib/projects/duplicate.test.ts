@@ -129,3 +129,62 @@ describe("copiedDeliverables", () => {
     expect(copiedDeliverables([])).toEqual([]);
   });
 });
+
+/**
+ * The other half of the copy decision, and the one a duplicate cannot show
+ * you: a line that carried its status would open the copy half delivered.
+ */
+describe("copiedDeliverables, on what it leaves behind", () => {
+  /** The rows as the database hands them over, part-way through the work. */
+  const ROWS = [
+    {
+      id: "dlv_discovery",
+      projectId: "prj_source",
+      title: "Discovery",
+      description: "Two workshops.",
+      estimatedMinutes: 480,
+      status: "done",
+      sortOrder: 0,
+    },
+    {
+      id: "dlv_build",
+      projectId: "prj_source",
+      title: "Build",
+      description: null,
+      estimatedMinutes: 2_400,
+      status: "in_progress",
+      sortOrder: 1,
+    },
+  ];
+
+  it("carries nothing beyond the three fields a line is copied from", () => {
+    for (const line of copiedDeliverables(ROWS)) {
+      expect(Object.keys(line).sort()).toEqual([
+        "description",
+        "estimatedMinutes",
+        "title",
+      ]);
+    }
+  });
+
+  it("leaves the progress made on the source behind", () => {
+    const lines: Record<string, unknown>[] = copiedDeliverables(ROWS);
+
+    expect(lines.map((line) => line.status)).toEqual([undefined, undefined]);
+  });
+
+  it("leaves the source's positions behind, order being the list's", () => {
+    const lines: Record<string, unknown>[] = copiedDeliverables(ROWS);
+
+    for (const line of lines) expect(line).not.toHaveProperty("sortOrder");
+  });
+
+  it("does not carry the ids of the lines it copied", () => {
+    const lines: Record<string, unknown>[] = copiedDeliverables(ROWS);
+
+    for (const line of lines) {
+      expect(line).not.toHaveProperty("id");
+      expect(line).not.toHaveProperty("projectId");
+    }
+  });
+});
