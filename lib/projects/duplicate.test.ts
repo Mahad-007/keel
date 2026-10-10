@@ -55,40 +55,30 @@ describe("copiedProject", () => {
  * matters — a draft claiming it began in March.
  */
 describe("copiedProject, on what it leaves behind", () => {
+  /**
+   * The row as the database hands it over: a project that ran from March to
+   * August, carrying every column a copy must not inherit.
+   */
+  const ROW = {
+    id: "prj_source",
+    ...SOURCE,
+    status: "closed",
+    startedAt: "2026-03-01",
+    closedAt: "2026-08-31",
+    createdAt: "2026-02-01T09:00:00.000Z",
+    updatedAt: "2026-08-31T09:00:00.000Z",
+  };
+
   it("carries nothing beyond the four fields a new project is made of", () => {
-    expect(Object.keys(copiedProject(SOURCE, "Copy")).sort()).toEqual([
+    // Exhaustive rather than one assertion per column left behind: this says
+    // the same thing about the id, the status, both lifecycle dates and both
+    // timestamps, and it keeps saying it about a column added next year.
+    expect(Object.keys(copiedProject(ROW, "Copy")).sort()).toEqual([
       "clientId",
       "contractValueCents",
       "name",
       "rateCents",
     ]);
-  });
-
-  it("names no status, so the copy opens as a draft", () => {
-    const copy: Record<string, unknown> = copiedProject(SOURCE, "Copy");
-
-    expect(copy).not.toHaveProperty("status");
-  });
-
-  it("leaves the lifecycle dates of the source behind", () => {
-    // The row as the database hands it over: a project that ran from March to
-    // August, with the two columns the copy must not inherit.
-    const ran = {
-      ...SOURCE,
-      startedAt: "2026-03-01",
-      closedAt: "2026-08-31",
-    };
-    const copy: Record<string, unknown> = copiedProject(ran, "Copy");
-
-    expect(copy).not.toHaveProperty("startedAt");
-    expect(copy).not.toHaveProperty("closedAt");
-  });
-
-  it("does not carry the source's own id", () => {
-    const row = { ...SOURCE, id: "prj_source" };
-    const copy: Record<string, unknown> = copiedProject(row, "Copy");
-
-    expect(copy).not.toHaveProperty("id");
   });
 });
 
@@ -145,6 +135,8 @@ describe("copiedDeliverables, on what it leaves behind", () => {
       estimatedMinutes: 480,
       status: "done",
       sortOrder: 0,
+      createdAt: "2026-02-01T09:00:00.000Z",
+      updatedAt: "2026-03-01T09:00:00.000Z",
     },
     {
       id: "dlv_build",
@@ -154,10 +146,15 @@ describe("copiedDeliverables, on what it leaves behind", () => {
       estimatedMinutes: 2_400,
       status: "started",
       sortOrder: 1,
+      createdAt: "2026-02-01T09:00:00.000Z",
+      updatedAt: "2026-03-01T09:00:00.000Z",
     },
   ];
 
   it("carries nothing beyond the three fields a line is copied from", () => {
+    // The same exhaustive assertion as the project half, and it covers the
+    // same ground: the ids, the project, the progress, the position and both
+    // timestamps are all absent because the keys are these three.
     for (const line of copiedDeliverables(ROWS)) {
       expect(Object.keys(line).sort()).toEqual([
         "description",
@@ -167,25 +164,11 @@ describe("copiedDeliverables, on what it leaves behind", () => {
     }
   });
 
-  it("leaves the progress made on the source behind", () => {
-    const lines: Record<string, unknown>[] = copiedDeliverables(ROWS);
-
-    expect(lines.map((line) => line.status)).toEqual([undefined, undefined]);
-  });
-
-  it("leaves the source's positions behind, order being the list's", () => {
-    const lines: Record<string, unknown>[] = copiedDeliverables(ROWS);
-
-    for (const line of lines) expect(line).not.toHaveProperty("sortOrder");
-  });
-
-  it("does not carry the ids of the lines it copied", () => {
-    const lines: Record<string, unknown>[] = copiedDeliverables(ROWS);
-
-    for (const line of lines) {
-      expect(line).not.toHaveProperty("id");
-      expect(line).not.toHaveProperty("projectId");
-    }
+  it("copies the three it does carry off the stored row", () => {
+    expect(copiedDeliverables(ROWS)[0]).toEqual({
+      title: "Discovery",
+      description: "Two workshops.",
+      estimatedMinutes: 480,
+    });
   });
 });
-
