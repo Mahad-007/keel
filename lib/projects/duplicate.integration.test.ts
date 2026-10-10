@@ -71,18 +71,31 @@ beforeEach(async () => {
   await transitionProject(source, "paused", { reason: "Awaiting copy." }, db);
 });
 
+/** The copy, or a failure: every test below starts with one. */
+async function copy() {
+  const result = await duplicateProject(source, { name: "Phase two" }, db);
+  if (!result.ok) throw new Error(`expected a copy, got ${result.reason}`);
+  return result.project;
+}
+
+/**
+ * What the scope panel would say about each project, which is the product's
+ * own reading of what crossed over.
+ */
+async function summaries(copyId: string, copyValueCents: number) {
+  return {
+    before: summariseScope(await listDeliverables(source, db), 1_200_000),
+    after: summariseScope(await listDeliverables(copyId, db), copyValueCents),
+  };
+}
+
 describe("duplicating a half-finished project", () => {
   it("agrees the same scope at the same value", async () => {
-    const result = await duplicateProject(source, { name: "Phase two" }, db);
-    if (!result.ok) throw new Error("expected the copy to be made");
+    const project = await copy();
 
-    const before = summariseScope(
-      await listDeliverables(source, db),
-      1_200_000,
-    );
-    const after = summariseScope(
-      await listDeliverables(result.project.id, db),
-      result.project.contractValueCents,
+    const { before, after } = await summaries(
+      project.id,
+      project.contractValueCents,
     );
 
     expect(after.lineCount).toBe(before.lineCount);
@@ -91,16 +104,11 @@ describe("duplicating a half-finished project", () => {
   });
 
   it("reads as nothing delivered where the source reads as part done", async () => {
-    const result = await duplicateProject(source, { name: "Phase two" }, db);
-    if (!result.ok) throw new Error("expected the copy to be made");
+    const project = await copy();
 
-    const before = summariseScope(
-      await listDeliverables(source, db),
-      1_200_000,
-    );
-    const after = summariseScope(
-      await listDeliverables(result.project.id, db),
-      result.project.contractValueCents,
+    const { before, after } = await summaries(
+      project.id,
+      project.contractValueCents,
     );
 
     expect(before.deliveredCount).toBe(1);
@@ -109,17 +117,14 @@ describe("duplicating a half-finished project", () => {
   });
 
   it("leaves the copy a draft that has not started", async () => {
-    const result = await duplicateProject(source, { name: "Phase two" }, db);
-    if (!result.ok) throw new Error("expected the copy to be made");
+    const written = await getProject((await copy()).id, db);
 
-    const copy = await getProject(result.project.id, db);
-
-    expect(copy?.status).toBe("draft");
-    expect(copy?.startedAt).toBeNull();
+    expect(written?.status).toBe("draft");
+    expect(written?.startedAt).toBeNull();
   });
 
   it("leaves the source paused and part done", async () => {
-    await duplicateProject(source, { name: "Phase two" }, db);
+    await copy();
 
     const original = await getProject(source, db);
 
