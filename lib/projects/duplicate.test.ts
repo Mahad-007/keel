@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { copiedDeliverables, copiedProject } from "./duplicate";
+import {
+  copiedDeliverables,
+  copiedProject,
+  describeWhatIsCopied,
+  DUPLICATE_LEAVES_BEHIND,
+} from "./duplicate";
 
 /**
  * A project worth copying: filed under a client, agreed at a figure, billing
@@ -186,5 +191,42 @@ describe("copiedDeliverables, on what it leaves behind", () => {
       expect(line).not.toHaveProperty("id");
       expect(line).not.toHaveProperty("projectId");
     }
+  });
+});
+
+describe("describeWhatIsCopied", () => {
+  it("counts the lines that will come over", () => {
+    expect(describeWhatIsCopied(7)).toContain("all 7 deliverables");
+  });
+
+  it("agrees the noun with a list of one", () => {
+    expect(describeWhatIsCopied(1)).toContain("all 1 deliverable");
+  });
+
+  it("says the copy starts empty when there is no scope to carry", () => {
+    const sentence = describeWhatIsCopied(0);
+
+    expect(sentence).toContain("no deliverables yet");
+    expect(sentence).toContain("empty scope list");
+    expect(sentence).not.toContain("0 deliverables");
+  });
+
+  it("names the client, the value and the rate whatever the scope", () => {
+    for (const count of [0, 1, 12]) {
+      const sentence = describeWhatIsCopied(count);
+      expect(sentence).toContain("same client");
+      expect(sentence).toContain("same contract value");
+      expect(sentence).toContain("rate it bills at");
+    }
+  });
+});
+
+describe("DUPLICATE_LEAVES_BEHIND", () => {
+  it("says the copy opens as a draft of its own", () => {
+    expect(DUPLICATE_LEAVES_BEHIND).toContain("draft");
+  });
+
+  it("says the copied scope starts as pending", () => {
+    expect(DUPLICATE_LEAVES_BEHIND).toContain("pending");
   });
 });
