@@ -1633,6 +1633,30 @@ describe("duplicateProject on an unusable scope list", () => {
     expect(result).toEqual({ ok: false, reason: "negative-estimate" });
   });
 
+  it("refuses a line with no title left on it", async () => {
+    const id = await source();
+    await db.run(
+      sql`update deliverables set title = '  ' where title = 'Build'`,
+    );
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(result).toEqual({ ok: false, reason: "unusable-scope" });
+    expect((await listProjects(db)).map((row) => row.id)).toEqual([id]);
+  });
+
+  it("refuses an estimate that is not a whole number of minutes", async () => {
+    const id = await source();
+    await db.run(
+      sql`update deliverables set estimated_minutes = 90.5 where title = 'Build'`,
+    );
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(result).toEqual({ ok: false, reason: "unusable-scope" });
+    expect((await listProjects(db)).map((row) => row.id)).toEqual([id]);
+  });
+
   it("writes neither the project nor a line of it", async () => {
     const id = await source();
     await db.run(
