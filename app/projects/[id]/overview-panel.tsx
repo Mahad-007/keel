@@ -4,7 +4,11 @@ import type { ProjectWithClient } from "@/lib/data/projects";
 import type { ProjectStatusEvent } from "@/lib/db/schema";
 import { formatDate } from "@/lib/dates";
 import { describeRateOverride } from "@/lib/projects/detail";
+import type { DuplicateFormState } from "@/lib/projects/duplicate-form";
 
+import { writeDuplicatedProject } from "./duplicate-writes";
+
+import { DuplicateSection } from "./duplicate-section";
 import { StatusHistory } from "./status-history";
 import { StatusSection } from "./status-section";
 
@@ -31,17 +35,35 @@ function Fact({ term, children }: { term: string; children: ReactNode }) {
  *
  * The header already carries the three facts that matter at a glance — client,
  * status, contract value — so this is deliberately the rest: the rate the work
- * bills at, when the row was set up and last touched, the status trail, and
- * where the status is moved on from.
+ * bills at, when the row was set up and last touched, the status trail, where
+ * the status is moved on from, and where the whole thing is copied.
  */
 export function OverviewPanel({
   project,
   statusEvents,
+  deliverableCount,
 }: {
   project: ProjectWithClient;
   /** The project's status trail, newest first. */
   statusEvents: readonly ProjectStatusEvent[];
+  /** How many deliverables a copy of this project would carry over. */
+  deliverableCount: number;
 }) {
+  /*
+    The project is captured here rather than bound onto the write, for the same
+    reason the scope tab's presses are: `.bind` serialises what it carries in
+    the clear, so the project that got copied would be whatever the caller
+    sent. A `"use server"` function declared in a server component is the form
+    the compiler rewrites to encrypt its captured variables.
+  */
+  async function duplicate(
+    previous: DuplicateFormState,
+    formData: FormData,
+  ): Promise<DuplicateFormState> {
+    "use server";
+    return writeDuplicatedProject(project.id, previous, formData);
+  }
+
   return (
     <>
       <dl className="mt-4 text-sm">
@@ -62,6 +84,11 @@ export function OverviewPanel({
         <StatusHistory events={statusEvents} />
       </section>
       <StatusSection project={project} />
+      <DuplicateSection
+        projectName={project.name}
+        deliverableCount={deliverableCount}
+        duplicate={duplicate}
+      />
     </>
   );
 }
