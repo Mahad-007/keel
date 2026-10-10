@@ -1,4 +1,4 @@
-import { and, asc, eq, max } from "drizzle-orm";
+import { and, asc, count, eq, max } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import { deliverables, projects, type Deliverable } from "@/lib/db/schema";
@@ -181,6 +181,25 @@ export async function listDeliverables(
     .from(deliverables)
     .where(eq(deliverables.projectId, projectId))
     .orderBy(...IN_ORDER);
+}
+
+/**
+ * How many deliverables a project's scope list holds.
+ *
+ * Counted in SQL rather than by reading the list and taking its length,
+ * because the callers that want the number do not want the rows: a page that
+ * only has to say "all 7 deliverables" in a sentence should not pay for seven
+ * rows of titles, descriptions and estimates to do it.
+ */
+export async function countDeliverables(
+  projectId: string,
+  database: Database = db,
+): Promise<number> {
+  const [row] = await database
+    .select({ total: count() })
+    .from(deliverables)
+    .where(eq(deliverables.projectId, projectId));
+  return Number(row?.total ?? 0);
 }
 
 /**
