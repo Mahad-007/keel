@@ -1436,3 +1436,68 @@ describe("duplicateProject and the agreement", () => {
     expect(result.ok && result.project.contractValueCents).toBe(0);
   });
 });
+
+describe("duplicateProject and the scope list", () => {
+  it("copies every line, in the order the source reads", async () => {
+    const id = await source();
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+    const copy = result.ok ? await listDeliverables(result.project.id, db) : [];
+
+    expect(copy.map((line) => line.title)).toEqual([
+      "Discovery",
+      "Build",
+      "Handover",
+    ]);
+  });
+
+  it("carries the detail and the estimate on each line", async () => {
+    const id = await source();
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+    const copy = result.ok ? await listDeliverables(result.project.id, db) : [];
+
+    expect(copy.map((line) => line.description)).toEqual([
+      "Two workshops.",
+      null,
+      null,
+    ]);
+    expect(copy.map((line) => line.estimatedMinutes)).toEqual([480, 2_400, 0]);
+  });
+
+  it("numbers the copied list densely from zero", async () => {
+    const id = await source();
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+    const copy = result.ok ? await listDeliverables(result.project.id, db) : [];
+
+    expect(copy.map((line) => line.sortOrder)).toEqual([0, 1, 2]);
+  });
+
+  it("writes new rows rather than moving the source's", async () => {
+    const id = await source();
+    const before = await listDeliverables(id, db);
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+    const copy = result.ok ? await listDeliverables(result.project.id, db) : [];
+
+    expect(await listDeliverables(id, db)).toEqual(before);
+    for (const line of copy) {
+      expect(line.id).toMatch(/^dlv_/);
+      expect(before.map((row) => row.id)).not.toContain(line.id);
+      expect(line.projectId).toBe(result.ok && result.project.id);
+    }
+  });
+
+  it("hands back the copied lines in the order they now read", async () => {
+    const id = await source();
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(result.ok && result.deliverables.map((line) => line.title)).toEqual([
+      "Discovery",
+      "Build",
+      "Handover",
+    ]);
+  });
+});
