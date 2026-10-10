@@ -74,3 +74,41 @@ export function copiedProject(
     rateCents: project.rateCents,
   };
 }
+
+/**
+ * What duplicating reads off each line of the source project's scope.
+ *
+ * The same three fields a template line is captured from, and a subset of the
+ * row for the same reason: these are the columns that describe the work rather
+ * than the engagement it was agreed for.
+ */
+export type DuplicableDeliverable = {
+  title: string;
+  description: string | null;
+  estimatedMinutes: number;
+};
+
+/**
+ * One line of the copied scope list, as it is about to be written.
+ *
+ * `status` is absent, which is the deliberate part. A duplicate is the next
+ * engagement, not a report on the last one: a copy of a project with four
+ * lines marked done would arrive already claiming half the work, and its scope
+ * summary would say three quarters delivered on a project nobody has started.
+ * Every line opens as `pending`, which is what `createDeliverable` defaults to.
+ *
+ * `sortOrder` is absent because the position is the list's rather than the
+ * line's — the data layer numbers them from zero as it writes, so the copy
+ * reads in the order the source did.
+ *
+ * The decision is spelled out here rather than borrowed from
+ * `capturedTemplateLines`, which today picks the same three columns. The two
+ * have different reasons to change: a template describes work to be agreed,
+ * and a duplicate is a second engagement of the same shape. The day one of
+ * them starts carrying a fourth column is not the day the other should.
+ */
+export type DeliverableCopy = {
+  readonly title: string;
+  readonly description: string | null;
+  readonly estimatedMinutes: number;
+};
