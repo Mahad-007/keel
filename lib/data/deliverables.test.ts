@@ -6,6 +6,7 @@ import { createTestDb } from "@/lib/db/testing";
 
 import { createClient } from "./clients";
 import {
+  countDeliverables,
   createDeliverable,
   deleteDeliverable,
   getDeliverable,
@@ -218,6 +219,43 @@ describe("listDeliverables", () => {
     const list = await listDeliverables(projectId, db);
 
     expect(list.map((row) => row.title)).toEqual(["Ours"]);
+  });
+});
+
+describe("countDeliverables", () => {
+  it("counts the lines on a project's scope list", async () => {
+    await createDeliverable({ projectId, title: "Discovery" }, db);
+    await createDeliverable({ projectId, title: "Build" }, db);
+
+    expect(await countDeliverables(projectId, db)).toBe(2);
+  });
+
+  it("counts nothing for a project with no scope written down", async () => {
+    expect(await countDeliverables(projectId, db)).toBe(0);
+  });
+
+  it("counts nothing for a project that does not exist", async () => {
+    expect(await countDeliverables("prj_missing", db)).toBe(0);
+  });
+
+  it("leaves another project's deliverables out of the count", async () => {
+    const clientId = (await createClient({ name: "Beam Ltd" }, db)).id;
+    const other = (await createProject({ clientId, name: "Other" }, db)).id;
+    await createDeliverable({ projectId, title: "Ours" }, db);
+    await createDeliverable({ projectId: other, title: "Theirs" }, db);
+    await createDeliverable({ projectId: other, title: "Theirs too" }, db);
+
+    expect(await countDeliverables(projectId, db)).toBe(1);
+  });
+
+  it("agrees with the length of the list it is counting", async () => {
+    for (const title of ["One", "Two", "Three"]) {
+      await createDeliverable({ projectId, title }, db);
+    }
+
+    expect(await countDeliverables(projectId, db)).toBe(
+      (await listDeliverables(projectId, db)).length,
+    );
   });
 });
 
