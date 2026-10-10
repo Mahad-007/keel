@@ -169,3 +169,26 @@ export function describeWhatIsCopied(deliverableCount: number): string {
  */
 export const DUPLICATE_LEAVES_BEHIND =
   "Nothing recording what happened to this project comes with it. The copy opens as a draft with its own history and no dates on it, and every deliverable on it starts as pending — so the copy is the work as it was agreed, not the work as it has gone.";
+
+/**
+ * What to say when the project being copied belongs to a client who is off
+ * the books, or null when they are not.
+ *
+ * Archiving a client hides them from the client list without unfiling their
+ * projects, so this project is reachable and perfectly real. A copy of it is
+ * a different thing: it is new work, and the form that creates new work from
+ * scratch would not offer this client at all. Rather than refuse the copy —
+ * re-quoting last year's engagement for a client you are about to restore is
+ * a real reason to be here — it says what the copy will be, which is a draft
+ * filed under somebody nobody can pick.
+ *
+ * It names the two ways out, because both are one press from here and neither
+ * is obvious: restore the client, or change the copy's client afterwards.
+ */
+export function describeArchivedClientCopy(
+  clientName: string,
+  clientArchivedAt: string | null,
+): string | null {
+  if (clientArchivedAt === null) return null;
+  return `${clientName} is archived, so the copy will be filed under a client who is off the client list. Restore them if this is work that is really happening, or change the copy's client once it exists.`;
+}
