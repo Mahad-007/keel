@@ -1,5 +1,7 @@
 import { readFields } from "@/lib/forms/form-data";
-import { type FormState } from "@/lib/forms/state";
+import { initialFormState, type FormState } from "@/lib/forms/state";
+
+import { PROJECT_FIELD_LIMITS } from "./form";
 
 /**
  * The form that copies a project, from submitted strings to something the
@@ -45,4 +47,54 @@ export type DuplicateFormState = FormState<DuplicateFieldName>;
 
 export function readDuplicateFields(formData: FormData): DuplicateFormFields {
   return readFields(formData, DUPLICATE_FIELD_NAMES);
+}
+
+/**
+ * The word a copy is marked with until somebody names it properly.
+ *
+ * A suffix rather than a prefix, so the two projects sort together in a list
+ * ordered by name and read as the pair they are. Lower case and bracketed
+ * because it is a note, not part of the engagement's name — nobody calls a
+ * project "Copy of the Harbour rebuild" out loud.
+ */
+export const DUPLICATE_NAME_SUFFIX = " (copy)";
+
+/**
+ * What the name box opens holding: the source project's name, marked as a
+ * copy.
+ *
+ * It has to be filled in with something. Two projects for one client with
+ * identical names is the state every list in the app would then have to be
+ * read twice, and a blank box in front of somebody who pressed "duplicate" is
+ * a question they did not come here to answer. The suffix is the honest
+ * default: it says which one is the copy without pretending to know what the
+ * new engagement is called.
+ *
+ * It is a suggestion in the ordinary sense — the box is editable, and a reader
+ * who knows the copy is "Phase two" types that instead.
+ *
+ * Cut to the limit the validator enforces, with the suffix kept and the name
+ * shortened to make room for it. A prefilled value its own form would reject
+ * is worse than an empty box, and of the two halves the suffix is the one
+ * carrying information the reader cannot get from anywhere else.
+ */
+export function suggestedDuplicateName(projectName: string): string {
+  const room = PROJECT_FIELD_LIMITS.name - DUPLICATE_NAME_SUFFIX.length;
+  const base = projectName.trim().slice(0, room).trimEnd();
+  return `${base}${DUPLICATE_NAME_SUFFIX}`;
+}
+
+/**
+ * What the form starts from on a given project: the one box, holding the
+ * suggested name.
+ *
+ * A function rather than a constant, because the suggestion depends on the
+ * project — and it lives here rather than beside the page for the usual
+ * reason: a `"use server"` module may only export async functions.
+ */
+export function initialDuplicateState(projectName: string): DuplicateFormState {
+  return initialFormState({
+    ...EMPTY_DUPLICATE_FIELDS,
+    name: suggestedDuplicateName(projectName),
+  });
 }
