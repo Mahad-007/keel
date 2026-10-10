@@ -132,3 +132,33 @@ export function parseDuplicateForm(
   if (!parsed.ok) return parsed;
   return { ok: true, value: { name: parsed.value.name } };
 }
+
+/**
+ * The things that can stop a copy that the form itself cannot see.
+ *
+ * Both of them are reachable from a page that was correct when it rendered:
+ * the project can be deleted while this form sits open, and a line of its
+ * scope can be edited into a state no copy can carry. The sentences say what
+ * to do about it rather than only what went wrong, because in both cases
+ * there is something to do.
+ */
+export const DUPLICATE_PROBLEMS = {
+  missingProject:
+    "That project no longer exists, so there is nothing to copy. Nothing was written.",
+  negativeEstimate:
+    "A deliverable on this project has an estimate below zero, which a copy cannot carry. Nothing was copied — the scope tab names the lines to fix.",
+  failed: "Could not copy that project. Nothing was written — try again.",
+} as const;
+
+/**
+ * What to say when the copy never got an answer — the connection dropped, the
+ * tab was suspended mid-request, the request was aborted.
+ *
+ * It does not claim nothing was written, because from the client there is no
+ * way to know: the request may have been lost on the way out, or the answer
+ * lost on the way back with the copy already made. Nor does it say "try
+ * again", which is the instruction that would leave two copies to tell apart —
+ * and a duplicated duplicate is a whole project to delete, not a line.
+ */
+export const DUPLICATE_NO_ANSWER =
+  "Could not tell whether the copy was made — the answer never arrived. Check the project list before pressing again.";
