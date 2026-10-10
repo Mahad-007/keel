@@ -1380,3 +1380,59 @@ describe("duplicateProject", () => {
     expect(await getProject(id, db)).toEqual(before);
   });
 });
+
+describe("duplicateProject and the agreement", () => {
+  it("files the copy under the same client", async () => {
+    const id = await source();
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(result.ok && result.project.clientId).toBe(clientId);
+  });
+
+  it("carries the contract value across", async () => {
+    const id = await source();
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(result.ok && result.project.contractValueCents).toBe(1_200_000);
+  });
+
+  it("carries the rate override across", async () => {
+    const id = await source();
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(result.ok && result.project.rateCents).toBe(9_500);
+  });
+
+  it("leaves an inherited rate inherited rather than writing a zero", async () => {
+    const project = await createProject(
+      { clientId, name: "Retainer", rateCents: null },
+      db,
+    );
+
+    const result = await duplicateProject(project.id, { name: "Copy" }, db);
+
+    expect(result.ok && result.project.rateCents).toBeNull();
+  });
+
+  it("carries an override of zero, which is not the same as none", async () => {
+    const project = await createProject(
+      { clientId, name: "Fixed fee", rateCents: 0 },
+      db,
+    );
+
+    const result = await duplicateProject(project.id, { name: "Copy" }, db);
+
+    expect(result.ok && result.project.rateCents).toBe(0);
+  });
+
+  it("copies a project nobody has agreed a value for as a zero", async () => {
+    const project = await createProject({ clientId, name: "Scoping" }, db);
+
+    const result = await duplicateProject(project.id, { name: "Copy" }, db);
+
+    expect(result.ok && result.project.contractValueCents).toBe(0);
+  });
+});
