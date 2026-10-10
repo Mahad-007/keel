@@ -8,11 +8,13 @@ import { TRANSITION_REASON_LIMIT } from "@/lib/projects/transitions";
 import { createTestDb } from "@/lib/db/testing";
 
 import { archiveClient, createClient } from "./clients";
+import { createDeliverable, listDeliverables } from "./deliverables";
 import { listProjectStatusEvents } from "./project-status-events";
 import {
   countProjectsByStatus,
   createProject,
   deleteProject,
+  duplicateProject,
   getProject,
   getProjectWithClient,
   listProjects,
@@ -1305,5 +1307,76 @@ describe("transitionProject on a project that is not there", () => {
     const result = await transitionProject("prj_nope", "draft", {}, db);
 
     expect(!result.ok && result.problem.code).toBe("no-such-project");
+  });
+});
+
+/**
+ * A project worth copying, with its scope agreed and some of it done, so
+ * every test below can say what crossed over and what did not.
+ */
+async function source(): Promise<string> {
+  const project = await createProject(
+    {
+      clientId,
+      name: "Harbour Co — site rebuild",
+      status: "active",
+      contractValueCents: 1_200_000,
+      rateCents: 9_500,
+    },
+    db,
+  );
+  await createDeliverable(
+    {
+      projectId: project.id,
+      title: "Discovery",
+      description: "Two workshops.",
+      estimatedMinutes: 480,
+      status: "done",
+    },
+    db,
+  );
+  await createDeliverable(
+    {
+      projectId: project.id,
+      title: "Build",
+      estimatedMinutes: 2_400,
+      status: "started",
+    },
+    db,
+  );
+  await createDeliverable(
+    { projectId: project.id, title: "Handover", estimatedMinutes: 0 },
+    db,
+  );
+  return project.id;
+}
+
+describe("duplicateProject", () => {
+  it("writes a second project rather than touching the first", async () => {
+    const id = await source();
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.project.id).not.toBe(id);
+    expect(result.ok && result.project.id).toMatch(/^prj_/);
+    expect(await listProjects(db)).toHaveLength(2);
+  });
+
+  it("calls the copy what it was asked to call it", async () => {
+    const id = await source();
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(result.ok && result.project.name).toBe("Phase two");
+  });
+
+  it("leaves the source project exactly as it was", async () => {
+    const id = await source();
+    const before = await getProject(id, db);
+
+    await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(await getProject(id, db)).toEqual(before);
   });
 });

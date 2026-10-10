@@ -157,7 +157,7 @@ describe("copiedDeliverables, on what it leaves behind", () => {
       title: "Build",
       description: null,
       estimatedMinutes: 2_400,
-      status: "in_progress",
+      status: "started",
       sortOrder: 1,
     },
   ];
