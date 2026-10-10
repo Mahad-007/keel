@@ -1604,3 +1604,17 @@ describe("duplicateProject and the lifecycle", () => {
     expect(await listProjectStatusEvents(id, db)).toEqual(before);
   });
 });
+
+describe("duplicateProject on a project that is not there", () => {
+  it("says so rather than throwing", async () => {
+    const result = await duplicateProject("prj_nope", { name: "Copy" }, db);
+
+    expect(result).toEqual({ ok: false, reason: "no-such-project" });
+  });
+
+  it("writes nothing when there was nothing to copy", async () => {
+    await duplicateProject("prj_nope", { name: "Copy" }, db);
+
+    expect(await listProjects(db)).toEqual([]);
+  });
+});
