@@ -129,6 +129,23 @@ describe("writeDuplicatedProject when the copy is refused", () => {
     expect(state.formError).toBe(DUPLICATE_PROBLEMS.negativeEstimate);
   });
 
+  it("says which scope list needs fixing on a line the columns refuse", async () => {
+    copied.mockResolvedValue({ ok: false, reason: "unusable-scope" });
+
+    const state = await duplicate({ name: "Phase two" });
+
+    expect(state.formError).toBe(DUPLICATE_PROBLEMS.unusableScope);
+  });
+
+  it("keeps the name that was typed through a refusal", async () => {
+    copied.mockResolvedValue({ ok: false, reason: "no-such-project" });
+
+    const state = await duplicate({ name: "Phase two" });
+
+    expect(state.fields.name).toBe("Phase two");
+    expect(state.errors).toEqual({});
+  });
+
   it("does not navigate away from a refused copy", async () => {
     copied.mockResolvedValue({ ok: false, reason: "negative-estimate" });
 
