@@ -1501,3 +1501,31 @@ describe("duplicateProject and the scope list", () => {
     ]);
   });
 });
+
+describe("duplicateProject and the work already done", () => {
+  it("opens every copied line as pending, whatever the source says", async () => {
+    const id = await source();
+    expect((await listDeliverables(id, db)).map((line) => line.status)).toEqual(
+      ["done", "started", "pending"],
+    );
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+    const copy = result.ok ? await listDeliverables(result.project.id, db) : [];
+
+    expect(copy.map((line) => line.status)).toEqual([
+      "pending",
+      "pending",
+      "pending",
+    ]);
+  });
+
+  it("leaves the source's own statuses alone", async () => {
+    const id = await source();
+
+    await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect((await listDeliverables(id, db)).map((line) => line.status)).toEqual(
+      ["done", "started", "pending"],
+    );
+  });
+});
