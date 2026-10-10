@@ -6,7 +6,6 @@ import {
   describeArchivedClientCopy,
   describeWhatIsCopied,
   DUPLICATE_LEAVES_BEHIND,
-  uncopyableLineCount,
 } from "./duplicate";
 
 /**
@@ -255,59 +254,3 @@ describe("describeArchivedClientCopy", () => {
   });
 });
 
-describe("uncopyableLineCount", () => {
-  it("counts nothing in a list the app could have written", () => {
-    expect(uncopyableLineCount(SCOPE)).toBe(0);
-  });
-
-  it("counts a line with no title", () => {
-    expect(
-      uncopyableLineCount([
-        ...SCOPE,
-        { title: "   ", description: null, estimatedMinutes: 60 },
-      ]),
-    ).toBe(1);
-  });
-
-  it("counts an estimate that is not a whole number of minutes", () => {
-    expect(
-      uncopyableLineCount([
-        { title: "Build", description: null, estimatedMinutes: 90.5 },
-      ]),
-    ).toBe(1);
-  });
-
-  it("counts an estimate below zero, which the caller asks about first", () => {
-    expect(
-      uncopyableLineCount([
-        { title: "Build", description: null, estimatedMinutes: -60 },
-      ]),
-    ).toBe(1);
-  });
-
-  it("counts an estimate too large to store exactly", () => {
-    expect(
-      uncopyableLineCount([
-        {
-          title: "Build",
-          description: null,
-          estimatedMinutes: Number.MAX_SAFE_INTEGER + 2,
-        },
-      ]),
-    ).toBe(1);
-  });
-
-  it("counts every bad line, not just the first", () => {
-    expect(
-      uncopyableLineCount([
-        { title: "", description: null, estimatedMinutes: 60 },
-        { title: "Build", description: null, estimatedMinutes: -1 },
-        { title: "Handover", description: null, estimatedMinutes: 0 },
-      ]),
-    ).toBe(2);
-  });
-
-  it("counts nothing in a list with no lines at all", () => {
-    expect(uncopyableLineCount([])).toBe(0);
-  });
-});

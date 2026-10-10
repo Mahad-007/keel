@@ -193,32 +193,3 @@ export function describeArchivedClientCopy(
   return `${clientName} is archived, so the copy will be filed under a client who is off the client list. Restore them if this is work that is really happening, or change the copy's client once it exists.`;
 }
 
-/**
- * How many lines of the source list could not be written as deliverables of
- * the copy.
- *
- * Nothing the app does produces one. The form will not save a blank title or
- * a fractional estimate, so a line that fails here was written straight to the
- * database — and the data layer refuses it on the way back in, which is the
- * problem: it refuses by throwing, part-way through writing the copy. That
- * rolls the whole copy back, correctly, and reaches the reader as "nothing was
- * written, try again", which is advice for a different situation. Retrying
- * cannot fix a bad row.
- *
- * So the rule is checked up front, before anything is written, and the same
- * three things the column guards check: a title that is nothing but space, an
- * estimate that is not a whole number of minutes, and an estimate below zero.
- * A negative estimate counts here too even though it has its own answer — this
- * is the complete rule, and the caller asks the narrower question first
- * because it has the better sentence for it.
- */
-export function uncopyableLineCount(
-  lines: readonly DuplicableDeliverable[],
-): number {
-  return lines.filter(
-    (line) =>
-      line.title.trim() === "" ||
-      !Number.isSafeInteger(line.estimatedMinutes) ||
-      line.estimatedMinutes < 0,
-  ).length;
-}

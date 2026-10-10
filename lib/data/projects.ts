@@ -16,18 +16,18 @@ import {
   parseProjectStatus,
   type ProjectStatus,
 } from "@/lib/projects/status";
-import {
-  copiedDeliverables,
-  copiedProject,
-  uncopyableLineCount,
-} from "@/lib/projects/duplicate";
+import { copiedDeliverables, copiedProject } from "@/lib/projects/duplicate";
 import {
   checkTransition,
   type TransitionProblem,
 } from "@/lib/projects/transitions";
-import { negativeEstimateCount } from "@/lib/scope";
 
-import { createDeliverable, listDeliverables } from "./deliverables";
+import {
+  createDeliverable,
+  listDeliverables,
+  scopeCopyProblem,
+  type ScopeCopyProblem,
+} from "./deliverables";
 import {
   optionalCents,
   optionalText,
@@ -509,10 +509,7 @@ export async function transitionProject(
  * rendered — and the words belong to the form, which already has them for the
  * reader. The same arrangement as the template capture, for the same reason.
  */
-export type DuplicateProjectReason =
-  | "no-such-project"
-  | "negative-estimate"
-  | "unusable-scope";
+export type DuplicateProjectReason = "no-such-project" | ScopeCopyProblem;
 
 /** What duplicating a project asks the person for: what to call the copy. */
 export type DuplicateProjectInput = {
@@ -568,30 +565,15 @@ export async function duplicateProject(
       const scope = await listDeliverables(id, tx);
 
       /*
-        An estimate below zero is a row somebody wrote straight to the
-        database — the form refuses one — and `createDeliverable` would throw
-        on it part-way through the loop below, which rolls the copy back and
-        reaches the reader as "nothing was written, try again". Retrying cannot
-        fix a bad row, so it is an answer rather than an exception: the scope
-        panel is already flagging the line, and this says that is the thing to
-        go and fix. One spelling of the rule, shared with the panel that flags
-        it and with the template capture.
+        Asked before anything is written, because a line somebody hand-edited
+        would otherwise throw from inside `createDeliverable` part-way through
+        the loop below — which rolls the copy back and tells the reader to try
+        again, the one piece of advice that cannot help. Which fault it is
+        decides which sentence they get; `scopeCopyProblem` owns that, being
+        the module that owns what a deliverable row may hold.
       */
-      if (negativeEstimateCount(scope) > 0) {
-        return { ok: false, reason: "negative-estimate" };
-      }
-
-      /*
-        The rest of what the columns refuse: a title of nothing but space, an
-        estimate that is not a whole number of minutes. Hand-written rows
-        again, and `createDeliverable` would throw on one part-way through the
-        loop below — same rollback, same useless "try again". The scope summary
-        does not flag these, so the sentence for them has to say the scope list
-        is where to look.
-      */
-      if (uncopyableLineCount(scope) > 0) {
-        return { ok: false, reason: "unusable-scope" };
-      }
+      const problem = scopeCopyProblem(scope);
+      if (problem !== null) return { ok: false, reason: problem };
 
       const project = await createProject(
         copiedProject(source, input.name),
