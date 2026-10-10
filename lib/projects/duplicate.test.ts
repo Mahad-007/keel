@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   copiedDeliverables,
   copiedProject,
+  describeArchivedClientCopy,
   describeWhatIsCopied,
   DUPLICATE_LEAVES_BEHIND,
 } from "./duplicate";
@@ -228,5 +229,27 @@ describe("DUPLICATE_LEAVES_BEHIND", () => {
 
   it("says the copied scope starts as pending", () => {
     expect(DUPLICATE_LEAVES_BEHIND).toContain("pending");
+  });
+});
+
+describe("describeArchivedClientCopy", () => {
+  it("says nothing about a client who is still on the list", () => {
+    expect(describeArchivedClientCopy("Harbour Co", null)).toBeNull();
+  });
+
+  it("names the archived client the copy would be filed under", () => {
+    const note = describeArchivedClientCopy(
+      "Harbour Co",
+      "2026-04-01T09:00:00.000Z",
+    );
+
+    expect(note).toContain("Harbour Co is archived");
+  });
+
+  it("names both ways out of it", () => {
+    const note = describeArchivedClientCopy("Harbour Co", "2026-04-01");
+
+    expect(note).toContain("Restore them");
+    expect(note).toContain("change the copy's client");
   });
 });
