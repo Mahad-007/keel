@@ -86,6 +86,8 @@ export function OverviewPanel({
       <StatusSection project={project} />
       <DuplicateSection
         projectName={project.name}
+        clientName={project.clientName}
+        clientArchivedAt={project.clientArchivedAt}
         deliverableCount={deliverableCount}
         duplicate={duplicate}
       />
