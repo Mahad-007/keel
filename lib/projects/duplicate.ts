@@ -1,0 +1,50 @@
+/**
+ * Taking a project and starting another one from it.
+ *
+ * The same engagement shape comes round again — the second site build for the
+ * same client, next quarter's retainer, the brand refresh for the sister
+ * company — and the parts of it that were decided are exactly the parts a
+ * person does not want to decide twice: who it is for, what it is worth, what
+ * it bills at, and the scope list that was argued over.
+ *
+ * The interesting part is not the copying, it is the deciding, so the decision
+ * is made once, here, as pure functions over plain fields. A project row has
+ * columns describing the agreement and columns recording what happened to it,
+ * and a duplicate that carried the second kind would open claiming a history
+ * it does not have. Nothing below touches a database, so what does and does
+ * not cross over is testable on its own — which is the point, because "it
+ * copied the wrong thing" is a bug nobody notices until a duplicate is being
+ * invoiced.
+ */
+
+/**
+ * What duplicating reads off the project row.
+ *
+ * A structural subset rather than `Project`, the same way `CapturedDeliverable`
+ * is a subset of a deliverable: these are the three columns that cross over,
+ * and a test should be able to hand over three fields without inventing an id,
+ * a status and two timestamps to go with them.
+ */
+export type DuplicableProject = {
+  clientId: string;
+  contractValueCents: number;
+  rateCents: number | null;
+};
+
+/**
+ * A new project as duplication asks for it: the three columns carried over,
+ * plus the name the copy is given.
+ *
+ * Deliberately short of six things the source row holds. `id` and the two
+ * timestamps belong to the row rather than to the engagement. `status` is
+ * absent so the copy opens as a draft — a duplicate of an active project has
+ * not begun, and one taken off a closed project is the clearest case of all.
+ * `startedAt` and `closedAt` follow from the status and are not copyable even
+ * in principle: a project that starts today cannot have started in March.
+ */
+export type ProjectCopy = {
+  readonly clientId: string;
+  readonly name: string;
+  readonly contractValueCents: number;
+  readonly rateCents: number | null;
+};
