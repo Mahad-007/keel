@@ -65,6 +65,32 @@ export function wholeCents(value: number, field: string): number {
 }
 
 /**
+ * Whether a value would satisfy `wholeCents`, as an answer rather than an
+ * exception — the same arrangement as `isPresentText` and `isWholeMinutes`,
+ * and for the same kind of caller: code asking, before it writes, whether a
+ * stored amount can be written again.
+ *
+ * Both halves of the guard in one predicate, because nothing asking the
+ * question cares which half a stored amount failed. A contract value of minus
+ * one and one of 1.5 cents are equally unwritable, and either way the fix is
+ * the same — open the project and correct the amount.
+ */
+export function isWholeCents(value: number): boolean {
+  return Number.isSafeInteger(value) && value >= 0;
+}
+
+/**
+ * Whether a nullable money column's value would satisfy `optionalCents`.
+ *
+ * Absent passes, because absent is a meaning rather than a missing value: a
+ * project with no rate override bills at its client's rate, and a copy of it
+ * should too.
+ */
+export function isOptionalWholeCents(value: number | null): boolean {
+  return value === null || isWholeCents(value);
+}
+
+/**
  * A nullable money column, for an amount that has a meaning when absent —
  * a project's rate override, where NULL is "use the client's default" and 0 is
  * the deliberate choice to bill nothing. The two are not the same, so a blank
