@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  isOptionalWholeCents,
   isPresentText,
+  isWholeCents,
   isWholeMinutes,
   optionalCents,
   optionalText,
@@ -78,9 +80,9 @@ describe("wholeCents", () => {
   });
 
   it("refuses an amount past the exact integer range", () => {
-    expect(() => wholeCents(Number.MAX_SAFE_INTEGER + 2, "contract value")).toThrow(
-      /whole cents/,
-    );
+    expect(() =>
+      wholeCents(Number.MAX_SAFE_INTEGER + 2, "contract value"),
+    ).toThrow(/whole cents/);
     expect(() => wholeCents(1e20, "contract value")).toThrow(/whole cents/);
   });
 
@@ -94,9 +96,9 @@ describe("wholeCents", () => {
     expect(() => wholeCents(Number.NaN, "contract value")).toThrow(
       /whole cents/,
     );
-    expect(() => wholeCents(Number.POSITIVE_INFINITY, "contract value")).toThrow(
-      /whole cents/,
-    );
+    expect(() =>
+      wholeCents(Number.POSITIVE_INFINITY, "contract value"),
+    ).toThrow(/whole cents/);
   });
 });
 
@@ -207,6 +209,74 @@ describe("isWholeMinutes", () => {
         }
       })();
       expect(isWholeMinutes(value)).toBe(guarded);
+    }
+  });
+});
+
+describe("isWholeCents", () => {
+  it("accepts whole cents, zero included", () => {
+    expect(isWholeCents(0)).toBe(true);
+    expect(isWholeCents(1_200_000)).toBe(true);
+  });
+
+  it("refuses a fraction of a cent", () => {
+    expect(isWholeCents(1_200.5)).toBe(false);
+  });
+
+  it("refuses an amount below zero", () => {
+    expect(isWholeCents(-1)).toBe(false);
+  });
+
+  it("refuses an amount too large to store exactly", () => {
+    expect(isWholeCents(Number.MAX_SAFE_INTEGER + 2)).toBe(false);
+  });
+
+  it("agrees with the guard it is the condition of", () => {
+    for (const value of [
+      0,
+      1_200_000,
+      -1,
+      1_200.5,
+      Number.MAX_SAFE_INTEGER + 2,
+    ]) {
+      const guarded = (() => {
+        try {
+          wholeCents(value, "contract value");
+          return true;
+        } catch {
+          return false;
+        }
+      })();
+      expect(isWholeCents(value)).toBe(guarded);
+    }
+  });
+});
+
+describe("isOptionalWholeCents", () => {
+  it("accepts an absent amount, which means the default applies", () => {
+    expect(isOptionalWholeCents(null)).toBe(true);
+  });
+
+  it("accepts an override of zero, which is not the same as absent", () => {
+    expect(isOptionalWholeCents(0)).toBe(true);
+  });
+
+  it("refuses the same amounts the whole-cents guard does", () => {
+    expect(isOptionalWholeCents(-1)).toBe(false);
+    expect(isOptionalWholeCents(9_500.5)).toBe(false);
+  });
+
+  it("agrees with the guard it is the condition of", () => {
+    for (const value of [null, 0, 9_500, -1, 9_500.5]) {
+      const guarded = (() => {
+        try {
+          optionalCents(value, "rate override");
+          return true;
+        } catch {
+          return false;
+        }
+      })();
+      expect(isOptionalWholeCents(value)).toBe(guarded);
     }
   });
 });
