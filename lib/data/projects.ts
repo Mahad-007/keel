@@ -502,6 +502,31 @@ export async function transitionProject(
 }
 
 /**
+ * Why a project row cannot be written again as another project's. A code
+ * rather than a sentence, on the same reasoning as `scopeCopyProblem`: the
+ * words for a reader belong with the form that shows them.
+ *
+ * One problem rather than one per column, because the reader's next move is
+ * the same whichever amount is at fault — open the project and correct it —
+ * and a sentence naming both places to look is shorter than two sentences
+ * naming one each.
+ */
+export type ProjectCopyProblem = "unusable-value";
+
+/**
+ * The part of a project row that decides whether it can be copied: the two
+ * money columns that cross over, both with guards in front of them.
+ *
+ * `clientId` is not among them. It is copied too, but a project is filed under
+ * a client that exists — archived or not — for as long as the project does,
+ * and `requireClient` asking again is the check for that.
+ */
+export type CopyableProjectValue = {
+  contractValueCents: number;
+  rateCents: number | null;
+};
+
+/**
  * Why a project was not duplicated.
  *
  * A code rather than a thrown error, and rather than a sentence: neither of
