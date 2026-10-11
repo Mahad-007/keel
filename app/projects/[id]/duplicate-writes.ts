@@ -37,6 +37,7 @@ import { PROJECTS_PATH } from "@/lib/projects/query";
  */
 const DUPLICATE_REASONS: Record<DuplicateProjectReason, string> = {
   "no-such-project": DUPLICATE_PROBLEMS.missingProject,
+  "unusable-value": DUPLICATE_PROBLEMS.unusableValue,
   "negative-estimate": DUPLICATE_PROBLEMS.negativeEstimate,
   "unusable-scope": DUPLICATE_PROBLEMS.unusableScope,
 };

@@ -565,7 +565,10 @@ export function projectCopyProblem(
  * rendered — and the words belong to the form, which already has them for the
  * reader. The same arrangement as the template capture, for the same reason.
  */
-export type DuplicateProjectReason = "no-such-project" | ScopeCopyProblem;
+export type DuplicateProjectReason =
+  | "no-such-project"
+  | ProjectCopyProblem
+  | ScopeCopyProblem;
 
 /** What duplicating a project asks the person for: what to call the copy. */
 export type DuplicateProjectInput = {
@@ -617,6 +620,15 @@ export async function duplicateProject(
     async (tx) => {
       const source = await getProject(id, tx);
       if (source === null) return { ok: false, reason: "no-such-project" };
+
+      /*
+        The project's own amounts, asked before its scope list is even read:
+        they cross over through `createProject`'s guards, so a stored value
+        those refuse would throw here too. Same reasoning as the scope check
+        below, and first because it is the cheaper question.
+      */
+      const unusableValue = projectCopyProblem(source);
+      if (unusableValue !== null) return { ok: false, reason: unusableValue };
 
       const scope = await listDeliverables(id, tx);
 
