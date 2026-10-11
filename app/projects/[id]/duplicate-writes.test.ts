@@ -121,6 +121,14 @@ describe("writeDuplicatedProject when the copy is refused", () => {
     expect(state.formError).toBe(DUPLICATE_PROBLEMS.missingProject);
   });
 
+  it("says which amount needs fixing on a value no copy can carry", async () => {
+    copied.mockResolvedValue({ ok: false, reason: "unusable-value" });
+
+    const state = await duplicate({ name: "Phase two" });
+
+    expect(state.formError).toBe(DUPLICATE_PROBLEMS.unusableValue);
+  });
+
   it("says which scope list needs fixing on a negative estimate", async () => {
     copied.mockResolvedValue({ ok: false, reason: "negative-estimate" });
 
