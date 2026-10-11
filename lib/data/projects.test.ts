@@ -1397,6 +1397,17 @@ describe("projectCopyProblem", () => {
     ).toBe("unusable-value");
   });
 
+  it("has no need to ask about the client, which cannot go missing", async () => {
+    const id = await source();
+
+    // Why `clientId` is not one of the columns checked above: the database
+    // refuses to store a project pointing at a client that is not there, so
+    // there is no such row for a copy to be refused by.
+    await expect(
+      db.run(sql`update projects set client_id = 'cli_gone' where id = ${id}`),
+    ).rejects.toThrow();
+  });
+
   it("accepts every project the data layer can write", async () => {
     const written = await createProject(
       { clientId, name: "Rebuild", contractValueCents: 1_200_000 },

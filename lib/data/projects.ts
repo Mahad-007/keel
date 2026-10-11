@@ -519,9 +519,13 @@ export type ProjectCopyProblem = "unusable-value";
  * The part of a project row that decides whether it can be copied: the two
  * money columns that cross over, both with guards in front of them.
  *
- * `clientId` is not among them. It is copied too, but a project is filed under
- * a client that exists — archived or not — for as long as the project does,
- * and `requireClient` asking again is the check for that.
+ * `clientId` is not among them, and not because `requireClient` would catch it
+ * — that throws, which is the shape this function exists to avoid. It is
+ * because a value it could object to cannot be stored: `client_id` carries a
+ * foreign key to `clients`, libSQL enforces foreign keys by default, and so a
+ * project row pointing at no client is rejected by the database rather than
+ * waiting to be found here. The test beside this one holds that down, since
+ * the argument is only as good as the pragma.
  */
 export type CopyableProjectValue = {
   contractValueCents: number;
