@@ -101,6 +101,30 @@ case; nothing in the repo sets one today.
   client component, so each id is forgeable. No impact while there is no auth,
   and they belong to Days 004/009/010 rather than this milestone — but Phase 8
   should not land before they are closures too.
+- **The `attempt` wrapper costs progressive enhancement**, on the duplicate
+  form and on the three that already had it (`add-deliverable-form.tsx`,
+  `save-template-form.tsx`, `apply-template-form.tsx`). Wrapping the action in
+  a plain client function so a rejected dispatch can be caught means
+  `useActionState` has no server reference to put in the markup, so the form
+  does not work before hydration. Measured rather than reasoned — the overview
+  tab serves both shapes at once:
+
+  ```
+  curl -s 'http://localhost:3000/projects/<id>?tab=overview' | grep -o '<form[^>]*>'
+  <form ... action="" encType="multipart/form-data" method="POST">        # status
+  <form ... action="javascript:throw new Error('React form ...')">        # duplicate
+  ```
+
+  The status form passes its action straight through and posts without JS; the
+  duplicate form throws in the browser, so an early press is silently lost.
+  Left as it is because the wrapper is load-bearing here for a reason the other
+  three do not have: `redirect` signals by throwing, Next rejects the dispatch
+  promise with it, and without `unstable_rethrow` a *successful* copy would be
+  reported to the reader as a failure. `useActionState` offers no way to have
+  both, so the choice is a lost press before hydration against a copy that was
+  made being announced as one that was not. Worth revisiting for all four
+  together, not on the day that added the fourth.
+
 - **`npm run lint`** reports seven `no-require-imports` errors in `scripts/*.js`.
   They predate Day 013 and CI runs `npm run verify`, not `npm run lint`, so
   nothing is red because of them.
