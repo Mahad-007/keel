@@ -21,6 +21,7 @@ import {
   listProjectsForClient,
   listProjectsWithClient,
   type ProjectPatch,
+  projectCopyProblem,
   transitionProject,
   updateProject,
 } from "./projects";
@@ -1350,6 +1351,61 @@ async function source(): Promise<string> {
   );
   return project.id;
 }
+
+describe("projectCopyProblem", () => {
+  /** The amounts a project the app wrote holds, which is the usual case. */
+  const GOOD = { contractValueCents: 1_200_000, rateCents: 9_500 };
+
+  it("finds nothing wrong with amounts the columns would accept", () => {
+    expect(projectCopyProblem(GOOD)).toBeNull();
+  });
+
+  it("finds nothing wrong with a project nobody has priced", () => {
+    expect(
+      projectCopyProblem({ contractValueCents: 0, rateCents: null }),
+    ).toBeNull();
+  });
+
+  it("finds nothing wrong with an override of zero, which is a decision", () => {
+    expect(projectCopyProblem({ ...GOOD, rateCents: 0 })).toBeNull();
+  });
+
+  it("names a contract value below zero", () => {
+    expect(projectCopyProblem({ ...GOOD, contractValueCents: -1 })).toBe(
+      "unusable-value",
+    );
+  });
+
+  it("names a contract value that is a fraction of a cent", () => {
+    expect(projectCopyProblem({ ...GOOD, contractValueCents: 1_200.5 })).toBe(
+      "unusable-value",
+    );
+  });
+
+  it("names a rate override below zero", () => {
+    expect(projectCopyProblem({ ...GOOD, rateCents: -9_500 })).toBe(
+      "unusable-value",
+    );
+  });
+
+  it("names an amount too large to store exactly", () => {
+    expect(
+      projectCopyProblem({
+        ...GOOD,
+        contractValueCents: Number.MAX_SAFE_INTEGER + 2,
+      }),
+    ).toBe("unusable-value");
+  });
+
+  it("accepts every project the data layer can write", async () => {
+    const written = await createProject(
+      { clientId, name: "Rebuild", contractValueCents: 1_200_000 },
+      db,
+    );
+
+    expect(projectCopyProblem(written)).toBeNull();
+  });
+});
 
 describe("duplicateProject", () => {
   it("writes a second project rather than touching the first", async () => {
