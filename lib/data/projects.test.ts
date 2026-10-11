@@ -1675,6 +1675,70 @@ describe("duplicateProject on a project that is not there", () => {
   });
 });
 
+describe("duplicateProject on a project whose amounts it cannot carry", () => {
+  it("refuses a contract value below zero", async () => {
+    const id = await source();
+    // Nothing in the app writes one — the column has been guarded since the
+    // table existed — but a hand-edited row or a restored backup can hold it,
+    // and `createProject` would throw on it part-way through the copy.
+    await db.run(
+      sql`update projects set contract_value_cents = -1 where id = ${id}`,
+    );
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(result).toEqual({ ok: false, reason: "unusable-value" });
+  });
+
+  it("refuses a contract value that is a fraction of a cent", async () => {
+    const id = await source();
+    await db.run(
+      sql`update projects set contract_value_cents = 1200.5 where id = ${id}`,
+    );
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(result).toEqual({ ok: false, reason: "unusable-value" });
+  });
+
+  it("refuses a rate override below zero", async () => {
+    const id = await source();
+    await db.run(sql`update projects set rate_cents = -9500 where id = ${id}`);
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(result).toEqual({ ok: false, reason: "unusable-value" });
+  });
+
+  it("writes neither the project nor a line of it", async () => {
+    const id = await source();
+    await db.run(
+      sql`update projects set contract_value_cents = -1 where id = ${id}`,
+    );
+
+    await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect((await listProjects(db)).map((row) => row.id)).toEqual([id]);
+    expect(await listDeliverables(id, db)).toHaveLength(3);
+  });
+
+  it("answers about the amount before it reads the scope list", async () => {
+    const id = await source();
+    // Both faults at once: the project's amount is the one reported, because
+    // it is the one whose sentence sends the reader to the right place.
+    await db.run(
+      sql`update projects set contract_value_cents = -1 where id = ${id}`,
+    );
+    await db.run(
+      sql`update deliverables set estimated_minutes = -60 where title = 'Build'`,
+    );
+
+    const result = await duplicateProject(id, { name: "Phase two" }, db);
+
+    expect(result).toEqual({ ok: false, reason: "unusable-value" });
+  });
+});
+
 describe("duplicateProject on an unusable scope list", () => {
   it("refuses a project holding an estimate below zero", async () => {
     const id = await source();
