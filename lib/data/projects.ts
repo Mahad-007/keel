@@ -29,6 +29,8 @@ import {
   type ScopeCopyProblem,
 } from "./deliverables";
 import {
+  isOptionalWholeCents,
+  isWholeCents,
   optionalCents,
   optionalText,
   requiredText,
@@ -525,6 +527,35 @@ export type CopyableProjectValue = {
   contractValueCents: number;
   rateCents: number | null;
 };
+
+/**
+ * Why a stored project row could not be written again, or null when it could.
+ *
+ * The project half of `scopeCopyProblem`, and it exists for the same reason.
+ * Duplicating writes the source's amounts back through `createProject`, which
+ * guards its money columns by throwing, so a row holding an amount those
+ * guards refuse throws from inside the copy — which rolls the whole thing back
+ * and reaches the reader as "nothing was written, try again". Pressing again
+ * cannot fix a stored amount, so the question is asked before anything is
+ * written, and answered rather than raised.
+ *
+ * Nothing in the app can write such a row: both columns have been guarded
+ * since the table existed. What can produce one is a hand-edited database, a
+ * restored backup, or an import — the same provenance as a deliverable with no
+ * title, and the same reason to answer rather than crash.
+ *
+ * The rules are the predicates the guards are built from rather than a second
+ * spelling of them, so the answer cannot drift from what the columns will
+ * accept.
+ */
+export function projectCopyProblem(
+  project: CopyableProjectValue,
+): ProjectCopyProblem | null {
+  const usable =
+    isWholeCents(project.contractValueCents) &&
+    isOptionalWholeCents(project.rateCents);
+  return usable ? null : "unusable-value";
+}
 
 /**
  * Why a project was not duplicated.
