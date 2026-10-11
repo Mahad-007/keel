@@ -266,8 +266,12 @@ describe("isOptionalWholeCents", () => {
     expect(isOptionalWholeCents(9_500.5)).toBe(false);
   });
 
+  it("accepts an amount that was never given, as the guard does", () => {
+    expect(isOptionalWholeCents(undefined)).toBe(true);
+  });
+
   it("agrees with the guard it is the condition of", () => {
-    for (const value of [null, 0, 9_500, -1, 9_500.5]) {
+    for (const value of [null, undefined, 0, 9_500, -1, 9_500.5]) {
       const guarded = (() => {
         try {
           optionalCents(value, "rate override");

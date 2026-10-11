@@ -85,9 +85,17 @@ export function isWholeCents(value: number): boolean {
  * Absent passes, because absent is a meaning rather than a missing value: a
  * project with no rate override bills at its client's rate, and a copy of it
  * should too.
+ *
+ * `undefined` is accepted alongside `null` for the single reason this pair
+ * exists: the predicate has to take what the guard takes and answer what the
+ * guard decides. `optionalCents` treats the two the same, so a predicate that
+ * refused one of them would be a second opinion about the column rather than
+ * a reading of it — which is the drift the pair is meant to make impossible.
  */
-export function isOptionalWholeCents(value: number | null): boolean {
-  return value === null || isWholeCents(value);
+export function isOptionalWholeCents(
+  value: number | null | undefined,
+): boolean {
+  return value === undefined || value === null || isWholeCents(value);
 }
 
 /**
