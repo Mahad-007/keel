@@ -50,18 +50,29 @@ against the build and not from memory:
 
 ```
 rm -rf .next && npm run build
-grep -rho 'encryptActionBoundArgs)("[0-9a-f]*",[a-z]*)' .next/server/chunks/ssr/*.js | wc -l   # 5
+grep -rho 'encryptActionBoundArgs)("[0-9a-f]*"' .next/server/chunks/ssr/*.js | wc -l   # 8
 python3 -c "import json;m=json.load(open('.next/server/server-reference-manifest.json'));print(len([k for k,v in m['node'].items() if 'app/projects/[id]/page' in v['workers']]))"
 ```
 
-Five encrypted captures, and six references for the project page — the five
+Eight encrypted captures, and nine references for the project page — the eight
 closures plus Day 010's `transitionProjectAction`, which is still a bare export.
 If either number moves, the check has stopped being one.
 
-Day 013 left those at three and four. Day 014 added the edit and the delete the
-same way, each as a `"use server"` closure in `deliverable-list.tsx` calling into
-`scope-writes.ts`, which is why both numbers went up by two. The counts are only
-useful if they are updated with the writes, so: five captures, six references.
+The first command no longer constrains what follows the id, and that is a
+correction rather than a tidy-up. It used to end `",[a-z]*)`, which only matches
+a closure capturing one plainly-named variable, and two of the eight are not
+that: the scope tab's template apply captures two values (`a,u`), and this
+milestone's duplicate closure captures `project.id`, a member expression
+(`a.id`). Both compile to exactly the same encrypted form; the regex simply
+could not see them. It was accurate through Day 014 and has undercounted since
+Day 017 — which is the trouble with checking a security property by grepping for
+one spelling of it.
+
+Day 013 left the counts at three and four, and Day 014 took them to five and six
+by adding the edit and the delete as `"use server"` closures in
+`deliverable-list.tsx`. Day 017 added two on the scope tab, and Day 018's
+duplicate closure in `overview-panel.tsx` is the eighth. The counts are only
+useful if they are updated with the writes, so: eight captures, nine references.
 
 It is still **not** an ownership check. It establishes which page made the call,
 not who was holding it. Phase 8 must derive the project from the session and
