@@ -143,6 +143,28 @@ export function importTextLines(text: string): NumberedLine[] {
  */
 const IMPORT_SEPARATOR = /[\t|]/;
 
+/**
+ * The bullet or number a pasted list carries at the front of every line.
+ *
+ * A proposal lists deliverables; a list in a document has markers on it. So
+ * the commonest paste in the world arrives as `• Discovery workshop` or
+ * `1. Discovery workshop`, and importing those titles verbatim would put the
+ * marker in the column — a scope list numbered twice over, once by the page
+ * and once by whatever wrote the document.
+ *
+ * Whitespace after the marker is required, which is what keeps it from eating
+ * a title: `2.1 Sitemap` keeps its number, because what follows the dot is not
+ * a space, and `1.5` is not a marker at all. A line that is nothing but a
+ * marker becomes blank and is refused for having no title, which is the right
+ * answer — it was a bullet with nothing after it.
+ */
+const LIST_MARKER = /^(?:[-–—*•·]|\d+[.)])\s+/;
+
+/** The line without the bullet or number a document put in front of it. */
+function withoutListMarker(text: string): string {
+  return text.replace(LIST_MARKER, "");
+}
+
 /** A line's two halves, before either is checked. */
 export type SplitLine = {
   readonly title: string;
@@ -164,11 +186,16 @@ export type SplitLine = {
  * case: most pasted lists are a column of names.
  */
 export function splitImportLine(text: string): SplitLine {
-  const at = text.search(IMPORT_SEPARATOR);
-  if (at === -1) return { title: text.trim(), estimate: "" };
+  // The marker comes off first, because it is at the front of the line and the
+  // separator may be anywhere: stripping afterwards would mean doing it to the
+  // title half and knowing that is where it landed.
+  const line = withoutListMarker(text.trim());
+
+  const at = line.search(IMPORT_SEPARATOR);
+  if (at === -1) return { title: line.trim(), estimate: "" };
   return {
-    title: text.slice(0, at).trim(),
-    estimate: text.slice(at + 1).trim(),
+    title: line.slice(0, at).trim(),
+    estimate: line.slice(at + 1).trim(),
   };
 }
 
