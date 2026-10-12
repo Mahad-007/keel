@@ -216,3 +216,55 @@ export function refusedImportState(
 ): ImportScopeState {
   return { fields, errors: {}, formError, previewed, imported: null };
 }
+
+/**
+ * The things that can stop an import, as sentences for the person who pressed.
+ *
+ * Each one says that nothing was written, because every one of them follows a
+ * press of a button labelled Import and the scope list above is unchanged — a
+ * reader who is not told will go looking for the lines. And each says what to
+ * do next, which is different in every case: press again, preview again, fix a
+ * line, reload.
+ */
+export const IMPORT_PROBLEMS = {
+  /**
+   * The commit press arrived with no stamp on it.
+   *
+   * Not reachable from the form as rendered — the Import button only exists
+   * once there is a preview on screen — so this is a page left open across a
+   * deploy, or a POST somebody built. It is answered with the preview the
+   * press should have had, rather than with a refusal to engage.
+   */
+  notPreviewed:
+    "Nothing was imported: a paste is previewed before it is committed. Check the lines below and press Import to add them.",
+  /**
+   * The box was edited after the preview. The commonest of these by far — a
+   * reader reads the table, spots a line, fixes it, and presses Import out of
+   * habit rather than Preview.
+   */
+  changed:
+    "The paste changed after it was previewed, so nothing was imported. The preview below has been read again from what is in the box now — press Import to add that.",
+  unreadableLines:
+    "Nothing was imported: a line below cannot be read as a deliverable, and a paste is imported whole or not at all. Fix or delete it, then press Preview again.",
+  /** A paste that reads as no deliverables at all. An import of nothing would report success and change nothing. */
+  nothingReadable:
+    "Nothing in that paste reads as a deliverable, so nothing was imported.",
+  missingProject:
+    "That project no longer exists, so there is nothing to import into.",
+  failed:
+    "Could not import that paste. Nothing was added to the scope list — try again.",
+} as const;
+
+/**
+ * What to say when the import never got an answer — the connection dropped,
+ * the tab was suspended mid-request, the request was aborted.
+ *
+ * It does not say nothing was written, because from the client there is no way
+ * to know: the request may have been lost on the way out, or the answer lost
+ * on the way back with twelve rows already created. Nor does it say "try
+ * again", which is the instruction that would import the whole list twice.
+ * Reloading is the only honest one — the scope list above is what the server
+ * says, so reading it answers the question.
+ */
+export const IMPORT_NO_ANSWER =
+  "Could not tell whether that paste was imported — the answer never arrived. Reload to see what the scope list says now.";
