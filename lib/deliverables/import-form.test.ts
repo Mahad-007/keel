@@ -6,6 +6,7 @@ import { previewImport } from "./import";
 import {
   INITIAL_IMPORT_STATE,
   INTENT_FIELD_NAME,
+  importedNotice,
   importedScopeState,
   previewedImportState,
   previewedPaste,
@@ -191,6 +192,46 @@ describe("the state a press that wrote nothing comes back in", () => {
   it("can come back without a preview when there was none to make", () => {
     expect(
       refusedImportState({ lines: PASTE }, null, "Nothing landed.").previewed,
+    ).toBeNull();
+  });
+});
+
+describe("the sentence a committed import leaves behind", () => {
+  it("names the count, the total and where the lines went", () => {
+    expect(importedNotice(importedScopeState(LANDED))).toBe(
+      "Added 2 deliverables and 2h to the end of the scope list.",
+    );
+  });
+
+  it("counts one line in the singular", () => {
+    expect(
+      importedNotice(
+        importedScopeState({ deliverableIds: ["dlv_one"], estimatedMinutes: 30 }),
+      ),
+    ).toBe("Added 1 deliverable and 30m to the end of the scope list.");
+  });
+
+  it("says a list with no estimates is unsized rather than free", () => {
+    expect(
+      importedNotice(
+        importedScopeState({
+          deliverableIds: ["dlv_one", "dlv_two", "dlv_three"],
+          estimatedMinutes: 0,
+        }),
+      ),
+    ).toBe(
+      "Added 3 deliverables to the end of the scope list, none of them estimated.",
+    );
+  });
+
+  it("says nothing before anything has been imported", () => {
+    expect(importedNotice(INITIAL_IMPORT_STATE)).toBeNull();
+    expect(importedNotice(previewed(PASTE))).toBeNull();
+  });
+
+  it("says nothing about a press that wrote nothing", () => {
+    expect(
+      importedNotice(refusedImportState({ lines: PASTE }, null, "No.")),
     ).toBeNull();
   });
 });
