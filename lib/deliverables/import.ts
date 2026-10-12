@@ -281,3 +281,46 @@ export function importNote(
 export function titleKeys(titles: readonly string[]): Set<string> {
   return new Set(titles.map(titleKey));
 }
+
+/**
+ * What stops a paste before any of it is read as deliverables.
+ *
+ * These are refusals about the text, not about a line, so they are shown
+ * against the box rather than in a preview — there is nothing worth previewing
+ * in either case. The sentences say what to do about it, because both are
+ * things a reader does to the paste rather than to the project.
+ */
+export const IMPORT_TEXT_PROBLEMS = {
+  empty: "Paste a scope list to import — one deliverable per line.",
+  tooLong: `That paste is longer than ${MAX_IMPORT_CHARS.toLocaleString("en-GB")} characters, which is a document rather than a scope list. Paste just the deliverables.`,
+} as const;
+
+/**
+ * Too many lines to check, with the count said out loud.
+ *
+ * The number is in the sentence because the reader cannot see it: a box
+ * holding two hundred lines looks much like one holding ninety, and "too many"
+ * without a figure leaves them deleting lines and pressing again to find out.
+ */
+export function tooManyLinesProblem(count: number): string {
+  return `That paste has ${count} lines on it, and ${MAX_IMPORT_LINES} is the most that can be imported at once. Split it and import the first ${MAX_IMPORT_LINES}.`;
+}
+
+/**
+ * Why the paste cannot be read at all, or null when it can be.
+ *
+ * In this order, because each question is only sensible once the one before it
+ * is answered: an empty box is the ordinary case of a form pressed too early,
+ * a wall of text is refused as text before it becomes a hundred line problems,
+ * and only then is the line count worth counting.
+ */
+export function importTextProblem(text: string): string | null {
+  if (text.trim() === "") return IMPORT_TEXT_PROBLEMS.empty;
+  if (text.length > MAX_IMPORT_CHARS) return IMPORT_TEXT_PROBLEMS.tooLong;
+
+  const lines = importTextLines(text);
+  if (lines.length > MAX_IMPORT_LINES) {
+    return tooManyLinesProblem(lines.length);
+  }
+  return null;
+}
