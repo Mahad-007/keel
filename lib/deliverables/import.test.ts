@@ -4,6 +4,7 @@ import {
   canImport,
   importNote,
   importSizePhrase,
+  importSummary,
   IMPORT_NOTES,
   IMPORT_TEXT_PROBLEMS,
   importTextProblem,
@@ -424,5 +425,47 @@ describe("the size a paste would add", () => {
 
   it("claims no total for a paste with nothing in it", () => {
     expect(phrase("")).toBe("0 deliverables, none of them estimated");
+  });
+});
+
+describe("the sentence above a preview", () => {
+  function summary(text: string, agreed: readonly string[] = []): string {
+    return importSummary(previewImport(text, agreed));
+  }
+
+  it("says what a clean paste amounts to and nothing else", () => {
+    expect(summary("Discovery | 2\nBuild | 1")).toBe(
+      "This paste reads as 2 deliverables and 3h.",
+    );
+  });
+
+  it("says nothing will be imported while a line cannot be read", () => {
+    expect(summary("Discovery | 2\n| 4")).toBe(
+      "This paste reads as 1 deliverable and 2h. One line below cannot be read as a deliverable, so nothing will be imported until you fix or delete it.",
+    );
+  });
+
+  it("counts several unreadable lines and asks for all of them", () => {
+    expect(summary("| 4\nBuild | nonsense\nDiscovery")).toBe(
+      "This paste reads as 1 deliverable, none of them estimated. 2 lines below cannot be read as a deliverable, so nothing will be imported until you fix or delete them.",
+    );
+  });
+
+  it("points at the remark on a line that repeats another", () => {
+    expect(summary("Build\nBuild")).toBe(
+      "This paste reads as 2 deliverables, none of them estimated. One line is worth a second look — see the note beside it.",
+    );
+  });
+
+  it("points at several remarks when there are several", () => {
+    expect(summary("Build\nBuild\nDiscovery", ["Discovery"])).toBe(
+      "This paste reads as 3 deliverables, none of them estimated. 2 lines are worth a second look — see the notes beside them.",
+    );
+  });
+
+  it("says so when the whole paste reads as nothing", () => {
+    expect(summary("| 4")).toBe(
+      "Nothing in this paste reads as a deliverable. One line below cannot be read as a deliverable, so nothing will be imported until you fix or delete it.",
+    );
   });
 });
