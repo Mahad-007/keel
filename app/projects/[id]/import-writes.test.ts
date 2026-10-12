@@ -229,6 +229,16 @@ describe("the commit press that writes nothing", () => {
     expect(state.previewed?.preview.problemCount).toBe(1);
   });
 
+  it("asks for the unreadable line, not another press, on an edited box", async () => {
+    const state = await commit(
+      `${PASTE}\n| 4`,
+      textFingerprint(PASTE),
+    );
+
+    expect(written).not.toHaveBeenCalled();
+    expect(state.formError).toBe(IMPORT_PROBLEMS.unreadableLines);
+  });
+
   it("refuses an import into a project that has since been deleted", async () => {
     written.mockResolvedValue({ ok: false, reason: "no-such-project" });
 

@@ -110,6 +110,26 @@ export async function writeScopeImport(
   const shown = previewedPaste(fields.lines, preview);
 
   /*
+    Can this paste be imported at all? Asked before the stamp, because it is
+    the answer that is true whatever the stamp says: a paste with a line
+    nobody can read is not importable, and telling the reader to press Import
+    again — which the stale-stamp sentence does — would be an instruction that
+    cannot work, under a table with no Import button beneath it.
+
+    All or nothing is decided where the paste was read rather than restated
+    here: one line that cannot be read stops the whole import.
+  */
+  if (!canImport(preview)) {
+    return refusedImportState(
+      fields,
+      shown,
+      preview.problemCount > 0
+        ? IMPORT_PROBLEMS.unreadableLines
+        : IMPORT_PROBLEMS.nothingReadable,
+    );
+  }
+
+  /*
     Is this the text that was previewed? A stamp that does not match means the
     box moved after the preview, which is the one thing a preview step exists
     to catch: committing it would write something nobody looked at. A blank
@@ -125,18 +145,6 @@ export async function writeScopeImport(
       stamp.trim() === ""
         ? IMPORT_PROBLEMS.notPreviewed
         : IMPORT_PROBLEMS.changed,
-    );
-  }
-
-  // All or nothing, decided where the paste was read rather than restated
-  // here: one line that cannot be read stops the whole import.
-  if (!canImport(preview)) {
-    return refusedImportState(
-      fields,
-      shown,
-      preview.problemCount > 0
-        ? IMPORT_PROBLEMS.unreadableLines
-        : IMPORT_PROBLEMS.nothingReadable,
     );
   }
 
