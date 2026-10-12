@@ -469,3 +469,54 @@ describe("the sentence above a preview", () => {
     );
   });
 });
+
+describe("the markers a pasted list arrives with", () => {
+  it("takes off a hyphen bullet", () => {
+    expect(splitImportLine("- Discovery")).toEqual({
+      title: "Discovery",
+      estimate: "",
+    });
+  });
+
+  it("takes off the other bullets a document might use", () => {
+    for (const marker of ["–", "—", "*", "•", "·"]) {
+      expect(splitImportLine(`${marker} Discovery`).title).toBe("Discovery");
+    }
+  });
+
+  it("takes off a list number, written either way", () => {
+    expect(splitImportLine("1. Discovery").title).toBe("Discovery");
+    expect(splitImportLine("12) Discovery").title).toBe("Discovery");
+  });
+
+  it("takes the marker before splitting off the estimate", () => {
+    expect(splitImportLine("- Wireframes | 1.5")).toEqual({
+      title: "Wireframes",
+      estimate: "1.5",
+    });
+  });
+
+  it("leaves a numbered heading that is part of the title", () => {
+    expect(splitImportLine("2.1 Sitemap").title).toBe("2.1 Sitemap");
+  });
+
+  it("leaves a hyphen that is part of a word", () => {
+    expect(splitImportLine("-ish round of revisions").title).toBe(
+      "-ish round of revisions",
+    );
+  });
+
+  it("leaves the dashes inside a title alone", () => {
+    expect(splitImportLine("Logo — three variants").title).toBe(
+      "Logo — three variants",
+    );
+  });
+
+  it("takes only the one marker, so a double bullet is visible", () => {
+    expect(splitImportLine("- - Discovery").title).toBe("- Discovery");
+  });
+
+  it("refuses a line that is a bullet and nothing else", () => {
+    expect(problem("- ")).toBe("Title is required.");
+  });
+});
