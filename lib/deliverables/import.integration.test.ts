@@ -11,7 +11,7 @@ import { createTestDb } from "@/lib/db/testing";
 import { formatMinutes } from "@/lib/minutes";
 import { summariseScope } from "@/lib/scope";
 
-import { importSizePhrase, previewImport } from "./import";
+import { IMPORT_NOTES, importSizePhrase, previewImport } from "./import";
 
 /**
  * The promise the preview makes, end to end: what the table says is what
@@ -111,5 +111,39 @@ describe("a pasted scope list, previewed and then imported", () => {
     expect(
       (await listDeliverables(projectId, db)).map((row) => row.sortOrder),
     ).toEqual([0, 1, 2, 3, 4]);
+  });
+});
+
+describe("a second paste onto a list that has already been imported", () => {
+  it("remarks on every line the first paste already agreed", async () => {
+    await importPaste(PASTE);
+
+    const { preview } = await importPaste("Wireframes | 12\nSitemap | 2");
+
+    expect(preview.lines[0]).toMatchObject({
+      ok: true,
+      note: IMPORT_NOTES.agreed,
+    });
+    expect(preview.lines[1]).toMatchObject({ ok: true, note: null });
+  });
+
+  it("adds the lines anyway, because a list may say a thing twice", async () => {
+    await importPaste(PASTE);
+    await importPaste("Wireframes | 12");
+
+    const titles = (await listDeliverables(projectId, db)).map(
+      (row) => row.title,
+    );
+    expect(titles.filter((title) => title === "Wireframes")).toHaveLength(2);
+  });
+
+  it("appends to the end rather than replacing what was agreed", async () => {
+    await importPaste(PASTE);
+    await importPaste("Sitemap | 2");
+
+    const list = await listDeliverables(projectId, db);
+    expect(list).toHaveLength(6);
+    expect(list[5].title).toBe("Sitemap");
+    expect(list.map((row) => row.sortOrder)).toEqual([0, 1, 2, 3, 4, 5]);
   });
 });
