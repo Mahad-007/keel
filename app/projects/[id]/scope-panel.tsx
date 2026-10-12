@@ -5,10 +5,12 @@ import {
   type AddDeliverableState,
 } from "@/lib/deliverables/form";
 
+import type { ImportScopeState } from "@/lib/deliverables/import-form";
 import type { ApplyTemplateState } from "@/lib/templates/apply-form";
 import type { SaveTemplateState } from "@/lib/templates/form";
 import type { SummarisedTemplate } from "@/lib/templates/summary";
 
+import { writeScopeImport } from "./import-writes";
 import { writeNewDeliverable } from "./scope-writes";
 import {
   writeAppliedTemplate,
@@ -17,6 +19,7 @@ import {
 
 import { AddDeliverableForm } from "./add-deliverable-form";
 import { DeliverableList } from "./deliverable-list";
+import { ImportSection } from "./import-section";
 import { NoDeliverables } from "./scope-empty";
 import { ScopeSummaryPanel } from "./scope-summary";
 import { TemplateSection } from "./template-section";
@@ -79,6 +82,14 @@ export function ScopePanel({
     return writeNewDeliverable(projectId, previous, formData);
   }
 
+  async function importScope(
+    previous: ImportScopeState,
+    formData: FormData,
+  ) {
+    "use server";
+    return writeScopeImport(projectId, previous, formData);
+  }
+
   async function save(previous: SaveTemplateState, formData: FormData) {
     "use server";
     return writeTemplateFromProject(projectId, previous, formData);
@@ -121,6 +132,7 @@ export function ScopePanel({
           initialState={INITIAL_ADD_DELIVERABLE_STATE}
         />
       </section>
+      <ImportSection importScope={importScope} scopeIsEmpty={empty} />
       <TemplateSection
         projectName={projectName}
         templates={templates}
