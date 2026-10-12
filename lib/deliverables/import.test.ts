@@ -516,7 +516,31 @@ describe("the markers a pasted list arrives with", () => {
     expect(splitImportLine("- - Discovery").title).toBe("- Discovery");
   });
 
+  it("takes off the tick box an issue tracker pastes with", () => {
+    expect(splitImportLine("- [ ] Discovery").title).toBe("Discovery");
+    expect(splitImportLine("[x] Discovery").title).toBe("Discovery");
+    expect(splitImportLine("- [X] Discovery | 2")).toEqual({
+      title: "Discovery",
+      estimate: "2",
+    });
+  });
+
+  it("imports a ticked line as scope all the same, not as work done", () => {
+    const read = line("- [x] Discovery | 2");
+    expect(read.ok && read.draft).toEqual({
+      title: "Discovery",
+      estimatedMinutes: 120,
+    });
+  });
+
+  it("leaves a bracket that is part of the title", () => {
+    expect(splitImportLine("[draft] Discovery").title).toBe(
+      "[draft] Discovery",
+    );
+  });
+
   it("refuses a line that is a bullet and nothing else", () => {
     expect(problem("- ")).toBe("Title is required.");
+    expect(problem("- [ ]")).toBe("Title is required.");
   });
 });

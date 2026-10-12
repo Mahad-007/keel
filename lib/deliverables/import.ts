@@ -161,9 +161,22 @@ const IMPORT_SEPARATOR = /[\t|]/;
  */
 const LIST_MARKER = /^(?:[-–—*•·]|\d+[.)])(?:\s+|$)/;
 
-/** The line without the bullet or number a document put in front of it. */
+/**
+ * The tick box a list pasted out of an issue tracker or a notes app carries,
+ * after its bullet.
+ *
+ * Stripped, not read. A ticked line is work somebody has already done, and a
+ * paste imports scope as pending whatever the box says — agreeing what the
+ * engagement covers is not the same as recording progress on it, and a scope
+ * list that arrived half done would make every figure derived from it
+ * meaningless on day one. The reader marks lines done on the list, where the
+ * press is one click and the status is visible.
+ */
+const CHECKBOX_MARKER = /^\[[ xX]?\](?:\s+|$)/;
+
+/** The line without the bullet, number or tick box in front of it. */
 function withoutListMarker(text: string): string {
-  return text.replace(LIST_MARKER, "");
+  return text.replace(LIST_MARKER, "").replace(CHECKBOX_MARKER, "");
 }
 
 /** A line's two halves, before either is checked. */
