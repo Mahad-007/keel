@@ -170,9 +170,7 @@ describe("the title a pasted line is read as", () => {
 
   it("takes a title at the column's limit", () => {
     expect(draft("W".repeat(MAX_IMPORT_TITLE)).title).toHaveLength(
-      MAX_IMPORT_CHARS,
-  MAX_IMPORT_LINES,
-  MAX_IMPORT_TITLE,
+      MAX_IMPORT_TITLE,
     );
   });
 
