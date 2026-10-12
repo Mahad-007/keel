@@ -97,3 +97,27 @@ export type ImportLine = NumberedLine &
 
 /** How long a pasted title may be: the column's limit, not a second one. */
 export const MAX_IMPORT_TITLE = DELIVERABLE_FIELD_LIMITS.title;
+
+/**
+ * The pasted text as the lines that have something on them, each remembering
+ * where it was.
+ *
+ * Blank lines are dropped rather than refused. A pasted list routinely has one
+ * at the end, and a double space between two groups of deliverables is how
+ * people write lists — reading either as an empty deliverable would turn the
+ * most ordinary paste in the world into an error. What survives is the
+ * numbering: the lines keep the positions they had in the box, so a problem on
+ * line 9 is reported against the ninth line the reader can count to and not
+ * against the seventh one that happened to have text on it.
+ *
+ * Split on every line ending rather than on `\n` alone. The form layer already
+ * normalises what a textarea submits, and this does not depend on that having
+ * happened — a caller handing it text straight off a clipboard gets the same
+ * answer.
+ */
+export function importTextLines(text: string): NumberedLine[] {
+  return text
+    .split(/\r\n|\r|\n/)
+    .map((line, index) => ({ number: index + 1, text: line.trim() }))
+    .filter((line) => line.text !== "");
+}
