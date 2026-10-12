@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { matchesFingerprint } from "@/lib/forms/fingerprint";
+
+import { previewImport } from "./import";
 import {
+  INITIAL_IMPORT_STATE,
   INTENT_FIELD_NAME,
+  previewedImportState,
   readImportFields,
   readImportIntent,
   readPreviewStamp,
@@ -65,5 +70,59 @@ describe("the stamp a submission carried", () => {
 
   it("is empty when nothing has been previewed yet", () => {
     expect(readPreviewStamp(submit({ lines: "Discovery" }))).toBe("");
+  });
+});
+
+const PASTE = "Discovery | 2\nBuild";
+
+function previewed(lines: string) {
+  return previewedImportState({ lines }, previewImport(lines, []));
+}
+
+describe("the state the import form starts from", () => {
+  it("has nothing pasted, nothing previewed and nothing imported", () => {
+    expect(INITIAL_IMPORT_STATE).toEqual({
+      fields: { lines: "" },
+      errors: {},
+      formError: null,
+      previewed: null,
+      imported: null,
+    });
+  });
+});
+
+describe("the state a preview comes back in", () => {
+  it("keeps the paste, so the reader can edit the line the table flagged", () => {
+    expect(previewed(PASTE).fields.lines).toBe(PASTE);
+  });
+
+  it("carries the lines the preview read", () => {
+    expect(previewed(PASTE).previewed?.preview.drafts).toEqual([
+      { title: "Discovery", estimatedMinutes: 120 },
+      { title: "Build", estimatedMinutes: 0 },
+    ]);
+  });
+
+  it("stamps the text it read, so the commit press can be checked", () => {
+    const stamp = previewed(PASTE).previewed?.stamp ?? "";
+    expect(matchesFingerprint(stamp, PASTE)).toBe(true);
+  });
+
+  it("stamps nothing that would match a different paste", () => {
+    const stamp = previewed(PASTE).previewed?.stamp ?? "";
+    expect(matchesFingerprint(stamp, `${PASTE}\nLaunch`)).toBe(false);
+  });
+
+  it("says nothing is wrong and nothing was written", () => {
+    const state = previewed(PASTE);
+    expect(state.errors).toEqual({});
+    expect(state.formError).toBeNull();
+    expect(state.imported).toBeNull();
+  });
+
+  it("previews a paste it could not read a line of, rather than refusing", () => {
+    const state = previewed("| 2");
+    expect(state.previewed?.preview.problemCount).toBe(1);
+    expect(state.formError).toBeNull();
   });
 });
