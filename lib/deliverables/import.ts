@@ -399,3 +399,20 @@ export function previewImport(
 
   return { lines, drafts, problemCount, noteCount };
 }
+
+/**
+ * Whether this preview is one that may be committed.
+ *
+ * All or nothing, deliberately: one line the parser could not read stops the
+ * whole paste. The alternative — import the nine good lines and report the
+ * tenth — leaves the reader holding a half-imported list and a sentence about
+ * a line they can no longer see in context, and the only way back is to work
+ * out which nine landed. A paste is a single statement of what was agreed, and
+ * it is easier to fix one line in the box than to reconcile a list afterwards.
+ *
+ * A paste that reads as no deliverables at all cannot be committed either.
+ * Pressing Import on it would report success and add nothing.
+ */
+export function canImport(preview: ImportPreview): boolean {
+  return preview.problemCount === 0 && preview.drafts.length > 0;
+}
