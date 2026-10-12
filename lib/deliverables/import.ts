@@ -121,3 +121,46 @@ export function importTextLines(text: string): NumberedLine[] {
     .map((line, index) => ({ number: index + 1, text: line.trim() }))
     .filter((line) => line.text !== "");
 }
+
+/**
+ * Where a line's title stops and its estimate starts.
+ *
+ * A tab or a vertical bar, whichever comes first, because the two cover the
+ * two ways a scope list actually arrives. A list copied out of a spreadsheet
+ * or a table is tab-separated and nobody chose that; a list typed into the box
+ * needs a mark that can be typed, and a bar is the one character that does not
+ * otherwise turn up in the middle of a deliverable's name. A dash would: "Logo
+ * — three variants" is a title, not a title and an estimate.
+ *
+ * One rule rather than two, so there is nothing to get in the wrong order.
+ */
+const IMPORT_SEPARATOR = /[\t|]/;
+
+/** A line's two halves, before either is checked. */
+export type SplitLine = {
+  readonly title: string;
+  /** What followed the separator, or `""` on a line that had none. */
+  readonly estimate: string;
+};
+
+/**
+ * One line split into what it calls the work and how long it was sized at.
+ *
+ * Split at the *first* separator only, so everything after it is the estimate
+ * — including a second separator. A line with two bars in it is a line nobody
+ * meant to write, and `1.5 | ask Dana` reaching the estimate rules as a whole
+ * is what gets it refused with a sentence. Taking the middle column and
+ * dropping the rest would import that line, silently, missing the half
+ * somebody cared enough to type.
+ *
+ * A line with no separator is all title and no estimate, which is the common
+ * case: most pasted lists are a column of names.
+ */
+export function splitImportLine(text: string): SplitLine {
+  const at = text.search(IMPORT_SEPARATOR);
+  if (at === -1) return { title: text.trim(), estimate: "" };
+  return {
+    title: text.slice(0, at).trim(),
+    estimate: text.slice(at + 1).trim(),
+  };
+}
