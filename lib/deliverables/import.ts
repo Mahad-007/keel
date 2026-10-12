@@ -324,3 +324,78 @@ export function importTextProblem(text: string): string | null {
   }
   return null;
 }
+
+/**
+ * A paste, read, as the preview shows it.
+ *
+ * Every line is kept, readable or not, because the preview's job is to let the
+ * reader check the parse line by line against the box above it — a preview
+ * that silently dropped the lines it could not read would be a list of
+ * successes with gaps in the numbering.
+ *
+ * The drafts are the same lines again, in order, reduced to what would be
+ * written. Carried rather than derived at the call site so that the rows that
+ * get written are the rows that were shown, by construction: one walk of the
+ * paste, one answer, and no second filter that could disagree with the table.
+ *
+ * The two counts are what the summary is said from. Both are derivable from
+ * the lines and both are counted here, in the same walk, because a preview
+ * that reported four problems and showed three would be read as the bug it is.
+ */
+export type ImportPreview = {
+  readonly lines: readonly ImportLine[];
+  /** What would be written, in the order it would be written. */
+  readonly drafts: readonly ImportDraft[];
+  /** How many lines could not be read at all. */
+  readonly problemCount: number;
+  /** How many readable lines have something worth mentioning about them. */
+  readonly noteCount: number;
+};
+
+/**
+ * The paste read against what the project already has agreed.
+ *
+ * The agreed titles come from the caller — they are a database read, and this
+ * file does not do those — and they are only ever compared, never written: a
+ * line that repeats one already on the list still imports, because a scope
+ * list is allowed to say "Revision round" twice and often has to.
+ *
+ * A line's note is decided before its own title joins the set, so the first of
+ * three identical lines is unremarked and the second and third say they repeat
+ * it. The alternative marks all three, which reads as though something is
+ * wrong with the first one too.
+ *
+ * Refused lines contribute no title. A line that could not be read is not a
+ * deliverable, and letting its text count as one would have the line after it
+ * claiming to repeat something that is not being imported.
+ */
+export function previewImport(
+  text: string,
+  agreedTitles: readonly string[],
+): ImportPreview {
+  const agreed = titleKeys(agreedTitles);
+  const earlier = new Set<string>();
+
+  const lines: ImportLine[] = [];
+  const drafts: ImportDraft[] = [];
+  let problemCount = 0;
+  let noteCount = 0;
+
+  for (const numbered of importTextLines(text)) {
+    const read = parseImportLine(numbered);
+    if (!read.ok) {
+      problemCount += 1;
+      lines.push(read);
+      continue;
+    }
+
+    const note = importNote(read.draft.title, earlier, agreed);
+    if (note !== null) noteCount += 1;
+    earlier.add(titleKey(read.draft.title));
+
+    lines.push({ ...read, note });
+    drafts.push(read.draft);
+  }
+
+  return { lines, drafts, problemCount, noteCount };
+}
