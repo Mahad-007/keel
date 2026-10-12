@@ -80,9 +80,17 @@ export function BulkImportForm({
     too.
 
     The fields come from the submission rather than the previous state, so what
-    comes back is what was in the box when the press was made. The preview from
-    last time comes back with it: it may be stale, but it describes the text
-    that is still in the box, and the sentence above it says nothing landed.
+    comes back is what was in the box when the press was made — the paste is
+    kept, because the clipboard has moved on and there is nowhere else to get
+    it from.
+
+    The preview does not come back, and that is the point of this branch. An
+    unanswered press may have written every row or none, and a state that kept
+    the preview would leave the Import button under it, armed, beside a
+    sentence saying nobody knows what happened — one press from a second copy
+    of the whole list. Without it the only ways forward are to reload, which
+    the sentence asks for, or to press Preview, which writes nothing and reads
+    the list as it now actually is.
   */
   async function attempt(
     previous: ImportScopeState,
@@ -96,7 +104,7 @@ export function BulkImportForm({
       console.error("import scope: the server never answered", error);
       return refusedImportState(
         readImportFields(formData),
-        previous.previewed,
+        null,
         IMPORT_NO_ANSWER,
       );
     }
