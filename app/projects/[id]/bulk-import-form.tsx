@@ -15,6 +15,7 @@ import {
 } from "@/lib/deliverables/import";
 import {
   IMPORT_FIELD_NAMES,
+  importedNotice,
   IMPORT_INTENT,
   IMPORT_NO_ANSWER,
   INTENT_FIELD_NAME,
@@ -164,6 +165,30 @@ export function BulkImportForm({
             Import these deliverables
           </SubmitButton>
         ) : null}
+        {/*
+          Rendered empty rather than conditionally, because a live region has
+          to be in the document before the text arrives for a screen reader to
+          notice it appearing. `status` rather than `alert`: the lines were
+          added as asked, which is worth saying and not worth interrupting for.
+
+          Keyed on the first row the import wrote, not on the count: importing
+          the same list twice says the same sentence, and an identical keyed
+          node holding identical text is no change to the DOM, so the second
+          import would be announced to nobody. Every import writes at least one
+          row — a paste that reads as nothing is refused — so there is always
+          an id here.
+        */}
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-sm text-zinc-600 dark:text-zinc-400"
+        >
+          {state.imported === null ? null : (
+            <span key={state.imported.deliverableIds[0]}>
+              {importedNotice(state)}
+            </span>
+          )}
+        </p>
       </div>
     </form>
   );
