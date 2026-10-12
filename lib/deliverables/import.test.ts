@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  importNote,
+  IMPORT_NOTES,
   importTextLines,
   MAX_IMPORT_TITLE,
   parseImportLine,
   splitImportLine,
+  titleKeys,
 } from "./import";
 
 /** One line of a paste, as it arrives from `importTextLines`. */
@@ -206,5 +209,47 @@ describe("the estimate a pasted line is read as", () => {
     expect(problem("| nonsense")).toBe(
       "Title is required. Estimate must be a number of hours, like 2 or 1.5.",
     );
+  });
+});
+
+describe("what a line is remarked on for", () => {
+  const nothing = titleKeys([]);
+
+  it("says nothing about a title nobody has seen before", () => {
+    expect(importNote("Discovery", nothing, nothing)).toBeNull();
+  });
+
+  it("says a line repeats an earlier one in the same paste", () => {
+    expect(importNote("Discovery", titleKeys(["Discovery"]), nothing)).toBe(
+      IMPORT_NOTES.repeated,
+    );
+  });
+
+  it("says a title is already on the project's list", () => {
+    expect(importNote("Discovery", nothing, titleKeys(["Discovery"]))).toBe(
+      IMPORT_NOTES.agreed,
+    );
+  });
+
+  it("says both, the paste first, when both are true", () => {
+    expect(
+      importNote("Discovery", titleKeys(["Discovery"]), titleKeys(["Discovery"])),
+    ).toBe(`${IMPORT_NOTES.repeated} ${IMPORT_NOTES.agreed}`);
+  });
+
+  it("counts a difference of case as the same title", () => {
+    expect(importNote("discovery", titleKeys(["Discovery"]), nothing)).toBe(
+      IMPORT_NOTES.repeated,
+    );
+  });
+
+  it("counts a difference of spacing as the same title", () => {
+    expect(
+      importNote("Discovery  workshop", titleKeys(["Discovery workshop"]), nothing),
+    ).toBe(IMPORT_NOTES.repeated);
+  });
+
+  it("tells two genuinely different titles apart", () => {
+    expect(importNote("Discovery", titleKeys(["Discovery call"]), nothing)).toBeNull();
   });
 });
