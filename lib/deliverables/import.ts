@@ -1,3 +1,7 @@
+import { optionalEstimateMinutes } from "@/lib/forms/estimate";
+import { collect, type FieldErrors } from "@/lib/forms/result";
+import { requiredText } from "@/lib/forms/text";
+
 import { DELIVERABLE_FIELD_LIMITS } from "./form";
 
 /**
@@ -162,5 +166,58 @@ export function splitImportLine(text: string): SplitLine {
   return {
     title: text.slice(0, at).trim(),
     estimate: text.slice(at + 1).trim(),
+  };
+}
+
+/**
+ * The two things a pasted line is checked for, in the order the line reads.
+ *
+ * Both are reported, joined, rather than the first one found. A line is one
+ * row of the preview with one sentence beside it, and a reader who fixes the
+ * title only to have the estimate complain on the next press is being made to
+ * preview twice for one bad line.
+ */
+const LINE_FIELDS = ["title", "estimate"] as const;
+
+function lineProblem(errors: FieldErrors<(typeof LINE_FIELDS)[number]>): string {
+  return LINE_FIELDS.map((field) => errors[field])
+    .filter((message) => message !== undefined)
+    .join(" ");
+}
+
+/**
+ * One line of the paste, read as a deliverable or refused with a sentence.
+ *
+ * The rules are the add line's rules, called rather than restated: the same
+ * title limit, and the same estimate parser that turns `1.5` into ninety
+ * minutes and refuses `1,5`. A paste that accepted what the form rejects would
+ * be a second way into the same table with a second set of limits, and the
+ * difference would only show up as a row the edit form then refuses to save.
+ *
+ * A line with no estimate is a deliverable with no estimate, which is a zero —
+ * the same reading the blank field gives, and the one the scope summary already
+ * flags as unsized. Refusing an unestimated line would make the common paste,
+ * a plain column of names, impossible to import.
+ */
+export function parseImportLine(line: NumberedLine): ImportLine {
+  const { title, estimate } = splitImportLine(line.text);
+
+  const parsed = collect({
+    title: requiredText(title, { label: "Title", max: MAX_IMPORT_TITLE }),
+    estimate: optionalEstimateMinutes(estimate),
+  });
+
+  if (!parsed.ok) {
+    return { ...line, ok: false, problem: lineProblem(parsed.errors) };
+  }
+
+  return {
+    ...line,
+    ok: true,
+    draft: {
+      title: parsed.value.title,
+      estimatedMinutes: parsed.value.estimate,
+    },
+    note: null,
   };
 }
