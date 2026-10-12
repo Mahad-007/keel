@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 
 import {
+  fieldId,
   FormSummary,
   SubmitButton,
   TextAreaField,
@@ -114,6 +115,20 @@ export function BulkImportForm({
   const [state, formAction] = useActionState(attempt, initialState);
 
   useFirstErrorFocus(state, IMPORT_FIELD_NAMES);
+
+  /*
+    Back to the box once an import lands.
+
+    Not a nicety: the press that imported was on a button that is no longer
+    rendered — the preview it belonged to has gone with the rows it described —
+    so the browser has nowhere to put the cursor and drops it on the document.
+    From the keyboard that is the top of the page, and the reader who was about
+    to paste the second half of the list has to tab back down to find the box.
+  */
+  useEffect(() => {
+    if (state.imported === null) return;
+    document.getElementById(fieldId("lines"))?.focus();
+  }, [state]);
 
   const previewed = state.previewed;
 
