@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canImport,
   importNote,
   IMPORT_NOTES,
   IMPORT_TEXT_PROBLEMS,
@@ -370,5 +371,25 @@ describe("the preview of a paste with nothing in it", () => {
       problemCount: 0,
       noteCount: 0,
     });
+  });
+});
+
+describe("which previews may be committed", () => {
+  it("allows a paste every line of which read", () => {
+    expect(canImport(previewImport("Discovery\nBuild | 2", []))).toBe(true);
+  });
+
+  it("refuses a paste with one line it could not read", () => {
+    expect(canImport(previewImport("Discovery\n| 2", []))).toBe(false);
+  });
+
+  it("refuses a paste that reads as nothing at all", () => {
+    expect(canImport(previewImport("", []))).toBe(false);
+  });
+
+  it("allows a paste whose only objection is a repeated title", () => {
+    const preview = previewImport("Revision round\nRevision round", []);
+    expect(preview.noteCount).toBe(1);
+    expect(canImport(preview)).toBe(true);
   });
 });
