@@ -1,4 +1,7 @@
 import { optionalEstimateMinutes } from "@/lib/forms/estimate";
+import { formatMinutes } from "@/lib/minutes";
+import { deliverablesPhrase } from "@/lib/projects/scope-summary";
+import { totalEstimatedMinutes, unestimatedCount } from "@/lib/scope";
 import { collect, type FieldErrors } from "@/lib/forms/result";
 import { requiredText } from "@/lib/forms/text";
 
@@ -415,4 +418,29 @@ export function previewImport(
  */
 export function canImport(preview: ImportPreview): boolean {
   return preview.problemCount === 0 && preview.drafts.length > 0;
+}
+
+/**
+ * What a paste would add, in words: how many lines, how long, and how much of
+ * that total is missing.
+ *
+ * The unestimated count is in the phrase rather than left to the table,
+ * because it is the figure that says how far to trust the other one. Eight
+ * hours across six deliverables means something quite different when four of
+ * them are unsized, and a reader who pastes a plain column of names should see
+ * that the total it reports is a floor rather than an estimate.
+ *
+ * The totals come from `lib/scope.ts` — the same functions the scope summary
+ * on this page is built from — so the sentence before the import and the panel
+ * after it cannot disagree about what was added.
+ */
+export function importSizePhrase(drafts: readonly ImportDraft[]): string {
+  const count = deliverablesPhrase(drafts.length);
+  const unsized = unestimatedCount(drafts);
+
+  if (unsized >= drafts.length) return `${count}, none of them estimated`;
+
+  const total = formatMinutes(totalEstimatedMinutes(drafts));
+  if (unsized === 0) return `${count} and ${total}`;
+  return `${count} and ${total}, with ${unsized} not estimated`;
 }
