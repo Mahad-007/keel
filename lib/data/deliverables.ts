@@ -588,8 +588,16 @@ export type ImportedScopeLine = {
  * That is the one door new scope comes through — it is what keeps positions
  * dense from zero, what defaults a line to `pending`, and what guards the
  * columns — and a bulk insert would be a second set of rules for the same
- * table to drift from. The cost is a few statements per line, and the line
- * count is capped where the paste is read.
+ * table to drift from.
+ *
+ * The cost is real and worth writing down: each line is its own savepoint, its
+ * own project lookup and its own `max(sortOrder)` before the insert, so a
+ * hundred-line paste is some hundreds of statements inside one transaction.
+ * Against a local file that is nothing; against a hosted libSQL it is a
+ * hundred round trips on a press somebody makes once per engagement. The cap
+ * on the paste is what bounds it, and a bulk insert here is the obvious
+ * saving — one position read, one statement, the guards applied in a loop
+ * first — if the import ever becomes something done often enough to measure.
  *
  * One immediate transaction around the lot, so an import is all or nothing. A
  * reader told twelve lines were added and looking at seven has no way to know
