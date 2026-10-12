@@ -67,13 +67,30 @@ async function requireProject(
   database: Database,
 ): Promise<string> {
   const projectId = requiredText(id, "deliverable project");
+  const found = await findProject(projectId, database);
+  if (found === null) throw new Error(`no project with id ${projectId}`);
+  return found;
+}
+
+/**
+ * The project's id if there is such a project, or null.
+ *
+ * Pulled out of the guard above because not every caller wants an exception.
+ * Writing one deliverable against a project that does not exist is a bug in
+ * the caller, so it throws; importing a pasted list into a project somebody
+ * deleted while the page sat open is an ordinary thing to have happen, and the
+ * reader needs a sentence rather than a stack trace. One query either way.
+ */
+async function findProject(
+  id: string,
+  database: Database,
+): Promise<string | null> {
   const [row] = await database
     .select({ id: projects.id })
     .from(projects)
-    .where(eq(projects.id, projectId))
+    .where(eq(projects.id, id))
     .limit(1);
-  if (!row) throw new Error(`no project with id ${projectId}`);
-  return row.id;
+  return row?.id ?? null;
 }
 
 /**
