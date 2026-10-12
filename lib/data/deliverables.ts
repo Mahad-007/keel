@@ -574,3 +574,62 @@ export type ImportedScopeLine = {
   title: string;
   estimatedMinutes: number;
 };
+
+/**
+ * Writes a pasted scope list at the end of a project's list and hands back the
+ * rows as the project now reads.
+ *
+ * Appended, never substituted, for the reason a template is: whatever was
+ * already agreed stays exactly where it was. Somebody who pastes twelve lines
+ * onto a project with three on it has thirteen conversations to have, not
+ * twelve.
+ *
+ * Each line goes through `createDeliverable` rather than being inserted here.
+ * That is the one door new scope comes through — it is what keeps positions
+ * dense from zero, what defaults a line to `pending`, and what guards the
+ * columns — and a bulk insert would be a second set of rules for the same
+ * table to drift from. The cost is a few statements per line, and the line
+ * count is capped where the paste is read.
+ *
+ * One immediate transaction around the lot, so an import is all or nothing. A
+ * reader told twelve lines were added and looking at seven has no way to know
+ * which five are missing, and no way to ask for the rest without getting
+ * duplicates of the seven. Immediate rather than deferred because the first
+ * thing it does is read: a deferred transaction takes no write lock until the
+ * first insert, so two imports arriving together would both find the same end
+ * of the list.
+ */
+export async function importDeliverables(
+  projectId: string,
+  lines: readonly ImportedScopeLine[],
+  database: Database = db,
+): Promise<ImportScopeResult> {
+  // Asked before the transaction is opened: an import of nothing would report
+  // success and change nothing, and the caller that managed to ask for one has
+  // a bug rather than a project to blame.
+  if (lines.length === 0) return { ok: false, reason: "no-lines" };
+
+  return database.transaction(
+    async (tx) => {
+      const found = await findProject(projectId, tx);
+      if (found === null) return { ok: false, reason: "no-such-project" };
+
+      const written: Deliverable[] = [];
+      for (const line of lines) {
+        written.push(
+          await createDeliverable(
+            {
+              projectId: found,
+              title: line.title,
+              estimatedMinutes: line.estimatedMinutes,
+            },
+            tx,
+          ),
+        );
+      }
+
+      return { ok: true, deliverables: written };
+    },
+    { behavior: "immediate" },
+  );
+}
