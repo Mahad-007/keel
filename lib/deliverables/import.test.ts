@@ -1,6 +1,28 @@
 import { describe, expect, it } from "vitest";
 
-import { importTextLines, splitImportLine } from "./import";
+import {
+  importTextLines,
+  MAX_IMPORT_TITLE,
+  parseImportLine,
+  splitImportLine,
+} from "./import";
+
+/** One line of a paste, as it arrives from `importTextLines`. */
+function line(text: string, number = 1) {
+  return parseImportLine({ number, text });
+}
+
+function problem(text: string): string {
+  const read = line(text);
+  if (read.ok) throw new Error(`expected “${text}” to be refused`);
+  return read.problem;
+}
+
+function draft(text: string) {
+  const read = line(text);
+  if (!read.ok) throw new Error(`expected “${text}” to read: ${read.problem}`);
+  return read.draft;
+}
 
 describe("the lines a paste is read as", () => {
   it("numbers them from one, in the order they were pasted", () => {
@@ -108,5 +130,81 @@ describe("the two halves of a pasted line", () => {
 
   it("reads a separator with nothing before it as no title", () => {
     expect(splitImportLine("| 2")).toEqual({ title: "", estimate: "2" });
+  });
+});
+
+describe("the title a pasted line is read as", () => {
+  it("is the line itself when there is no estimate on it", () => {
+    expect(draft("Discovery workshop")).toEqual({
+      title: "Discovery workshop",
+      estimatedMinutes: 0,
+    });
+  });
+
+  it("keeps the line number it was pasted on", () => {
+    expect(line("Discovery", 7).number).toBe(7);
+  });
+
+  it("keeps the text as pasted, so the preview can show both", () => {
+    expect(line("Wireframes | 1.5").text).toBe("Wireframes | 1.5");
+  });
+
+  it("refuses a line that is an estimate with nothing to call it", () => {
+    expect(problem("| 2")).toBe("Title is required.");
+  });
+
+  it("takes a title at the column's limit", () => {
+    expect(draft("W".repeat(MAX_IMPORT_TITLE)).title).toHaveLength(
+      MAX_IMPORT_TITLE,
+    );
+  });
+
+  it("refuses a title one character past the limit", () => {
+    expect(problem("W".repeat(MAX_IMPORT_TITLE + 1))).toBe(
+      `Title must be ${MAX_IMPORT_TITLE} characters or fewer.`,
+    );
+  });
+});
+
+describe("the estimate a pasted line is read as", () => {
+  it("is zero on a line that carries none, which reads as unsized", () => {
+    expect(draft("Discovery").estimatedMinutes).toBe(0);
+  });
+
+  it("reads hours as whole minutes", () => {
+    expect(draft("Wireframes | 1.5").estimatedMinutes).toBe(90);
+    expect(draft("Build\t2").estimatedMinutes).toBe(120);
+  });
+
+  it("reads a bar with nothing after it as unsized rather than wrong", () => {
+    expect(draft("Launch |").estimatedMinutes).toBe(0);
+  });
+
+  it("refuses an estimate that is not a number of hours", () => {
+    expect(problem("Build | ask Dana")).toBe(
+      "Estimate must be a number of hours, like 2 or 1.5.",
+    );
+  });
+
+  it("refuses the whole of a line with a second separator in it", () => {
+    expect(problem("Build | 1.5 | ask Dana")).toBe(
+      "Estimate must be a number of hours, like 2 or 1.5.",
+    );
+  });
+
+  it("refuses a negative estimate, as the form does", () => {
+    expect(problem("Build | -2")).toBe("Estimate cannot be negative.");
+  });
+
+  it("refuses an estimate too large to be hours somebody meant", () => {
+    expect(problem("Build | 90000")).toBe(
+      "Estimate must be 1000 hours or less.",
+    );
+  });
+
+  it("says both things about a line wrong in both halves", () => {
+    expect(problem("| nonsense")).toBe(
+      "Title is required. Estimate must be a number of hours, like 2 or 1.5.",
+    );
   });
 });
