@@ -11,6 +11,7 @@ import {
   scopeCopyProblem,
   deleteDeliverable,
   getDeliverable,
+  importDeliverables,
   listDeliverables,
   moveDeliverable,
   reorderDeliverables,
@@ -980,5 +981,118 @@ describe("setDeliverableStatus against a row that has moved on", () => {
     );
 
     expect(written?.status).toBe("pending");
+  });
+});
+
+describe("importDeliverables", () => {
+  /** The three lines a pasted scope list might read as. */
+  const PASTED = [
+    { title: "Discovery workshop", estimatedMinutes: 120 },
+    { title: "Wireframes", estimatedMinutes: 360 },
+    { title: "Build", estimatedMinutes: 0 },
+  ];
+
+  it("writes every pasted line and hands the rows back in order", async () => {
+    const result = await importDeliverables(projectId, PASTED, db);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.deliverables.map((row) => row.title)).toEqual([
+      "Discovery workshop",
+      "Wireframes",
+      "Build",
+    ]);
+    expect(result.deliverables.map((row) => row.estimatedMinutes)).toEqual([
+      120, 360, 0,
+    ]);
+  });
+
+  it("lands the lines at the end of what was already agreed", async () => {
+    await createDeliverable({ projectId, title: "Kickoff" }, db);
+
+    await importDeliverables(projectId, PASTED, db);
+
+    const list = await listDeliverables(projectId, db);
+    expect(list.map((row) => row.title)).toEqual([
+      "Kickoff",
+      "Discovery workshop",
+      "Wireframes",
+      "Build",
+    ]);
+    expect(list.map((row) => row.sortOrder)).toEqual([0, 1, 2, 3]);
+  });
+
+  it("writes every line as pending, because a paste is scope to agree", async () => {
+    const result = await importDeliverables(projectId, PASTED, db);
+
+    if (!result.ok) throw new Error("expected the import to be written");
+    expect(result.deliverables.map((row) => row.status)).toEqual([
+      "pending",
+      "pending",
+      "pending",
+    ]);
+  });
+
+  it("leaves the description null, which a paste has nowhere to carry", async () => {
+    const result = await importDeliverables(projectId, PASTED, db);
+
+    if (!result.ok) throw new Error("expected the import to be written");
+    expect(result.deliverables.map((row) => row.description)).toEqual([
+      null,
+      null,
+      null,
+    ]);
+  });
+
+  it("keeps two lines saying the same thing, because a list may", async () => {
+    const result = await importDeliverables(
+      projectId,
+      [
+        { title: "Revision round", estimatedMinutes: 60 },
+        { title: "Revision round", estimatedMinutes: 60 },
+      ],
+      db,
+    );
+
+    if (!result.ok) throw new Error("expected the import to be written");
+    expect(result.deliverables).toHaveLength(2);
+    expect(result.deliverables[0].id).not.toBe(result.deliverables[1].id);
+  });
+});
+
+describe("importDeliverables refusals", () => {
+  it("refuses an import into a project that is not there", async () => {
+    const result = await importDeliverables(
+      "prj_missing",
+      [{ title: "Discovery", estimatedMinutes: 0 }],
+      db,
+    );
+
+    expect(result).toEqual({ ok: false, reason: "no-such-project" });
+  });
+
+  it("refuses an import of no lines rather than reporting success", async () => {
+    expect(await importDeliverables(projectId, [], db)).toEqual({
+      ok: false,
+      reason: "no-lines",
+    });
+  });
+
+  it("writes nothing at all when one line is refused by the columns", async () => {
+    await createDeliverable({ projectId, title: "Kickoff" }, db);
+
+    await expect(
+      importDeliverables(
+        projectId,
+        [
+          { title: "Discovery", estimatedMinutes: 60 },
+          { title: "   ", estimatedMinutes: 60 },
+        ],
+        db,
+      ),
+    ).rejects.toThrow(/deliverable title/);
+
+    const list = await listDeliverables(projectId, db);
+    expect(list.map((row) => row.title)).toEqual(["Kickoff"]);
   });
 });
