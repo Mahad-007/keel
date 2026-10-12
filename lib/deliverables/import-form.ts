@@ -1,6 +1,8 @@
 import { textFingerprint } from "@/lib/forms/fingerprint";
 import { readField, readFields } from "@/lib/forms/form-data";
 import type { FieldErrors } from "@/lib/forms/result";
+import { formatMinutes } from "@/lib/minutes";
+import { deliverablesPhrase } from "@/lib/projects/scope-summary";
 import {
   initialFormState,
   rejectedFormState,
@@ -268,3 +270,29 @@ export const IMPORT_PROBLEMS = {
  */
 export const IMPORT_NO_ANSWER =
   "Could not tell whether that paste was imported — the answer never arrived. Reload to see what the scope list says now.";
+
+/**
+ * What to say after a paste is imported, or null when there is nothing to say.
+ *
+ * The form does not navigate, so a successful import changes the page in two
+ * places a reader may be looking at neither of: a dozen new lines at the end
+ * of a list that was already long, and a box that just emptied. Anyone working
+ * from a screen reader gets no notification of either.
+ *
+ * It says the count and the total, which are the two things that cannot be
+ * checked at a glance — twelve new rows at the end of a list of nine look much
+ * like the nine — and "the end", which is the word that says what was *not*
+ * touched. A list with no estimates on it says so rather than claiming a total
+ * of nothing: every estimate is at or above zero by the time it is written, so
+ * a total of zero means every line of the paste was unsized.
+ */
+export function importedNotice(state: ImportScopeState): string | null {
+  if (state.imported === null) return null;
+
+  const { deliverableIds, estimatedMinutes } = state.imported;
+  const count = deliverablesPhrase(deliverableIds.length);
+  if (estimatedMinutes === 0) {
+    return `Added ${count} to the end of the scope list, none of them estimated.`;
+  }
+  return `Added ${count} and ${formatMinutes(estimatedMinutes)} to the end of the scope list.`;
+}
