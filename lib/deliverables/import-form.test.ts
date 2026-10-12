@@ -6,7 +6,11 @@ import { previewImport } from "./import";
 import {
   INITIAL_IMPORT_STATE,
   INTENT_FIELD_NAME,
+  importedScopeState,
   previewedImportState,
+  previewedPaste,
+  refusedImportState,
+  rejectedImportState,
   readImportFields,
   readImportIntent,
   readPreviewStamp,
@@ -124,5 +128,69 @@ describe("the state a preview comes back in", () => {
     const state = previewed("| 2");
     expect(state.previewed?.preview.problemCount).toBe(1);
     expect(state.formError).toBeNull();
+  });
+});
+
+const LANDED = {
+  deliverableIds: ["dlv_one", "dlv_two"],
+  estimatedMinutes: 120,
+};
+
+describe("the state a committed import comes back in", () => {
+  it("names what was written", () => {
+    expect(importedScopeState(LANDED).imported).toEqual(LANDED);
+  });
+
+  it("empties the box, so the same list cannot be imported twice", () => {
+    expect(importedScopeState(LANDED).fields).toEqual({ lines: "" });
+  });
+
+  it("drops the preview, which now describes rows that exist", () => {
+    expect(importedScopeState(LANDED).previewed).toBeNull();
+  });
+
+  it("tells two imports of the same list apart by the rows written", () => {
+    const first = importedScopeState({ ...LANDED, deliverableIds: ["dlv_a"] });
+    const again = importedScopeState({ ...LANDED, deliverableIds: ["dlv_b"] });
+    expect(first.imported).not.toEqual(again.imported);
+  });
+});
+
+describe("the state a refused paste comes back in", () => {
+  it("keeps what was pasted and says which field is wrong", () => {
+    const state = rejectedImportState(
+      { lines: "   " },
+      { lines: "Paste a scope list to import." },
+    );
+    expect(state.fields).toEqual({ lines: "   " });
+    expect(state.errors).toEqual({ lines: "Paste a scope list to import." });
+  });
+
+  it("has nothing to preview, because nothing was read", () => {
+    expect(rejectedImportState({ lines: "" }, { lines: "No." }).previewed).toBeNull();
+  });
+});
+
+describe("the state a press that wrote nothing comes back in", () => {
+  const paste = previewedPaste(PASTE, previewImport(PASTE, []));
+  const state = refusedImportState({ lines: PASTE }, paste, "Nothing landed.");
+
+  it("says what stopped it, against the form rather than a field", () => {
+    expect(state.formError).toBe("Nothing landed.");
+    expect(state.errors).toEqual({});
+  });
+
+  it("keeps the preview, so the reader can press Import again", () => {
+    expect(state.previewed).toBe(paste);
+  });
+
+  it("wrote nothing", () => {
+    expect(state.imported).toBeNull();
+  });
+
+  it("can come back without a preview when there was none to make", () => {
+    expect(
+      refusedImportState({ lines: PASTE }, null, "Nothing landed.").previewed,
+    ).toBeNull();
   });
 });
