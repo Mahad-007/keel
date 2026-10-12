@@ -444,3 +444,59 @@ export function importSizePhrase(drafts: readonly ImportDraft[]): string {
   if (unsized === 0) return `${count} and ${total}`;
   return `${count} and ${total}, with ${unsized} not estimated`;
 }
+
+/** Nothing in the box reads as a line of scope. */
+const NOTHING_READABLE = "Nothing in this paste reads as a deliverable.";
+
+/**
+ * Why the paste cannot be imported as it stands, and what to do about it.
+ *
+ * It says the consequence — nothing is added — because the table underneath
+ * shows nine good lines and one bad one, and the natural reading of that is
+ * that nine will land. The instruction is to fix the line or delete it, which
+ * are the only two things that help.
+ */
+function unreadableClause(count: number): string {
+  const lines = count === 1 ? "One line" : `${count} lines`;
+  const them = count === 1 ? "it" : "them";
+  return `${lines} below cannot be read as a deliverable, so nothing will be imported until you fix or delete ${them}.`;
+}
+
+/**
+ * How many lines import perfectly well and are probably not what was meant.
+ *
+ * Phrased as an invitation to look rather than as a problem, because that is
+ * exactly what it is: a repeated title is legitimate, and the remark beside
+ * the line says which kind of repeat it is. Saying it at the top is what makes
+ * the reader scan the column at all.
+ */
+function noteClause(count: number): string {
+  if (count === 1) {
+    return "One line is worth a second look — see the note beside it.";
+  }
+  return `${count} lines are worth a second look — see the notes beside them.`;
+}
+
+/**
+ * The sentence above a preview: what this paste amounts to, and anything that
+ * should be read before pressing Import.
+ *
+ * One paragraph rather than a row of counts, for the reason the scope summary
+ * gives: a figure a reader has to interpret is a figure they will interpret
+ * wrongly once, in front of a client. Three clauses at most, and the ones about
+ * problems and remarks only appear when there is something to say.
+ */
+export function importSummary(preview: ImportPreview): string {
+  const parts = [
+    preview.drafts.length === 0
+      ? NOTHING_READABLE
+      : `This paste reads as ${importSizePhrase(preview.drafts)}.`,
+  ];
+
+  if (preview.problemCount > 0) {
+    parts.push(unreadableClause(preview.problemCount));
+  }
+  if (preview.noteCount > 0) parts.push(noteClause(preview.noteCount));
+
+  return parts.join(" ");
+}
