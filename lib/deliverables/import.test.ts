@@ -3,12 +3,24 @@ import { describe, expect, it } from "vitest";
 import {
   importNote,
   IMPORT_NOTES,
+  IMPORT_TEXT_PROBLEMS,
+  importTextProblem,
   importTextLines,
+  MAX_IMPORT_CHARS,
+  MAX_IMPORT_LINES,
   MAX_IMPORT_TITLE,
   parseImportLine,
   splitImportLine,
   titleKeys,
+  tooManyLinesProblem,
 } from "./import";
+
+/** A paste of `count` plausible deliverables. */
+function pasteOf(count: number): string {
+  return Array.from({ length: count }, (_, index) => `Line ${index + 1}`).join(
+    "\n",
+  );
+}
 
 /** One line of a paste, as it arrives from `importTextLines`. */
 function line(text: string, number = 1) {
@@ -158,7 +170,9 @@ describe("the title a pasted line is read as", () => {
 
   it("takes a title at the column's limit", () => {
     expect(draft("W".repeat(MAX_IMPORT_TITLE)).title).toHaveLength(
-      MAX_IMPORT_TITLE,
+      MAX_IMPORT_CHARS,
+  MAX_IMPORT_LINES,
+  MAX_IMPORT_TITLE,
     );
   });
 
@@ -251,5 +265,44 @@ describe("what a line is remarked on for", () => {
 
   it("tells two genuinely different titles apart", () => {
     expect(importNote("Discovery", titleKeys(["Discovery call"]), nothing)).toBeNull();
+  });
+});
+
+describe("the pastes that are refused before being read", () => {
+  it("accepts an ordinary pasted list", () => {
+    expect(importTextProblem("Discovery\nWireframes")).toBeNull();
+  });
+
+  it("refuses an empty box", () => {
+    expect(importTextProblem("")).toBe(IMPORT_TEXT_PROBLEMS.empty);
+  });
+
+  it("refuses a box holding only blank lines", () => {
+    expect(importTextProblem("\n  \n\t\n")).toBe(IMPORT_TEXT_PROBLEMS.empty);
+  });
+
+  it("refuses a paste longer than the box was meant to hold", () => {
+    expect(importTextProblem("W".repeat(MAX_IMPORT_CHARS + 1))).toBe(
+      IMPORT_TEXT_PROBLEMS.tooLong,
+    );
+  });
+
+  it("takes a paste exactly as long as the box allows", () => {
+    expect(importTextProblem("W".repeat(MAX_IMPORT_CHARS))).toBeNull();
+  });
+
+  it("takes a paste of exactly the line limit", () => {
+    expect(importTextProblem(pasteOf(MAX_IMPORT_LINES))).toBeNull();
+  });
+
+  it("refuses one line past the limit, and says how many there were", () => {
+    expect(importTextProblem(pasteOf(MAX_IMPORT_LINES + 1))).toBe(
+      tooManyLinesProblem(MAX_IMPORT_LINES + 1),
+    );
+  });
+
+  it("counts only the lines with something on them", () => {
+    const spaced = pasteOf(MAX_IMPORT_LINES).split("\n").join("\n\n");
+    expect(importTextProblem(spaced)).toBeNull();
   });
 });
