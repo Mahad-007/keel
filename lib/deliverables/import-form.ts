@@ -1,3 +1,4 @@
+import { readField, readFields } from "@/lib/forms/form-data";
 import { type FormState } from "@/lib/forms/state";
 
 import type { ImportPreview } from "./import";
@@ -79,3 +80,40 @@ export type ImportedScope = {
   readonly deliverableIds: readonly string[];
   readonly estimatedMinutes: number;
 };
+
+/**
+ * Which press this is, which the browser reports by sending the name and
+ * value of the button that was used and nobody else's.
+ *
+ * A submission that names no intent is a preview. That is the safe default in
+ * the only sense that matters: previewing writes nothing, so a submission the
+ * form did not produce — a stale page, something posting by hand — gets a
+ * table back rather than fourteen rows in somebody's scope list.
+ */
+export const INTENT_FIELD_NAME = "intent";
+
+export type ImportIntent = "preview" | "import";
+
+export const IMPORT_INTENT: ImportIntent = "import";
+
+export function readImportIntent(formData: FormData): ImportIntent {
+  return readField(formData, INTENT_FIELD_NAME).trim() === IMPORT_INTENT
+    ? "import"
+    : "preview";
+}
+
+export function readImportFields(formData: FormData): ImportFormFields {
+  return readFields(formData, IMPORT_FIELD_NAMES);
+}
+
+/**
+ * The stamp the form posted back, or `""` when it posted none.
+ *
+ * Read rather than validated, because there is nothing to validate: a stamp
+ * that is not the one this text would produce is a stamp that does not match,
+ * whether it is stale, blank or invented. `matchesFingerprint` is the one place
+ * that judgement is made.
+ */
+export function readPreviewStamp(formData: FormData): string {
+  return readField(formData, STAMP_FIELD_NAME);
+}
