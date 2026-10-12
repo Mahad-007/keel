@@ -1,6 +1,11 @@
 import { textFingerprint } from "@/lib/forms/fingerprint";
 import { readField, readFields } from "@/lib/forms/form-data";
-import { initialFormState, type FormState } from "@/lib/forms/state";
+import type { FieldErrors } from "@/lib/forms/result";
+import {
+  initialFormState,
+  rejectedFormState,
+  type FormState,
+} from "@/lib/forms/state";
 
 import type { ImportPreview } from "./import";
 
@@ -163,4 +168,51 @@ export function previewedImportState(
     previewed: previewedPaste(fields.lines, preview),
     imported: null,
   };
+}
+
+/**
+ * The paste landed. The box comes back empty and the preview with it.
+ *
+ * Emptied rather than echoed, which is the opposite of what a rejection does
+ * and for the same reason: the lines are now on the list above, and a box
+ * still holding them is one press away from a second copy of the whole scope
+ * list. The preview goes too — a table describing rows that now exist as real
+ * deliverables, two feet below the real ones, would be read as a second list.
+ */
+export function importedScopeState(imported: ImportedScope): ImportScopeState {
+  return { ...INITIAL_IMPORT_STATE, imported };
+}
+
+/**
+ * The paste itself was refused — empty, too long, too many lines. Nothing was
+ * read and nothing was written.
+ *
+ * No preview comes back, because there is nothing to preview: every one of
+ * these is a refusal about the text as a whole, and the message sits under the
+ * box where the text is.
+ */
+export function rejectedImportState(
+  fields: ImportFormFields,
+  errors: FieldErrors<ImportFieldName>,
+): ImportScopeState {
+  return { ...rejectedFormState(fields, errors), previewed: null, imported: null };
+}
+
+/**
+ * A press that wrote nothing and has a preview to show for it: the commit
+ * press on an edited box, on a paste with an unreadable line in it, or one the
+ * database refused.
+ *
+ * The preview is kept deliberately. Every one of these cases ends with the
+ * reader pressing Import again, and dropping the table would make them press
+ * Preview first — twice the work for a message that already says what to do.
+ * It is the freshly read preview rather than the one from last time, so the
+ * table and the box always describe the same text.
+ */
+export function refusedImportState(
+  fields: ImportFormFields,
+  previewed: PreviewedPaste | null,
+  formError: string,
+): ImportScopeState {
+  return { fields, errors: {}, formError, previewed, imported: null };
 }
