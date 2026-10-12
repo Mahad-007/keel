@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { importDeliverables, listDeliverables } from "@/lib/data/deliverables";
@@ -9,7 +10,8 @@ import {
   STAMP_FIELD_NAME,
 } from "@/lib/deliverables/import-form";
 import { IMPORT_TEXT_PROBLEMS, IMPORT_NOTES } from "@/lib/deliverables/import";
-import { matchesFingerprint } from "@/lib/forms/fingerprint";
+import { matchesFingerprint, textFingerprint } from "@/lib/forms/fingerprint";
+import { projectPath } from "@/lib/projects/detail";
 
 import { writeScopeImport } from "./import-writes";
 
@@ -146,5 +148,123 @@ describe("the preview of a paste against another tab's additions", () => {
 
     expect(listed).toHaveBeenCalledTimes(2);
     expect(listed).toHaveBeenCalledWith("prj_engine");
+  });
+});
+
+/** The commit press, carrying the stamp a preview of the same text gave it. */
+function commit(lines: string, stamp = textFingerprint(lines)) {
+  return writeScopeImport(
+    "prj_engine",
+    INITIAL_IMPORT_STATE,
+    submit({ lines, [STAMP_FIELD_NAME]: stamp, [INTENT_FIELD_NAME]: "import" }),
+  );
+}
+
+describe("the commit press", () => {
+  it("writes exactly the lines the preview showed, in order", async () => {
+    await commit(PASTE);
+
+    expect(written).toHaveBeenCalledWith("prj_engine", [
+      { title: "Discovery", estimatedMinutes: 120 },
+      { title: "Wireframes", estimatedMinutes: 90 },
+    ]);
+  });
+
+  it("reports the rows written and the total they came back with", async () => {
+    const state = await commit(PASTE);
+
+    expect(state.imported).toEqual({
+      deliverableIds: ["dlv_one", "dlv_two"],
+      estimatedMinutes: 210,
+    });
+  });
+
+  it("empties the box and drops the preview once the lines have landed", async () => {
+    const state = await commit(PASTE);
+
+    expect(state.fields.lines).toBe("");
+    expect(state.previewed).toBeNull();
+  });
+
+  it("re-renders the project, whose list and summary have both moved", async () => {
+    await commit(PASTE);
+
+    expect(revalidatePath).toHaveBeenCalledWith(projectPath("prj_engine"));
+  });
+});
+
+describe("the commit press that writes nothing", () => {
+  it("refuses a press carrying no stamp, and previews it instead", async () => {
+    const state = await commit(PASTE, "");
+
+    expect(written).not.toHaveBeenCalled();
+    expect(state.formError).toBe(IMPORT_PROBLEMS.notPreviewed);
+    expect(state.previewed?.preview.drafts).toHaveLength(2);
+  });
+
+  it("refuses a press whose box has changed since the preview", async () => {
+    const state = await commit(
+      `${PASTE}\nLaunch`,
+      textFingerprint(PASTE),
+    );
+
+    expect(written).not.toHaveBeenCalled();
+    expect(state.formError).toBe(IMPORT_PROBLEMS.changed);
+  });
+
+  it("comes back with a preview of what is in the box now", async () => {
+    const state = await commit(`${PASTE}\nLaunch`, textFingerprint(PASTE));
+
+    expect(state.previewed?.preview.drafts).toHaveLength(3);
+    expect(
+      matchesFingerprint(state.previewed?.stamp ?? "", `${PASTE}\nLaunch`),
+    ).toBe(true);
+  });
+
+  it("refuses a paste with a line it cannot read, all or nothing", async () => {
+    const state = await commit("Discovery | 2\n| 4");
+
+    expect(written).not.toHaveBeenCalled();
+    expect(state.formError).toBe(IMPORT_PROBLEMS.unreadableLines);
+    expect(state.previewed?.preview.problemCount).toBe(1);
+  });
+
+  it("refuses an import into a project that has since been deleted", async () => {
+    written.mockResolvedValue({ ok: false, reason: "no-such-project" });
+
+    const state = await commit(PASTE);
+
+    expect(state.formError).toBe(IMPORT_PROBLEMS.missingProject);
+    expect(state.imported).toBeNull();
+  });
+
+  it("says so when the write itself fails", async () => {
+    written.mockRejectedValue(new Error("libsql: database is locked"));
+
+    const state = await commit(PASTE);
+
+    expect(state.formError).toBe(IMPORT_PROBLEMS.failed);
+    expect(state.previewed?.preview.drafts).toHaveLength(2);
+  });
+
+  it("keeps the paste on every refusal, so nothing retypes it", async () => {
+    written.mockResolvedValue({ ok: false, reason: "no-such-project" });
+
+    expect((await commit(PASTE)).fields.lines).toBe(PASTE);
+  });
+
+  it("re-renders nothing when nothing was written", async () => {
+    written.mockResolvedValue({ ok: false, reason: "no-lines" });
+
+    await commit(PASTE);
+
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("refuses an empty box on the commit press too", async () => {
+    const state = await commit("");
+
+    expect(written).not.toHaveBeenCalled();
+    expect(state.errors.lines).toBe(IMPORT_TEXT_PROBLEMS.empty);
   });
 });
