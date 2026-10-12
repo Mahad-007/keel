@@ -221,3 +221,63 @@ export function parseImportLine(line: NumberedLine): ImportLine {
     note: null,
   };
 }
+
+/**
+ * Two titles the same, as a reader would judge it.
+ *
+ * Case folded and internal runs of whitespace collapsed, because neither
+ * difference is one anybody means: a list where "Build" and "build" appear is
+ * a list with the same line twice, and so is one where a pasted title carries
+ * a double space the reader cannot see. Judging them identical is what lets
+ * the preview mention it.
+ *
+ * Only ever used to compare. Nothing is stored normalised — the title that
+ * gets written is the one that was pasted, because deciding how somebody's
+ * scope list should be capitalised is not this feature's business.
+ */
+function titleKey(title: string): string {
+  return title.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/**
+ * The remarks a readable line can carry.
+ *
+ * Both are about a title turning up twice, which is the one mistake a paste
+ * makes that no per-line rule can catch: every line is fine on its own, and
+ * the list as a whole has a line in it twice. Neither stops the import —
+ * a scope list is allowed to hold "Revision round" three times, and often
+ * should — so they are worded as what will happen rather than as a refusal,
+ * and the reader decides.
+ */
+export const IMPORT_NOTES = {
+  repeated: "Says the same as an earlier line in this paste; both are added.",
+  agreed:
+    "Already on this project's scope list; this adds a second line saying it.",
+} as const;
+
+/**
+ * What to say about a line that reads perfectly well and may still be a
+ * mistake, or null when there is nothing to say.
+ *
+ * Both remarks where both apply, joined, in that order: the repeat inside the
+ * paste is the one the reader fixes by editing the box in front of them, so it
+ * goes first.
+ */
+export function importNote(
+  title: string,
+  earlier: ReadonlySet<string>,
+  agreed: ReadonlySet<string>,
+): string | null {
+  const key = titleKey(title);
+  const notes = [
+    earlier.has(key) ? IMPORT_NOTES.repeated : null,
+    agreed.has(key) ? IMPORT_NOTES.agreed : null,
+  ].filter((note) => note !== null);
+
+  return notes.length === 0 ? null : notes.join(" ");
+}
+
+/** A project's agreed titles as the keys the notes compare against. */
+export function titleKeys(titles: readonly string[]): Set<string> {
+  return new Set(titles.map(titleKey));
+}
