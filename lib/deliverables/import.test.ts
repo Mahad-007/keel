@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   canImport,
   importNote,
+  importSizePhrase,
   IMPORT_NOTES,
   IMPORT_TEXT_PROBLEMS,
   importTextProblem,
@@ -391,5 +392,37 @@ describe("which previews may be committed", () => {
     const preview = previewImport("Revision round\nRevision round", []);
     expect(preview.noteCount).toBe(1);
     expect(canImport(preview)).toBe(true);
+  });
+});
+
+describe("the size a paste would add", () => {
+  function phrase(text: string): string {
+    return importSizePhrase(previewImport(text, []).drafts);
+  }
+
+  it("counts one deliverable in the singular", () => {
+    expect(phrase("Discovery | 2")).toBe("1 deliverable and 2h");
+  });
+
+  it("totals the estimates it was given", () => {
+    expect(phrase("Discovery | 2\nWireframes | 1.5")).toBe(
+      "2 deliverables and 3h 30m",
+    );
+  });
+
+  it("says so when nothing in the paste was estimated", () => {
+    expect(phrase("Discovery\nWireframes")).toBe(
+      "2 deliverables, none of them estimated",
+    );
+  });
+
+  it("names the figure the total does not speak for", () => {
+    expect(phrase("Discovery | 2\nWireframes\nBuild")).toBe(
+      "3 deliverables and 2h, with 2 not estimated",
+    );
+  });
+
+  it("claims no total for a paste with nothing in it", () => {
+    expect(phrase("")).toBe("0 deliverables, none of them estimated");
   });
 });
