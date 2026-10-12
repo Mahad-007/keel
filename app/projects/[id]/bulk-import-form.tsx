@@ -10,6 +10,7 @@ import {
 } from "@/components/form";
 import {
   canImport,
+  importSummary,
   MAX_IMPORT_CHARS,
   MAX_IMPORT_LINES,
 } from "@/lib/deliverables/import";
@@ -116,6 +117,21 @@ export function BulkImportForm({
 
   const previewed = state.previewed;
 
+  /*
+    What the live region below the box is holding, if anything. An import that
+    has landed takes precedence over a preview, which is not a choice so much
+    as the order of events: a successful import clears the preview with it.
+  */
+  const announced =
+    state.imported !== null
+      ? {
+          key: state.imported.deliverableIds[0],
+          text: importedNotice(state),
+        }
+      : previewed !== null
+        ? { key: previewed.stamp, text: importSummary(previewed.preview) }
+        : null;
+
   return (
     <form action={formAction} noValidate className="mt-4 flex flex-col gap-4">
       <FormSummary state={state} />
@@ -128,6 +144,31 @@ export function BulkImportForm({
         defaultValue={state.fields.lines}
         error={state.errors.lines}
       />
+      {/*
+        The one thing this control says out loud, and the only part of it that
+        is always in the document: after a press it holds either what the
+        preview reads as or what the import wrote.
+
+        Mounted empty rather than conditionally, because a live region that
+        arrives already holding its text is the one case a screen reader does
+        not announce — and both of these sentences are the whole answer to a
+        press that otherwise changes a table halfway down the page.
+
+        Keyed on what produced it: the stamp of the previewed text, or the
+        first row an import wrote. Identical text under an identical key is no
+        change to the DOM, so previewing the same paste twice is announced
+        once, which is right — nothing about it changed — while importing the
+        same list twice is announced both times.
+      */}
+      <p
+        role="status"
+        aria-live="polite"
+        className="max-w-prose text-sm leading-6 text-zinc-700 dark:text-zinc-300"
+      >
+        {announced === null ? null : (
+          <span key={announced.key}>{announced.text}</span>
+        )}
+      </p>
       {previewed === null ? null : (
         <>
           {/*
@@ -173,30 +214,6 @@ export function BulkImportForm({
             Import these deliverables
           </SubmitButton>
         ) : null}
-        {/*
-          Rendered empty rather than conditionally, because a live region has
-          to be in the document before the text arrives for a screen reader to
-          notice it appearing. `status` rather than `alert`: the lines were
-          added as asked, which is worth saying and not worth interrupting for.
-
-          Keyed on the first row the import wrote, not on the count: importing
-          the same list twice says the same sentence, and an identical keyed
-          node holding identical text is no change to the DOM, so the second
-          import would be announced to nobody. Every import writes at least one
-          row — a paste that reads as nothing is refused — so there is always
-          an id here.
-        */}
-        <p
-          role="status"
-          aria-live="polite"
-          className="text-sm text-zinc-600 dark:text-zinc-400"
-        >
-          {state.imported === null ? null : (
-            <span key={state.imported.deliverableIds[0]}>
-              {importedNotice(state)}
-            </span>
-          )}
-        </p>
       </div>
     </form>
   );
