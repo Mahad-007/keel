@@ -253,6 +253,13 @@ export const IMPORT_PROBLEMS = {
     "Nothing in that paste reads as a deliverable, so nothing was imported.",
   missingProject:
     "That project no longer exists, so there is nothing to import into.",
+  /**
+   * The paste could not be previewed because this project's own scope list
+   * could not be read — and it has to be read, because a preview says which
+   * pasted lines repeat something already agreed.
+   */
+  previewFailed:
+    "Could not read this project's scope list, so that paste could not be previewed. Nothing was imported — try again.",
   failed:
     "Could not import that paste. Nothing was added to the scope list — try again.",
 } as const;
