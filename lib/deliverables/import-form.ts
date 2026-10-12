@@ -1,5 +1,6 @@
+import { textFingerprint } from "@/lib/forms/fingerprint";
 import { readField, readFields } from "@/lib/forms/form-data";
-import { type FormState } from "@/lib/forms/state";
+import { initialFormState, type FormState } from "@/lib/forms/state";
 
 import type { ImportPreview } from "./import";
 
@@ -116,4 +117,50 @@ export function readImportFields(formData: FormData): ImportFormFields {
  */
 export function readPreviewStamp(formData: FormData): string {
   return readField(formData, STAMP_FIELD_NAME);
+}
+
+/**
+ * What the form starts from. Defined here rather than beside the page because
+ * a `"use server"` module may only export async functions.
+ */
+export const INITIAL_IMPORT_STATE: ImportScopeState = {
+  ...initialFormState(EMPTY_IMPORT_FIELDS),
+  previewed: null,
+  imported: null,
+};
+
+/**
+ * A preview together with the stamp of the text it was made from.
+ *
+ * The stamp is taken here rather than by the caller so that it cannot be taken
+ * from anything but the text that was actually read. A stamp computed from the
+ * previous state, or from the text before trimming, would be a stamp the next
+ * press could never match — and the reader would be told to preview again,
+ * forever.
+ */
+export function previewedPaste(
+  lines: string,
+  preview: ImportPreview,
+): PreviewedPaste {
+  return { preview, stamp: textFingerprint(lines) };
+}
+
+/**
+ * The paste was read and nothing was written. The middle step.
+ *
+ * The fields come back exactly as submitted, because the box above the preview
+ * is the thing the reader edits next: a table pointing at line 7 is no use
+ * beside a box that has been emptied.
+ */
+export function previewedImportState(
+  fields: ImportFormFields,
+  preview: ImportPreview,
+): ImportScopeState {
+  return {
+    fields,
+    errors: {},
+    formError: null,
+    previewed: previewedPaste(fields.lines, preview),
+    imported: null,
+  };
 }
