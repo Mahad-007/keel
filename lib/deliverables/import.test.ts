@@ -10,6 +10,7 @@ import {
   MAX_IMPORT_LINES,
   MAX_IMPORT_TITLE,
   parseImportLine,
+  previewImport,
   splitImportLine,
   titleKeys,
   tooManyLinesProblem,
@@ -302,5 +303,72 @@ describe("the pastes that are refused before being read", () => {
   it("counts only the lines with something on them", () => {
     const spaced = pasteOf(MAX_IMPORT_LINES).split("\n").join("\n\n");
     expect(importTextProblem(spaced)).toBeNull();
+  });
+});
+
+const PASTE = [
+  "Discovery workshop | 2",
+  "Wireframes\t6",
+  "Build",
+  "| 4",
+  "Launch | soon",
+  "discovery workshop",
+].join("\n");
+
+describe("the preview a mixed paste produces", () => {
+  const preview = previewImport(PASTE, ["Build"]);
+
+  it("keeps every line, readable or not", () => {
+    expect(preview.lines.map((readLine) => readLine.number)).toEqual([
+      1, 2, 3, 4, 5, 6,
+    ]);
+  });
+
+  it("carries only the readable lines as drafts, in order", () => {
+    expect(preview.drafts).toEqual([
+      { title: "Discovery workshop", estimatedMinutes: 120 },
+      { title: "Wireframes", estimatedMinutes: 360 },
+      { title: "Build", estimatedMinutes: 0 },
+      { title: "discovery workshop", estimatedMinutes: 0 },
+    ]);
+  });
+
+  it("counts the lines it could not read", () => {
+    expect(preview.problemCount).toBe(2);
+  });
+
+  it("counts the readable lines worth a remark", () => {
+    expect(preview.noteCount).toBe(2);
+  });
+
+  it("remarks on the line already agreed on the project", () => {
+    expect(preview.lines[2]).toMatchObject({
+      ok: true,
+      note: IMPORT_NOTES.agreed,
+    });
+  });
+
+  it("remarks on the second of two lines saying the same thing", () => {
+    expect(preview.lines[0]).toMatchObject({ ok: true, note: null });
+    expect(preview.lines[5]).toMatchObject({
+      ok: true,
+      note: IMPORT_NOTES.repeated,
+    });
+  });
+
+  it("does not let a refused line count as a title above the next one", () => {
+    const repeated = previewImport("| 4\nLaunch", []);
+    expect(repeated.lines[1]).toMatchObject({ ok: true, note: null });
+  });
+});
+
+describe("the preview of a paste with nothing in it", () => {
+  it("has no lines, no drafts and nothing to remark on", () => {
+    expect(previewImport("", [])).toEqual({
+      lines: [],
+      drafts: [],
+      problemCount: 0,
+      noteCount: 0,
+    });
   });
 });
