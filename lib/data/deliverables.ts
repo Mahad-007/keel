@@ -542,3 +542,35 @@ export async function setDeliverableStatus(
     .returning();
   return row ?? null;
 }
+
+/**
+ * Why a pasted scope list was not imported.
+ *
+ * Codes rather than sentences, for the reason `ScopeCopyProblem` gives: both
+ * are reachable from a page that was right when it rendered, and the words for
+ * a reader belong with the form that shows them.
+ */
+export type ImportScopeReason = "no-such-project" | "no-lines";
+
+/** The outcome of importing a pasted scope list into a project. */
+export type ImportScopeResult =
+  | {
+      readonly ok: true;
+      /** The rows written, in the order they now read on the project. */
+      readonly deliverables: Deliverable[];
+    }
+  | { readonly ok: false; readonly reason: ImportScopeReason };
+
+/**
+ * One line of a pasted list as it arrives here: the two columns a paste can
+ * carry, already checked by the parser that read it.
+ *
+ * No description and no status, because a paste has nowhere to put either —
+ * see `lib/deliverables/import.ts`, which decides what one line of pasted text
+ * amounts to. A structural type rather than the parser's own, so this module
+ * does not depend on the form layer to be called from a test.
+ */
+export type ImportedScopeLine = {
+  title: string;
+  estimatedMinutes: number;
+};
