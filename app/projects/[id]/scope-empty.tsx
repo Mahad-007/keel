@@ -10,8 +10,9 @@ import { EmptyPanel } from "../empty-panel";
  * writes it down, and every number in Phase 2 and most of Phase 4 is measured
  * against it.
  *
- * No link out: the form that fixes this is directly underneath, so sending
- * the reader somewhere would be sending them away from it.
+ * No link out: the two things that fix this are both directly underneath —
+ * the add line, and the box a list agreed elsewhere is pasted into — so
+ * sending the reader somewhere would be sending them away from both.
  */
 export function NoDeliverables() {
   return (
@@ -30,7 +31,9 @@ export function NoDeliverables() {
       </p>
       <p>
         Add the first line below. A title on its own is enough to start with,
-        and the estimate can follow once you have thought about it.
+        and the estimate can follow once you have thought about it — or, if the
+        list already exists in a proposal or a spreadsheet, paste the whole of
+        it into the import box further down and check it before it lands.
       </p>
     </EmptyPanel>
   );
