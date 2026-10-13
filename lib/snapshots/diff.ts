@@ -1,3 +1,5 @@
+import type { CapturedScopeLine, SnapshotLineDraft } from "./capture";
+
 /**
  * Comparing a scope snapshot against the scope list as it reads now.
  *
@@ -156,3 +158,37 @@ export function scopeFieldChanges(
 
   return changes;
 }
+
+/**
+ * One line of the comparison: a deliverable, and what happened to it.
+ *
+ * Both sides are carried rather than only the differences, because the table
+ * shows them. A dropped line has to be nameable — "Migrate the old posts, six
+ * hours, gone" — and the only place its title still exists is the snapshot;
+ * an added one is only in the live list. Carrying both also means the row can
+ * be rendered without the caller holding either list open beside it.
+ *
+ * The invariants, which the kind implies and nothing here enforces beyond
+ * `scopeDiffEntries` producing them:
+ *
+ *   - `added`: `before` is null, `after` is the line, `changes` is empty.
+ *   - `removed`: `after` is null, `before` is the line, `changes` is empty.
+ *   - `changed`: both sides present, `changes` is not empty.
+ *   - `unchanged`: both sides present, `changes` is empty.
+ *
+ * A flat shape rather than a four-way union on the kind. The table narrows on
+ * the kind exactly once, to decide which column reads from which side, and a
+ * union would make every other use — counting, filtering, keying a row —
+ * narrow again for a field that is there in all four cases.
+ */
+export type ScopeDiffEntry = {
+  /** The deliverable the two sides are paired on, present in every kind. */
+  readonly deliverableId: string;
+  readonly kind: ScopeChangeKind;
+  /** The line as the snapshot recorded it, or null if it is new since. */
+  readonly before: SnapshotLineDraft | null;
+  /** The line as the scope list reads now, or null if it has been dropped. */
+  readonly after: CapturedScopeLine | null;
+  /** Field-by-field differences. Empty unless the kind is `changed`. */
+  readonly changes: readonly ScopeFieldChange[];
+};
