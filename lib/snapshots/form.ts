@@ -170,3 +170,62 @@ export function failedSnapshotState(
 ): TakeSnapshotState {
   return { ...failedFormState(fields, formError), taken: null };
 }
+
+/**
+ * The things that can stop a snapshot that the form itself cannot see.
+ *
+ * Each one is reachable from a page that was right when it rendered, so each
+ * says what to do rather than only what went wrong.
+ *
+ * `emptyScope` is the one a reader will actually meet: the button is not
+ * rendered on a project with no deliverables, so getting here means the last
+ * line was deleted in another tab while this page sat open.
+ */
+export const SNAPSHOT_PROBLEMS = {
+  emptyScope:
+    "There is nothing to record yet — a snapshot is a copy of this project's deliverables, and it has none. Add the first line above and this becomes a one-press job.",
+  missingProject:
+    "That project no longer exists, so there is no scope list to record.",
+  unrecordableScope:
+    "A deliverable on this project has an estimate that is not a whole number of minutes, which a snapshot cannot record. Open that line, give it an estimate in hours, and try again.",
+  unrecordableValue:
+    "This project's contract value is not an amount a snapshot can record. Open the project's edit form, correct the amount, and try again.",
+  failed: "Could not record that snapshot. Nothing was written — try again.",
+} as const;
+
+/**
+ * What to say when the press never got an answer — the connection dropped, the
+ * tab was suspended mid-request, the request was aborted.
+ *
+ * It does not claim nothing was recorded, because from the client there is no
+ * way to know: the request may have been lost on the way out, or the answer
+ * lost on the way back with the snapshot already written. Nor does it say "try
+ * again", which is the instruction that would take two snapshots of the same
+ * moment.
+ */
+export const SNAPSHOT_NO_ANSWER =
+  "Could not tell whether that snapshot was recorded — the answer never arrived. Reload and check the list of snapshots before pressing again.";
+
+/**
+ * What to say after a snapshot is taken, or null when there is nothing to say.
+ *
+ * The press changes nothing a reader can see: the scope list above is
+ * untouched, which is the whole point of a record. So the sentence has to
+ * carry the whole result — how many lines went into it, and what it was filed
+ * under, which is how it will be found in the picker a month from now.
+ *
+ * An unlabelled snapshot is described by what it is rather than by a label it
+ * does not have. "Recorded a snapshot of 9 deliverables" is true and findable;
+ * "Recorded “”" is neither.
+ */
+export function takenSnapshotNotice(state: TakeSnapshotState): string | null {
+  if (state.taken === null) return null;
+
+  const { label, lineCount } = state.taken;
+  const lines =
+    lineCount === 1 ? "one deliverable" : `${lineCount} deliverables`;
+  const of = `a snapshot of this project's ${lines}`;
+  return label === null
+    ? `Recorded ${of}, dated today.`
+    : `Recorded ${of} as “${label}”.`;
+}
