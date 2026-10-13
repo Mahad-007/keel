@@ -7,6 +7,7 @@ import {
   deliverablesPhrase,
   hoursPhrase,
 } from "@/lib/projects/scope-summary";
+import { formatCents } from "@/lib/money";
 import { estimatedHours } from "@/lib/scope";
 
 import type {
@@ -200,4 +201,29 @@ export function describeEstimateMovement(summary: ScopeDiffSummary): string {
   const moved = hoursPhrase(Math.abs(summary.estimatedHoursDelta));
   const direction = summary.estimatedMinutesDelta > 0 ? "up" : "down";
   return `The estimate is ${direction} ${moved}, from ${before} to ${after}.`;
+}
+
+/**
+ * What the price did, as a sentence.
+ *
+ * Said even when it did not move, which is the whole reason the snapshot
+ * records it. "Six hours of extra scope" is not a complaint on its own —
+ * engagements grow — and it only becomes one when the sentence after it says
+ * the contract value is unchanged. A panel that mentioned the price only when
+ * it had changed would leave its silence to be interpreted.
+ *
+ * The movement and where it landed, rather than both ends. The amounts are
+ * long enough that three of them in one sentence stops being readable, and
+ * what was agreed before is one line up in the heading of the comparison.
+ */
+export function describeContractMovement(summary: ScopeDiffSummary): string {
+  const now = formatCents(summary.contractValueCentsAfter);
+
+  if (summary.contractValueCentsDelta === 0) {
+    return `The contract value is unchanged, at ${now}.`;
+  }
+
+  const moved = formatCents(Math.abs(summary.contractValueCentsDelta));
+  const direction = summary.contractValueCentsDelta > 0 ? "up" : "down";
+  return `The contract value is ${direction} ${moved}, to ${now}.`;
 }
