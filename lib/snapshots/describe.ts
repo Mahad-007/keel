@@ -10,8 +10,11 @@ import {
 import { formatCents } from "@/lib/money";
 import { estimatedHours } from "@/lib/scope";
 
+import { describeEstimate } from "@/lib/deliverables/list";
+
 import type {
   ScopeChangeField,
+  ScopeDiffEntry,
   ScopeChangeKind,
   ScopeDiffSummary,
   ScopeFieldChange,
@@ -289,4 +292,62 @@ export function describeUnchangedLines(
   return summary.unchangedCount === 1
     ? "One other deliverable is exactly as it was agreed, and is not listed."
     : `${summary.unchangedCount} other deliverables are exactly as they were agreed, and are not listed.`;
+}
+
+/**
+ * What to call one row of the comparison.
+ *
+ * The current title where there is one, because that is what the reader will
+ * find in the scope list above — a retitled line is named by what it is called
+ * now, and the sentence beside it says what it used to be. A dropped line has
+ * only the snapshot's title, which is the whole reason the snapshot keeps it.
+ *
+ * The empty fallback is unreachable: every entry has at least one side. It is
+ * here because the entry shape is flat on purpose, and a row rendering
+ * `undefined` would be a worse way to discover that than an empty cell.
+ */
+export function diffEntryTitle(entry: ScopeDiffEntry): string {
+  return entry.after?.title ?? entry.before?.title ?? "";
+}
+
+/**
+ * The estimate to show against one row.
+ *
+ * The current one, except for a dropped line, where the only estimate that
+ * exists is the one the snapshot recorded — and it is the number that matters
+ * most on that row, because it is what the project is no longer being paid to
+ * do. A line whose estimate moved shows where it is now; the sentence beside
+ * it carries both ends.
+ *
+ * Through `describeEstimate`, so an unsized line reads "Not estimated" here
+ * exactly as it does in the scope list rather than as `0m`.
+ */
+export function diffEntryEstimate(entry: ScopeDiffEntry): string {
+  const line = entry.kind === "removed" ? entry.before : entry.after;
+  return line === null ? "" : describeEstimate(line.estimatedMinutes);
+}
+
+/**
+ * What to say about one row, as the sentences it is made of.
+ *
+ * A list rather than one string, because a changed line can have four things
+ * to say about it and they are read as a list on screen rather than as a
+ * paragraph in a cell.
+ *
+ * Added and dropped lines get a sentence each, where a table of arrows would
+ * leave the kind column to carry the whole meaning. Both say where the line is
+ * *not*, which is the fact a reader is checking: an added line is one the
+ * snapshot never had, and a dropped one is no longer anything the project owes.
+ */
+export function describeDiffEntry(entry: ScopeDiffEntry): string[] {
+  switch (entry.kind) {
+    case "added":
+      return ["Not in this snapshot — agreed after it was taken."];
+    case "removed":
+      return ["No longer in the scope list."];
+    case "changed":
+      return entry.changes.map(describeFieldChange);
+    case "unchanged":
+      return [];
+  }
 }
