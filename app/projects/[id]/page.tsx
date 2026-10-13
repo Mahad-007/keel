@@ -6,8 +6,16 @@ import { listDeliverableTemplates } from "@/lib/data/deliverable-templates";
 import { countDeliverables, listDeliverables } from "@/lib/data/deliverables";
 import { listProjectStatusEvents } from "@/lib/data/project-status-events";
 import { getProjectWithClient } from "@/lib/data/projects";
+import {
+  listScopeSnapshots,
+  listSnapshotLines,
+} from "@/lib/data/scope-snapshots";
 import { parseProjectTabParam } from "@/lib/projects/detail";
 import { PROJECT_TAB_LABELS } from "@/lib/projects/tabs";
+import {
+  chosenSnapshot,
+  readSnapshotParam,
+} from "@/lib/snapshots/selection";
 
 import { OverviewPanel } from "./overview-panel";
 import { ProjectHeader } from "./project-header";
@@ -56,7 +64,8 @@ export default async function ProjectPage({
   // the row is gone for good — there is no archive to send the reader to.
   if (project === null) notFound();
 
-  const tab = parseProjectTabParam(await searchParams);
+  const search = await searchParams;
+  const tab = parseProjectTabParam(search);
 
   /*
     Only the overview reads the status trail and the size of the scope list, so
@@ -88,13 +97,28 @@ export default async function ProjectPage({
     and awaiting them in sequence would make the tab wait for the sum of two
     round trips to show one page.
   */
-  const [deliverables, templates] =
+  const [deliverables, templates, snapshots] =
     tab === "scope"
       ? await Promise.all([
           listDeliverables(project.id),
           listDeliverableTemplates(),
+          listScopeSnapshots(project.id),
         ])
-      : [[], []];
+      : [[], [], []];
+
+  /*
+    Which snapshot the comparison is against: the one the URL named, else the
+    most recent. Decided here, from the list that was just read, so a link
+    naming a snapshot that has since gone falls back to one that exists rather
+    than reaching the panel as a gap.
+
+    Its lines are a fourth round trip and cannot be one of the three above,
+    because which snapshot to read depends on the list. One query, and only on
+    the scope tab of a project that has been snapshotted at all.
+  */
+  const snapshot = chosenSnapshot(readSnapshotParam(search), snapshots);
+  const snapshotLines =
+    snapshot === null ? [] : await listSnapshotLines(snapshot.id);
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 font-sans">
@@ -128,6 +152,9 @@ export default async function ProjectPage({
             deliverables={deliverables}
             contractValueCents={project.contractValueCents}
             templates={templates}
+            snapshots={snapshots}
+            snapshot={snapshot}
+            snapshotLines={snapshotLines}
           />
         ) : (
           <UnbuiltTabPanel tab={tab} />

@@ -1,4 +1,4 @@
-import type { Deliverable } from "@/lib/db/schema";
+import type { Deliverable, ScopeSnapshotLine } from "@/lib/db/schema";
 import { summariseScope } from "@/lib/scope";
 import {
   INITIAL_ADD_DELIVERABLE_STATE,
@@ -6,12 +6,16 @@ import {
 } from "@/lib/deliverables/form";
 
 import type { ImportScopeState } from "@/lib/deliverables/import-form";
+import { diffScope } from "@/lib/snapshots/diff";
+import type { TakeSnapshotState } from "@/lib/snapshots/form";
+import type { SummarisedSnapshot } from "@/lib/snapshots/summary";
 import type { ApplyTemplateState } from "@/lib/templates/apply-form";
 import type { SaveTemplateState } from "@/lib/templates/form";
 import type { SummarisedTemplate } from "@/lib/templates/summary";
 
 import { writeScopeImport } from "./import-writes";
 import { writeNewDeliverable } from "./scope-writes";
+import { writeScopeSnapshot } from "./snapshot-writes";
 import {
   writeAppliedTemplate,
   writeTemplateFromProject,
@@ -22,6 +26,7 @@ import { DeliverableList } from "./deliverable-list";
 import { ImportSection } from "./import-section";
 import { NoDeliverables } from "./scope-empty";
 import { ScopeSummaryPanel } from "./scope-summary";
+import { SnapshotSection } from "./snapshot-section";
 import { TemplateSection } from "./template-section";
 
 /**
@@ -44,6 +49,9 @@ export function ScopePanel({
   deliverables,
   contractValueCents,
   templates,
+  snapshots,
+  snapshot,
+  snapshotLines,
 }: {
   projectId: string;
   /** What the save-as-template form suggests calling the template. */
@@ -57,6 +65,15 @@ export function ScopePanel({
   contractValueCents: number;
   /** Every saved template, each with its size, for the picker to offer. */
   templates: readonly SummarisedTemplate[];
+  /** Every snapshot of this project, newest first, for the picker to offer. */
+  snapshots: readonly SummarisedSnapshot[];
+  /**
+   * The snapshot the comparison is against — the one the URL asked for, else
+   * the most recent — or null on a project never snapshotted.
+   */
+  snapshot: SummarisedSnapshot | null;
+  /** That snapshot's lines, in the order they were agreed. */
+  snapshotLines: readonly ScopeSnapshotLine[];
 }) {
   /*
     The first line of a scope list is a different act from the fifth: one is
@@ -113,7 +130,38 @@ export function ScopePanel({
     );
   }
 
+  async function take(previous: TakeSnapshotState, formData: FormData) {
+    "use server";
+    return writeScopeSnapshot(projectId, previous, formData);
+  }
+
   const summary = summariseScope(deliverables, contractValueCents);
+
+  /*
+    Worked out here, from the same read of the deliverables the summary above
+    came from and the same contract value the page was served with. A
+    comparison computed from a second read could disagree with the list
+    underneath it, and the figures in it are exactly the ones somebody would
+    quote at a client.
+
+    The snapshot's own contract value comes off its row rather than the
+    project's, which is the whole reason the column exists: the price then is
+    not the price now, and that difference is half of what the comparison is
+    for.
+  */
+  const comparison =
+    snapshot === null
+      ? null
+      : {
+          snapshot,
+          diff: diffScope(
+            {
+              lines: snapshotLines,
+              contractValueCents: snapshot.contractValueCents,
+            },
+            { lines: deliverables, contractValueCents },
+          ),
+        };
 
   return (
     <>
@@ -139,6 +187,13 @@ export function ScopePanel({
         scopeIsEmpty={empty}
         apply={apply}
         save={save}
+      />
+      <SnapshotSection
+        projectId={projectId}
+        snapshots={snapshots}
+        comparison={comparison}
+        scopeIsEmpty={empty}
+        take={take}
       />
     </>
   );
