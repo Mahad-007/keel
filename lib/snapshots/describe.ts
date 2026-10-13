@@ -269,3 +269,24 @@ export function describeScopeDiff(summary: ScopeDiffSummary): string {
 
   return sentences.join(" ");
 }
+
+/**
+ * How many lines are exactly as they were agreed, or null when none are.
+ *
+ * The table lists only the rows that moved, so this is the sentence that says
+ * what is not in it. Without it a reader has no way to tell a comparison of
+ * three changes on a list of twelve from a comparison of three on a list of
+ * three, and the difference is most of what the page is for.
+ *
+ * It says "exactly" on purpose. These are lines whose title, estimate, status
+ * and detail all read as they did, which is a stronger claim than "not
+ * changed" and the one the comparison is actually making.
+ */
+export function describeUnchangedLines(
+  summary: ScopeDiffSummary,
+): string | null {
+  if (summary.unchangedCount === 0) return null;
+  return summary.unchangedCount === 1
+    ? "One other deliverable is exactly as it was agreed, and is not listed."
+    : `${summary.unchangedCount} other deliverables are exactly as they were agreed, and are not listed.`;
+}

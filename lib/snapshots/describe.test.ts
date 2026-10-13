@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   describeContractMovement,
+  describeUnchangedLines,
   describeScopeDiff,
   SCOPE_UNCHANGED_SINCE,
   describeEstimateMovement,
@@ -332,5 +333,23 @@ describe("describeScopeDiff", () => {
 
     expect(sentence).toContain("1 deliverable added");
     expect(sentence).toContain("The contract value is unchanged");
+  });
+});
+
+describe("describeUnchangedLines", () => {
+  it("says nothing when every line moved", () => {
+    expect(describeUnchangedLines(summary({ addedCount: 2 }))).toBeNull();
+  });
+
+  it("agrees the noun with a single untouched line", () => {
+    expect(describeUnchangedLines(summary({ unchangedCount: 1 }))).toBe(
+      "One other deliverable is exactly as it was agreed, and is not listed.",
+    );
+  });
+
+  it("counts the lines the table leaves out", () => {
+    expect(describeUnchangedLines(summary({ unchangedCount: 9 }))).toBe(
+      "9 other deliverables are exactly as they were agreed, and are not listed.",
+    );
   });
 });
