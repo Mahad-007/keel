@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, count, desc, eq, sql } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import {
@@ -9,6 +9,7 @@ import {
 } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
 import type { SnapshotLineDraft } from "@/lib/snapshots/capture";
+import type { SummarisedSnapshot } from "@/lib/snapshots/summary";
 
 import {
   optionalText,
@@ -173,4 +174,56 @@ export async function listSnapshotLines(
     .from(scopeSnapshotLines)
     .where(eq(scopeSnapshotLines.snapshotId, snapshotId))
     .orderBy(...IN_ORDER);
+}
+
+/**
+ * Every snapshot of one project, newest first, each with what its scope list
+ * added up to.
+ *
+ * One query with the counts done in SQL, rather than a list of snapshots
+ * followed by a read of each one's lines. A project with a snapshot per month
+ * is one line of text per snapshot, and reading two hundred rows to render
+ * twelve labels is the kind of thing that is invisible until the engagement is
+ * a year old — the same arrangement, and the same reasoning, as the template
+ * list.
+ *
+ * A left join, so a snapshot with no lines still appears. Nothing writes one —
+ * `createScopeSnapshot` refuses — but an inner join would make such a row
+ * vanish from the picker rather than show up as the `empty` label the size
+ * words already have for it, and a row nobody can see is a row nobody can
+ * delete.
+ *
+ * Newest first, which is the opposite of how the lines inside one are read.
+ * The list is a history and the question asked of a history is "what has
+ * happened lately": the snapshot a reader wants to compare against is almost
+ * always the most recent, and that is what the default comparison uses. The id
+ * breaks ties, because two snapshots can land in the same second — a
+ * double-pressed button — and a picker that reorders itself between reloads is
+ * a picker nobody trusts.
+ */
+export async function listScopeSnapshots(
+  projectId: string,
+  database: Database = db,
+): Promise<SummarisedSnapshot[]> {
+  return database
+    .select({
+      id: scopeSnapshots.id,
+      label: scopeSnapshots.label,
+      capturedAt: scopeSnapshots.capturedAt,
+      contractValueCents: scopeSnapshots.contractValueCents,
+      lineCount: count(scopeSnapshotLines.id),
+      // `coalesce` on both aggregates, because a left join with no match sums
+      // over no rows at all and SQLite answers NULL — which would reach the
+      // picker as a missing number rather than as a zero.
+      estimatedMinutes: sql<number>`coalesce(sum(${scopeSnapshotLines.estimatedMinutes}), 0)`,
+      unestimatedCount: sql<number>`coalesce(sum(case when ${scopeSnapshotLines.estimatedMinutes} = 0 then 1 else 0 end), 0)`,
+    })
+    .from(scopeSnapshots)
+    .leftJoin(
+      scopeSnapshotLines,
+      eq(scopeSnapshotLines.snapshotId, scopeSnapshots.id),
+    )
+    .where(eq(scopeSnapshots.projectId, projectId))
+    .groupBy(scopeSnapshots.id)
+    .orderBy(desc(scopeSnapshots.capturedAt), desc(scopeSnapshots.id));
 }
