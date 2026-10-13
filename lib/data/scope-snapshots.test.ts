@@ -7,7 +7,7 @@ import { createTestDb } from "@/lib/db/testing";
 import type { SnapshotLineDraft } from "@/lib/snapshots/capture";
 
 import { createClient } from "./clients";
-import { createDeliverable } from "./deliverables";
+import { createDeliverable, updateDeliverable } from "./deliverables";
 import { createProject } from "./projects";
 import {
   captureScopeSnapshot,
@@ -391,6 +391,64 @@ describe("captureScopeSnapshot", () => {
 
     const [line] = await listSnapshotLines(result.snapshot.id, db);
     expect(line.status).toBe("done");
+  });
+
+  it("refuses a second snapshot of a scope list that has not moved", async () => {
+    await createDeliverable({ projectId, title: "Discovery" }, db);
+    await captureScopeSnapshot(projectId, {}, db);
+
+    // What bounds the table: a press can only add a row when something has
+    // actually changed.
+    expect(await captureScopeSnapshot(projectId, {}, db)).toEqual({
+      ok: false,
+      reason: "unchanged-since",
+    });
+    expect(await listScopeSnapshots(projectId, db)).toHaveLength(1);
+  });
+
+  it("records a second snapshot once a line has been added", async () => {
+    await createDeliverable({ projectId, title: "Discovery" }, db);
+    await captureScopeSnapshot(projectId, {}, db);
+    await createDeliverable({ projectId, title: "Build" }, db);
+
+    expect((await captureScopeSnapshot(projectId, {}, db)).ok).toBe(true);
+  });
+
+  it("records a second snapshot once an estimate has moved", async () => {
+    const written = await createDeliverable(
+      { projectId, title: "Discovery", estimatedMinutes: 480 },
+      db,
+    );
+    await captureScopeSnapshot(projectId, {}, db);
+    await updateDeliverable(written.id, { estimatedMinutes: 960 }, db);
+
+    expect((await captureScopeSnapshot(projectId, {}, db)).ok).toBe(true);
+  });
+
+  it("records a second snapshot once the price has moved", async () => {
+    await createDeliverable({ projectId, title: "Discovery" }, db);
+    await captureScopeSnapshot(projectId, {}, db);
+    await db
+      .update(projects)
+      .set({ contractValueCents: 650_000 })
+      .where(eq(projects.id, projectId));
+
+    // The scope list is untouched, which is exactly the case a snapshot
+    // recording only the deliverables could not tell apart.
+    expect((await captureScopeSnapshot(projectId, {}, db)).ok).toBe(true);
+  });
+
+  it("ignores another project's snapshot when deciding", async () => {
+    const client = await createClient({ name: "Other Co" }, db);
+    const other = await createProject(
+      { clientId: client.id, name: "Something else" },
+      db,
+    );
+    await createDeliverable({ projectId: other.id, title: "Discovery" }, db);
+    await captureScopeSnapshot(other.id, {}, db);
+    await createDeliverable({ projectId, title: "Discovery" }, db);
+
+    expect((await captureScopeSnapshot(projectId, {}, db)).ok).toBe(true);
   });
 
   it("refuses a project nobody has agreed anything for", async () => {
