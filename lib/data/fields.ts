@@ -144,3 +144,36 @@ export function wholeMinutes(value: number, field: string): number {
 export function isWholeMinutes(value: number): boolean {
   return Number.isSafeInteger(value) && value >= 0;
 }
+
+/**
+ * A duration column that records what another column held, rather than
+ * accepting a new one.
+ *
+ * `wholeMinutes` refuses a negative, because nothing in the app should ever
+ * write one. A scope snapshot is the exception that proves the rule: it copies
+ * a deliverable's estimate as it stood, and a row somebody hand-edited to
+ * minus two hours is exactly the row a reader needs the snapshot to have
+ * recorded. Refusing it would make the one project with a bad line the one
+ * project that cannot be compared.
+ *
+ * The safe-integer half of the guard stays, and for the reason it exists:
+ * past 2^53 SQLite accepts the write and the driver then fails decoding it
+ * back, leaving a row that poisons every later read of the table. A record of
+ * an unreadable number is not worth a table nobody can read.
+ */
+export function recordedMinutes(value: number, field: string): number {
+  if (!Number.isSafeInteger(value)) {
+    throw new Error(`${field} must be whole minutes, got ${value}`);
+  }
+  return value;
+}
+
+/**
+ * Whether a duration could be recorded by `recordedMinutes`, as an answer
+ * rather than an exception — the same arrangement as `isWholeMinutes`, and
+ * for the same kind of caller: code asking, before it writes, whether a stored
+ * value can be written again.
+ */
+export function isRecordableMinutes(value: number): boolean {
+  return Number.isSafeInteger(value);
+}
