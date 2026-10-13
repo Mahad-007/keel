@@ -448,3 +448,22 @@ export function diffScope(
     ),
   };
 }
+
+/**
+ * Only the rows that moved, in the order the comparison produced them.
+ *
+ * The table shows these and not the untouched lines. A forty-line project with
+ * two changes on it would otherwise be thirty-eight rows of "Unchanged" with
+ * the two that matter somewhere in the middle, which is a table that hides
+ * exactly what it was opened to show. How many were left out is in the summary
+ * and gets a sentence of its own, so nothing is concealed — the full list is
+ * the scope list, one tab-width away.
+ *
+ * A filter rather than a flag on the entry, so the comparison stays the whole
+ * truth and the view is the thing that narrows.
+ */
+export function movedScopeLines(
+  entries: readonly ScopeDiffEntry[],
+): ScopeDiffEntry[] {
+  return entries.filter((entry) => entry.kind !== "unchanged");
+}

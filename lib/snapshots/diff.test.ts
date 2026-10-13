@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { CapturedScopeLine, SnapshotLineDraft } from "./capture";
 import {
   diffScope,
+  movedScopeLines,
   scopeDiffEntries,
   scopeFieldChanges,
   summariseScopeDiff,
@@ -431,5 +432,37 @@ describe("diffScope", () => {
 
     expect(diff.entries).toEqual([]);
     expect(diff.summary.hasChanges).toBe(false);
+  });
+});
+
+describe("movedScopeLines", () => {
+  it("keeps the rows that were added, dropped or changed", () => {
+    const entries = scopeDiffEntries(
+      [captured("a"), captured("b", { title: "Was" }), captured("gone")],
+      [live("a"), live("b", { title: "Is" }), live("new")],
+    );
+
+    expect(movedScopeLines(entries).map((entry) => entry.kind)).toEqual([
+      "changed",
+      "added",
+      "removed",
+    ]);
+  });
+
+  it("keeps them in the order the comparison read them", () => {
+    const entries = scopeDiffEntries(
+      [captured("a"), captured("gone")],
+      [live("a"), live("new")],
+    );
+
+    expect(
+      movedScopeLines(entries).map((entry) => entry.deliverableId),
+    ).toEqual(["new", "gone"]);
+  });
+
+  it("keeps nothing from a comparison where nothing moved", () => {
+    const entries = scopeDiffEntries([captured("a")], [live("a")]);
+
+    expect(movedScopeLines(entries)).toEqual([]);
   });
 });
