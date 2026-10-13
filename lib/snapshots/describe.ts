@@ -13,9 +13,8 @@ import { estimatedHours } from "@/lib/scope";
 import { describeEstimate } from "@/lib/deliverables/list";
 
 import type {
-  ScopeChangeField,
-  ScopeDiffEntry,
   ScopeChangeKind,
+  ScopeDiffEntry,
   ScopeDiffSummary,
   ScopeFieldChange,
 } from "./diff";
@@ -53,20 +52,6 @@ export const SCOPE_CHANGE_LABELS: Record<ScopeChangeKind, string> = {
   removed: "Dropped",
   changed: "Changed",
   unchanged: "Unchanged",
-};
-
-/**
- * What each field is called when a change to it is listed.
- *
- * "Detail" rather than "Description", because that is what the deliverable
- * form calls the box. "Estimate" rather than "Estimated minutes": the minutes
- * are the unit, not the name of the thing.
- */
-export const SCOPE_CHANGE_FIELD_LABELS: Record<ScopeChangeField, string> = {
-  title: "Title",
-  estimate: "Estimate",
-  status: "Status",
-  description: "Detail",
 };
 
 /**

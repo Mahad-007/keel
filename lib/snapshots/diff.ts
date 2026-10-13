@@ -83,9 +83,6 @@ export type ScopeFieldChange =
       readonly after: string;
     };
 
-/** Which field a change is about, for a label or a count keyed by it. */
-export type ScopeChangeField = ScopeFieldChange["field"];
-
 /**
  * The columns a pairing is compared on, from either side of it.
  *
