@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { CapturedScopeLine, SnapshotLineDraft } from "./capture";
 import {
+  diffScope,
   scopeDiffEntries,
   scopeFieldChanges,
   summariseScopeDiff,
@@ -377,5 +378,58 @@ describe("summariseScopeDiff", () => {
       lineCountBefore: 1,
       estimatedMinutesBefore: 60,
     });
+  });
+});
+
+describe("diffScope", () => {
+  it("hands back the rows and the totals of one comparison", () => {
+    const diff = diffScope(
+      {
+        lines: [
+          captured("a", { title: "Discovery", estimatedMinutes: 480 }),
+          captured("gone", { title: "Old blog import", estimatedMinutes: 120 }),
+        ],
+        contractValueCents: 500_000,
+      },
+      {
+        lines: [
+          live("a", { title: "Discovery", estimatedMinutes: 480 }),
+          live("new", { title: "Analytics", estimatedMinutes: 240 }),
+        ],
+        contractValueCents: 500_000,
+      },
+    );
+
+    expect(diff.entries.map((entry) => entry.kind)).toEqual([
+      "unchanged",
+      "added",
+      "removed",
+    ]);
+    expect(diff.summary).toMatchObject({
+      addedCount: 1,
+      removedCount: 1,
+      estimatedMinutesDelta: 120,
+      contractValueCentsDelta: 0,
+      hasChanges: true,
+    });
+  });
+
+  it("summarises the rows it hands back and not the lists", () => {
+    const diff = diffScope(
+      { lines: [captured("a"), captured("a")], contractValueCents: 0 },
+      { lines: [], contractValueCents: 0 },
+    );
+
+    expect(diff.summary.lineCountBefore).toBe(diff.entries.length);
+  });
+
+  it("compares a project that has agreed nothing either time", () => {
+    const diff = diffScope(
+      { lines: [], contractValueCents: 500_000 },
+      { lines: [], contractValueCents: 500_000 },
+    );
+
+    expect(diff.entries).toEqual([]);
+    expect(diff.summary.hasChanges).toBe(false);
   });
 });
