@@ -3,7 +3,11 @@ import {
   type DeliverableStatus,
 } from "@/lib/deliverables/status";
 import { formatMinutes } from "@/lib/minutes";
-import { deliverablesPhrase } from "@/lib/projects/scope-summary";
+import {
+  deliverablesPhrase,
+  hoursPhrase,
+} from "@/lib/projects/scope-summary";
+import { estimatedHours } from "@/lib/scope";
 
 import type {
   ScopeChangeField,
@@ -157,4 +161,43 @@ export function describeLineChanges(
         : `${part.count} ${part.word}`,
     ),
   );
+}
+
+/**
+ * What the scope list's estimate did, as a sentence.
+ *
+ * The movement and both ends of it, because a movement on its own is not a
+ * fact a reader can act on: six hours added to an estimate of eight is a
+ * different conversation from six added to eight hundred, and a sentence that
+ * reported only the delta would send them off to find the denominator.
+ *
+ * Hours rather than `8h 30m`, because this is a sentence and the estimate was
+ * agreed in hours — "forty hours" is what somebody said out loud. The figures
+ * come through `estimatedHours`, so the panel's reading and the summary's
+ * rounding are the same rounding.
+ *
+ * The two ends where nothing was estimated get their own sentences. "Up 8
+ * hours, from 0 hours to 8 hours" describes an estimate that grew, where what
+ * actually happened is that a list nobody had sized has been sized — and the
+ * same at the other end, where the figure did not shrink to nothing, it went
+ * missing. The same rule the scope list follows for a single line: a zero is a
+ * number nobody supplied.
+ */
+export function describeEstimateMovement(summary: ScopeDiffSummary): string {
+  const before = hoursPhrase(estimatedHours(summary.estimatedMinutesBefore));
+  const after = hoursPhrase(estimatedHours(summary.estimatedMinutesAfter));
+
+  if (summary.estimatedMinutesDelta === 0) {
+    return `The estimate is unchanged, at ${after}.`;
+  }
+  if (summary.estimatedMinutesBefore === 0) {
+    return `Nothing was estimated when the snapshot was taken; the scope list now comes to ${after}.`;
+  }
+  if (summary.estimatedMinutesAfter === 0) {
+    return `Nothing is estimated now, where the snapshot came to ${before}.`;
+  }
+
+  const moved = hoursPhrase(Math.abs(summary.estimatedHoursDelta));
+  const direction = summary.estimatedMinutesDelta > 0 ? "up" : "down";
+  return `The estimate is ${direction} ${moved}, from ${before} to ${after}.`;
 }
