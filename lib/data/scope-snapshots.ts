@@ -17,6 +17,7 @@ import type { SummarisedSnapshot } from "@/lib/snapshots/summary";
 import { listDeliverables } from "./deliverables";
 import {
   isRecordableMinutes,
+  isWholeCents,
   optionalText,
   recordedMinutes,
   requiredText,
@@ -248,11 +249,18 @@ export async function listScopeSnapshots(
  * row poisoning every later read of the table. Nothing in the app writes one,
  * so this is a hand-edited row, and the fix is on the deliverable rather than
  * in another press of this button.
+ *
+ * `unrecordable-value` is the same fault on the project's own column: a
+ * contract value the snapshot's `wholeCents` guard would refuse. Only that
+ * column is asked about, not the rate override — a snapshot does not record a
+ * rate, and refusing to record the scope over a column nobody is copying
+ * would be a refusal the reader could make no sense of.
  */
 export type SnapshotCaptureReason =
   | "no-such-project"
   | "empty-scope"
-  | "unrecordable-scope";
+  | "unrecordable-scope"
+  | "unrecordable-value";
 
 /** The outcome of asking a project for a snapshot of its scope. */
 export type SnapshotCaptureResult =
@@ -300,6 +308,16 @@ export async function captureScopeSnapshot(
     async (tx) => {
       const project = await getProject(projectId, tx);
       if (project === null) return { ok: false, reason: "no-such-project" };
+
+      /*
+        The project's own amount, asked before the scope is read. A contract
+        value no column will take is a hand-edited row too, and the sentence
+        for it points at the project rather than at a deliverable — which is
+        why it is a reason of its own rather than one word covering both.
+      */
+      if (!isWholeCents(project.contractValueCents)) {
+        return { ok: false, reason: "unrecordable-value" };
+      }
 
       const lines = capturedSnapshotLines(await listDeliverables(projectId, tx));
       /*
