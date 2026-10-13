@@ -244,11 +244,17 @@ export async function listScopeSnapshots(
  *
  * `unrecordable-scope` is the one that needs saying out loud. A snapshot
  * records a deliverable's estimate as it stands, negative included — the whole
- * point is that it copies rather than judges. The one value it cannot keep is
- * a number too large to read back out of SQLite, because that would leave a
- * row poisoning every later read of the table. Nothing in the app writes one,
- * so this is a hand-edited row, and the fix is on the deliverable rather than
- * in another press of this button.
+ * point is that it copies rather than judges. What it cannot keep is a
+ * fraction of a minute: the column is an integer and minutes are the unit, so
+ * recording 90.5 would store a number that is not a duration. Nothing in the
+ * app writes one, so this is a hand-edited row, and the fix is on the
+ * deliverable rather than in another press of this button.
+ *
+ * An estimate too large to represent exactly is *not* this reason, and cannot
+ * be: the driver refuses to decode such a value, so reading the deliverables
+ * at all throws before anything here can classify it. That row poisons every
+ * read of the scope list, not only this one, and there is nothing a snapshot
+ * can usefully say about it.
  *
  * `unrecordable-value` is the same fault on the project's own column: a
  * contract value the snapshot's `wholeCents` guard would refuse. Only that

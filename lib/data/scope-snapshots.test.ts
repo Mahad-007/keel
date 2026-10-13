@@ -1,13 +1,16 @@
+import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import type { Database } from "@/lib/db";
-import { scopeSnapshots } from "@/lib/db/schema";
+import { deliverables, projects, scopeSnapshots } from "@/lib/db/schema";
 import { createTestDb } from "@/lib/db/testing";
 import type { SnapshotLineDraft } from "@/lib/snapshots/capture";
 
 import { createClient } from "./clients";
+import { createDeliverable } from "./deliverables";
 import { createProject } from "./projects";
 import {
+  captureScopeSnapshot,
   createScopeSnapshot,
   getScopeSnapshot,
   listScopeSnapshots,
@@ -322,5 +325,144 @@ describe("listScopeSnapshots", () => {
 
     const [snapshot] = await listScopeSnapshots(projectId, db);
     expect(snapshot.estimatedMinutes).toBe(420);
+  });
+});
+
+describe("captureScopeSnapshot", () => {
+  it("records the project's scope list as it stands", async () => {
+    await createDeliverable(
+      { projectId, title: "Discovery", estimatedMinutes: 480 },
+      db,
+    );
+    await createDeliverable(
+      { projectId, title: "Build", estimatedMinutes: 2_400 },
+      db,
+    );
+
+    const result = await captureScopeSnapshot(
+      projectId,
+      { label: "Signed proposal" },
+      db,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.lineCount).toBe(2);
+    const lines = await listSnapshotLines(result.snapshot.id, db);
+    expect(lines.map((line) => line.title)).toEqual(["Discovery", "Build"]);
+  });
+
+  it("pairs each line with the deliverable it was copied from", async () => {
+    const written = await createDeliverable(
+      { projectId, title: "Discovery", estimatedMinutes: 480 },
+      db,
+    );
+
+    const result = await captureScopeSnapshot(projectId, {}, db);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const [line] = await listSnapshotLines(result.snapshot.id, db);
+    expect(line.deliverableId).toBe(written.id);
+  });
+
+  it("records what the project was agreed for at that moment", async () => {
+    await createDeliverable({ projectId, title: "Discovery" }, db);
+
+    const result = await captureScopeSnapshot(projectId, {}, db);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    // Read off the project inside the same transaction, so the scope and the
+    // price are true at the same instant.
+    expect(result.snapshot.contractValueCents).toBe(500_000);
+  });
+
+  it("records the status each line was in rather than resetting it", async () => {
+    await createDeliverable(
+      { projectId, title: "Discovery", status: "done" },
+      db,
+    );
+
+    const result = await captureScopeSnapshot(projectId, {}, db);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const [line] = await listSnapshotLines(result.snapshot.id, db);
+    expect(line.status).toBe("done");
+  });
+
+  it("refuses a project nobody has agreed anything for", async () => {
+    expect(await captureScopeSnapshot(projectId, {}, db)).toEqual({
+      ok: false,
+      reason: "empty-scope",
+    });
+  });
+
+  it("refuses a project that no longer exists", async () => {
+    expect(await captureScopeSnapshot("prj_gone", {}, db)).toEqual({
+      ok: false,
+      reason: "no-such-project",
+    });
+  });
+
+  it("records a hand-edited negative estimate as it stands", async () => {
+    const written = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    await db
+      .update(deliverables)
+      .set({ estimatedMinutes: -120 })
+      .where(eq(deliverables.id, written.id));
+
+    const result = await captureScopeSnapshot(projectId, {}, db);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const [line] = await listSnapshotLines(result.snapshot.id, db);
+    expect(line.estimatedMinutes).toBe(-120);
+  });
+
+  it("refuses a fraction of a minute, and writes nothing", async () => {
+    const written = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    await db
+      .update(deliverables)
+      .set({ estimatedMinutes: 90.5 })
+      .where(eq(deliverables.id, written.id));
+
+    expect(await captureScopeSnapshot(projectId, {}, db)).toEqual({
+      ok: false,
+      reason: "unrecordable-scope",
+    });
+    expect(await db.select().from(scopeSnapshots)).toEqual([]);
+  });
+
+  it("refuses a contract value the snapshot column would not take", async () => {
+    await createDeliverable({ projectId, title: "Discovery" }, db);
+    await db
+      .update(projects)
+      .set({ contractValueCents: -1 })
+      .where(eq(projects.id, projectId));
+
+    expect(await captureScopeSnapshot(projectId, {}, db)).toEqual({
+      ok: false,
+      reason: "unrecordable-value",
+    });
+  });
+
+  it("leaves the project's own scope list untouched", async () => {
+    await createDeliverable({ projectId, title: "Discovery" }, db);
+
+    await captureScopeSnapshot(projectId, {}, db);
+
+    const scope = await db
+      .select()
+      .from(deliverables)
+      .where(eq(deliverables.projectId, projectId));
+    expect(scope).toHaveLength(1);
   });
 });
