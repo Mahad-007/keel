@@ -1,7 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { describeFieldChange, SCOPE_CHANGE_LABELS } from "./describe";
-import { SCOPE_CHANGE_KINDS } from "./diff";
+import {
+  describeFieldChange,
+  describeLineChanges,
+  SCOPE_CHANGE_LABELS,
+} from "./describe";
+import {
+  SCOPE_CHANGE_KINDS,
+  summariseScopeDiff,
+  type ScopeDiffSummary,
+} from "./diff";
+
+/** A summary with nothing in it, for a test to move one figure of. */
+function summary(over: Partial<ScopeDiffSummary> = {}): ScopeDiffSummary {
+  return { ...summariseScopeDiff([], 0, 0), ...over };
+}
 
 describe("SCOPE_CHANGE_LABELS", () => {
   it("has a word for every kind a comparison can report", () => {
@@ -97,5 +110,43 @@ describe("describeFieldChange", () => {
     expect(
       describeFieldChange({ field: "estimate", before: 480, after: -60 }),
     ).toBe("Estimate down from 8h to -1h.");
+  });
+});
+
+describe("describeLineChanges", () => {
+  it("says nothing when no line was added, dropped or changed", () => {
+    expect(describeLineChanges(summary({ unchangedCount: 4 }))).toBeNull();
+  });
+
+  it("puts the noun on the one count there is", () => {
+    expect(describeLineChanges(summary({ addedCount: 2 }))).toBe(
+      "2 deliverables added",
+    );
+  });
+
+  it("agrees the noun with a count of one", () => {
+    expect(describeLineChanges(summary({ removedCount: 1 }))).toBe(
+      "1 deliverable dropped",
+    );
+  });
+
+  it("puts the noun on the first count only", () => {
+    expect(
+      describeLineChanges(
+        summary({ addedCount: 2, removedCount: 1, changedCount: 3 }),
+      ),
+    ).toBe("2 deliverables added, 1 dropped and 3 changed");
+  });
+
+  it("joins two clauses with an and rather than a comma", () => {
+    expect(
+      describeLineChanges(summary({ addedCount: 1, changedCount: 2 })),
+    ).toBe("1 deliverable added and 2 changed");
+  });
+
+  it("leaves the untouched lines out of the clause", () => {
+    expect(
+      describeLineChanges(summary({ addedCount: 1, unchangedCount: 9 })),
+    ).toBe("1 deliverable added");
   });
 });
