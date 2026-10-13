@@ -12,6 +12,7 @@ import {
   capturedSnapshotLines,
   type SnapshotLineDraft,
 } from "@/lib/snapshots/capture";
+import { diffScope } from "@/lib/snapshots/diff";
 import type { SummarisedSnapshot } from "@/lib/snapshots/summary";
 
 import { listDeliverables } from "./deliverables";
@@ -283,6 +284,14 @@ export async function latestScopeSnapshot(
  * read of the scope list, not only this one, and there is nothing a snapshot
  * can usefully say about it.
  *
+ * `unchanged-since` is the one that is not a fault at all. A snapshot of a
+ * scope list that has not moved since the last one records nothing the last
+ * one does not already say, and the comparison against either would read the
+ * same — so the press is refused and the reader is told why. It is also what
+ * bounds this table: a press can only add a row when something has actually
+ * changed, so a held-down button writes one snapshot rather than a thousand
+ * copies of one.
+ *
  * `unrecordable-value` is the same fault on the project's own column: a
  * contract value the snapshot's `wholeCents` guard would refuse. Only that
  * column is asked about, not the rate override — a snapshot does not record a
@@ -292,6 +301,7 @@ export async function latestScopeSnapshot(
 export type SnapshotCaptureReason =
   | "no-such-project"
   | "empty-scope"
+  | "unchanged-since"
   | "unrecordable-scope"
   | "unrecordable-value";
 
@@ -352,7 +362,8 @@ export async function captureScopeSnapshot(
         return { ok: false, reason: "unrecordable-value" };
       }
 
-      const lines = capturedSnapshotLines(await listDeliverables(projectId, tx));
+      const scope = await listDeliverables(projectId, tx);
+      const lines = capturedSnapshotLines(scope);
       /*
         A snapshot of nothing compares as though the whole scope list arrived
         afterwards, which is what the scope list already says. The refusal is
@@ -370,6 +381,28 @@ export async function captureScopeSnapshot(
       */
       if (!lines.every((line) => isRecordableMinutes(line.estimatedMinutes))) {
         return { ok: false, reason: "unrecordable-scope" };
+      }
+
+      /*
+        Would this snapshot say anything the last one does not? The comparison
+        is the one the page would show, run against the newest snapshot, so
+        the answer cannot disagree with what the reader is looking at.
+
+        Two reads rather than one, and only on a project that has been
+        snapshotted before: the newest row for the price it recorded, and its
+        lines for the scope. Inside the same transaction as everything else, so
+        a snapshot taken in another tab a moment ago is one this press sees.
+      */
+      const newest = await latestScopeSnapshot(projectId, tx);
+      if (newest !== null) {
+        const previous = await listSnapshotLines(newest.id, tx);
+        const since = diffScope(
+          { lines: previous, contractValueCents: newest.contractValueCents },
+          { lines: scope, contractValueCents: project.contractValueCents },
+        );
+        if (!since.summary.hasChanges) {
+          return { ok: false, reason: "unchanged-since" };
+        }
       }
 
       const snapshot = await createScopeSnapshot(

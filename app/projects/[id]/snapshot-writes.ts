@@ -39,6 +39,7 @@ import {
 const SNAPSHOT_REASONS: Record<SnapshotCaptureReason, string> = {
   "no-such-project": SNAPSHOT_PROBLEMS.missingProject,
   "empty-scope": SNAPSHOT_PROBLEMS.emptyScope,
+  "unchanged-since": SNAPSHOT_PROBLEMS.unchangedSince,
   "unrecordable-scope": SNAPSHOT_PROBLEMS.unrecordableScope,
   "unrecordable-value": SNAPSHOT_PROBLEMS.unrecordableValue,
 };

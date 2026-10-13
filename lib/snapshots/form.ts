@@ -186,6 +186,8 @@ export const SNAPSHOT_PROBLEMS = {
     "There is nothing to record yet — a snapshot is a copy of this project's deliverables, and it has none. Add the first line above and this becomes a one-press job.",
   missingProject:
     "That project no longer exists, so there is no scope list to record.",
+  unchangedSince:
+    "Nothing has changed since the most recent snapshot — the same deliverables, estimated the same, at the same contract value — so there is nothing new to record. The comparison below already covers it.",
   unrecordableScope:
     "A deliverable on this project has an estimate that is not a whole number of minutes, which a snapshot cannot record. Open that line, give it an estimate in hours, and try again.",
   unrecordableValue:
