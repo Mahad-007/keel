@@ -391,3 +391,60 @@ export function summariseScopeDiff(
       contractValueCentsDelta !== 0,
   };
 }
+
+/**
+ * The snapshot side of a comparison: the scope list as it was recorded, and
+ * what the project was agreed for at that moment.
+ *
+ * The contract value travels with the lines rather than beside them, because
+ * the two were true at the same instant and pairing them wrongly is the one
+ * mistake that makes the whole comparison lie. Four positional arguments —
+ * two lists and two amounts — is an invitation to hand over last month's price
+ * with this month's scope.
+ */
+export type CapturedScope = {
+  readonly lines: readonly SnapshotLineDraft[];
+  readonly contractValueCents: number;
+};
+
+/** The other side: the scope list as it reads now, and the price now. */
+export type CurrentScope = {
+  readonly lines: readonly CapturedScopeLine[];
+  readonly contractValueCents: number;
+};
+
+/**
+ * Everything a scope comparison says: the rows, and what they add up to.
+ *
+ * One call for both, so the sentence at the top and the table underneath
+ * cannot come from two different readings of the same lists.
+ */
+export type ScopeDiff = {
+  readonly entries: readonly ScopeDiffEntry[];
+  readonly summary: ScopeDiffSummary;
+};
+
+/**
+ * What changed between a snapshot and the scope list as it reads now.
+ *
+ * The function the day exists for, and deliberately a thin one: the pairing is
+ * `scopeDiffEntries`, the arithmetic is `summariseScopeDiff`, and both are
+ * worth testing on their own. What this adds is that the summary is computed
+ * from the entries it is handed back with — so a reader who finds the figures
+ * disagreeing with the table has found a bug in one of those two functions
+ * rather than a page that compared the lists twice.
+ */
+export function diffScope(
+  before: CapturedScope,
+  after: CurrentScope,
+): ScopeDiff {
+  const entries = scopeDiffEntries(before.lines, after.lines);
+  return {
+    entries,
+    summary: summariseScopeDiff(
+      entries,
+      before.contractValueCents,
+      after.contractValueCents,
+    ),
+  };
+}
