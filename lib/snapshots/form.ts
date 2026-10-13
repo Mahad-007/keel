@@ -1,5 +1,7 @@
 import { readFields } from "@/lib/forms/form-data";
+import { collect, type ParseResult } from "@/lib/forms/result";
 import type { FormState } from "@/lib/forms/state";
+import { optionalText } from "@/lib/forms/text";
 
 /**
  * The form that takes a snapshot of a project's scope, from submitted strings
@@ -55,4 +57,40 @@ export type SnapshotFormState = FormState<SnapshotFieldName>;
 
 export function readSnapshotFields(formData: FormData): SnapshotFormFields {
   return readFields(formData, SNAPSHOT_FIELD_NAMES);
+}
+
+/**
+ * What the form yields once the field is good: the one column a person
+ * decides about a snapshot.
+ */
+export type SnapshotFormValue = {
+  readonly label: string | null;
+};
+
+/**
+ * The submitted form, checked.
+ *
+ * The label is optional, which is the opposite of a template's name. A
+ * template with no name is an option nobody can pick deliberately; a snapshot
+ * with no label is still unambiguous, because it has a date on it and the date
+ * is what a comparison is usually asked for. Requiring a label would mean a
+ * reader who wants a record of today's scope has to compose a sentence first,
+ * and the press they would otherwise have made is the whole feature.
+ *
+ * Blank collapses to NULL rather than to `""`, so "nobody named it" has one
+ * representation in the column and the picker's fallback to the date is driven
+ * by a null rather than by a string that happens to be empty.
+ */
+export function parseSnapshotForm(
+  fields: SnapshotFormFields,
+): ParseResult<SnapshotFormValue, SnapshotFieldName> {
+  const parsed = collect({
+    label: optionalText(fields.label, {
+      label: "Label",
+      max: SNAPSHOT_LABEL_LIMIT,
+    }),
+  });
+
+  if (!parsed.ok) return parsed;
+  return { ok: true, value: parsed.value };
 }
