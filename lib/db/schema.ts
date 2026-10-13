@@ -265,3 +265,66 @@ export type DeliverableTemplateLine =
   typeof deliverableTemplateLines.$inferSelect;
 export type NewDeliverableTemplateLine =
   typeof deliverableTemplateLines.$inferInsert;
+
+/**
+ * A project's scope as it stood at one moment, kept so that later changes to
+ * it can be named rather than argued about.
+ *
+ * The deliverables table holds what is agreed *now*. That is the only thing a
+ * scope list can hold, and it is why "we never agreed to that" is an
+ * unwinnable conversation: the list has already been edited, and nothing
+ * anywhere says what it said when the project started. A snapshot is the
+ * missing half — take one when the proposal is signed, and every line added,
+ * dropped, re-estimated or re-titled since is a fact with a date on it.
+ *
+ * `contractValueCents` is copied in rather than read off the project, because
+ * the contract value moves too and the comparison is meaningless without it. A
+ * scope list that grew by thirty hours is one story if the price went up with
+ * it and quite another if it did not, and a snapshot that recorded only the
+ * deliverables could not tell them apart.
+ *
+ * `capturedAt` is the only timestamp, and there is deliberately no
+ * `updatedAt`: a snapshot that can be edited is not a snapshot. Rows here are
+ * written once and never updated, the same rule the status trail follows, for
+ * the same reason — a record of what was agreed is worth nothing if it can be
+ * brought into line with what is agreed now.
+ *
+ * Rows cascade with the project. A snapshot is part of an engagement rather
+ * than a record of one, and once the project is gone there is no list left for
+ * it to be compared against.
+ */
+export const scopeSnapshots = sqliteTable(
+  "scope_snapshots",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    /**
+     * What this snapshot is, in the words of whoever took it — "Signed
+     * proposal", "Before the March change order". NULL when they did not say,
+     * in which case the date is the only thing distinguishing it.
+     */
+    label: text("label"),
+    /** What the project was agreed for at that moment, in cents. */
+    contractValueCents: integer("contract_value_cents").notNull(),
+    /** The moment the scope list was copied. A snapshot's whole point. */
+    capturedAt: text("captured_at")
+      .notNull()
+      .default(sql`(current_timestamp)`),
+  },
+  /**
+   * Snapshots are only ever read one project at a time, newest first — the
+   * picker on the scope tab, and the "what changed since" default. The index
+   * covers both halves of that query.
+   */
+  (table) => [
+    index("scope_snapshots_project_id_captured_at_idx").on(
+      table.projectId,
+      table.capturedAt,
+    ),
+  ],
+);
+
+export type ScopeSnapshot = typeof scopeSnapshots.$inferSelect;
+export type NewScopeSnapshot = typeof scopeSnapshots.$inferInsert;
