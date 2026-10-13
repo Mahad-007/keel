@@ -188,3 +188,69 @@ describe("scopeDiffEntries", () => {
     expect(entries.map((entry) => entry.kind)).toEqual(["added", "removed"]);
   });
 });
+
+describe("scopeDiffEntries ordering", () => {
+  it("reads in the order the scope list reads", () => {
+    const entries = scopeDiffEntries(
+      [captured("b"), captured("a")],
+      [live("a"), live("b"), live("c")],
+    );
+
+    expect(entries.map((entry) => entry.deliverableId)).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+  });
+
+  it("puts the lines dropped since at the end, in the snapshot's order", () => {
+    const entries = scopeDiffEntries(
+      [captured("x"), captured("a"), captured("y")],
+      [live("a"), live("b")],
+    );
+
+    // A removed line has no position in the current list, so there is nowhere
+    // honest to interleave it.
+    expect(entries.map((entry) => entry.deliverableId)).toEqual([
+      "a",
+      "b",
+      "x",
+      "y",
+    ]);
+    expect(entries.map((entry) => entry.kind)).toEqual([
+      "unchanged",
+      "added",
+      "removed",
+      "removed",
+    ]);
+  });
+
+  it("compares two empty lists to no rows at all", () => {
+    expect(scopeDiffEntries([], [])).toEqual([]);
+  });
+});
+
+describe("scopeDiffEntries on a hand-edited snapshot", () => {
+  it("compares against the first of two lines naming one deliverable", () => {
+    const entries = scopeDiffEntries(
+      [
+        captured("a", { estimatedMinutes: 60 }),
+        captured("a", { estimatedMinutes: 600 }),
+      ],
+      [live("a", { estimatedMinutes: 60 })],
+    );
+
+    // Comparing against the last would make the answer depend on the order
+    // the rows came back in.
+    expect(entries).toHaveLength(1);
+    expect(entries[0].kind).toBe("unchanged");
+  });
+
+  it("reports a duplicated id that is gone as one removal", () => {
+    const entries = scopeDiffEntries([captured("a"), captured("a")], []);
+
+    // One deliverable, one row — otherwise every count below would double it.
+    expect(entries).toHaveLength(1);
+    expect(entries[0].kind).toBe("removed");
+  });
+});
