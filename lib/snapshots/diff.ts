@@ -47,3 +47,37 @@ export const SCOPE_CHANGE_KINDS = [
 ] as const;
 
 export type ScopeChangeKind = (typeof SCOPE_CHANGE_KINDS)[number];
+
+/**
+ * One way a line of scope can read differently from the way it was captured.
+ *
+ * A union discriminated on the field, rather than a record with `before` and
+ * `after` typed as "whatever either might be". An estimate's two sides are
+ * numbers, a description's may be null, and a status is one of three words —
+ * a sentence describing the move needs the right type of each, and a
+ * `string | number | null` on both sides would make every describer check what
+ * it had been handed.
+ *
+ * `estimate` rather than `estimatedMinutes`, because the field name is what a
+ * reader sees it called. The minutes are the unit, not the name of the thing.
+ */
+export type ScopeFieldChange =
+  | { readonly field: "title"; readonly before: string; readonly after: string }
+  | {
+      readonly field: "description";
+      readonly before: string | null;
+      readonly after: string | null;
+    }
+  | {
+      readonly field: "estimate";
+      readonly before: number;
+      readonly after: number;
+    }
+  | {
+      readonly field: "status";
+      readonly before: string;
+      readonly after: string;
+    };
+
+/** Which field a change is about, for a label or a count keyed by it. */
+export type ScopeChangeField = ScopeFieldChange["field"];
