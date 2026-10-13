@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  describeEstimateMovement,
   describeFieldChange,
   describeLineChanges,
   SCOPE_CHANGE_LABELS,
@@ -148,5 +149,83 @@ describe("describeLineChanges", () => {
     expect(
       describeLineChanges(summary({ addedCount: 1, unchangedCount: 9 })),
     ).toBe("1 deliverable added");
+  });
+});
+
+describe("describeEstimateMovement", () => {
+  it("says the estimate is unchanged, with the figure it stands at", () => {
+    expect(
+      describeEstimateMovement(
+        summary({ estimatedMinutesBefore: 2_400, estimatedMinutesAfter: 2_400 }),
+      ),
+    ).toBe("The estimate is unchanged, at 40 hours.");
+  });
+
+  it("reports a rise with both ends of it", () => {
+    expect(
+      describeEstimateMovement(
+        summary({
+          estimatedMinutesBefore: 2_400,
+          estimatedMinutesAfter: 2_760,
+          estimatedMinutesDelta: 360,
+          estimatedHoursDelta: 6,
+        }),
+      ),
+    ).toBe("The estimate is up 6 hours, from 40 hours to 46 hours.");
+  });
+
+  it("reports a fall as a positive number in the other direction", () => {
+    expect(
+      describeEstimateMovement(
+        summary({
+          estimatedMinutesBefore: 2_400,
+          estimatedMinutesAfter: 2_040,
+          estimatedMinutesDelta: -360,
+          estimatedHoursDelta: -6,
+        }),
+      ),
+    ).toBe("The estimate is down 6 hours, from 40 hours to 34 hours.");
+  });
+
+  it("says a list nobody had sized has been sized", () => {
+    // Not "up 8 hours from 0 hours": a zero is a number nobody supplied.
+    expect(
+      describeEstimateMovement(
+        summary({
+          estimatedMinutesBefore: 0,
+          estimatedMinutesAfter: 480,
+          estimatedMinutesDelta: 480,
+          estimatedHoursDelta: 8,
+        }),
+      ),
+    ).toBe(
+      "Nothing was estimated when the snapshot was taken; the scope list now comes to 8 hours.",
+    );
+  });
+
+  it("says an estimate went missing rather than shrank to nothing", () => {
+    expect(
+      describeEstimateMovement(
+        summary({
+          estimatedMinutesBefore: 480,
+          estimatedMinutesAfter: 0,
+          estimatedMinutesDelta: -480,
+          estimatedHoursDelta: -8,
+        }),
+      ),
+    ).toBe("Nothing is estimated now, where the snapshot came to 8 hours.");
+  });
+
+  it("agrees the noun with a movement of exactly one hour", () => {
+    expect(
+      describeEstimateMovement(
+        summary({
+          estimatedMinutesBefore: 120,
+          estimatedMinutesAfter: 180,
+          estimatedMinutesDelta: 60,
+          estimatedHoursDelta: 1,
+        }),
+      ),
+    ).toBe("The estimate is up 1 hour, from 2 hours to 3 hours.");
   });
 });
