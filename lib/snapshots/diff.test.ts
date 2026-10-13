@@ -4,6 +4,7 @@ import type { CapturedScopeLine, SnapshotLineDraft } from "./capture";
 import {
   scopeDiffEntries,
   scopeFieldChanges,
+  summariseScopeDiff,
   type ComparableScopeLine,
 } from "./diff";
 
@@ -252,5 +253,129 @@ describe("scopeDiffEntries on a hand-edited snapshot", () => {
     // One deliverable, one row — otherwise every count below would double it.
     expect(entries).toHaveLength(1);
     expect(entries[0].kind).toBe("removed");
+  });
+});
+
+describe("summariseScopeDiff", () => {
+  it("counts the rows of each kind", () => {
+    const entries = scopeDiffEntries(
+      [captured("a"), captured("b", { title: "Was" }), captured("gone")],
+      [live("a"), live("b", { title: "Is" }), live("new")],
+    );
+
+    expect(summariseScopeDiff(entries, 0, 0)).toMatchObject({
+      unchangedCount: 1,
+      changedCount: 1,
+      addedCount: 1,
+      removedCount: 1,
+    });
+  });
+
+  it("reports how many lines each side held", () => {
+    const entries = scopeDiffEntries(
+      [captured("a"), captured("b")],
+      [live("a")],
+    );
+
+    expect(summariseScopeDiff(entries, 0, 0)).toMatchObject({
+      lineCountBefore: 2,
+      lineCountAfter: 1,
+    });
+  });
+
+  it("totals both sides and the movement between them", () => {
+    const entries = scopeDiffEntries(
+      [captured("a", { estimatedMinutes: 480 })],
+      [
+        live("a", { estimatedMinutes: 600 }),
+        live("b", { estimatedMinutes: 120 }),
+      ],
+    );
+
+    expect(summariseScopeDiff(entries, 0, 0)).toMatchObject({
+      estimatedMinutesBefore: 480,
+      estimatedMinutesAfter: 720,
+      estimatedMinutesDelta: 240,
+      estimatedHoursDelta: 4,
+    });
+  });
+
+  it("reports scope given up as a negative movement", () => {
+    const entries = scopeDiffEntries(
+      [
+        captured("a", { estimatedMinutes: 480 }),
+        captured("b", { estimatedMinutes: 120 }),
+      ],
+      [live("a", { estimatedMinutes: 480 })],
+    );
+
+    expect(summariseScopeDiff(entries, 0, 0)).toMatchObject({
+      estimatedMinutesDelta: -120,
+      estimatedHoursDelta: -2,
+    });
+  });
+
+  it("carries both contract values and the movement between them", () => {
+    const summary = summariseScopeDiff([], 500_000, 650_000);
+
+    expect(summary).toMatchObject({
+      contractValueCentsBefore: 500_000,
+      contractValueCentsAfter: 650_000,
+      contractValueCentsDelta: 150_000,
+    });
+  });
+
+  it("says nothing changed when both lists read the same", () => {
+    const entries = scopeDiffEntries([captured("a")], [live("a")]);
+
+    expect(summariseScopeDiff(entries, 500_000, 500_000)).toMatchObject({
+      unchangedCount: 1,
+      hasChanges: false,
+    });
+  });
+
+  it("says something changed when only the price moved", () => {
+    const entries = scopeDiffEntries([captured("a")], [live("a")]);
+
+    // Untouched scope at a different price is a change, and a page counting
+    // only lines would tell the reader nothing happened.
+    expect(summariseScopeDiff(entries, 500_000, 400_000).hasChanges).toBe(true);
+  });
+
+  it("says something changed when only a line's status moved", () => {
+    const entries = scopeDiffEntries(
+      [captured("a", { status: "pending" })],
+      [live("a", { status: "done" })],
+    );
+
+    expect(summariseScopeDiff(entries, 0, 0).hasChanges).toBe(true);
+  });
+
+  it("totals a hand-edited negative estimate rather than hiding it", () => {
+    const entries = scopeDiffEntries(
+      [captured("a", { estimatedMinutes: 60 })],
+      [live("a", { estimatedMinutes: -60 })],
+    );
+
+    expect(summariseScopeDiff(entries, 0, 0)).toMatchObject({
+      estimatedMinutesAfter: -60,
+      estimatedMinutesDelta: -120,
+    });
+  });
+
+  it("counts a duplicated snapshot line once on both sides", () => {
+    const entries = scopeDiffEntries(
+      [
+        captured("a", { estimatedMinutes: 60 }),
+        captured("a", { estimatedMinutes: 60 }),
+      ],
+      [],
+    );
+
+    expect(summariseScopeDiff(entries, 0, 0)).toMatchObject({
+      removedCount: 1,
+      lineCountBefore: 1,
+      estimatedMinutesBefore: 60,
+    });
   });
 });
