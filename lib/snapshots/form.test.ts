@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  failedSnapshotState,
+  INITIAL_TAKE_SNAPSHOT_STATE,
   parseSnapshotForm,
   readSnapshotFields,
+  rejectedSnapshotState,
   SNAPSHOT_LABEL_LIMIT,
+  takenSnapshotNotice,
+  takenSnapshotState,
 } from "./form";
 
 describe("readSnapshotFields", () => {
@@ -60,5 +65,82 @@ describe("parseSnapshotForm", () => {
     expect(parsed.ok).toBe(false);
     if (parsed.ok) return;
     expect(parsed.errors.label).toMatch(/Label must be 80 characters or fewer/);
+  });
+});
+
+describe("takenSnapshotState", () => {
+  it("empties the box, because the label has been filed", () => {
+    const state = takenSnapshotState({
+      id: "snp_1",
+      label: "Signed proposal",
+      lineCount: 4,
+    });
+
+    expect(state.fields).toEqual({ label: "" });
+    expect(state.errors).toEqual({});
+    expect(state.formError).toBeNull();
+    expect(state.taken).not.toBeNull();
+  });
+});
+
+describe("rejectedSnapshotState", () => {
+  it("echoes what was typed and records nothing as taken", () => {
+    const state = rejectedSnapshotState(
+      { label: "x".repeat(200) },
+      { label: "Too long." },
+    );
+
+    expect(state.fields.label).toHaveLength(200);
+    expect(state.errors.label).toBe("Too long.");
+    expect(state.taken).toBeNull();
+  });
+});
+
+describe("failedSnapshotState", () => {
+  it("keeps the label and says what went wrong for the whole form", () => {
+    const state = failedSnapshotState({ label: "At signing" }, "No answer.");
+
+    expect(state.fields.label).toBe("At signing");
+    expect(state.formError).toBe("No answer.");
+    expect(state.taken).toBeNull();
+  });
+});
+
+describe("takenSnapshotNotice", () => {
+  it("says nothing before anything has been recorded", () => {
+    expect(takenSnapshotNotice(INITIAL_TAKE_SNAPSHOT_STATE)).toBeNull();
+  });
+
+  it("names the label it was filed under and how many lines went in", () => {
+    expect(
+      takenSnapshotNotice(
+        takenSnapshotState({
+          id: "snp_1",
+          label: "Signed proposal",
+          lineCount: 4,
+        }),
+      ),
+    ).toBe(
+      "Recorded a snapshot of this project's 4 deliverables as “Signed proposal”.",
+    );
+  });
+
+  it("agrees the noun with a scope list of one", () => {
+    expect(
+      takenSnapshotNotice(
+        takenSnapshotState({ id: "snp_1", label: null, lineCount: 1 }),
+      ),
+    ).toBe("Recorded a snapshot of this project's one deliverable, dated today.");
+  });
+
+  it("describes an unlabelled snapshot by what it is", () => {
+    // "Recorded ???" would be neither true nor findable.
+    expect(
+      takenSnapshotNotice(
+        takenSnapshotState({ id: "snp_1", label: null, lineCount: 9 }),
+      ),
+    ).toBe(
+      "Recorded a snapshot of this project's 9 deliverables, dated today.",
+    );
   });
 });
