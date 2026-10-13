@@ -53,3 +53,30 @@ export type SnapshotLineDraft = {
   readonly estimatedMinutes: number;
   readonly status: DeliverableStatus;
 };
+
+/**
+ * A project's scope list as the lines of a snapshot.
+ *
+ * The order is preserved exactly, because the order is part of what was
+ * agreed and the snapshot is a record of what was agreed. Nothing is
+ * filtered: an unestimated line captures as a zero, because a deliverable
+ * nobody has sized is still a promise that was made, and leaving it out would
+ * make the snapshot smaller than the list it was taken from — and then show
+ * up, later, as a line the diff calls new.
+ *
+ * Nothing is repaired either. A title with stray whitespace, an estimate below
+ * zero, a status the app does not recognise: all of them copy across as they
+ * are. A snapshot that tidied its input would be a record of something other
+ * than what was on the page, which is the one thing it must not be.
+ */
+export function capturedSnapshotLines(
+  deliverables: readonly CapturedScopeLine[],
+): SnapshotLineDraft[] {
+  return deliverables.map((deliverable) => ({
+    deliverableId: deliverable.id,
+    title: deliverable.title,
+    description: deliverable.description,
+    estimatedMinutes: deliverable.estimatedMinutes,
+    status: deliverable.status,
+  }));
+}
