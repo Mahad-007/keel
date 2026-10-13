@@ -227,3 +227,45 @@ export function describeContractMovement(summary: ScopeDiffSummary): string {
   const direction = summary.contractValueCentsDelta > 0 ? "up" : "down";
   return `The contract value is ${direction} ${moved}, to ${now}.`;
 }
+
+/**
+ * What to say when the scope list still reads exactly as it was captured.
+ *
+ * It names the three things it is claiming are the same, because "nothing has
+ * changed" is a claim a reader has to be able to check. A project that has
+ * grown by two deliverables and shrunk by two would be an unpleasant surprise
+ * under a bare "nothing changed", and this sentence says which comparison was
+ * actually made.
+ */
+export const SCOPE_UNCHANGED_SINCE =
+  "Nothing has changed since this snapshot — the same deliverables, estimated the same, at the same contract value.";
+
+/**
+ * What the whole comparison amounts to, in a short paragraph.
+ *
+ * Three sentences at most, in the order a reader needs them: how many lines
+ * moved, what that did to the estimate, and what the price did about it. The
+ * third is the one that turns the first two into a conversation, which is why
+ * it is said whether or not the amount moved.
+ *
+ * The lines clause is dropped when no line moved, rather than rendered as "0
+ * deliverables added": a project whose scope is untouched and whose price has
+ * changed is a real thing to have happened, and it reads better as two
+ * sentences than as three with a zero in one of them.
+ *
+ * One string rather than a list of sentences, because that is what the panel
+ * renders — a paragraph. The individual sentences are exported above for the
+ * tests that hold each of them to its own rules.
+ */
+export function describeScopeDiff(summary: ScopeDiffSummary): string {
+  if (!summary.hasChanges) return SCOPE_UNCHANGED_SINCE;
+
+  const lineChanges = describeLineChanges(summary);
+  const sentences = [
+    lineChanges === null ? null : `Since this snapshot: ${lineChanges}.`,
+    describeEstimateMovement(summary),
+    describeContractMovement(summary),
+  ].filter((sentence): sentence is string => sentence !== null);
+
+  return sentences.join(" ");
+}
