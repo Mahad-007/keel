@@ -1,4 +1,14 @@
-import type { ScopeChangeField, ScopeChangeKind } from "./diff";
+import {
+  deliverableStatusLabel,
+  type DeliverableStatus,
+} from "@/lib/deliverables/status";
+import { formatMinutes } from "@/lib/minutes";
+
+import type {
+  ScopeChangeField,
+  ScopeChangeKind,
+  ScopeFieldChange,
+} from "./diff";
 
 /**
  * The words a scope comparison is read in.
@@ -48,3 +58,50 @@ export const SCOPE_CHANGE_FIELD_LABELS: Record<ScopeChangeField, string> = {
   status: "Status",
   description: "Detail",
 };
+
+/**
+ * One change to one line, as a sentence.
+ *
+ * A sentence rather than a before-and-after pair of cells, because three of
+ * the four fields need a reading rather than a value: an estimate that went
+ * from nothing to two hours is not "0m → 2h", it is a line somebody finally
+ * sized, and a table of arrows would leave the reader to work that out four
+ * times per row.
+ *
+ * The estimate's four cases are the ones worth separating. A zero is not an
+ * estimate of nothing — it is a missing number, the same rule the scope list
+ * and the summary already follow — so a line going from zero reads as being
+ * estimated for the first time, and a line going to zero reads as having lost
+ * its estimate rather than having shrunk to nothing.
+ *
+ * A description's text is deliberately not shown. It is a paragraph, and two
+ * paragraphs in a table cell are unreadable at exactly the moment a reader is
+ * scanning for the hours — what changed is enough to send them to the
+ * deliverable itself, which is one click away.
+ */
+export function describeFieldChange(change: ScopeFieldChange): string {
+  switch (change.field) {
+    case "title":
+      return `Retitled from “${change.before}” to “${change.after}”.`;
+    case "estimate":
+      if (change.before === 0) {
+        return `Estimated at ${formatMinutes(change.after)}, having had no estimate before.`;
+      }
+      if (change.after === 0) {
+        return `Estimate of ${formatMinutes(change.before)} taken off, leaving the line unsized.`;
+      }
+      return change.after > change.before
+        ? `Estimate up from ${formatMinutes(change.before)} to ${formatMinutes(change.after)}.`
+        : `Estimate down from ${formatMinutes(change.before)} to ${formatMinutes(change.after)}.`;
+    case "status":
+      // Both sides are read back out of a TEXT column, so a hand-edited row
+      // can hold a fourth value. `deliverableStatusLabel` falls back to the
+      // stored string for exactly that case, which is why the cast is safe
+      // and why it is better than refusing to describe the row.
+      return `Status moved from ${deliverableStatusLabel(change.before as DeliverableStatus)} to ${deliverableStatusLabel(change.after as DeliverableStatus)}.`;
+    case "description":
+      if (change.before === null) return "Detail added.";
+      if (change.after === null) return "Detail taken off.";
+      return "Detail reworded.";
+  }
+}
