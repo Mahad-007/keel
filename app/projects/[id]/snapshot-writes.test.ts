@@ -123,6 +123,15 @@ describe("writeScopeSnapshot", () => {
     expect((await press()).formError).toBe(SNAPSHOT_PROBLEMS.missingProject);
   });
 
+  it("explains a scope list that has not moved since the last snapshot", async () => {
+    captured.mockResolvedValue({ ok: false, reason: "unchanged-since" });
+
+    const state = await press();
+
+    expect(state.formError).toBe(SNAPSHOT_PROBLEMS.unchangedSince);
+    expect(state.taken).toBeNull();
+  });
+
   it("points at the deliverable a snapshot cannot record", async () => {
     captured.mockResolvedValue({ ok: false, reason: "unrecordable-scope" });
 
