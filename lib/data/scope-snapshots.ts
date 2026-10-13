@@ -1,8 +1,11 @@
+import { asc, eq } from "drizzle-orm";
+
 import { db, type Database } from "@/lib/db";
 import {
   scopeSnapshotLines,
   scopeSnapshots,
   type ScopeSnapshot,
+  type ScopeSnapshotLine,
 } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
 import type { SnapshotLineDraft } from "@/lib/snapshots/capture";
@@ -127,3 +130,47 @@ export async function createScopeSnapshot(
   });
 }
 
+
+/**
+ * The order a snapshot's lines are always read in: the positions this module
+ * wrote, with the id breaking ties.
+ *
+ * Ties should be impossible, but a hand-edited row can duplicate a position,
+ * and a record of what was agreed that reads in a different order each time is
+ * not much of a record.
+ */
+const IN_ORDER = [
+  asc(scopeSnapshotLines.sortOrder),
+  asc(scopeSnapshotLines.id),
+] as const;
+
+/** One snapshot by id, or null if there is no snapshot with that id. */
+export async function getScopeSnapshot(
+  id: string,
+  database: Database = db,
+): Promise<ScopeSnapshot | null> {
+  const [row] = await database
+    .select()
+    .from(scopeSnapshots)
+    .where(eq(scopeSnapshots.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
+/**
+ * One snapshot's lines, in the order they were agreed.
+ *
+ * Scoped to a snapshot rather than listing the table, because that is the only
+ * way they are ever read — and the index covers both halves of the query, so
+ * they come back without a sort.
+ */
+export async function listSnapshotLines(
+  snapshotId: string,
+  database: Database = db,
+): Promise<ScopeSnapshotLine[]> {
+  return database
+    .select()
+    .from(scopeSnapshotLines)
+    .where(eq(scopeSnapshotLines.snapshotId, snapshotId))
+    .orderBy(...IN_ORDER);
+}
