@@ -8,15 +8,21 @@ import {
   type ScopeSnapshotLine,
 } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
-import type { SnapshotLineDraft } from "@/lib/snapshots/capture";
+import {
+  capturedSnapshotLines,
+  type SnapshotLineDraft,
+} from "@/lib/snapshots/capture";
 import type { SummarisedSnapshot } from "@/lib/snapshots/summary";
 
+import { listDeliverables } from "./deliverables";
 import {
+  isRecordableMinutes,
   optionalText,
   recordedMinutes,
   requiredText,
   wholeCents,
 } from "./fields";
+import { getProject } from "./projects";
 
 /**
  * Data access for the two snapshot tables: a project's scope as it stood at
@@ -262,3 +268,70 @@ export type SnapshotCaptureResult =
 export type SnapshotCaptureInput = {
   label?: string | null;
 };
+
+/**
+ * Takes a snapshot of a project's scope as it stands, and of what the project
+ * is agreed for.
+ *
+ * Reading the project, reading its deliverables and writing the snapshot are
+ * one transaction, and an immediate one. A deferred transaction takes no write
+ * lock until the first insert, so a deliverable added between the read and the
+ * write would be missing from a record that claims to be the project's scope
+ * at that moment — and nothing afterwards could tell, because the line count
+ * in the notice would agree with the list that was read rather than the one on
+ * screen. The comparison would then report the line as added since, dated to
+ * the second before it was.
+ *
+ * The contract value comes off the project row read inside the same
+ * transaction, which is the whole reason this function exists rather than the
+ * page calling `createScopeSnapshot` with a value it is holding. The scope and
+ * the price have to be true at the same instant or the comparison between two
+ * snapshots says something that was never the case.
+ *
+ * Which columns cross over is `capturedSnapshotLines`' decision, not this
+ * function's.
+ */
+export async function captureScopeSnapshot(
+  projectId: string,
+  input: SnapshotCaptureInput,
+  database: Database = db,
+): Promise<SnapshotCaptureResult> {
+  return database.transaction(
+    async (tx) => {
+      const project = await getProject(projectId, tx);
+      if (project === null) return { ok: false, reason: "no-such-project" };
+
+      const lines = capturedSnapshotLines(await listDeliverables(projectId, tx));
+      /*
+        A snapshot of nothing compares as though the whole scope list arrived
+        afterwards, which is what the scope list already says. The refusal is
+        phrased as an answer rather than an exception because an empty scope
+        list is a situation rather than a mistake: the reader pressing the
+        button is looking at one.
+      */
+      if (lines.length === 0) return { ok: false, reason: "empty-scope" };
+
+      /*
+        The one estimate a record cannot keep. `recordedMinutes` would throw on
+        it from inside this transaction, which reaches the reader as "nothing
+        was written, try again" — and retrying cannot fix a row somebody wrote
+        by hand. Asked here, before anything is written, and answered.
+      */
+      if (!lines.every((line) => isRecordableMinutes(line.estimatedMinutes))) {
+        return { ok: false, reason: "unrecordable-scope" };
+      }
+
+      const snapshot = await createScopeSnapshot(
+        {
+          projectId: project.id,
+          label: input.label,
+          contractValueCents: project.contractValueCents,
+          lines,
+        },
+        tx,
+      );
+      return { ok: true, snapshot, lineCount: lines.length };
+    },
+    { behavior: "immediate" },
+  );
+}
