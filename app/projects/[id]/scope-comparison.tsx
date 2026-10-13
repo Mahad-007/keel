@@ -55,9 +55,11 @@ export function ScopeComparison({
       {/*
         Under the table rather than over it, because it is about what is not
         in it — a reader has to have seen the rows for the count to mean
-        anything.
+        anything. Which is also why there is no table to be under when nothing
+        moved: "9 *other* deliverables" has no referent under a paragraph
+        saying nothing has changed, and the paragraph has already counted them.
       */}
-      {unchanged === null ? null : (
+      {moved.length === 0 || unchanged === null ? null : (
         <p className="mt-3 max-w-prose text-sm leading-6 text-zinc-500 dark:text-zinc-400">
           {unchanged}
         </p>
