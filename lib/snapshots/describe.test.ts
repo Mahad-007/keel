@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   describeContractMovement,
+  describeScopeDiff,
+  SCOPE_UNCHANGED_SINCE,
   describeEstimateMovement,
   describeFieldChange,
   describeLineChanges,
@@ -265,5 +267,70 @@ describe("describeContractMovement", () => {
         }),
       ),
     ).toBe("The contract value is down $1,500.00, to $5,000.00.");
+  });
+});
+
+describe("describeScopeDiff", () => {
+  it("says so plainly when nothing has changed", () => {
+    expect(describeScopeDiff(summary())).toBe(SCOPE_UNCHANGED_SINCE);
+  });
+
+  it("reads the lines, the estimate and the price in that order", () => {
+    expect(
+      describeScopeDiff(
+        summary({
+          addedCount: 2,
+          changedCount: 1,
+          estimatedMinutesBefore: 2_400,
+          estimatedMinutesAfter: 2_760,
+          estimatedMinutesDelta: 360,
+          estimatedHoursDelta: 6,
+          contractValueCentsBefore: 500_000,
+          contractValueCentsAfter: 500_000,
+          hasChanges: true,
+        }),
+      ),
+    ).toBe(
+      "Since this snapshot: 2 deliverables added and 1 changed. " +
+        "The estimate is up 6 hours, from 40 hours to 46 hours. " +
+        "The contract value is unchanged, at $5,000.00.",
+    );
+  });
+
+  it("leaves the lines clause out when only the price moved", () => {
+    expect(
+      describeScopeDiff(
+        summary({
+          unchangedCount: 3,
+          estimatedMinutesBefore: 2_400,
+          estimatedMinutesAfter: 2_400,
+          contractValueCentsBefore: 650_000,
+          contractValueCentsAfter: 500_000,
+          contractValueCentsDelta: -150_000,
+          hasChanges: true,
+        }),
+      ),
+    ).toBe(
+      "The estimate is unchanged, at 40 hours. " +
+        "The contract value is down $1,500.00, to $5,000.00.",
+    );
+  });
+
+  it("says the price held when the scope grew, which is the point", () => {
+    const sentence = describeScopeDiff(
+      summary({
+        addedCount: 1,
+        estimatedMinutesBefore: 2_400,
+        estimatedMinutesAfter: 2_880,
+        estimatedMinutesDelta: 480,
+        estimatedHoursDelta: 8,
+        contractValueCentsBefore: 500_000,
+        contractValueCentsAfter: 500_000,
+        hasChanges: true,
+      }),
+    );
+
+    expect(sentence).toContain("1 deliverable added");
+    expect(sentence).toContain("The contract value is unchanged");
   });
 });
