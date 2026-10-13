@@ -1,6 +1,15 @@
 import { readFields } from "@/lib/forms/form-data";
-import { collect, type ParseResult } from "@/lib/forms/result";
-import type { FormState } from "@/lib/forms/state";
+import {
+  collect,
+  type FieldErrors,
+  type ParseResult,
+} from "@/lib/forms/result";
+import {
+  failedFormState,
+  initialFormState,
+  rejectedFormState,
+  type FormState,
+} from "@/lib/forms/state";
 import { optionalText } from "@/lib/forms/text";
 
 /**
@@ -93,4 +102,71 @@ export function parseSnapshotForm(
 
   if (!parsed.ok) return parsed;
   return { ok: true, value: parsed.value };
+}
+
+/**
+ * What a taken snapshot was, which is the one thing a redirecting form never
+ * needs to carry.
+ *
+ * Taking a snapshot does not navigate. The reader is looking at the scope list
+ * they have just recorded, and sending them somewhere else would be sending
+ * them away from the work to look at a copy of it. So the form stays where it
+ * is, and this is how it knows the press landed.
+ *
+ * The id comes along because a live region needs its text to change for a
+ * screen reader to notice it: two snapshots taken minutes apart with the same
+ * label would otherwise render identical words, and the second would be
+ * announced to nobody.
+ *
+ * The line count is the fact nobody can see. The scope list above is
+ * unchanged by the press — that is the point of it — so without a number the
+ * reader has no way to tell a snapshot of nine lines from a snapshot of none.
+ */
+export type TakenSnapshot = {
+  readonly id: string;
+  readonly label: string | null;
+  readonly lineCount: number;
+};
+
+export type TakeSnapshotState = SnapshotFormState & {
+  readonly taken: TakenSnapshot | null;
+};
+
+/**
+ * What the form starts from. A constant rather than a function, because
+ * nothing about a snapshot is prefilled — the label is a note about this
+ * moment, and suggesting one would be suggesting a reason the reader did not
+ * give.
+ */
+export const INITIAL_TAKE_SNAPSHOT_STATE: TakeSnapshotState = {
+  ...initialFormState(EMPTY_SNAPSHOT_FIELDS),
+  taken: null,
+};
+
+/**
+ * A snapshot was recorded. The box comes back empty.
+ *
+ * Emptied rather than echoed, which is the opposite of what a rejection does
+ * and for the same reason the import box empties: the label has been filed,
+ * and a box still holding it is one press away from a second snapshot of a
+ * scope list that has not moved.
+ */
+export function takenSnapshotState(taken: TakenSnapshot): TakeSnapshotState {
+  return { ...initialFormState(EMPTY_SNAPSHOT_FIELDS), taken };
+}
+
+/** Validation refused the submission. Nothing was recorded. */
+export function rejectedSnapshotState(
+  fields: SnapshotFormFields,
+  errors: FieldErrors<SnapshotFieldName>,
+): TakeSnapshotState {
+  return { ...rejectedFormState(fields, errors), taken: null };
+}
+
+/** The submission was good and nothing was recorded anyway. */
+export function failedSnapshotState(
+  fields: SnapshotFormFields,
+  formError: string,
+): TakeSnapshotState {
+  return { ...failedFormState(fields, formError), taken: null };
 }
