@@ -10,6 +10,7 @@ import { createProject } from "./projects";
 import {
   createScopeSnapshot,
   getScopeSnapshot,
+  listScopeSnapshots,
   listSnapshotLines,
 } from "./scope-snapshots";
 
@@ -26,6 +27,14 @@ beforeEach(async () => {
   );
   projectId = project.id;
 });
+
+/**
+ * `capturedAt` comes from the wall clock, so two snapshots written in the same
+ * millisecond would tie and an ordering test would pass or fail by luck.
+ */
+function tick(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 2));
+}
 
 const LINES: SnapshotLineDraft[] = [
   {
@@ -216,5 +225,102 @@ describe("listSnapshotLines", () => {
 
   it("answers nothing for a snapshot that does not exist", async () => {
     expect(await listSnapshotLines("snp_nope", db)).toEqual([]);
+  });
+});
+
+describe("listScopeSnapshots", () => {
+  it("summarises each snapshot's scope list in one query", async () => {
+    const written = await createScopeSnapshot(
+      {
+        projectId,
+        label: "Signed proposal",
+        contractValueCents: 500_000,
+        lines: LINES,
+      },
+      db,
+    );
+
+    expect(await listScopeSnapshots(projectId, db)).toEqual([
+      {
+        id: written.id,
+        label: "Signed proposal",
+        capturedAt: written.capturedAt,
+        contractValueCents: 500_000,
+        lineCount: 2,
+        estimatedMinutes: 2_880,
+        unestimatedCount: 0,
+      },
+    ]);
+  });
+
+  it("counts the lines nobody had sized when it was taken", async () => {
+    await createScopeSnapshot(
+      {
+        projectId,
+        contractValueCents: 0,
+        lines: [LINES[0], { ...LINES[1], estimatedMinutes: 0 }],
+      },
+      db,
+    );
+
+    const [snapshot] = await listScopeSnapshots(projectId, db);
+    expect(snapshot).toMatchObject({
+      lineCount: 2,
+      estimatedMinutes: 480,
+      unestimatedCount: 1,
+    });
+  });
+
+  it("reads newest first, which is what a comparison defaults to", async () => {
+    const first = await createScopeSnapshot(
+      { projectId, label: "At signing", contractValueCents: 0, lines: LINES },
+      db,
+    );
+    await tick();
+    const second = await createScopeSnapshot(
+      { projectId, label: "After the change order", contractValueCents: 0, lines: LINES },
+      db,
+    );
+
+    expect((await listScopeSnapshots(projectId, db)).map((row) => row.id)).toEqual(
+      [second.id, first.id],
+    );
+  });
+
+  it("reads only the snapshots of the project asked for", async () => {
+    const client = await createClient({ name: "Other Co" }, db);
+    const other = await createProject(
+      { clientId: client.id, name: "Something else" },
+      db,
+    );
+    await createScopeSnapshot(
+      { projectId, contractValueCents: 0, lines: LINES },
+      db,
+    );
+    await createScopeSnapshot(
+      { projectId: other.id, contractValueCents: 0, lines: LINES },
+      db,
+    );
+
+    expect(await listScopeSnapshots(projectId, db)).toHaveLength(1);
+    expect(await listScopeSnapshots(other.id, db)).toHaveLength(1);
+  });
+
+  it("answers nothing for a project nobody has snapshotted", async () => {
+    expect(await listScopeSnapshots(projectId, db)).toEqual([]);
+  });
+
+  it("totals a recorded negative estimate rather than ignoring it", async () => {
+    await createScopeSnapshot(
+      {
+        projectId,
+        contractValueCents: 0,
+        lines: [LINES[0], { ...LINES[1], estimatedMinutes: -60 }],
+      },
+      db,
+    );
+
+    const [snapshot] = await listScopeSnapshots(projectId, db);
+    expect(snapshot.estimatedMinutes).toBe(420);
   });
 });
