@@ -1,3 +1,5 @@
+import { estimatedHours, totalEstimatedMinutes } from "@/lib/scope";
+
 import type { CapturedScopeLine, SnapshotLineDraft } from "./capture";
 
 /**
@@ -327,3 +329,65 @@ export type ScopeDiffSummary = {
    */
   hasChanges: boolean;
 };
+
+/** How many entries of the comparison are of one kind. */
+function countKind(
+  entries: readonly ScopeDiffEntry[],
+  kind: ScopeChangeKind,
+): number {
+  return entries.filter((entry) => entry.kind === kind).length;
+}
+
+/**
+ * What the comparison adds up to, from the rows it produced.
+ *
+ * The totals go through `totalEstimatedMinutes` rather than a reduce written
+ * out here, so a scope total in a diff is summed by the same function that
+ * sums one in the scope panel. Two spellings of the same sum is how a panel
+ * ends up reporting a change of six hours beside a list that moved by five.
+ *
+ * Nothing is clamped and nothing is repaired. An estimate below zero — a
+ * hand-edited row — pulls the total down, and the delta says so, which is the
+ * clearest signal available that the row needs looking at.
+ */
+export function summariseScopeDiff(
+  entries: readonly ScopeDiffEntry[],
+  contractValueCentsBefore: number,
+  contractValueCentsAfter: number,
+): ScopeDiffSummary {
+  const captured = entries
+    .map((entry) => entry.before)
+    .filter((line): line is SnapshotLineDraft => line !== null);
+  const current = entries
+    .map((entry) => entry.after)
+    .filter((line): line is CapturedScopeLine => line !== null);
+
+  const estimatedMinutesBefore = totalEstimatedMinutes(captured);
+  const estimatedMinutesAfter = totalEstimatedMinutes(current);
+  const estimatedMinutesDelta = estimatedMinutesAfter - estimatedMinutesBefore;
+
+  const addedCount = countKind(entries, "added");
+  const removedCount = countKind(entries, "removed");
+  const changedCount = countKind(entries, "changed");
+  const contractValueCentsDelta =
+    contractValueCentsAfter - contractValueCentsBefore;
+
+  return {
+    addedCount,
+    removedCount,
+    changedCount,
+    unchangedCount: countKind(entries, "unchanged"),
+    lineCountBefore: captured.length,
+    lineCountAfter: current.length,
+    estimatedMinutesBefore,
+    estimatedMinutesAfter,
+    estimatedMinutesDelta,
+    estimatedHoursDelta: estimatedHours(estimatedMinutesDelta),
+    contractValueCentsBefore,
+    contractValueCentsAfter,
+    contractValueCentsDelta,
+    hasChanges:
+      addedCount + removedCount + changedCount > 0 ||
+      contractValueCentsDelta !== 0,
+  };
+}
