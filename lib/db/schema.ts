@@ -328,3 +328,67 @@ export const scopeSnapshots = sqliteTable(
 
 export type ScopeSnapshot = typeof scopeSnapshots.$inferSelect;
 export type NewScopeSnapshot = typeof scopeSnapshots.$inferInsert;
+
+/**
+ * One deliverable as it read when the snapshot was taken.
+ *
+ * A copy, not a reference. The deliverable it came from goes on being edited,
+ * re-estimated, marked done and sometimes deleted, and every one of those is
+ * the thing a snapshot exists to make visible — so the columns are duplicated
+ * here and never read back through the live row.
+ *
+ * `deliverableId` is deliberately **not** a foreign key. It is the key the
+ * comparison pairs the two lists on: a line with the same id in both is the
+ * same deliverable, so a retitled one reads as a change rather than as one
+ * line removed and another added. A deleted deliverable has to stay nameable
+ * here — "Migrate the old posts, estimated at six hours, dropped" is the most
+ * useful sentence this table can produce, and a cascade from `deliverables`
+ * would take exactly those rows away.
+ *
+ * `status` is copied too, because scope changes include work being delivered.
+ * A line that was pending at signing and is done now has not changed as a
+ * promise, but it has changed as a fact about the engagement, and the two
+ * readings are worth telling apart on the page rather than in the table.
+ *
+ * `sortOrder` is the snapshot's own dense order, which exists so the lines
+ * come back in the sequence they were agreed in. It is not part of the
+ * comparison — see `lib/snapshots/diff.ts` for why a move is not reported as
+ * a change.
+ *
+ * No timestamps. Every line of a snapshot was captured at the instant the
+ * snapshot was, and a `created_at` per line would be the same value written
+ * repeatedly, inviting the belief that they could differ.
+ */
+export const scopeSnapshotLines = sqliteTable(
+  "scope_snapshot_lines",
+  {
+    id: text("id").primaryKey(),
+    snapshotId: text("snapshot_id")
+      .notNull()
+      .references(() => scopeSnapshots.id, { onDelete: "cascade" }),
+    /** The deliverable this line was copied from. Not a foreign key. */
+    deliverableId: text("deliverable_id").notNull(),
+    title: text("title").notNull(),
+    /** The detail behind the title, as it read. NULL when there was none. */
+    description: text("description"),
+    /** The estimate as it stood, in whole minutes. Zero means unsized. */
+    estimatedMinutes: integer("estimated_minutes").notNull(),
+    status: text("status", { enum: DELIVERABLE_STATUSES }).notNull(),
+    /** Position in the snapshot's list, dense from zero. */
+    sortOrder: integer("sort_order").notNull(),
+  },
+  /**
+   * A snapshot's lines are only ever read one snapshot at a time and always in
+   * order — the same shape as the deliverables and template-line indexes,
+   * because it is the same query.
+   */
+  (table) => [
+    index("scope_snapshot_lines_snapshot_id_sort_order_idx").on(
+      table.snapshotId,
+      table.sortOrder,
+    ),
+  ],
+);
+
+export type ScopeSnapshotLine = typeof scopeSnapshotLines.$inferSelect;
+export type NewScopeSnapshotLine = typeof scopeSnapshotLines.$inferInsert;
