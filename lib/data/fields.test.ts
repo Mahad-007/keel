@@ -4,11 +4,13 @@ import {
   isOptionalWholeCents,
   isPresentText,
   isWholeCents,
+  isRecordableMinutes,
   isWholeMinutes,
   optionalCents,
   optionalText,
   requiredText,
   wholeCents,
+  recordedMinutes,
   wholeMinutes,
 } from "./fields";
 
@@ -281,6 +283,59 @@ describe("isOptionalWholeCents", () => {
         }
       })();
       expect(isOptionalWholeCents(value)).toBe(guarded);
+    }
+  });
+});
+
+describe("recordedMinutes", () => {
+  it("records whole minutes as they were", () => {
+    expect(recordedMinutes(90, "captured estimate")).toBe(90);
+    expect(recordedMinutes(0, "captured estimate")).toBe(0);
+  });
+
+  it("records a duration below zero, which is the point of it", () => {
+    // A snapshot copies the estimate a deliverable held, and a hand-edited
+    // negative is exactly the row a reader needs recorded.
+    expect(recordedMinutes(-120, "captured estimate")).toBe(-120);
+  });
+
+  it("refuses a fraction of a minute", () => {
+    expect(() => recordedMinutes(90.5, "captured estimate")).toThrow(
+      /whole minutes/,
+    );
+  });
+
+  it("refuses a value too large to read back", () => {
+    expect(() =>
+      recordedMinutes(Number.MAX_SAFE_INTEGER + 2, "captured estimate"),
+    ).toThrow(/whole minutes/);
+  });
+});
+
+describe("isRecordableMinutes", () => {
+  it("accepts a duration of either sign", () => {
+    expect(isRecordableMinutes(480)).toBe(true);
+    expect(isRecordableMinutes(-480)).toBe(true);
+  });
+
+  it("agrees with the guard it is the condition of", () => {
+    for (const value of [
+      0,
+      480,
+      -480,
+      90.5,
+      Number.NaN,
+      Number.MAX_SAFE_INTEGER + 2,
+    ]) {
+      const guarded = (() => {
+        try {
+          recordedMinutes(value, "captured estimate");
+          return true;
+        } catch {
+          return false;
+        }
+      })();
+      expect(isRecordableMinutes(value)).toBe(guarded);
     }
   });
 });
