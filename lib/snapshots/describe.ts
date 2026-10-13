@@ -3,10 +3,12 @@ import {
   type DeliverableStatus,
 } from "@/lib/deliverables/status";
 import { formatMinutes } from "@/lib/minutes";
+import { deliverablesPhrase } from "@/lib/projects/scope-summary";
 
 import type {
   ScopeChangeField,
   ScopeChangeKind,
+  ScopeDiffSummary,
   ScopeFieldChange,
 } from "./diff";
 
@@ -104,4 +106,55 @@ export function describeFieldChange(change: ScopeFieldChange): string {
       if (change.after === null) return "Detail taken off.";
       return "Detail reworded.";
   }
+}
+
+/**
+ * Clauses joined the way a person reads a list: commas, and an "and" before
+ * the last of them.
+ *
+ * Private, because it is not a general utility — it exists so that the counts
+ * below read as one sentence rather than three fragments, and the two callers
+ * that want it are in this file.
+ */
+function joinClauses(clauses: readonly string[]): string {
+  if (clauses.length <= 1) return clauses[0] ?? "";
+  const last = clauses[clauses.length - 1];
+  return `${clauses.slice(0, -1).join(", ")} and ${last}`;
+}
+
+/**
+ * How many lines were added, dropped and changed, in one clause — or null
+ * when none of the three happened.
+ *
+ * The noun goes on the first count only, which is what makes it read as
+ * English: "2 deliverables added, 1 dropped and 1 changed" rather than the
+ * word repeated three times. It agrees with the count it is attached to, so a
+ * single added line reads "1 deliverable added".
+ *
+ * Unchanged lines are left out. They are the rows a reader skims past, and
+ * putting them in this clause would bury the three numbers that matter in a
+ * list of four — the count is in the summary for the panel to show beside the
+ * table, where it says how much of the list is untouched.
+ *
+ * Null rather than an empty string, so the caller renders nothing rather than
+ * a sentence with a hole in it.
+ */
+export function describeLineChanges(
+  summary: ScopeDiffSummary,
+): string | null {
+  const counts = [
+    { count: summary.addedCount, word: "added" },
+    { count: summary.removedCount, word: "dropped" },
+    { count: summary.changedCount, word: "changed" },
+  ].filter((part) => part.count > 0);
+
+  if (counts.length === 0) return null;
+
+  return joinClauses(
+    counts.map((part, index) =>
+      index === 0
+        ? `${deliverablesPhrase(part.count)} ${part.word}`
+        : `${part.count} ${part.word}`,
+    ),
+  );
 }
