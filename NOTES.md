@@ -132,6 +132,27 @@ case; nothing in the repo sets one today.
   made being announced as one that was not. Worth revisiting for all four
   together, not on the day that added the fourth.
 
+  Day 019's `bulk-import-form.tsx` and Day 020's `take-snapshot-form.tsx` are
+  the fifth and sixth. Neither redirects, so neither has the duplicate form's
+  excuse — they wrap for the plainer reason that a rejected dispatch would
+  otherwise take the page to an error boundary and throw away the paste or the
+  label that had just been typed. Six forms is past the point where this is
+  worth revisiting one at a time.
+
+- **The snapshot picker has no ceiling and no pagination.** A project
+  accumulates snapshots for as long as it runs, `listScopeSnapshots` has no
+  `LIMIT`, and `snapshot-picker.tsx` renders one line per row. What bounds it
+  is the capture itself: a press is refused when nothing has changed since the
+  most recent snapshot, so a held-down button writes one row rather than a
+  thousand copies of one, and growth after that needs a real edit to the scope
+  list. That makes the two snapshot tables no more unbounded than the
+  `deliverables` table they copy — which is an argument for leaving it, not a
+  reason the picker will still read well after fifty of them. A limit is the
+  cheap fix and it has a cost worth weighing first: `chosenSnapshot` falls back
+  to the newest when it cannot find the id it was asked for, so a limit would
+  silently redirect a link to a snapshot older than the cut rather than refuse
+  it.
+
 - **`npm run lint`** reports seven `no-require-imports` errors in `scripts/*.js`.
   They predate Day 013 and CI runs `npm run verify`, not `npm run lint`, so
   nothing is red because of them.
