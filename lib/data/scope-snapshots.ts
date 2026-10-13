@@ -227,3 +227,38 @@ export async function listScopeSnapshots(
     .groupBy(scopeSnapshots.id)
     .orderBy(desc(scopeSnapshots.capturedAt), desc(scopeSnapshots.id));
 }
+
+/**
+ * Why a project's scope was not snapshotted.
+ *
+ * Codes rather than sentences, for the reason `TemplateCaptureReason` gives:
+ * every one of these is reachable from a page that was right when it rendered,
+ * and the words for a reader live with the form that shows them.
+ *
+ * `unrecordable-scope` is the one that needs saying out loud. A snapshot
+ * records a deliverable's estimate as it stands, negative included — the whole
+ * point is that it copies rather than judges. The one value it cannot keep is
+ * a number too large to read back out of SQLite, because that would leave a
+ * row poisoning every later read of the table. Nothing in the app writes one,
+ * so this is a hand-edited row, and the fix is on the deliverable rather than
+ * in another press of this button.
+ */
+export type SnapshotCaptureReason =
+  | "no-such-project"
+  | "empty-scope"
+  | "unrecordable-scope";
+
+/** The outcome of asking a project for a snapshot of its scope. */
+export type SnapshotCaptureResult =
+  | {
+      readonly ok: true;
+      readonly snapshot: ScopeSnapshot;
+      /** How many lines were recorded, which is what the notice reports. */
+      readonly lineCount: number;
+    }
+  | { readonly ok: false; readonly reason: SnapshotCaptureReason };
+
+/** What taking a snapshot asks the person for, which is only what to call it. */
+export type SnapshotCaptureInput = {
+  label?: string | null;
+};
