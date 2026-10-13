@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  describeContractMovement,
   describeEstimateMovement,
   describeFieldChange,
   describeLineChanges,
@@ -227,5 +228,42 @@ describe("describeEstimateMovement", () => {
         }),
       ),
     ).toBe("The estimate is up 1 hour, from 2 hours to 3 hours.");
+  });
+});
+
+describe("describeContractMovement", () => {
+  it("says the price is unchanged, which is the point of recording it", () => {
+    expect(
+      describeContractMovement(
+        summary({
+          contractValueCentsBefore: 500_000,
+          contractValueCentsAfter: 500_000,
+        }),
+      ),
+    ).toBe("The contract value is unchanged, at $5,000.00.");
+  });
+
+  it("reports a rise and where it landed", () => {
+    expect(
+      describeContractMovement(
+        summary({
+          contractValueCentsBefore: 500_000,
+          contractValueCentsAfter: 650_000,
+          contractValueCentsDelta: 150_000,
+        }),
+      ),
+    ).toBe("The contract value is up $1,500.00, to $6,500.00.");
+  });
+
+  it("reports a fall as a positive amount in the other direction", () => {
+    expect(
+      describeContractMovement(
+        summary({
+          contractValueCentsBefore: 650_000,
+          contractValueCentsAfter: 500_000,
+          contractValueCentsDelta: -150_000,
+        }),
+      ),
+    ).toBe("The contract value is down $1,500.00, to $5,000.00.");
   });
 });
