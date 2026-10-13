@@ -71,8 +71,15 @@ one spelling of it.
 Day 013 left the counts at three and four, and Day 014 took them to five and six
 by adding the edit and the delete as `"use server"` closures in
 `deliverable-list.tsx`. Day 017 added two on the scope tab, and Day 018's
-duplicate closure in `overview-panel.tsx` is the eighth. The counts are only
-useful if they are updated with the writes, so: eight captures, nine references.
+duplicate closure in `overview-panel.tsx` is the eighth. Day 019's pasted
+import is the ninth and Day 020's snapshot press is the tenth, both closures in
+`scope-panel.tsx`. The counts are only useful if they are updated with the
+writes, so: ten captures, eleven references.
+
+Day 019 added a closure without moving the numbers written here, which is the
+failure mode that sentence warns about — they were two behind by the time
+Day 020 checked them. Nothing was wrong with the code; the note was wrong
+about it, which is worse, because the note is what the next run reads.
 
 It is still **not** an ownership check. It establishes which page made the call,
 not who was holding it. Phase 8 must derive the project from the session and
