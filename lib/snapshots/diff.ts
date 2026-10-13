@@ -270,3 +270,60 @@ export function scopeDiffEntries(
 
   return entries;
 }
+
+/**
+ * What a whole comparison adds up to.
+ *
+ * The entries say what happened to each line; this says what happened to the
+ * engagement. It is the part a reader looks at first and often the only part
+ * they need: four hours of extra scope at the same price is a sentence, and
+ * the table underneath is the working behind it.
+ *
+ * Both sides of every total are carried rather than only the difference. A
+ * delta of six hours means one thing against an estimate of eight and another
+ * against one of eight hundred, and a panel showing only the movement would
+ * make the reader go and find the denominator.
+ *
+ * Every figure here is computed from the entries rather than from the two
+ * lists, so all of them agree with the rows in the table by construction. A
+ * hand-edited snapshot that names one deliverable twice is one row and is
+ * counted once, which is the only way the counts and the table can be read
+ * against each other.
+ */
+export type ScopeDiffSummary = {
+  /** Lines in the scope list now that the snapshot had never heard of. */
+  addedCount: number;
+  /** Lines the snapshot recorded that are no longer in the scope list. */
+  removedCount: number;
+  /** Lines in both that read differently now. */
+  changedCount: number;
+  /** Lines in both that read exactly as they did. */
+  unchangedCount: number;
+  /** How many lines the snapshot held. */
+  lineCountBefore: number;
+  /** How many the scope list holds now. */
+  lineCountAfter: number;
+  /** What the snapshot was estimated at, in minutes. */
+  estimatedMinutesBefore: number;
+  /** What the scope list is estimated at now, in minutes. */
+  estimatedMinutesAfter: number;
+  /** The movement, in minutes. Negative when scope was given up. */
+  estimatedMinutesDelta: number;
+  /** The same movement in hours, for reading. */
+  estimatedHoursDelta: number;
+  /** What the project was agreed for when the snapshot was taken, in cents. */
+  contractValueCentsBefore: number;
+  /** What it is agreed for now, in cents. */
+  contractValueCentsAfter: number;
+  /** The movement, in cents. Negative when the price came down. */
+  contractValueCentsDelta: number;
+  /**
+   * Whether anything at all is different.
+   *
+   * Carried rather than left to a caller comparing four counts, because the
+   * answer includes the contract value: a project whose scope is untouched and
+   * whose price has moved has changed, and a page that only counted lines
+   * would tell the reader nothing happened.
+   */
+  hasChanges: boolean;
+};
