@@ -12,6 +12,7 @@ import { createProject } from "./projects";
 import {
   captureScopeSnapshot,
   createScopeSnapshot,
+  latestScopeSnapshot,
   getScopeSnapshot,
   listScopeSnapshots,
   listSnapshotLines,
@@ -464,5 +465,54 @@ describe("captureScopeSnapshot", () => {
       .from(deliverables)
       .where(eq(deliverables.projectId, projectId));
     expect(scope).toHaveLength(1);
+  });
+});
+
+describe("latestScopeSnapshot", () => {
+  it("reads the most recent snapshot of the project", async () => {
+    await createScopeSnapshot(
+      { projectId, label: "At signing", contractValueCents: 0, lines: LINES },
+      db,
+    );
+    await tick();
+    const second = await createScopeSnapshot(
+      { projectId, label: "Later", contractValueCents: 650_000, lines: LINES },
+      db,
+    );
+
+    expect(await latestScopeSnapshot(projectId, db)).toEqual(second);
+  });
+
+  it("agrees with the head of the list the picker reads", async () => {
+    await createScopeSnapshot(
+      { projectId, contractValueCents: 0, lines: LINES },
+      db,
+    );
+    await tick();
+    await createScopeSnapshot(
+      { projectId, contractValueCents: 0, lines: LINES },
+      db,
+    );
+
+    const [newest] = await listScopeSnapshots(projectId, db);
+    expect((await latestScopeSnapshot(projectId, db))?.id).toBe(newest.id);
+  });
+
+  it("answers null for a project never snapshotted", async () => {
+    expect(await latestScopeSnapshot(projectId, db)).toBeNull();
+  });
+
+  it("ignores another project's snapshots", async () => {
+    const client = await createClient({ name: "Other Co" }, db);
+    const other = await createProject(
+      { clientId: client.id, name: "Something else" },
+      db,
+    );
+    await createScopeSnapshot(
+      { projectId: other.id, contractValueCents: 0, lines: LINES },
+      db,
+    );
+
+    expect(await latestScopeSnapshot(projectId, db)).toBeNull();
   });
 });
