@@ -1,3 +1,6 @@
+import { formatDate } from "@/lib/dates";
+import { formatMinutes } from "@/lib/minutes";
+import { deliverablesPhrase } from "@/lib/projects/scope-summary";
 import {
   totalEstimatedMinutes,
   unestimatedCount,
@@ -64,3 +67,55 @@ export type SummarisedSnapshot = SnapshotSize & {
   /** What the project was agreed for then, in cents. */
   readonly contractValueCents: number;
 };
+
+/**
+ * What a captured scope list came to, on one line.
+ *
+ * The count leads, because it is the figure a reader compares between two
+ * snapshots at a glance — a list that has gone from four lines to nine is the
+ * thing worth noticing before any estimate is read. The total follows it.
+ *
+ * A list with nothing sized says so rather than claiming `0m`, the same lie a
+ * zero estimate tells anywhere else in this app: no deliverable takes no time,
+ * so a zero is a missing number.
+ *
+ * The template picker's label says nearly the same thing, and this is
+ * deliberately not that function. Its separator is a middle dot because it
+ * sits between a name and a size and nothing else; this one is read inside a
+ * line that already has dots in it, after a label and a date, so its parts are
+ * joined with commas. Sharing them would mean a separator argument, which is a
+ * worse coupling than two short strings — the rule they both depend on, that a
+ * zero is unsized, is `isEstimated`, and that is shared.
+ */
+export function snapshotSizeLabel(size: SnapshotSize): string {
+  if (size.lineCount === 0) return "nothing agreed";
+
+  const count = deliverablesPhrase(size.lineCount);
+  if (size.unestimatedCount >= size.lineCount) return `${count}, none estimated`;
+
+  const total = formatMinutes(size.estimatedMinutes);
+  if (size.unestimatedCount === 0) return `${count}, ${total}`;
+  return `${count}, ${total}, ${size.unestimatedCount} not estimated`;
+}
+
+/**
+ * When a snapshot was taken, and what it was called.
+ *
+ * The label leads when there is one, because that is what somebody chose to
+ * call the moment and it is more use than the date: "Signed proposal" says why
+ * the snapshot exists where "Oct 13" says only that it does. The date follows
+ * it in either case, because it is the thing that cannot be ambiguous — two
+ * snapshots may share a label, and the one taken this morning is not the one
+ * taken in March.
+ *
+ * `formatDate` rather than the stored string, and a date rather than a time.
+ * The hour a snapshot was taken is not a fact anybody argues about, and a
+ * timestamp in a picker is a column of digits nobody reads.
+ */
+export function snapshotTakenLabel(snapshot: {
+  label: string | null;
+  capturedAt: string;
+}): string {
+  const taken = formatDate(snapshot.capturedAt);
+  return snapshot.label === null ? taken : `${snapshot.label} · ${taken}`;
+}
