@@ -192,3 +192,81 @@ export type ScopeDiffEntry = {
   /** Field-by-field differences. Empty unless the kind is `changed`. */
   readonly changes: readonly ScopeFieldChange[];
 };
+
+/**
+ * The two scope lists, paired up line by line.
+ *
+ * Paired on `deliverableId`, which is what makes this a diff rather than two
+ * lists side by side: the same deliverable under a new title is one `changed`
+ * row, where matching on titles would report a removal and an addition and
+ * leave the reader to guess they were the same promise. The cost of that
+ * choice is the opposite case — a line deleted and retyped is two rows, not
+ * one edit — and that is the right way round, because the second one really
+ * did happen twice.
+ *
+ * The order is the live scope list's own, with everything dropped since
+ * appended after it. A removed line has no position in the current list, so
+ * there is nowhere honest to interleave it; putting them last keeps the table
+ * readable in the order the scope list is read in, and groups the rows a
+ * reader is usually hunting for.
+ *
+ * A snapshot naming the same deliverable twice is a hand-written row — the
+ * capture reads a primary key — and the first copy wins. The alternatives are
+ * both worse: comparing against the last would make the answer depend on the
+ * order rows came back in, and reporting both would put one deliverable in the
+ * table twice under one id, which every count below would then double.
+ */
+export function scopeDiffEntries(
+  before: readonly SnapshotLineDraft[],
+  after: readonly CapturedScopeLine[],
+): ScopeDiffEntry[] {
+  const captured = new Map<string, SnapshotLineDraft>();
+  for (const line of before) {
+    if (!captured.has(line.deliverableId)) {
+      captured.set(line.deliverableId, line);
+    }
+  }
+
+  const entries: ScopeDiffEntry[] = [];
+  const paired = new Set<string>();
+
+  for (const line of after) {
+    const was = captured.get(line.id);
+    if (was === undefined) {
+      entries.push({
+        deliverableId: line.id,
+        kind: "added",
+        before: null,
+        after: line,
+        changes: [],
+      });
+      continue;
+    }
+
+    paired.add(line.id);
+    const changes = scopeFieldChanges(was, line);
+    entries.push({
+      deliverableId: line.id,
+      kind: changes.length === 0 ? "unchanged" : "changed",
+      before: was,
+      after: line,
+      changes,
+    });
+  }
+
+  // Over the map rather than the list, so a duplicated id is one removal
+  // rather than two. A Map keeps insertion order, so these stay in the order
+  // the snapshot recorded them.
+  for (const [deliverableId, line] of captured) {
+    if (paired.has(deliverableId)) continue;
+    entries.push({
+      deliverableId,
+      kind: "removed",
+      before: line,
+      after: null,
+      changes: [],
+    });
+  }
+
+  return entries;
+}
