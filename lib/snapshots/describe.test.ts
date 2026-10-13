@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   describeContractMovement,
+  describeDiffEntry,
   describeUnchangedLines,
+  diffEntryEstimate,
+  diffEntryTitle,
   describeScopeDiff,
   SCOPE_UNCHANGED_SINCE,
   describeEstimateMovement,
@@ -12,6 +15,7 @@ import {
 } from "./describe";
 import {
   SCOPE_CHANGE_KINDS,
+  scopeDiffEntries,
   summariseScopeDiff,
   type ScopeDiffSummary,
 } from "./diff";
@@ -351,5 +355,105 @@ describe("describeUnchangedLines", () => {
     expect(describeUnchangedLines(summary({ unchangedCount: 9 }))).toBe(
       "9 other deliverables are exactly as they were agreed, and are not listed.",
     );
+  });
+});
+
+/** The one entry a comparison of these two lists produces. */
+function entry(
+  before: Parameters<typeof scopeDiffEntries>[0],
+  after: Parameters<typeof scopeDiffEntries>[1],
+) {
+  return scopeDiffEntries(before, after)[0];
+}
+
+const SNAPSHOT_LINE = {
+  deliverableId: "dlv_1",
+  title: "Discovery",
+  description: null,
+  estimatedMinutes: 480,
+  status: "pending" as const,
+};
+
+const LIVE_LINE = {
+  id: "dlv_1",
+  title: "Discovery",
+  description: null,
+  estimatedMinutes: 480,
+  status: "pending" as const,
+};
+
+describe("diffEntryTitle", () => {
+  it("names a changed line by what it is called now", () => {
+    expect(
+      diffEntryTitle(
+        entry([SNAPSHOT_LINE], [{ ...LIVE_LINE, title: "Discovery phase" }]),
+      ),
+    ).toBe("Discovery phase");
+  });
+
+  it("names a dropped line by the title the snapshot kept", () => {
+    expect(diffEntryTitle(entry([SNAPSHOT_LINE], []))).toBe("Discovery");
+  });
+
+  it("names an added line by the title it has", () => {
+    expect(diffEntryTitle(entry([], [LIVE_LINE]))).toBe("Discovery");
+  });
+});
+
+describe("diffEntryEstimate", () => {
+  it("shows where a changed line's estimate is now", () => {
+    expect(
+      diffEntryEstimate(
+        entry([SNAPSHOT_LINE], [{ ...LIVE_LINE, estimatedMinutes: 960 }]),
+      ),
+    ).toBe("16h");
+  });
+
+  it("shows the estimate a dropped line took with it", () => {
+    expect(diffEntryEstimate(entry([SNAPSHOT_LINE], []))).toBe("8h");
+  });
+
+  it("says an unsized line is unsized rather than showing a zero", () => {
+    expect(
+      diffEntryEstimate(entry([], [{ ...LIVE_LINE, estimatedMinutes: 0 }])),
+    ).toBe("Not estimated");
+  });
+});
+
+describe("describeDiffEntry", () => {
+  it("says an added line was agreed after the snapshot", () => {
+    expect(describeDiffEntry(entry([], [LIVE_LINE]))).toEqual([
+      "Not in this snapshot — agreed after it was taken.",
+    ]);
+  });
+
+  it("says a dropped line is no longer owed", () => {
+    expect(describeDiffEntry(entry([SNAPSHOT_LINE], []))).toEqual([
+      "No longer in the scope list.",
+    ]);
+  });
+
+  it("lists every change to a line that moved", () => {
+    expect(
+      describeDiffEntry(
+        entry(
+          [SNAPSHOT_LINE],
+          [
+            {
+              ...LIVE_LINE,
+              title: "Discovery phase",
+              estimatedMinutes: 960,
+            },
+          ],
+        ),
+      ),
+    ).toEqual([
+      "Retitled from “Discovery” to “Discovery phase”.",
+      "Estimate up from 8h to 16h.",
+    ]);
+  });
+
+  it("has nothing to say about a line that did not move", () => {
+    expect(describeDiffEntry(entry([SNAPSHOT_LINE], [LIVE_LINE]))).toEqual([]);
   });
 });
