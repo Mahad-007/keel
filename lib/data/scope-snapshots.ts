@@ -236,6 +236,33 @@ export async function listScopeSnapshots(
 }
 
 /**
+ * The most recent snapshot of one project, or null if it has never been
+ * snapshotted.
+ *
+ * The whole row rather than the summarised shape the picker reads, because the
+ * caller that wants it is the capture, and what it needs is the contract value
+ * recorded beside those lines — a figure the aggregates do not carry.
+ *
+ * One row, ordered the same way `listScopeSnapshots` orders its list, so "the
+ * most recent" means the same thing in both places. A limit rather than taking
+ * the head of the list: this is asked inside the transaction that writes, and
+ * reading a year of snapshots to look at one of them is not a cost a press
+ * should pay.
+ */
+export async function latestScopeSnapshot(
+  projectId: string,
+  database: Database = db,
+): Promise<ScopeSnapshot | null> {
+  const [row] = await database
+    .select()
+    .from(scopeSnapshots)
+    .where(eq(scopeSnapshots.projectId, projectId))
+    .orderBy(desc(scopeSnapshots.capturedAt), desc(scopeSnapshots.id))
+    .limit(1);
+  return row ?? null;
+}
+
+/**
  * Why a project's scope was not snapshotted.
  *
  * Codes rather than sentences, for the reason `TemplateCaptureReason` gives:
