@@ -191,6 +191,18 @@ export function describeEstimateMovement(summary: ScopeDiffSummary): string {
   const before = hoursPhrase(estimatedHours(summary.estimatedMinutesBefore));
   const after = hoursPhrase(estimatedHours(summary.estimatedMinutesAfter));
 
+  /*
+    Asked before the delta, because a delta of zero between two zeroes is not
+    an estimate that held steady — it is a scope list nobody has sized, on
+    either side. "Unchanged, at 0 hours" would state the figure as a fact,
+    which is the one reading this file exists to prevent.
+  */
+  if (
+    summary.estimatedMinutesBefore === 0 &&
+    summary.estimatedMinutesAfter === 0
+  ) {
+    return "Nothing was estimated when the snapshot was taken, and nothing is estimated now.";
+  }
   if (summary.estimatedMinutesDelta === 0) {
     return `The estimate is unchanged, at ${after}.`;
   }

@@ -224,6 +224,18 @@ describe("describeEstimateMovement", () => {
     ).toBe("Nothing is estimated now, where the snapshot came to 8 hours.");
   });
 
+  it("says nothing is estimated rather than claiming a steady zero", () => {
+    // A delta of zero between two zeroes is a list nobody has sized, not an
+    // estimate that held.
+    expect(
+      describeEstimateMovement(
+        summary({ estimatedMinutesBefore: 0, estimatedMinutesAfter: 0 }),
+      ),
+    ).toBe(
+      "Nothing was estimated when the snapshot was taken, and nothing is estimated now.",
+    );
+  });
+
   it("agrees the noun with a movement of exactly one hour", () => {
     expect(
       describeEstimateMovement(
