@@ -318,6 +318,48 @@ export function describeUnchangedLines(
 }
 
 /**
+ * Why the figures in the comparison do not add up, when they do not.
+ *
+ * A negative estimate is the one input that breaks the arithmetic above: the
+ * totals stop being the size of the work, a delta of nought stops meaning the
+ * estimate held steady, and two lines cancelling out leave a sized list
+ * reading as one nobody had touched. Nothing is repaired — a comparison that
+ * quietly fixed its inputs would disagree with the scope list above it and
+ * with the snapshot it claims to be a record of — so the figures are left as
+ * plain arithmetic and this says why they read oddly.
+ *
+ * Which side holds the bad row is said, because the two have different fixes.
+ * A line on the scope list now can be opened and corrected; one inside the
+ * snapshot cannot, because nothing updates a snapshot and nothing should —
+ * that row is what the project's scope list said at the time, mistake and all.
+ *
+ * Null the rest of the time, which is almost always. The same sentence, in the
+ * same shape, as `describeEstimateProblem` puts under the scope summary.
+ */
+export function describeDiffEstimateProblem(
+  summary: ScopeDiffSummary,
+): string | null {
+  const before = summary.negativeEstimateCountBefore;
+  const after = summary.negativeEstimateCountAfter;
+  if (before === 0 && after === 0) return null;
+
+  /*
+    The counts are not added together. "Three deliverables have a negative
+    estimate" over a snapshot holding one and a scope list holding two would
+    describe a list that does not exist on either side of the comparison, and
+    a reader going to look for three bad rows would find two.
+  */
+  const which =
+    after === 0
+      ? `this snapshot holds ${deliverablesPhrase(before)} with a negative estimate`
+      : before === 0
+        ? `the scope list now holds ${deliverablesPhrase(after)} with a negative estimate`
+        : `the scope list now holds ${deliverablesPhrase(after)} with a negative estimate, and this snapshot holds ${before}`;
+
+  return `The figures here do not add up the way they should: ${which}. The form will not accept one, so a line like that was written straight to the database — the totals above are a plain sum of what each list holds.`;
+}
+
+/**
  * What to call one row of the comparison.
  *
  * The current title where there is one, because that is what the reader will
