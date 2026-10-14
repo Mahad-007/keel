@@ -92,6 +92,14 @@ export type SummarisedSnapshot = SnapshotSize & {
  * zero estimate tells anywhere else in this app: no deliverable takes no time,
  * so a zero is a missing number.
  *
+ * A list holding a negative line names the problem instead of printing the
+ * sum, because neither reading of the sum is any use: minus two hours against
+ * plus two comes to `0m`, which is how this label says "nobody sized it", and
+ * a list that totals below zero reads as `-1h`, which reads as a broken page.
+ * The figure is not repaired — the comparison underneath shows it as it
+ * stands, and says which side holds the row — but a picker is three words
+ * wide, and the useful three are that the total cannot be relied on.
+ *
  * The template picker's label says nearly the same thing, and this is
  * deliberately not that function. Its separator is a middle dot because it
  * sits between a name and a size and nothing else; this one is read inside a
@@ -104,6 +112,15 @@ export function snapshotSizeLabel(size: SnapshotSize): string {
   if (size.lineCount === 0) return "nothing agreed";
 
   const count = deliverablesPhrase(size.lineCount);
+  /*
+    Before the unsized branch rather than after it, though the two cannot both
+    be true: a negative is not a zero, so a list with a negative line always
+    has a sized one. Asked first because it is the stronger claim about the
+    total, and an order that relied on them being exclusive would break the day
+    one of the two definitions moved.
+  */
+  if (size.negativeEstimateCount > 0)
+    return `${count}, estimates do not add up`;
   if (size.unestimatedCount >= size.lineCount)
     return `${count}, none estimated`;
 
