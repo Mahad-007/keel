@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   describeContractMovement,
+  describeDiffEstimateProblem,
   describeDiffEntry,
   describeUnchangedLines,
   diffEntryEstimate,
@@ -311,6 +312,54 @@ describe("describeEstimateMovement with a negative line on a side", () => {
     ).toBe(
       "Nothing was estimated when the snapshot was taken; the scope list now comes to 7 hours.",
     );
+  });
+});
+
+describe("describeDiffEstimateProblem", () => {
+  it("says nothing about a comparison of estimates somebody could have typed", () => {
+    expect(describeDiffEstimateProblem(summary())).toBe(null);
+  });
+
+  it("names the scope list when the bad row is on it now", () => {
+    const sentence = describeDiffEstimateProblem(
+      summary({ negativeEstimateCountAfter: 1 }),
+    );
+
+    expect(sentence).toContain("the scope list now holds 1 deliverable");
+    expect(sentence).not.toContain("this snapshot holds");
+  });
+
+  it("names the snapshot when the bad row was captured and has since gone", () => {
+    const sentence = describeDiffEstimateProblem(
+      summary({ negativeEstimateCountBefore: 2 }),
+    );
+
+    expect(sentence).toContain("this snapshot holds 2 deliverables");
+    expect(sentence).not.toContain("the scope list now holds");
+  });
+
+  it("reports both sides separately rather than adding the counts up", () => {
+    // One bad row and two is not three bad rows: a reader sent looking for
+    // three would find two, on a list that holds one.
+    const sentence = describeDiffEstimateProblem(
+      summary({
+        negativeEstimateCountBefore: 2,
+        negativeEstimateCountAfter: 1,
+      }),
+    );
+
+    expect(sentence).toContain(
+      "the scope list now holds 1 deliverable with a negative estimate, and this snapshot holds 2",
+    );
+    expect(sentence).not.toContain("3 deliverables");
+  });
+
+  it("says the row was not written through the form, which refuses one", () => {
+    const sentence = describeDiffEstimateProblem(
+      summary({ negativeEstimateCountAfter: 1 }),
+    );
+
+    expect(sentence).toContain("straight to the database");
   });
 });
 
