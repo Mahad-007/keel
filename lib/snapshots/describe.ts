@@ -349,12 +349,19 @@ export function describeDiffEstimateProblem(
     describe a list that does not exist on either side of the comparison, and
     a reader going to look for three bad rows would find two.
   */
+  const now = `the scope list now holds ${deliverablesPhrase(after)} with a negative estimate`;
+  const then = `this snapshot holds ${deliverablesPhrase(before)} with a negative estimate`;
+  /*
+    The noun goes on the first clause only when both sides have one, the same
+    rule `describeLineChanges` follows: "…and this snapshot holds 2" rather
+    than the phrase said twice in one sentence.
+  */
   const which =
     after === 0
-      ? `this snapshot holds ${deliverablesPhrase(before)} with a negative estimate`
+      ? then
       : before === 0
-        ? `the scope list now holds ${deliverablesPhrase(after)} with a negative estimate`
-        : `the scope list now holds ${deliverablesPhrase(after)} with a negative estimate, and this snapshot holds ${before}`;
+        ? now
+        : `${now}, and this snapshot holds ${before}`;
 
   return `The figures here do not add up the way they should: ${which}. The form will not accept one, so a line like that was written straight to the database — the totals above are a plain sum of what each list holds.`;
 }
