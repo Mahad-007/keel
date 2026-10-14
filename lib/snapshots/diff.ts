@@ -1,4 +1,8 @@
-import { estimatedHours, totalEstimatedMinutes } from "@/lib/scope";
+import {
+  estimatedHours,
+  negativeEstimateCount,
+  totalEstimatedMinutes,
+} from "@/lib/scope";
 
 import type { CapturedScopeLine, SnapshotLineDraft } from "./capture";
 
@@ -317,6 +321,26 @@ export type ScopeDiffSummary = {
   /** The movement, in cents. Negative when the price came down. */
   contractValueCentsDelta: number;
   /**
+   * How many captured lines carried an estimate below zero, and how many do
+   * now.
+   *
+   * Nothing in the app writes a negative estimate — the deliverable form
+   * refuses one — but a snapshot records what it found, deliberately, so a row
+   * somebody wrote straight to the database is copied rather than repaired.
+   * The counts are here because the totals above cannot be asked: a line of
+   * minus two hours against one of plus two leaves `estimatedMinutesBefore`
+   * reading zero, which is indistinguishable from a scope list nobody had
+   * sized and is the one state the sentences would describe wrongly.
+   *
+   * Counted per side, because the two sides are different lists at different
+   * moments: a bad row can be captured and then fixed, or added since. Which
+   * side holds it decides which half of the comparison a reader cannot trust.
+   *
+   * The same count, for the same reason, as `ScopeSummary`'s.
+   */
+  negativeEstimateCountBefore: number;
+  negativeEstimateCountAfter: number;
+  /**
    * Whether anything at all is different.
    *
    * Carried rather than left to a caller comparing four counts, because the
@@ -383,6 +407,8 @@ export function summariseScopeDiff(
     contractValueCentsBefore,
     contractValueCentsAfter,
     contractValueCentsDelta,
+    negativeEstimateCountBefore: negativeEstimateCount(captured),
+    negativeEstimateCountAfter: negativeEstimateCount(current),
     hasChanges:
       addedCount + removedCount + changedCount > 0 ||
       contractValueCentsDelta !== 0,
