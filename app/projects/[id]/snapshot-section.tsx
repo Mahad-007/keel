@@ -1,4 +1,7 @@
-import { INITIAL_TAKE_SNAPSHOT_STATE } from "@/lib/snapshots/form";
+import {
+  INITIAL_TAKE_SNAPSHOT_STATE,
+  SNAPSHOT_PROBLEMS,
+} from "@/lib/snapshots/form";
 import type { ScopeDiff } from "@/lib/snapshots/diff";
 import type { SummarisedSnapshot } from "@/lib/snapshots/summary";
 
@@ -122,13 +125,18 @@ function NoSnapshots() {
  * box above a button that cannot work wastes a sentence somebody composed —
  * and the write refuses an empty scope list anyway, which covers the page
  * having been open while the last deliverable was deleted.
+ *
+ * That refusal's words rather than its own. The two are the same sentence —
+ * the form is absent here for the reason the write would refuse there — and a
+ * reader can meet both within one press: this one on a project with no lines,
+ * the other on a project whose last line went in another tab. Written out
+ * twice they were already three words apart, and the copy in `lib/` is the one
+ * a test holds.
  */
 function NothingToRecord() {
   return (
     <p className="mt-2 max-w-prose text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-      Nothing to record yet — a snapshot is a copy of this project&rsquo;s
-      deliverables, and it has none. Add the first line above and this becomes a
-      one-press job.
+      {SNAPSHOT_PROBLEMS.emptyScope}
     </p>
   );
 }
