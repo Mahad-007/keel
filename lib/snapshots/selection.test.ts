@@ -16,6 +16,7 @@ function snapshot(id: string, capturedAt: string): SummarisedSnapshot {
     lineCount: 1,
     estimatedMinutes: 60,
     unestimatedCount: 0,
+    negativeEstimateCount: 0,
   };
 }
 

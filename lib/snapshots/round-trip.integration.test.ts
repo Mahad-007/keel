@@ -8,11 +8,7 @@ import {
   setDeliverableStatus,
   updateDeliverable,
 } from "@/lib/data/deliverables";
-import {
-  createProject,
-  getProject,
-  updateProject,
-} from "@/lib/data/projects";
+import { createProject, getProject, updateProject } from "@/lib/data/projects";
 import {
   captureScopeSnapshot,
   listScopeSnapshots,
@@ -153,7 +149,10 @@ describe("a scope list recorded and then edited", () => {
 
   it("survives a reorder of the scope list without reporting one", async () => {
     await deleteDeliverable(agreed.Discovery, db);
-    await createDeliverable({ projectId, title: "Discovery", estimatedMinutes: 480 }, db);
+    await createDeliverable(
+      { projectId, title: "Discovery", estimatedMinutes: 480 },
+      db,
+    );
 
     const diff = await compare();
 
@@ -174,7 +173,9 @@ describe("a scope list recorded and then edited", () => {
 
     expect(sentence).toContain("1 deliverable added");
     expect(sentence).toContain("The estimate is up 8 hours");
-    expect(sentence).toContain("The contract value is unchanged, at $12,000.00");
+    expect(sentence).toContain(
+      "The contract value is unchanged, at $12,000.00",
+    );
   });
 
   it("reports a price rise against the scope it was agreed for", async () => {
@@ -206,6 +207,7 @@ describe("the figures the snapshot list reports", () => {
       lineCount: summarised.lineCount,
       estimatedMinutes: summarised.estimatedMinutes,
       unestimatedCount: summarised.unestimatedCount,
+      negativeEstimateCount: summarised.negativeEstimateCount,
     });
   });
 
@@ -220,6 +222,7 @@ describe("the figures the snapshot list reports", () => {
       lineCount: summarised.lineCount,
       estimatedMinutes: summarised.estimatedMinutes,
       unestimatedCount: summarised.unestimatedCount,
+      negativeEstimateCount: summarised.negativeEstimateCount,
     });
     expect(summarised.unestimatedCount).toBe(1);
   });

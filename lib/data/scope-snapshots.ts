@@ -139,7 +139,6 @@ export async function createScopeSnapshot(
   });
 }
 
-
 /**
  * The order a snapshot's lines are always read in: the positions this module
  * wrote, with the id breaking ties.
@@ -225,6 +224,10 @@ export async function listScopeSnapshots(
       // picker as a missing number rather than as a zero.
       estimatedMinutes: sql<number>`coalesce(sum(${scopeSnapshotLines.estimatedMinutes}), 0)`,
       unestimatedCount: sql<number>`coalesce(sum(case when ${scopeSnapshotLines.estimatedMinutes} = 0 then 1 else 0 end), 0)`,
+      // Counted here as well as summed into the total, because the total
+      // cannot be asked: a negative line cancelling a positive one leaves it
+      // reading zero on a snapshot where every line is sized.
+      negativeEstimateCount: sql<number>`coalesce(sum(case when ${scopeSnapshotLines.estimatedMinutes} < 0 then 1 else 0 end), 0)`,
     })
     .from(scopeSnapshots)
     .leftJoin(

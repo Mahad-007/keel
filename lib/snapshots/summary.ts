@@ -2,6 +2,7 @@ import { formatDate } from "@/lib/dates";
 import { formatMinutes } from "@/lib/minutes";
 import { deliverablesPhrase } from "@/lib/projects/scope-summary";
 import {
+  negativeEstimateCount,
   totalEstimatedMinutes,
   unestimatedCount,
   type EstimatedLine,
@@ -30,6 +31,17 @@ export type SnapshotSize = {
   readonly estimatedMinutes: number;
   /** How many lines were unsized, which says how far to trust the total. */
   readonly unestimatedCount: number;
+  /**
+   * How many lines carry an estimate below zero, which says whether to trust
+   * the total at all.
+   *
+   * A snapshot copies what it found rather than repairing it, so a row
+   * somebody wrote straight to the database is in here — and one line of minus
+   * two hours against one of plus two leaves the total reading nought minutes
+   * on a list where both lines are sized. The count is the only thing that
+   * tells that apart from a list nobody had estimated.
+   */
+  readonly negativeEstimateCount: number;
 };
 
 /**
@@ -45,6 +57,7 @@ export function snapshotSize(lines: readonly EstimatedLine[]): SnapshotSize {
     lineCount: lines.length,
     estimatedMinutes: totalEstimatedMinutes(lines),
     unestimatedCount: unestimatedCount(lines),
+    negativeEstimateCount: negativeEstimateCount(lines),
   };
 }
 
@@ -91,7 +104,8 @@ export function snapshotSizeLabel(size: SnapshotSize): string {
   if (size.lineCount === 0) return "nothing agreed";
 
   const count = deliverablesPhrase(size.lineCount);
-  if (size.unestimatedCount >= size.lineCount) return `${count}, none estimated`;
+  if (size.unestimatedCount >= size.lineCount)
+    return `${count}, none estimated`;
 
   const total = formatMinutes(size.estimatedMinutes);
   if (size.unestimatedCount === 0) return `${count}, ${total}`;

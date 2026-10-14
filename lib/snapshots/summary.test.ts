@@ -6,20 +6,35 @@ describe("snapshotSize", () => {
   it("counts the lines and totals their estimates", () => {
     expect(
       snapshotSize([{ estimatedMinutes: 480 }, { estimatedMinutes: 120 }]),
-    ).toEqual({ lineCount: 2, estimatedMinutes: 600, unestimatedCount: 0 });
+    ).toEqual({
+      lineCount: 2,
+      estimatedMinutes: 600,
+      unestimatedCount: 0,
+      negativeEstimateCount: 0,
+    });
   });
 
   it("counts the unsized lines the total does not speak for", () => {
     expect(
       snapshotSize([{ estimatedMinutes: 480 }, { estimatedMinutes: 0 }]),
-    ).toEqual({ lineCount: 2, estimatedMinutes: 480, unestimatedCount: 1 });
+    ).toEqual({
+      lineCount: 2,
+      estimatedMinutes: 480,
+      unestimatedCount: 1,
+      negativeEstimateCount: 0,
+    });
   });
 
   it("totals a captured negative estimate rather than dropping it", () => {
     // A snapshot copies what was on the page, so a hand-edited row is in it.
     expect(
       snapshotSize([{ estimatedMinutes: 480 }, { estimatedMinutes: -60 }]),
-    ).toEqual({ lineCount: 2, estimatedMinutes: 420, unestimatedCount: 0 });
+    ).toEqual({
+      lineCount: 2,
+      estimatedMinutes: 420,
+      unestimatedCount: 0,
+      negativeEstimateCount: 1,
+    });
   });
 
   it("sizes a snapshot of nothing as nothing", () => {
@@ -27,6 +42,7 @@ describe("snapshotSize", () => {
       lineCount: 0,
       estimatedMinutes: 0,
       unestimatedCount: 0,
+      negativeEstimateCount: 0,
     });
   });
 });
@@ -38,6 +54,7 @@ describe("snapshotSizeLabel", () => {
         lineCount: 4,
         estimatedMinutes: 2_880,
         unestimatedCount: 0,
+        negativeEstimateCount: 0,
       }),
     ).toBe("4 deliverables, 48h");
   });
@@ -48,6 +65,7 @@ describe("snapshotSizeLabel", () => {
         lineCount: 1,
         estimatedMinutes: 480,
         unestimatedCount: 0,
+        negativeEstimateCount: 0,
       }),
     ).toBe("1 deliverable, 8h");
   });
@@ -58,6 +76,7 @@ describe("snapshotSizeLabel", () => {
         lineCount: 4,
         estimatedMinutes: 2_400,
         unestimatedCount: 1,
+        negativeEstimateCount: 0,
       }),
     ).toBe("4 deliverables, 40h, 1 not estimated");
   });
@@ -68,6 +87,7 @@ describe("snapshotSizeLabel", () => {
         lineCount: 3,
         estimatedMinutes: 0,
         unestimatedCount: 3,
+        negativeEstimateCount: 0,
       }),
     ).toBe("3 deliverables, none estimated");
   });
@@ -78,6 +98,7 @@ describe("snapshotSizeLabel", () => {
         lineCount: 0,
         estimatedMinutes: 0,
         unestimatedCount: 0,
+        negativeEstimateCount: 0,
       }),
     ).toBe("nothing agreed");
   });
@@ -95,7 +116,10 @@ describe("snapshotTakenLabel", () => {
 
   it("falls back to the date when nobody named it", () => {
     expect(
-      snapshotTakenLabel({ label: null, capturedAt: "2026-03-01T23:00:00.000Z" }),
+      snapshotTakenLabel({
+        label: null,
+        capturedAt: "2026-03-01T23:00:00.000Z",
+      }),
     ).toBe("Mar 1, 2026");
   });
 

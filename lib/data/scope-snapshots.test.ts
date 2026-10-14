@@ -131,10 +131,7 @@ describe("createScopeSnapshot", () => {
 
   it("refuses a snapshot with no lines on it", async () => {
     await expect(
-      createScopeSnapshot(
-        { projectId, contractValueCents: 0, lines: [] },
-        db,
-      ),
+      createScopeSnapshot({ projectId, contractValueCents: 0, lines: [] }, db),
     ).rejects.toThrow(/at least one deliverable/);
   });
 
@@ -253,6 +250,7 @@ describe("listScopeSnapshots", () => {
         lineCount: 2,
         estimatedMinutes: 2_880,
         unestimatedCount: 0,
+        negativeEstimateCount: 0,
       },
     ]);
   });
@@ -282,13 +280,18 @@ describe("listScopeSnapshots", () => {
     );
     await tick();
     const second = await createScopeSnapshot(
-      { projectId, label: "After the change order", contractValueCents: 0, lines: LINES },
+      {
+        projectId,
+        label: "After the change order",
+        contractValueCents: 0,
+        lines: LINES,
+      },
       db,
     );
 
-    expect((await listScopeSnapshots(projectId, db)).map((row) => row.id)).toEqual(
-      [second.id, first.id],
-    );
+    expect(
+      (await listScopeSnapshots(projectId, db)).map((row) => row.id),
+    ).toEqual([second.id, first.id]);
   });
 
   it("reads only the snapshots of the project asked for", async () => {
