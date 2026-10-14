@@ -147,6 +147,30 @@ export async function createScopeSnapshot(
  * and a record of what was agreed that reads in a different order each time is
  * not much of a record.
  */
+/**
+ * The order a project's snapshots are always read in, wherever they are read.
+ *
+ * Newest first, because the list is a history and the question asked of a
+ * history is "what has happened lately": the snapshot a reader wants to
+ * compare against is almost always the most recent, and that is what the
+ * default comparison uses.
+ *
+ * The id breaks ties, because two snapshots can land in the same second — a
+ * double-pressed button — and a picker that reorders itself between reloads is
+ * a picker nobody trusts.
+ *
+ * A constant because two readers depend on agreeing: the page compares against
+ * the head of `listScopeSnapshots`, and the capture refuses a press by
+ * comparing against `latestScopeSnapshot`. Written out twice, the day the
+ * tie-break moved in one of them would be the day the page shows a comparison
+ * against one snapshot while the write refuses on the strength of another —
+ * and the refusal tells the reader the comparison below already covers it.
+ */
+const NEWEST_FIRST = [
+  desc(scopeSnapshots.capturedAt),
+  desc(scopeSnapshots.id),
+] as const;
+
 const IN_ORDER = [
   asc(scopeSnapshotLines.sortOrder),
   asc(scopeSnapshotLines.id),
@@ -207,13 +231,8 @@ export async function listSnapshotLines(
  * words already have for it, and a row nobody can see is a row nobody can
  * delete.
  *
- * Newest first, which is the opposite of how the lines inside one are read.
- * The list is a history and the question asked of a history is "what has
- * happened lately": the snapshot a reader wants to compare against is almost
- * always the most recent, and that is what the default comparison uses. The id
- * breaks ties, because two snapshots can land in the same second — a
- * double-pressed button — and a picker that reorders itself between reloads is
- * a picker nobody trusts.
+ * `NEWEST_FIRST`, which is the opposite of how the lines inside one are read
+ * and is shared with the capture's idea of "the most recent".
  */
 export async function listScopeSnapshots(
   projectId: string,
@@ -243,7 +262,7 @@ export async function listScopeSnapshots(
     )
     .where(eq(scopeSnapshots.projectId, projectId))
     .groupBy(scopeSnapshots.id)
-    .orderBy(desc(scopeSnapshots.capturedAt), desc(scopeSnapshots.id));
+    .orderBy(...NEWEST_FIRST);
 }
 
 /**
@@ -254,11 +273,11 @@ export async function listScopeSnapshots(
  * caller that wants it is the capture, and what it needs is the contract value
  * recorded beside those lines — a figure the aggregates do not carry.
  *
- * One row, ordered the same way `listScopeSnapshots` orders its list, so "the
- * most recent" means the same thing in both places. A limit rather than taking
- * the head of the list: this is asked inside the transaction that writes, and
- * reading a year of snapshots to look at one of them is not a cost a press
- * should pay.
+ * Ordered by the same constant `listScopeSnapshots` orders its list by, so
+ * "the most recent" means the same thing in both places as a fact rather than
+ * as a claim made here. A limit rather than taking the head of the list: this
+ * is asked inside the transaction that writes, and reading a year of snapshots
+ * to look at one of them is not a cost a press should pay.
  */
 export async function latestScopeSnapshot(
   projectId: string,
@@ -268,7 +287,7 @@ export async function latestScopeSnapshot(
     .select()
     .from(scopeSnapshots)
     .where(eq(scopeSnapshots.projectId, projectId))
-    .orderBy(desc(scopeSnapshots.capturedAt), desc(scopeSnapshots.id))
+    .orderBy(...NEWEST_FIRST)
     .limit(1);
   return row ?? null;
 }
