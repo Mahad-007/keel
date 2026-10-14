@@ -382,6 +382,91 @@ describe("summariseScopeDiff", () => {
   });
 });
 
+describe("summariseScopeDiff on a negative estimate", () => {
+  it("counts no negative line on a comparison of ordinary scope", () => {
+    const entries = scopeDiffEntries([captured("a")], [live("a")]);
+
+    expect(summariseScopeDiff(entries, 0, 0)).toMatchObject({
+      negativeEstimateCountBefore: 0,
+      negativeEstimateCountAfter: 0,
+    });
+  });
+
+  it("counts a captured negative estimate on the side that holds it", () => {
+    // Fixed since: the snapshot kept the bad row, the scope list does not.
+    const entries = scopeDiffEntries(
+      [captured("a", { estimatedMinutes: -120 })],
+      [live("a", { estimatedMinutes: 120 })],
+    );
+
+    expect(summariseScopeDiff(entries, 0, 0)).toMatchObject({
+      negativeEstimateCountBefore: 1,
+      negativeEstimateCountAfter: 0,
+    });
+  });
+
+  it("counts one written since the snapshot was taken", () => {
+    const entries = scopeDiffEntries(
+      [captured("a")],
+      [live("a"), live("b", { estimatedMinutes: -60 })],
+    );
+
+    expect(summariseScopeDiff(entries, 0, 0)).toMatchObject({
+      negativeEstimateCountBefore: 0,
+      negativeEstimateCountAfter: 1,
+    });
+  });
+
+  it("counts every bad line rather than flagging that there is one", () => {
+    const entries = scopeDiffEntries(
+      [],
+      [
+        live("a", { estimatedMinutes: -60 }),
+        live("b", { estimatedMinutes: -90 }),
+        live("c", { estimatedMinutes: 60 }),
+      ],
+    );
+
+    expect(summariseScopeDiff(entries, 0, 0)).toMatchObject({
+      negativeEstimateCountAfter: 2,
+    });
+  });
+
+  it("counts the line the totals cancel out, which reads as unsized", () => {
+    // The case the counts exist for: both totals are zero and neither side is
+    // a list nobody had estimated.
+    const entries = scopeDiffEntries(
+      [
+        captured("a", { estimatedMinutes: -120 }),
+        captured("b", { estimatedMinutes: 120 }),
+      ],
+      [
+        live("a", { estimatedMinutes: -120 }),
+        live("b", { estimatedMinutes: 120 }),
+      ],
+    );
+
+    expect(summariseScopeDiff(entries, 0, 0)).toMatchObject({
+      estimatedMinutesBefore: 0,
+      estimatedMinutesAfter: 0,
+      negativeEstimateCountBefore: 1,
+      negativeEstimateCountAfter: 1,
+    });
+  });
+
+  it("counts a zero as unsized rather than as negative", () => {
+    const entries = scopeDiffEntries(
+      [captured("a", { estimatedMinutes: 0 })],
+      [live("a", { estimatedMinutes: 0 })],
+    );
+
+    expect(summariseScopeDiff(entries, 0, 0)).toMatchObject({
+      negativeEstimateCountBefore: 0,
+      negativeEstimateCountAfter: 0,
+    });
+  });
+});
+
 describe("diffScope", () => {
   it("hands back the rows and the totals of one comparison", () => {
     const diff = diffScope(
