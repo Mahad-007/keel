@@ -102,6 +102,54 @@ describe("snapshotSizeLabel", () => {
       }),
     ).toBe("nothing agreed");
   });
+
+  it("will not print a total that a negative line cancelled out", () => {
+    // Both lines are sized; the sum is nought. "none estimated" and "0m" are
+    // both false, which is why the label says neither.
+    expect(
+      snapshotSizeLabel({
+        lineCount: 2,
+        estimatedMinutes: 0,
+        unestimatedCount: 0,
+        negativeEstimateCount: 1,
+      }),
+    ).toBe("2 deliverables, estimates do not add up");
+  });
+
+  it("will not print a total below zero", () => {
+    expect(
+      snapshotSizeLabel({
+        lineCount: 2,
+        estimatedMinutes: -60,
+        unestimatedCount: 0,
+        negativeEstimateCount: 1,
+      }),
+    ).toBe("2 deliverables, estimates do not add up");
+  });
+
+  it("names the problem rather than the unsized lines beside it", () => {
+    // A snapshot can hold both kinds of bad line at once. The negative one is
+    // the stronger claim about the total, so it is what gets said.
+    expect(
+      snapshotSizeLabel({
+        lineCount: 3,
+        estimatedMinutes: 0,
+        unestimatedCount: 1,
+        negativeEstimateCount: 1,
+      }),
+    ).toBe("3 deliverables, estimates do not add up");
+  });
+
+  it("still counts the lines, which is the figure that stays true", () => {
+    expect(
+      snapshotSizeLabel({
+        lineCount: 1,
+        estimatedMinutes: -120,
+        unestimatedCount: 0,
+        negativeEstimateCount: 1,
+      }),
+    ).toBe("1 deliverable, estimates do not add up");
+  });
 });
 
 describe("snapshotTakenLabel", () => {
