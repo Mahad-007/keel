@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { createClient } from "@/lib/data/clients";
@@ -15,6 +16,7 @@ import {
   listSnapshotLines,
 } from "@/lib/data/scope-snapshots";
 import type { Database } from "@/lib/db";
+import { deliverables } from "@/lib/db/schema";
 import { createTestDb } from "@/lib/db/testing";
 
 import { describeScopeDiff } from "./describe";
@@ -225,5 +227,27 @@ describe("the figures the snapshot list reports", () => {
       negativeEstimateCount: summarised.negativeEstimateCount,
     });
     expect(summarised.unestimatedCount).toBe(1);
+  });
+
+  it("agrees when a captured line was hand-edited below zero", async () => {
+    // The form refuses a negative estimate, so this is the only way such a
+    // row exists — and a snapshot copies it rather than repairing it.
+    await db
+      .update(deliverables)
+      .set({ estimatedMinutes: -120 })
+      .where(eq(deliverables.id, agreed["Old blog import"]));
+    await captureScopeSnapshot(projectId, {}, db);
+
+    const [summarised] = await listScopeSnapshots(projectId, db);
+    const lines = await listSnapshotLines(summarised.id, db);
+
+    expect(snapshotSize(lines)).toEqual({
+      lineCount: summarised.lineCount,
+      estimatedMinutes: summarised.estimatedMinutes,
+      unestimatedCount: summarised.unestimatedCount,
+      negativeEstimateCount: summarised.negativeEstimateCount,
+    });
+    expect(summarised.negativeEstimateCount).toBe(1);
+    expect(summarised.unestimatedCount).toBe(0);
   });
 });
