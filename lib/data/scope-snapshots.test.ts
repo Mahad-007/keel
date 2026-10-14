@@ -330,6 +330,46 @@ describe("listScopeSnapshots", () => {
     const [snapshot] = await listScopeSnapshots(projectId, db);
     expect(snapshot.estimatedMinutes).toBe(420);
   });
+
+  it("counts the negative lines the total cannot be asked about", async () => {
+    await createScopeSnapshot(
+      {
+        projectId,
+        contractValueCents: 0,
+        lines: [
+          { ...LINES[0], estimatedMinutes: 120 },
+          { ...LINES[1], estimatedMinutes: -120 },
+        ],
+      },
+      db,
+    );
+
+    // The pair cancel out, so the total alone says the snapshot was never
+    // estimated. The count is what tells the picker otherwise.
+    const [snapshot] = await listScopeSnapshots(projectId, db);
+    expect(snapshot).toMatchObject({
+      estimatedMinutes: 0,
+      unestimatedCount: 0,
+      negativeEstimateCount: 1,
+    });
+  });
+
+  it("counts a zero as unsized rather than as negative", async () => {
+    await createScopeSnapshot(
+      {
+        projectId,
+        contractValueCents: 0,
+        lines: [LINES[0], { ...LINES[1], estimatedMinutes: 0 }],
+      },
+      db,
+    );
+
+    const [snapshot] = await listScopeSnapshots(projectId, db);
+    expect(snapshot).toMatchObject({
+      unestimatedCount: 1,
+      negativeEstimateCount: 0,
+    });
+  });
 });
 
 describe("captureScopeSnapshot", () => {
