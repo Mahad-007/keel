@@ -153,6 +153,27 @@ export function describeLineChanges(
 }
 
 /**
+ * Whether one side's total of zero means what the sentence below takes it to
+ * mean: a scope list nobody had sized.
+ *
+ * A total of nought minutes has two causes and they read nothing alike. One is
+ * a list with no estimates on it, which is the reading every "nothing was
+ * estimated" sentence in this file depends on. The other is a hand-edited
+ * negative line cancelling a positive one — two deliverables sized at minus
+ * two hours and plus two — where the list is estimated, the total is simply
+ * not the sum of the work.
+ *
+ * Asked per side, because the sides are two lists at two moments: a bad row
+ * can be captured and fixed since, or written since. Where it is true, the
+ * figures go back to being plain arithmetic and the sentence above them says
+ * so — the same division the scope panel makes between its figures and
+ * `describeEstimateProblem`.
+ */
+function sideIsUnsized(minutes: number, negativeCount: number): boolean {
+  return minutes === 0 && negativeCount === 0;
+}
+
+/**
  * What the scope list's estimate did, as a sentence.
  *
  * The movement and both ends of it, because a movement on its own is not a
@@ -175,6 +196,14 @@ export function describeLineChanges(
 export function describeEstimateMovement(summary: ScopeDiffSummary): string {
   const before = hoursPhrase(estimatedHours(summary.estimatedMinutesBefore));
   const after = hoursPhrase(estimatedHours(summary.estimatedMinutesAfter));
+  const beforeUnsized = sideIsUnsized(
+    summary.estimatedMinutesBefore,
+    summary.negativeEstimateCountBefore,
+  );
+  const afterUnsized = sideIsUnsized(
+    summary.estimatedMinutesAfter,
+    summary.negativeEstimateCountAfter,
+  );
 
   /*
     Asked before the delta, because a delta of zero between two zeroes is not
@@ -182,19 +211,16 @@ export function describeEstimateMovement(summary: ScopeDiffSummary): string {
     either side. "Unchanged, at 0 hours" would state the figure as a fact,
     which is the one reading this file exists to prevent.
   */
-  if (
-    summary.estimatedMinutesBefore === 0 &&
-    summary.estimatedMinutesAfter === 0
-  ) {
+  if (beforeUnsized && afterUnsized) {
     return "Nothing was estimated when the snapshot was taken, and nothing is estimated now.";
   }
   if (summary.estimatedMinutesDelta === 0) {
     return `The estimate is unchanged, at ${after}.`;
   }
-  if (summary.estimatedMinutesBefore === 0) {
+  if (beforeUnsized) {
     return `Nothing was estimated when the snapshot was taken; the scope list now comes to ${after}.`;
   }
-  if (summary.estimatedMinutesAfter === 0) {
+  if (afterUnsized) {
     return `Nothing is estimated now, where the snapshot came to ${before}.`;
   }
 
