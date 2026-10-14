@@ -19,7 +19,7 @@ import type { Database } from "@/lib/db";
 import { deliverables } from "@/lib/db/schema";
 import { createTestDb } from "@/lib/db/testing";
 
-import { describeScopeDiff } from "./describe";
+import { describeDiffEstimateProblem, describeScopeDiff } from "./describe";
 import { diffScope } from "./diff";
 import { snapshotSize } from "./summary";
 
@@ -178,6 +178,33 @@ describe("a scope list recorded and then edited", () => {
     expect(sentence).toContain(
       "The contract value is unchanged, at $12,000.00",
     );
+  });
+
+  it("warns about a bad row written since, and names the scope list", async () => {
+    await db
+      .update(deliverables)
+      .set({ estimatedMinutes: -120 })
+      .where(eq(deliverables.id, agreed["Old blog import"]));
+
+    const diff = await compare();
+
+    // The snapshot caught the line at six hours; the row says minus two now.
+    expect(diff.summary).toMatchObject({
+      negativeEstimateCountBefore: 0,
+      negativeEstimateCountAfter: 1,
+    });
+    expect(describeDiffEstimateProblem(diff.summary)).toContain(
+      "the scope list now holds 1 deliverable with a negative estimate",
+    );
+  });
+
+  it("says nothing about estimates that add up, which is the usual case", async () => {
+    await createDeliverable(
+      { projectId, title: "Analytics", estimatedMinutes: 240 },
+      db,
+    );
+
+    expect(describeDiffEstimateProblem((await compare()).summary)).toBe(null);
   });
 
   it("reports a price rise against the scope it was agreed for", async () => {
