@@ -162,7 +162,11 @@ export function isWholeMinutes(value: number): boolean {
  * an unreadable number is not worth a table nobody can read.
  */
 export function recordedMinutes(value: number, field: string): number {
-  if (!Number.isSafeInteger(value)) {
+  // Through the predicate rather than a second `isSafeInteger` written here.
+  // The pair exists so the two cannot drift, which two spellings of one rule
+  // would undo — and the predicate is declared below because a caller asks it
+  // before the write, where this throws during one.
+  if (!isRecordableMinutes(value)) {
     throw new Error(`${field} must be whole minutes, got ${value}`);
   }
   return value;
