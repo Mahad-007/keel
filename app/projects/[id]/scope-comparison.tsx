@@ -1,4 +1,6 @@
+import { CaveatNote } from "@/components/form";
 import {
+  describeDiffEstimateProblem,
   describeScopeDiff,
   describeUnchangedLines,
 } from "@/lib/snapshots/describe";
@@ -33,12 +35,21 @@ export function ScopeComparison({
 }) {
   const moved = movedScopeLines(diff.entries);
   const unchanged = describeUnchangedLines(diff.summary);
+  const problem = describeDiffEstimateProblem(diff.summary);
 
   return (
     <div className="mt-4">
       <h4 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
         Changes since {snapshotTakenLabel(snapshot)}
       </h4>
+      {/*
+        Above the paragraph, because it changes how every figure in it is read
+        and a caveat found underneath them arrives too late — the same place,
+        and the same colour, the scope summary puts its own.
+      */}
+      {problem === null ? null : (
+        <CaveatNote className="mt-2">{problem}</CaveatNote>
+      )}
       <p className="mt-1 max-w-prose text-sm leading-6 text-zinc-700 dark:text-zinc-300">
         {describeScopeDiff(diff.summary)}
       </p>
