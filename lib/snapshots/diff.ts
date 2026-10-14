@@ -43,9 +43,12 @@ import type { CapturedScopeLine, SnapshotLineDraft } from "./capture";
  * makes the other three readable, and a comparison that dropped them could
  * only say how many things were wrong.
  *
- * The order is the order they are worth reading in, which is also the order a
- * table groups them under: what is new, what is gone, what moved, what stood
- * still.
+ * The order is the order they are worth reading in: what is new, what is gone,
+ * what moved, what stood still. It is not the order the table renders in —
+ * `scopeDiffEntries` keeps the live scope list's own order and appends the
+ * dropped lines, because a comparison read beside the list above it has to
+ * run the same way down the page. This order is for anything that reports the
+ * kinds as a set, like the counts in a summary.
  */
 export const SCOPE_CHANGE_KINDS = [
   "added",

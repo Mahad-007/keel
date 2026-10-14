@@ -169,8 +169,15 @@ export async function getScopeSnapshot(
  * One snapshot's lines, in the order they were agreed.
  *
  * Scoped to a snapshot rather than listing the table, because that is the only
- * way they are ever read — and the index covers both halves of the query, so
- * they come back without a sort.
+ * way they are ever read, which is also what the index is on: the planner
+ * searches it for the snapshot and takes the positions in order from it.
+ *
+ * Not sort-free, though, and the claim here used to say it was. `IN_ORDER`'s
+ * tie-break on the id is not part of the index, so SQLite reports `USE TEMP
+ * B-TREE FOR RIGHT PART OF ORDER BY` — a sort over one snapshot's lines, to
+ * put in order the rows whose positions are equal. That is the price of a
+ * record that reads the same way twice, and it is paid per snapshot read
+ * rather than over the table.
  */
 export async function listSnapshotLines(
   snapshotId: string,
