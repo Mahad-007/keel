@@ -1,3 +1,5 @@
+import { CaveatNote } from "@/components/form";
+
 import type { ScopeSummary } from "@/lib/scope";
 import {
   describeEstimateProblem,
@@ -52,9 +54,7 @@ export function ScopeSummaryPanel({ summary }: { summary: ScopeSummary }) {
         numbers at face value until the row behind them is fixed.
       */}
       {problem === null ? null : (
-        <p className="mt-2 max-w-prose rounded border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-          {problem}
-        </p>
+        <CaveatNote className="mt-2">{problem}</CaveatNote>
       )}
       <dl className="mt-2 text-sm">
         {scopeSummaryFigures(summary).map((figure) => (

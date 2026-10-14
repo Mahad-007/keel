@@ -8,6 +8,7 @@
  */
 
 export { AlertNote } from "./alert-note";
+export { CaveatNote } from "./caveat-note";
 export { Field, type FieldProps } from "./field";
 export { FieldError } from "./field-error";
 export { FieldHint } from "./field-hint";
