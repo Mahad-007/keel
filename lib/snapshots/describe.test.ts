@@ -250,6 +250,70 @@ describe("describeEstimateMovement", () => {
   });
 });
 
+describe("describeEstimateMovement with a negative line on a side", () => {
+  it("does not call a cancelled snapshot total an unestimated list", () => {
+    // Minus two hours against plus two: every line is sized and the total is
+    // nought. Saying nothing was estimated would be false about both sides.
+    const sentence = describeEstimateMovement(
+      summary({
+        estimatedMinutesBefore: 0,
+        estimatedMinutesAfter: 0,
+        negativeEstimateCountBefore: 1,
+        negativeEstimateCountAfter: 1,
+      }),
+    );
+
+    expect(sentence).not.toContain("Nothing was estimated");
+    expect(sentence).toBe("The estimate is unchanged, at 0 hours.");
+  });
+
+  it("reads the movement off a cancelled snapshot as plain arithmetic", () => {
+    expect(
+      describeEstimateMovement(
+        summary({
+          estimatedMinutesBefore: 0,
+          estimatedMinutesAfter: 480,
+          estimatedMinutesDelta: 480,
+          estimatedHoursDelta: 8,
+          negativeEstimateCountBefore: 1,
+        }),
+      ),
+    ).toBe("The estimate is up 8 hours, from 0 hours to 8 hours.");
+  });
+
+  it("does not say nothing is estimated now when the total cancels out", () => {
+    expect(
+      describeEstimateMovement(
+        summary({
+          estimatedMinutesBefore: 480,
+          estimatedMinutesAfter: 0,
+          estimatedMinutesDelta: -480,
+          estimatedHoursDelta: -8,
+          negativeEstimateCountAfter: 2,
+        }),
+      ),
+    ).toBe("The estimate is down 8 hours, from 8 hours to 0 hours.");
+  });
+
+  it("still reads an unsized side as unsized when the bad line is the other", () => {
+    // The guard is per side: a snapshot nobody had estimated reads the same
+    // whether or not the list since has a hand-edited row in it.
+    expect(
+      describeEstimateMovement(
+        summary({
+          estimatedMinutesBefore: 0,
+          estimatedMinutesAfter: 420,
+          estimatedMinutesDelta: 420,
+          estimatedHoursDelta: 7,
+          negativeEstimateCountAfter: 1,
+        }),
+      ),
+    ).toBe(
+      "Nothing was estimated when the snapshot was taken; the scope list now comes to 7 hours.",
+    );
+  });
+});
+
 describe("describeContractMovement", () => {
   it("says the price is unchanged, which is the point of recording it", () => {
     expect(
