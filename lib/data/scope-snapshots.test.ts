@@ -13,7 +13,6 @@ import {
   captureScopeSnapshot,
   createScopeSnapshot,
   latestScopeSnapshot,
-  getScopeSnapshot,
   listScopeSnapshots,
   listSnapshotLines,
 } from "./scope-snapshots";
@@ -191,21 +190,6 @@ describe("createScopeSnapshot recording a hand-edited row", () => {
 
     const [line] = await listSnapshotLines(snapshot.id, db);
     expect(line.estimatedMinutes).toBe(-120);
-  });
-});
-
-describe("getScopeSnapshot", () => {
-  it("reads a snapshot back by id", async () => {
-    const written = await createScopeSnapshot(
-      { projectId, label: "At signing", contractValueCents: 0, lines: LINES },
-      db,
-    );
-
-    expect(await getScopeSnapshot(written.id, db)).toEqual(written);
-  });
-
-  it("answers null for an id nothing was written under", async () => {
-    expect(await getScopeSnapshot("snp_nope", db)).toBeNull();
   });
 });
 

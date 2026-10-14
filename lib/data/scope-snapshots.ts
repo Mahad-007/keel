@@ -176,18 +176,16 @@ const IN_ORDER = [
   asc(scopeSnapshotLines.id),
 ] as const;
 
-/** One snapshot by id, or null if there is no snapshot with that id. */
-export async function getScopeSnapshot(
-  id: string,
-  database: Database = db,
-): Promise<ScopeSnapshot | null> {
-  const [row] = await database
-    .select()
-    .from(scopeSnapshots)
-    .where(eq(scopeSnapshots.id, id))
-    .limit(1);
-  return row ?? null;
-}
+/*
+  There is deliberately no read of one snapshot by its id alone.
+
+  Nothing needs one: the scope tab reads `listScopeSnapshots` for the picker
+  and resolves `?snapshot=` against that list, and the capture reads
+  `latestScopeSnapshot`. A by-id read is also the shape that invites the bug
+  the resolution exists to prevent — a caller handed an id from a URL, reading
+  a row without establishing that it belongs to the project being looked at.
+  Added back when something needs it, with the project in the predicate.
+*/
 
 /**
  * One snapshot's lines, in the order they were agreed.
