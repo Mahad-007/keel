@@ -78,6 +78,24 @@ export function deliverablesPhrase(count: number): string {
 }
 
 /**
+ * The same count inside a sentence somebody is told, where one is a word.
+ *
+ * "Recorded a snapshot of one deliverable" rather than "of 1 deliverable",
+ * because a digit in the middle of a sentence reads as a figure being quoted
+ * and these sentences are being spoken to the reader. Above one the digits
+ * win: "of nineteen deliverables" is a sentence nobody writes.
+ *
+ * Beside `deliverablesPhrase` rather than inside it, because the choice is
+ * about where the phrase is going rather than about the count. A figure in a
+ * column and a label in a picker want the digit at every size, so the two
+ * cannot be the same function — but the noun, and the point at which it turns
+ * plural, had better be the same rule, and that is what this shares.
+ */
+export function deliverablesInWords(count: number): string {
+  return count === 1 ? "one deliverable" : `${count} deliverables`;
+}
+
+/**
  * A share of the estimate as a percentage to read.
  *
  * Whole percent, because the share is derived from estimates and a figure of

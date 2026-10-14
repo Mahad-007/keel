@@ -14,6 +14,7 @@ import {
   remainingFigure,
   describeDelivered,
   estimatedFigure,
+  deliverablesInWords,
   deliverablesPhrase,
   describeUnestimated,
   formatSharePercent,
@@ -74,6 +75,20 @@ describe("deliverablesPhrase", () => {
 
   it("counts an empty list as a plural none", () => {
     expect(deliverablesPhrase(0)).toBe("0 deliverables");
+  });
+});
+
+describe("deliverablesInWords", () => {
+  it("spells out a count of one, which is read aloud in a sentence", () => {
+    expect(deliverablesInWords(1)).toBe("one deliverable");
+  });
+
+  it("leaves a count above one as a digit", () => {
+    expect(deliverablesInWords(9)).toBe("9 deliverables");
+  });
+
+  it("agrees the noun with a count of none", () => {
+    expect(deliverablesInWords(0)).toBe("0 deliverables");
   });
 });
 
