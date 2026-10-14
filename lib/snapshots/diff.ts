@@ -47,8 +47,14 @@ import type { CapturedScopeLine, SnapshotLineDraft } from "./capture";
  * what moved, what stood still. It is not the order the table renders in —
  * `scopeDiffEntries` keeps the live scope list's own order and appends the
  * dropped lines, because a comparison read beside the list above it has to
- * run the same way down the page. This order is for anything that reports the
- * kinds as a set, like the counts in a summary.
+ * run the same way down the page.
+ *
+ * The list is here to be walked rather than read in order, which today means
+ * one thing: `SCOPE_CHANGE_LABELS` is checked against it, so a kind added
+ * without a word for a reader fails a test as well as the compiler. Nothing in
+ * the summary iterates it — the counts are asked for one kind at a time — and
+ * claiming otherwise, as this comment did, made the order sound load-bearing
+ * where only the membership is.
  */
 export const SCOPE_CHANGE_KINDS = [
   "added",
