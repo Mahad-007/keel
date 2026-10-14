@@ -1,4 +1,5 @@
 import { readFields } from "@/lib/forms/form-data";
+import { deliverablesInWords } from "@/lib/projects/scope-summary";
 import {
   collect,
   type FieldErrors,
@@ -224,9 +225,7 @@ export function takenSnapshotNotice(state: TakeSnapshotState): string | null {
   if (state.taken === null) return null;
 
   const { label, lineCount } = state.taken;
-  const lines =
-    lineCount === 1 ? "one deliverable" : `${lineCount} deliverables`;
-  const of = `a snapshot of this project's ${lines}`;
+  const of = `a snapshot of this project's ${deliverablesInWords(lineCount)}`;
   return label === null
     ? `Recorded ${of}, dated today.`
     : `Recorded ${of} as “${label}”.`;

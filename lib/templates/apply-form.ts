@@ -1,4 +1,5 @@
 import { readFields } from "@/lib/forms/form-data";
+import { deliverablesInWords } from "@/lib/projects/scope-summary";
 import { requiredChoice } from "@/lib/forms/choice";
 import {
   collect,
@@ -175,9 +176,6 @@ export function appliedTemplateNotice(
 ): string | null {
   if (state.applied === null) return null;
   const { name, deliverableIds } = state.applied;
-  const lines =
-    deliverableIds.length === 1
-      ? "one deliverable"
-      : `${deliverableIds.length} deliverables`;
+  const lines = deliverablesInWords(deliverableIds.length);
   return `Added ${lines} from “${name}” to the end of the scope list.`;
 }

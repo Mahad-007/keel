@@ -1,4 +1,5 @@
 import { readFields } from "@/lib/forms/form-data";
+import { deliverablesInWords } from "@/lib/projects/scope-summary";
 import {
   collect,
   type FieldErrors,
@@ -246,7 +247,5 @@ export const SAVE_NO_ANSWER =
 export function savedTemplateNotice(state: SaveTemplateState): string | null {
   if (state.saved === null) return null;
   const { name, lineCount } = state.saved;
-  const lines =
-    lineCount === 1 ? "one deliverable" : `${lineCount} deliverables`;
-  return `Saved “${name}” as a template, with ${lines} on it.`;
+  return `Saved “${name}” as a template, with ${deliverablesInWords(lineCount)} on it.`;
 }
