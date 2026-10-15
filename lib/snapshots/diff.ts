@@ -25,6 +25,13 @@ import type { CapturedScopeLine, SnapshotLineDraft } from "./capture";
  *     the order it is read in — and positions move on their own, because
  *     deleting a line renumbers the ones after it. Reporting that would fill
  *     the table with rows nobody touched.
+ *
+ *     Which is right for a comparison and wrong for the capture, because a
+ *     snapshot records the order. `hasChanges` is therefore not the whole
+ *     test of whether a press would record anything new, and
+ *     `sameRecordedOrder` is the rest of it — without that, a reordered scope
+ *     list is refused as saying nothing, by this function's silence about the
+ *     one field it does not read.
  *   - **Timestamps.** `updatedAt` moves when a line is edited, which is
  *     exactly what the field comparisons already say, and it moves on a line
  *     whose edit put the old value back.

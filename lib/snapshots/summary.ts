@@ -135,9 +135,15 @@ export function snapshotSizeLabel(size: SnapshotSize): string {
  * The label leads when there is one, because that is what somebody chose to
  * call the moment and it is more use than the date: "Signed proposal" says why
  * the snapshot exists where "Oct 13" says only that it does. The date follows
- * it in either case, because it is the thing that cannot be ambiguous — two
- * snapshots may share a label, and the one taken this morning is not the one
- * taken in March.
+ * it in either case, because two snapshots may share a label and the one taken
+ * this morning is not the one taken in March.
+ *
+ * It is not unambiguous, though, and this used to claim it was: two unlabelled
+ * snapshots taken on one day read identically here, and a label is optional,
+ * so that is the default path rather than a corner. What would settle it is a
+ * time of day, which nothing in this app renders and which is a decision about
+ * timezones rather than about snapshots — `NOTES.md` has the argument and
+ * Day 098 is where date formats are decided.
  *
  * `formatDate` rather than the stored string, and a date rather than a time.
  * The hour a snapshot was taken is not a fact anybody argues about, and a
