@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { estimatedHours } from "@/lib/scope";
+
 import type { CapturedScopeLine, SnapshotLineDraft } from "./capture";
 import {
   diffScope,
@@ -23,15 +25,17 @@ describe("scopeFieldChanges", () => {
   });
 
   it("reports a retitled line with both titles", () => {
-    expect(scopeFieldChanges(LINE, { ...LINE, title: "Discovery phase" })).toEqual(
-      [{ field: "title", before: "Discovery", after: "Discovery phase" }],
-    );
+    expect(
+      scopeFieldChanges(LINE, { ...LINE, title: "Discovery phase" }),
+    ).toEqual([
+      { field: "title", before: "Discovery", after: "Discovery phase" },
+    ]);
   });
 
   it("reports an estimate that moved, in minutes", () => {
-    expect(
-      scopeFieldChanges(LINE, { ...LINE, estimatedMinutes: 960 }),
-    ).toEqual([{ field: "estimate", before: 480, after: 960 }]);
+    expect(scopeFieldChanges(LINE, { ...LINE, estimatedMinutes: 960 })).toEqual(
+      [{ field: "estimate", before: 480, after: 960 }],
+    );
   });
 
   it("reports a line that has since been sized", () => {
@@ -50,17 +54,13 @@ describe("scopeFieldChanges", () => {
   });
 
   it("reports a description that was added", () => {
-    expect(
-      scopeFieldChanges({ ...LINE, description: null }, LINE),
-    ).toEqual([
+    expect(scopeFieldChanges({ ...LINE, description: null }, LINE)).toEqual([
       { field: "description", before: null, after: "Two workshops." },
     ]);
   });
 
   it("reports a description that was taken away", () => {
-    expect(
-      scopeFieldChanges(LINE, { ...LINE, description: null }),
-    ).toEqual([
+    expect(scopeFieldChanges(LINE, { ...LINE, description: null })).toEqual([
       { field: "description", before: "Two workshops.", after: null },
     ]);
   });
@@ -93,9 +93,9 @@ describe("scopeFieldChanges", () => {
   });
 
   it("compares a status the app does not recognise rather than crashing", () => {
-    expect(
-      scopeFieldChanges({ ...LINE, status: "blocked" }, LINE),
-    ).toEqual([{ field: "status", before: "blocked", after: "pending" }]);
+    expect(scopeFieldChanges({ ...LINE, status: "blocked" }, LINE)).toEqual([
+      { field: "status", before: "blocked", after: "pending" },
+    ]);
   });
 });
 
@@ -148,7 +148,10 @@ describe("scopeDiffEntries", () => {
   });
 
   it("calls a line only in the snapshot removed, and keeps what it said", () => {
-    const line = captured("a", { title: "Migrate the old posts", estimatedMinutes: 360 });
+    const line = captured("a", {
+      title: "Migrate the old posts",
+      estimatedMinutes: 360,
+    });
     const [entry] = scopeDiffEntries([line], []);
 
     expect(entry).toMatchObject({ deliverableId: "a", kind: "removed" });
@@ -300,6 +303,27 @@ describe("summariseScopeDiff", () => {
       estimatedMinutesDelta: 240,
       estimatedHoursDelta: 4,
     });
+  });
+
+  /*
+    The hours in the summary are read in one sentence beside both ends of the
+    movement, so they have to be the difference of the figures that sentence
+    prints. Seven minutes growing to fourteen is 0.12 hours of true movement
+    and 0.11 of readable movement, and the readable one is what reconciles.
+  */
+  it("reads the movement as the difference of the two rounded ends", () => {
+    const entries = scopeDiffEntries(
+      [captured("a", { estimatedMinutes: 7 })],
+      [live("a", { estimatedMinutes: 14 })],
+    );
+    const summary = summariseScopeDiff(entries, 0, 0);
+
+    expect(summary).toMatchObject({
+      estimatedMinutesDelta: 7,
+      estimatedHoursDelta: 0.11,
+    });
+    expect(estimatedHours(summary.estimatedMinutesBefore)).toBe(0.12);
+    expect(estimatedHours(summary.estimatedMinutesAfter)).toBe(0.23);
   });
 
   it("reports scope given up as a negative movement", () => {
