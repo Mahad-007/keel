@@ -33,7 +33,7 @@ as an atomic commit and what does not.
 - [x] **Day 017** — Deliverable templates: save a set of deliverables from a project, apply them to a new one. Table, data layer, and UI.
 - [x] **Day 018** — Project duplication, carrying deliverables and rates but not time or invoices, with tests asserting exactly what is and is not copied.
 - [x] **Day 019** — Bulk deliverable import from pasted text, one per line, with a preview step before committing.
-- [ ] **Day 020** — Scope diffing: snapshot a project's scope at a point in time and show what changed since. Table, comparison function, and UI.
+- [x] **Day 020** — Scope diffing: snapshot a project's scope at a point in time and show what changed since. Table, comparison function, and UI.
 
 ## Phase 3 — Time (21–30)
 
