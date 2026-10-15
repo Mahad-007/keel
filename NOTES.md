@@ -215,6 +215,29 @@ checked against a fresh build and are unchanged at ten and eleven.
   silently redirect a link to a snapshot older than the cut rather than refuse
   it.
 
+- **A reorder is recordable but not reportable.** The audit made a reordered
+  scope list something a snapshot can record; it did not make the comparison
+  say so. `diffScope` leaves position out on purpose — a reorder is not a
+  change to what was promised, and positions move on their own when a line is
+  deleted, so reporting them would fill the table with rows nobody touched.
+  The consequence is a snapshot that differs from the live list only in order,
+  whose comparison reads "Nothing has changed since this snapshot". That
+  sentence names the three things it checked, so it does not lie, but a reader
+  who has just reordered the list may expect a fourth. Whether the order is
+  worth a row of its own is a question for the day that has a reason to ask
+  it, not for an audit.
+
+- **Two snapshots can read identically in the picker.** A line is the label
+  and the date, and the label is optional, so taking two unlabelled snapshots
+  on one day gives two links reading "Oct 15" with the same size beside them —
+  and `snapshotTakenLabel` claims the date is "the thing that cannot be
+  ambiguous", which is wrong within a day. Nothing in the app renders a time
+  of day, and adding one here is a decision about timezones rather than about
+  snapshots: the stored string is UTC, `formatDate` deliberately reads the
+  calendar date off the front without converting, and a picker showing 09:36
+  for a press made at 11:36 local would be a new kind of wrong. Day 098 sets
+  date formats across every view and is the place to decide it.
+
 - **`npm run lint`** reports seven `no-require-imports` errors in `scripts/*.js`.
   They predate Day 013 and CI runs `npm run verify`, not `npm run lint`, so
   nothing is red because of them.
