@@ -1,5 +1,5 @@
 import {
-  estimatedHours,
+  estimatedHoursMoved,
   negativeEstimateCount,
   totalEstimatedMinutes,
 } from "@/lib/scope";
@@ -321,7 +321,14 @@ export type ScopeDiffSummary = {
   estimatedMinutesAfter: number;
   /** The movement, in minutes. Negative when scope was given up. */
   estimatedMinutesDelta: number;
-  /** The same movement in hours, for reading. */
+  /**
+   * The same movement in hours, for reading.
+   *
+   * The difference between the two ends as they are rounded for reading,
+   * rather than the movement in minutes rounded once — `estimatedHoursMoved`
+   * says why. The sentence states all three figures, so the one in the middle
+   * has to be the difference of the two beside it.
+   */
   estimatedHoursDelta: number;
   /** What the project was agreed for when the snapshot was taken, in cents. */
   contractValueCentsBefore: number;
@@ -412,7 +419,10 @@ export function summariseScopeDiff(
     estimatedMinutesBefore,
     estimatedMinutesAfter,
     estimatedMinutesDelta,
-    estimatedHoursDelta: estimatedHours(estimatedMinutesDelta),
+    estimatedHoursDelta: estimatedHoursMoved(
+      estimatedMinutesBefore,
+      estimatedMinutesAfter,
+    ),
     contractValueCentsBefore,
     contractValueCentsAfter,
     contractValueCentsDelta,
