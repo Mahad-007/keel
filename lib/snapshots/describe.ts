@@ -217,13 +217,27 @@ export function describeEstimateMovement(summary: ScopeDiffSummary): string {
   );
 
   /*
-    Asked before the delta, because a delta of zero between two zeroes is not
-    an estimate that held steady — it is a scope list nobody has sized, on
-    either side. "Unchanged, at 0 hours" would state the figure as a fact,
-    which is the one reading this file exists to prevent.
+    All three unsized questions are asked before the delta, because a total of
+    nought is not a figure to compare: a delta of zero between two zeroes is
+    not an estimate that held steady, it is a scope list nobody has sized.
+    "Unchanged, at 0 hours" would state the figure as a fact, which is the one
+    reading this file exists to prevent.
+
+    That holds when only one side is the unsized one and the two totals match
+    anyway — a snapshot nobody had estimated, against a scope list whose lines
+    cancel to nought. The fact worth reading is that the snapshot was never
+    sized, not that two figures nobody can use came out equal, so the per-side
+    sentences come first and the delta is asked of two totals that mean
+    something.
   */
   if (beforeUnsized && afterUnsized) {
     return "Nothing was estimated when the snapshot was taken, and nothing is estimated now.";
+  }
+  if (beforeUnsized) {
+    return `Nothing was estimated when the snapshot was taken; the scope list now comes to ${after}.`;
+  }
+  if (afterUnsized) {
+    return `Nothing is estimated now, where the snapshot came to ${before}.`;
   }
   if (summary.estimatedMinutesDelta === 0) {
     /*
@@ -246,12 +260,6 @@ export function describeEstimateMovement(summary: ScopeDiffSummary): string {
       return `Both sides come to ${after}. With a line estimated below zero in the figures, that is not the same as the estimate having held steady.`;
     }
     return `The estimate is unchanged, at ${after}.`;
-  }
-  if (beforeUnsized) {
-    return `Nothing was estimated when the snapshot was taken; the scope list now comes to ${after}.`;
-  }
-  if (afterUnsized) {
-    return `Nothing is estimated now, where the snapshot came to ${before}.`;
   }
 
   const moved = hoursPhrase(Math.abs(summary.estimatedHoursDelta));

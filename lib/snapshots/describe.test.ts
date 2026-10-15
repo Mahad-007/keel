@@ -298,9 +298,27 @@ describe("describeEstimateMovement with a negative line on a side", () => {
     );
   });
 
-  it("says so when a matching total is cancelled on the snapshot side only", () => {
-    // The snapshot held minus two hours against plus two; the scope list now
-    // holds nothing at all. The totals match, and the lists do not.
+  it("still says the snapshot was unsized when the lists happen to match", () => {
+    /*
+      The snapshot had nothing estimated; the scope list now holds minus two
+      hours against plus two. Both total nought, so the totals match — but the
+      fact about the snapshot side is that nobody had sized it, and that is
+      worth more to a reader than the coincidence.
+    */
+    expect(
+      describeEstimateMovement(
+        summary({
+          estimatedMinutesBefore: 0,
+          estimatedMinutesAfter: 0,
+          negativeEstimateCountAfter: 1,
+        }),
+      ),
+    ).toBe(
+      "Nothing was estimated when the snapshot was taken; the scope list now comes to 0 hours.",
+    );
+  });
+
+  it("still says nothing is estimated now when the lists happen to match", () => {
     expect(
       describeEstimateMovement(
         summary({
@@ -309,9 +327,7 @@ describe("describeEstimateMovement with a negative line on a side", () => {
           negativeEstimateCountBefore: 1,
         }),
       ),
-    ).toBe(
-      "Both sides come to 0 hours. With a line estimated below zero in the figures, that is not the same as the estimate having held steady.",
-    );
+    ).toBe("Nothing is estimated now, where the snapshot came to 0 hours.");
   });
 
   it("will not call a matching total steady above a figure that is not nought", () => {
