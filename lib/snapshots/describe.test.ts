@@ -291,6 +291,50 @@ describe("describeEstimateMovement with a negative line on a side", () => {
     );
   });
 
+  it("says so when a matching total is cancelled on the snapshot side only", () => {
+    // The snapshot held minus two hours against plus two; the scope list now
+    // holds nothing at all. The totals match, and the lists do not.
+    expect(
+      describeEstimateMovement(
+        summary({
+          estimatedMinutesBefore: 0,
+          estimatedMinutesAfter: 0,
+          negativeEstimateCountBefore: 1,
+        }),
+      ),
+    ).toBe(
+      "Both sides come to 0 hours, which is not the same as the estimate having held steady: a negative line is cancelling part of the sum.",
+    );
+  });
+
+  it("will not call a matching total steady above a figure that is not nought", () => {
+    // The sum need not cancel to nothing to be the wrong number: a line of
+    // minus two hours inside a total of eight makes the eight unreadable, and
+    // the two sides agreeing on it says nothing about the work.
+    expect(
+      describeEstimateMovement(
+        summary({
+          estimatedMinutesBefore: 480,
+          estimatedMinutesAfter: 480,
+          negativeEstimateCountAfter: 1,
+        }),
+      ),
+    ).toBe(
+      "Both sides come to 8 hours, which is not the same as the estimate having held steady: a negative line is cancelling part of the sum.",
+    );
+  });
+
+  it("still calls a matching total unchanged when neither side has a bad line", () => {
+    expect(
+      describeEstimateMovement(
+        summary({
+          estimatedMinutesBefore: 480,
+          estimatedMinutesAfter: 480,
+        }),
+      ),
+    ).toBe("The estimate is unchanged, at 8 hours.");
+  });
+
   it("reads the movement off a cancelled snapshot as plain arithmetic", () => {
     expect(
       describeEstimateMovement(
