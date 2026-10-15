@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  describeEstimate,
-  UNESTIMATED_LABEL,
-} from "@/lib/deliverables/list";
+import { describeEstimate, UNESTIMATED_LABEL } from "@/lib/deliverables/list";
 import {
   DELIVERABLE_STATUSES,
   type DeliverableStatus,
@@ -16,6 +13,7 @@ import {
   deliveredEstimatedMinutes,
   deliveredShare,
   estimatedHours,
+  estimatedHoursMoved,
   impliedRateCents,
   isDelivered,
   remainingEstimatedMinutes,
@@ -231,9 +229,9 @@ describe("deliveredEstimatedMinutes", () => {
   });
 
   it("counts a delivered line nobody sized as nothing delivered", () => {
-    expect(
-      deliveredEstimatedMinutes([line(0, "done"), line(90, "done")]),
-    ).toBe(90);
+    expect(deliveredEstimatedMinutes([line(0, "done"), line(90, "done")])).toBe(
+      90,
+    );
   });
 });
 
@@ -302,6 +300,78 @@ describe("estimatedHours", () => {
   it("does not hand the page a negative zero to render", () => {
     expect(Object.is(estimatedHours(-0.2), 0)).toBe(true);
     expect(Object.is(estimatedHours(-0), 0)).toBe(true);
+  });
+});
+
+describe("estimatedHoursMoved", () => {
+  it("reports a whole number of hours gained", () => {
+    expect(estimatedHoursMoved(120, 480)).toBe(6);
+  });
+
+  it("keeps the sign of scope given up", () => {
+    expect(estimatedHoursMoved(480, 120)).toBe(-6);
+  });
+
+  it("says nothing moved when neither end did", () => {
+    expect(estimatedHoursMoved(480, 480)).toBe(0);
+  });
+
+  /*
+    The finding this function exists for. Both ends round to hundredths before
+    they are read, so the movement has to be the difference of the figures on
+    the page rather than the rounded difference of the minutes behind them —
+    0.12 here is the true movement and the one that contradicts the sentence.
+  */
+  it("agrees with the two rounded ends it is read between", () => {
+    // 0.23 less 0.12, and not the 0.12 that rounding the seven minutes
+    // between them gives — the figure that made the sentence contradict
+    // itself. Subtracted in binary it is 0.11000000000000001, which is why
+    // the difference is rounded a second time.
+    expect(estimatedHoursMoved(7, 14)).toBe(0.11);
+    expect(estimatedHours(7)).toBe(0.12);
+    expect(estimatedHours(14)).toBe(0.23);
+  });
+
+  it("adds up for every pair of minute totals under two hours", () => {
+    for (let before = 0; before <= 120; before++) {
+      for (let after = 0; after <= 120; after++) {
+        expect(
+          estimatedHours(before) + estimatedHoursMoved(before, after),
+        ).toBeCloseTo(estimatedHours(after), 10);
+      }
+    }
+  });
+
+  it("stays within a hundredth of the movement in minutes", () => {
+    for (let after = 0; after <= 600; after++) {
+      const drift = Math.abs(
+        estimatedHoursMoved(100, after) - estimatedHours(after - 100),
+      );
+      // Rounded before it is compared, because the subtraction that measures
+      // the drift has the same binary noise the function rounds away.
+      expect(Math.round(drift * 10_000) / 10_000).toBeLessThanOrEqual(0.01);
+    }
+  });
+
+  /*
+    A minute is 0.0167 hours, which is more than the 0.01 two roundings can
+    hide — so a movement of one minute can never come back as "no change", and
+    the direction the sentence reads is never contradicted by the figure
+    beside it.
+  */
+  it("never reports a minute of movement as none", () => {
+    for (let before = 0; before <= 600; before++) {
+      expect(estimatedHoursMoved(before, before + 1)).not.toBe(0);
+    }
+  });
+
+  it("writes a movement a shade below zero as zero", () => {
+    expect(estimatedHoursMoved(1, 0)).toBe(-0.02);
+    expect(Object.is(estimatedHoursMoved(0, 0), 0)).toBe(true);
+  });
+
+  it("reads a movement between two negative totals", () => {
+    expect(estimatedHoursMoved(-120, -60)).toBe(1);
   });
 });
 
@@ -434,11 +504,7 @@ describe("impliedRateCents on a contract below zero", () => {
 describe("deliveredCount", () => {
   it("counts the lines marked done", () => {
     expect(
-      deliveredCount([
-        line(60, "done"),
-        line(60, "started"),
-        line(60, "done"),
-      ]),
+      deliveredCount([line(60, "done"), line(60, "started"), line(60, "done")]),
     ).toBe(2);
   });
 
@@ -519,15 +585,11 @@ describe("deliveredShare with no estimate behind it", () => {
   });
 
   it("ignores unsized lines when some of the list is estimated", () => {
-    expect(
-      deliveredShare([line(0, "pending"), line(60, "done")]),
-    ).toBe(1);
+    expect(deliveredShare([line(0, "pending"), line(60, "done")])).toBe(1);
   });
 
   it("has no share when the estimates cancel out to nothing", () => {
-    expect(
-      deliveredShare([line(60, "done"), line(-60, "pending")]),
-    ).toBeNull();
+    expect(deliveredShare([line(60, "done"), line(-60, "pending")])).toBeNull();
   });
 
   it("has no share when the estimates total below zero", () => {
@@ -550,11 +612,7 @@ describe("deliveredShare with no estimate behind it", () => {
 
 describe("summariseScope", () => {
   /** Twelve hours of scope, a third of it delivered, agreed at $4,000. */
-  const LINES = [
-    line(240, "done"),
-    line(180, "started"),
-    line(300, "pending"),
-  ];
+  const LINES = [line(240, "done"), line(180, "started"), line(300, "pending")];
 
   it("summarises an ordinary project", () => {
     expect(summariseScope(LINES, 400_000)).toEqual({
