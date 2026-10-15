@@ -7,7 +7,11 @@ import { createTestDb } from "@/lib/db/testing";
 import type { SnapshotLineDraft } from "@/lib/snapshots/capture";
 
 import { createClient } from "./clients";
-import { createDeliverable, updateDeliverable } from "./deliverables";
+import {
+  createDeliverable,
+  moveDeliverable,
+  updateDeliverable,
+} from "./deliverables";
 import { createProject } from "./projects";
 import {
   captureScopeSnapshot,
@@ -450,6 +454,44 @@ describe("captureScopeSnapshot", () => {
     await updateDeliverable(written.id, { estimatedMinutes: 960 }, db);
 
     expect((await captureScopeSnapshot(projectId, {}, db)).ok).toBe(true);
+  });
+
+  it("records a second snapshot once the lines have been reordered", async () => {
+    await createDeliverable({ projectId, title: "Discovery" }, db);
+    const second = await createDeliverable({ projectId, title: "Build" }, db);
+    const first = await captureScopeSnapshot(projectId, {}, db);
+    expect(first.ok).toBe(true);
+
+    await moveDeliverable(second.id, "up", db);
+
+    /*
+      The comparison does not report a reorder — a position is not a promise —
+      but the snapshot records the order, so this press has something to say
+      that the first snapshot does not. Refusing it would leave the agreed
+      order unrecordable after the first snapshot of a project.
+    */
+    const result = await captureScopeSnapshot(projectId, {}, db);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const lines = await listSnapshotLines(result.snapshot.id, db);
+    expect(lines.map((line) => line.title)).toEqual(["Build", "Discovery"]);
+  });
+
+  it("refuses a third snapshot once the order has been recorded", async () => {
+    await createDeliverable({ projectId, title: "Discovery" }, db);
+    const second = await createDeliverable({ projectId, title: "Build" }, db);
+    await captureScopeSnapshot(projectId, {}, db);
+    await moveDeliverable(second.id, "up", db);
+    await captureScopeSnapshot(projectId, {}, db);
+
+    // Still bounded: the order is one more thing that has to have moved, not
+    // a way round the refusal.
+    expect(await captureScopeSnapshot(projectId, {}, db)).toEqual({
+      ok: false,
+      reason: "unchanged-since",
+    });
+    expect(await listScopeSnapshots(projectId, db)).toHaveLength(2);
   });
 
   it("records a second snapshot once the price has moved", async () => {
