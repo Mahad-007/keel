@@ -95,6 +95,68 @@ also what they do for a dropped connection. Setting a stable
 `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` in deployment would remove the redeploy
 case; nothing in the repo sets one today.
 
+## Day 020 ran twice, for the reason Day 013 did
+
+Day 020 — scope diffing: the two snapshot tables, the comparison function, and
+the scope tab's snapshot controls — was built on 2026-10-13 in 100 commits
+(`919b287..62bb16c`), and pushed: `origin/main` was already at `62bb16c` when
+2026-10-15 started. The box in `ROADMAP.md` was never ticked, so the workflow
+picked Day 020 again, exactly as it did for Day 013.
+
+So 2026-10-15 audited what was there rather than rebuilding it or padding the
+history. `npm run verify` was green on arrival — 94 files, 2006 tests — and the
+milestone was complete: table, comparison function, and UI.
+
+## What the Day 020 audit changed
+
+`/code-review` on `1abae20..HEAD` found four things, and a second review of the
+audit's own diff found three more in the fixes. The substantive ones:
+
+- **A reorder could never be snapshotted.** The capture refuses a press that
+  would record what the last snapshot already says, and it asked `diffScope` —
+  which deliberately does not compare position. But a snapshot *does* record
+  the order, so reordering three deliverables and pressing the button was
+  refused as "nothing has changed", and the agreed order became unrecordable
+  after a project's first snapshot. `sameRecordedOrder` asks the question the
+  comparison cannot: the ids in sequence, not the stored positions, because
+  deleting a line renumbers the ones after it.
+- **The estimate sentence did not add up.** Both ends and the movement between
+  them were each rounded to hundredths of an hour independently, so 7 minutes
+  growing to 14 read "up 0.12 hours, from 0.12 hours to 0.23 hours".
+  `estimatedHoursMoved` takes the difference of the two figures the sentence
+  prints, which costs up to 36 seconds against the true movement and buys a
+  sentence a reader can check. A minute of movement is 0.0167 hours — more
+  than two roundings can hide — so it can never come back as "no change".
+- **Two cancelled sums read as an estimate that held steady.** With a
+  hand-edited negative line on both sides, a delta of zero fell through to
+  "The estimate is unchanged, at 0 hours" above a table listing two estimate
+  changes — the one reading `describe.ts` exists to prevent. It now says the
+  figures hold a line below zero rather than that anything cancelled, because
+  a negative total does not cancel out, and the per-side "nothing was
+  estimated" sentences are asked first so a coincidence of two unusable
+  figures does not pre-empt a fact about one side.
+- **A refusal pointed at a comparison it had not made.** "The comparison below
+  already covers it" is a claim about the page: the comparison on show is
+  whichever snapshot the URL asked for, so a reader who had clicked an older
+  one in the picker was told their answer was in a comparison against
+  something else, possibly listing a dozen changes. The sentence now says what
+  it compared and stops.
+
+The last of those was Day 020's own wording rather than the audit's, which is
+the argument for the second review pass: three of the seven findings were in
+the fixes, and one of those fixes was wrong in a way the first review could not
+have seen.
+
+`/security-review` could not be run as a skill — it diffs against
+`origin/HEAD`, and `origin/main` was already at the day's last commit, so its
+diff was empty. The pass was done by hand over the day's actual surface: the
+press takes its project from an encrypted closure declared in the page, like
+every other write on the tab; the label goes through `optionalText` with the
+limit the input carries; and `?snapshot=` is resolved against the project's own
+list by `chosenSnapshot` before `listSnapshotLines` sees it, so a snapshot id
+from a URL cannot read another project's lines. The capture counts above were
+checked against a fresh build and are unchanged at ten and eleven.
+
 ## Left alone deliberately
 
 - **Day 010's `transitionProjectAction`** is still a bare export of a
