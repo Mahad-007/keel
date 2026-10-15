@@ -80,3 +80,36 @@ export function capturedSnapshotLines(
     status: deliverable.status,
   }));
 }
+
+/**
+ * Whether two recorded scope lists hold the same deliverables in the same
+ * order.
+ *
+ * The order is part of what a snapshot records — the lines are numbered as
+ * they are written, and read back in that order — and it is the one thing
+ * `diffScope` deliberately does not compare. That leaves a question only this
+ * can answer: whether a press would record anything the last snapshot does not
+ * already say. Without it, a scope list whose lines were reordered and nothing
+ * else is refused as unchanged, and the agreed order can never be recorded
+ * again after the first snapshot.
+ *
+ * The ids in sequence, rather than the positions they were stored under.
+ * Deleting a line renumbers the ones after it, so two snapshots can hold 0,1,2
+ * and 0,1,3 over the same promises in the same order — and a comparison of the
+ * numbers would call that a change nobody made. What the record says is which
+ * line comes before which.
+ *
+ * Two lists of different lengths are not in the same order, which is the
+ * answer the one caller wants: a hand-written duplicate row is a snapshot the
+ * capture cannot reproduce, and recording the list as it actually reads is
+ * better than refusing because an unreproducible row matched.
+ */
+export function sameRecordedOrder(
+  before: readonly { readonly deliverableId: string }[],
+  after: readonly { readonly deliverableId: string }[],
+): boolean {
+  if (before.length !== after.length) return false;
+  return before.every(
+    (line, index) => line.deliverableId === after[index].deliverableId,
+  );
+}
