@@ -188,7 +188,7 @@ export const SNAPSHOT_PROBLEMS = {
   missingProject:
     "That project no longer exists, so there is no scope list to record.",
   unchangedSince:
-    "Nothing has changed since the most recent snapshot — the same deliverables, estimated the same, at the same contract value — so there is nothing new to record. The comparison below already covers it.",
+    "Nothing has changed since the most recent snapshot — the same deliverables, in the same order, estimated the same, at the same contract value — so there is nothing new to record. The comparison below already covers it.",
   unrecordableScope:
     "A deliverable on this project has an estimate that is not a whole number of minutes, which a snapshot cannot record. Open that line, give it an estimate in hours, and try again.",
   unrecordableValue:
