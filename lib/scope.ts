@@ -133,9 +133,7 @@ export function isDelivered(line: ScopeLine): boolean {
  * separately is how a scope panel ends up showing a remaining total that does
  * not fit the overall one, and nobody can tell which of the two is wrong.
  */
-export function remainingEstimatedMinutes(
-  lines: readonly ScopeLine[],
-): number {
+export function remainingEstimatedMinutes(lines: readonly ScopeLine[]): number {
   return totalEstimatedMinutes(lines.filter((line) => !isDelivered(line)));
 }
 
@@ -152,9 +150,7 @@ export function remainingEstimatedMinutes(
  * the delivered work cost. Those two differing is the entire subject of
  * Phase 4, and conflating them here would hide it.
  */
-export function deliveredEstimatedMinutes(
-  lines: readonly ScopeLine[],
-): number {
+export function deliveredEstimatedMinutes(lines: readonly ScopeLine[]): number {
   return totalEstimatedMinutes(lines.filter(isDelivered));
 }
 
@@ -385,4 +381,32 @@ export function summariseScope(
     contractValueCents,
     impliedRateCents: impliedRateCents(contractValueCents, estimatedMinutes),
   };
+}
+
+/**
+ * The movement between two minute totals, in the hours both ends are read in.
+ *
+ * Not `estimatedHours` of the difference, which is the same arithmetic in the
+ * wrong order and does not add up on the page. Each end is rounded to
+ * hundredths before it is shown, so rounding the true difference as well
+ * produces three figures that contradict each other: 7 minutes growing to 14
+ * reads "up 0.12 hours, from 0.12 hours to 0.23 hours", and a reader checking
+ * the sentence against itself finds it wrong.
+ *
+ * Taking the difference of the two rounded ends costs up to a hundredth of an
+ * hour — 36 seconds — against the true movement, and buys a sentence that
+ * reconciles. That is the right way round for a figure whose only job is to be
+ * read: the ends are the facts, the movement is the arithmetic between them,
+ * and the arithmetic has to be the one the reader can redo.
+ *
+ * Rounded again after subtracting, because two hundredths subtracted in binary
+ * floating point are not a hundredth — `0.23 - 0.12` is `0.11000000000000001`,
+ * which would print as a figure nobody agreed to.
+ */
+export function estimatedHoursMoved(before: number, after: number): number {
+  return withoutNegativeZero(
+    Math.round(
+      (estimatedHours(after) - estimatedHours(before)) * HOURS_PRECISION,
+    ) / HOURS_PRECISION,
+  );
 }
