@@ -227,17 +227,23 @@ export function describeEstimateMovement(summary: ScopeDiffSummary): string {
   }
   if (summary.estimatedMinutesDelta === 0) {
     /*
-      Two sums that match are not an estimate that held steady when a negative
-      line is cancelling part of one of them: a snapshot of minus two hours
-      against plus two totals nought, and so does a scope list of minus three
-      against plus three — the same figure over a list that has moved by two
-      hours in each direction, with the table below listing both changes.
-      "Unchanged, at 0 hours" is the claim this file exists to not make, and
-      the amber caveat above explains the figures rather than withdrawing
-      them, so the sentence has to stop asserting on its own account.
+      Two sums that match are not an estimate that held steady when a line
+      below zero is inside them: a snapshot of minus two hours against plus
+      two totals nought, and so does a scope list of minus three against plus
+      three — the same figure over a list that has moved by two hours in each
+      direction, with the table below listing both changes. "Unchanged, at 0
+      hours" is the claim this file exists to not make, and the amber caveat
+      above explains the figures rather than withdrawing them, so the sentence
+      has to stop asserting on its own account.
+
+      It says the figures hold such a line and not that anything cancelled.
+      A negative total does not cancel out — a snapshot of minus two hours
+      against a scope list of the same minus two hours and one unsized line
+      matches at minus two, where nothing has cancelled and the estimate did
+      hold. Which side holds the row is the caveat's to say, directly above.
     */
     if (hasNegativeLine(summary)) {
-      return `Both sides come to ${after}, which is not the same as the estimate having held steady: a negative line is cancelling part of the sum.`;
+      return `Both sides come to ${after}. With a line estimated below zero in the figures, that is not the same as the estimate having held steady.`;
     }
     return `The estimate is unchanged, at ${after}.`;
   }

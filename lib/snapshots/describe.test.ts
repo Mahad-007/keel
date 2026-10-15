@@ -72,7 +72,11 @@ describe("describeFieldChange", () => {
 
   it("reads a status move in the words the list uses", () => {
     expect(
-      describeFieldChange({ field: "status", before: "pending", after: "done" }),
+      describeFieldChange({
+        field: "status",
+        before: "pending",
+        after: "done",
+      }),
     ).toBe("Status moved from Not started to Done.");
   });
 
@@ -165,7 +169,10 @@ describe("describeEstimateMovement", () => {
   it("says the estimate is unchanged, with the figure it stands at", () => {
     expect(
       describeEstimateMovement(
-        summary({ estimatedMinutesBefore: 2_400, estimatedMinutesAfter: 2_400 }),
+        summary({
+          estimatedMinutesBefore: 2_400,
+          estimatedMinutesAfter: 2_400,
+        }),
       ),
     ).toBe("The estimate is unchanged, at 40 hours.");
   });
@@ -287,7 +294,7 @@ describe("describeEstimateMovement with a negative line on a side", () => {
     expect(sentence).not.toContain("Nothing was estimated");
     expect(sentence).not.toContain("unchanged");
     expect(sentence).toBe(
-      "Both sides come to 0 hours, which is not the same as the estimate having held steady: a negative line is cancelling part of the sum.",
+      "Both sides come to 0 hours. With a line estimated below zero in the figures, that is not the same as the estimate having held steady.",
     );
   });
 
@@ -303,7 +310,7 @@ describe("describeEstimateMovement with a negative line on a side", () => {
         }),
       ),
     ).toBe(
-      "Both sides come to 0 hours, which is not the same as the estimate having held steady: a negative line is cancelling part of the sum.",
+      "Both sides come to 0 hours. With a line estimated below zero in the figures, that is not the same as the estimate having held steady.",
     );
   });
 
@@ -320,7 +327,7 @@ describe("describeEstimateMovement with a negative line on a side", () => {
         }),
       ),
     ).toBe(
-      "Both sides come to 8 hours, which is not the same as the estimate having held steady: a negative line is cancelling part of the sum.",
+      "Both sides come to 8 hours. With a line estimated below zero in the figures, that is not the same as the estimate having held steady.",
     );
   });
 
