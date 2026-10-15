@@ -10,6 +10,7 @@ import {
 import { newId } from "@/lib/id";
 import {
   capturedSnapshotLines,
+  sameRecordedOrder,
   type SnapshotLineDraft,
 } from "@/lib/snapshots/capture";
 import { diffScope } from "@/lib/snapshots/diff";
@@ -419,6 +420,13 @@ export async function captureScopeSnapshot(
         snapshotted before: the newest row for the price it recorded, and its
         lines for the scope. Inside the same transaction as everything else, so
         a snapshot taken in another tab a moment ago is one this press sees.
+
+        The order is asked separately, because the comparison does not report
+        it and this record keeps it. A scope list whose lines were reordered
+        and nothing else would otherwise be refused as saying nothing new, when
+        what it would record — the order the deliverables were agreed in — is
+        the one thing the last snapshot does not say. The comparison's silence
+        about position is right for a comparison and wrong for this question.
       */
       const newest = await latestScopeSnapshot(projectId, tx);
       if (newest !== null) {
@@ -427,7 +435,7 @@ export async function captureScopeSnapshot(
           { lines: previous, contractValueCents: newest.contractValueCents },
           { lines: scope, contractValueCents: project.contractValueCents },
         );
-        if (!since.summary.hasChanges) {
+        if (!since.summary.hasChanges && sameRecordedOrder(previous, lines)) {
           return { ok: false, reason: "unchanged-since" };
         }
       }
