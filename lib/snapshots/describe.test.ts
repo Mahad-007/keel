@@ -249,6 +249,24 @@ describe("describeEstimateMovement", () => {
       ),
     ).toBe("The estimate is up 1 hour, from 2 hours to 3 hours.");
   });
+
+  /*
+    Through `summariseScopeDiff` rather than a hand-written summary, because
+    what is under test is that the three figures in one sentence came from the
+    same arithmetic: a reader who subtracts the two ends has to land on the
+    number between them. Rounding the seven minutes of movement on its own
+    would print 0.12 here and leave the sentence contradicting itself.
+  */
+  it("quotes a movement the two ends it prints add up to", () => {
+    const entries = scopeDiffEntries(
+      [{ ...SNAPSHOT_LINE, estimatedMinutes: 7 }],
+      [{ ...LIVE_LINE, estimatedMinutes: 14 }],
+    );
+
+    expect(describeEstimateMovement(summariseScopeDiff(entries, 0, 0))).toBe(
+      "The estimate is up 0.11 hours, from 0.12 hours to 0.23 hours.",
+    );
+  });
 });
 
 describe("describeEstimateMovement with a negative line on a side", () => {
