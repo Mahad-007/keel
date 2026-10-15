@@ -53,7 +53,14 @@ export function SnapshotPicker({
             <li key={snapshot.id}>
               <Link
                 href={snapshotComparisonHref(projectId, snapshot.id)}
-                aria-current={current ? "true" : undefined}
+                /*
+                  `page`, the token the project tabs use, rather than `true`.
+                  Each of these links is the address of this same page showing
+                  one comparison, so the one being read is the current page in
+                  a set of them — which is what a screen reader announces from
+                  the token, where `true` says only "this one, somehow".
+                */
+                aria-current={current ? "page" : undefined}
                 className={
                   current
                     ? "font-medium text-zinc-900 dark:text-zinc-100"
