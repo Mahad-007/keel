@@ -272,7 +272,9 @@ describe("describeEstimateMovement", () => {
 describe("describeEstimateMovement with a negative line on a side", () => {
   it("does not call a cancelled snapshot total an unestimated list", () => {
     // Minus two hours against plus two: every line is sized and the total is
-    // nought. Saying nothing was estimated would be false about both sides.
+    // nought. Saying nothing was estimated would be false about both sides —
+    // and so would calling two cancelled sums an estimate that held steady,
+    // which is what this used to read as.
     const sentence = describeEstimateMovement(
       summary({
         estimatedMinutesBefore: 0,
@@ -283,7 +285,10 @@ describe("describeEstimateMovement with a negative line on a side", () => {
     );
 
     expect(sentence).not.toContain("Nothing was estimated");
-    expect(sentence).toBe("The estimate is unchanged, at 0 hours.");
+    expect(sentence).not.toContain("unchanged");
+    expect(sentence).toBe(
+      "Both sides come to 0 hours, which is not the same as the estimate having held steady: a negative line is cancelling part of the sum.",
+    );
   });
 
   it("reads the movement off a cancelled snapshot as plain arithmetic", () => {

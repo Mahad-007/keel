@@ -3,10 +3,7 @@ import {
   type DeliverableStatus,
 } from "@/lib/deliverables/status";
 import { formatMinutes } from "@/lib/minutes";
-import {
-  deliverablesPhrase,
-  hoursPhrase,
-} from "@/lib/projects/scope-summary";
+import { deliverablesPhrase, hoursPhrase } from "@/lib/projects/scope-summary";
 import { formatCents } from "@/lib/money";
 import { estimatedHours } from "@/lib/scope";
 
@@ -132,9 +129,7 @@ function joinClauses(clauses: readonly string[]): string {
  * Null rather than an empty string, so the caller renders nothing rather than
  * a sentence with a hole in it.
  */
-export function describeLineChanges(
-  summary: ScopeDiffSummary,
-): string | null {
+export function describeLineChanges(summary: ScopeDiffSummary): string | null {
   const counts = [
     { count: summary.addedCount, word: "added" },
     { count: summary.removedCount, word: "dropped" },
@@ -171,6 +166,22 @@ export function describeLineChanges(
  */
 function sideIsUnsized(minutes: number, negativeCount: number): boolean {
   return minutes === 0 && negativeCount === 0;
+}
+
+/**
+ * Whether either side of the comparison holds a line estimated below zero.
+ *
+ * The question `sideIsUnsized` asks per side, asked of the pair, because one
+ * sentence covers both: a total that cannot be read as the size of the work is
+ * a total no movement between the two can be read as a movement in the size of
+ * the work either. Which side holds the row is `describeDiffEstimateProblem`'s
+ * to say, above these figures, so it is not said twice.
+ */
+function hasNegativeLine(summary: ScopeDiffSummary): boolean {
+  return (
+    summary.negativeEstimateCountBefore > 0 ||
+    summary.negativeEstimateCountAfter > 0
+  );
 }
 
 /**
@@ -215,6 +226,19 @@ export function describeEstimateMovement(summary: ScopeDiffSummary): string {
     return "Nothing was estimated when the snapshot was taken, and nothing is estimated now.";
   }
   if (summary.estimatedMinutesDelta === 0) {
+    /*
+      Two sums that match are not an estimate that held steady when a negative
+      line is cancelling part of one of them: a snapshot of minus two hours
+      against plus two totals nought, and so does a scope list of minus three
+      against plus three — the same figure over a list that has moved by two
+      hours in each direction, with the table below listing both changes.
+      "Unchanged, at 0 hours" is the claim this file exists to not make, and
+      the amber caveat above explains the figures rather than withdrawing
+      them, so the sentence has to stop asserting on its own account.
+    */
+    if (hasNegativeLine(summary)) {
+      return `Both sides come to ${after}, which is not the same as the estimate having held steady: a negative line is cancelling part of the sum.`;
+    }
     return `The estimate is unchanged, at ${after}.`;
   }
   if (beforeUnsized) {
