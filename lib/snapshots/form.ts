@@ -187,8 +187,17 @@ export const SNAPSHOT_PROBLEMS = {
     "There is nothing to record yet — a snapshot is a copy of this project's deliverables, and it has none. Add the first line above and this becomes a one-press job.",
   missingProject:
     "That project no longer exists, so there is no scope list to record.",
+  /*
+    It says which snapshot it compared against and what it compared, and
+    stops there. It used to add "The comparison below already covers it",
+    which is a claim about the page rather than about the press and is not
+    always true: the comparison on show is whichever snapshot the URL asked
+    for, so a reader who has clicked an older one in the picker is being told
+    their answer is in a comparison that is against something else and may be
+    listing a dozen changes.
+  */
   unchangedSince:
-    "Nothing has changed since the most recent snapshot — the same deliverables, in the same order, estimated the same, at the same contract value — so there is nothing new to record. The comparison below already covers it.",
+    "Nothing has changed since the most recent snapshot — the same deliverables, in the same order, estimated the same, at the same contract value — so there is nothing new to record.",
   unrecordableScope:
     "A deliverable on this project has an estimate that is not a whole number of minutes, which a snapshot cannot record. Open that line, give it an estimate in hours, and try again.",
   unrecordableValue:
