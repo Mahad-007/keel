@@ -1186,3 +1186,64 @@ describe("project duplication", () => {
     );
   });
 });
+
+describe("the cascades that outrank the billed guard", () => {
+  /** An entry attributed to a line of scope and already invoiced. */
+  async function billedAgainst(deliverableId: string) {
+    const entry = await createTimeEntry(
+      { projectId, deliverableId, minutes: 120, workedOn: "2026-10-16" },
+      db,
+    );
+    await markTimeEntryBilled(entry.id, "inv_0001", db);
+    return entry;
+  }
+
+  it("moves a billed entry's attribution when the line is dropped", async () => {
+    // `updateTimeEntry` refuses exactly this change, and the foreign key makes
+    // it anyway. Pinned rather than guarded: refusing would mean a line of
+    // scope can never be dropped once any of its time is billed, and the hours
+    // matter more than the grouping.
+    const deliverable = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    const entry = await billedAgainst(deliverable.id);
+    expect(
+      await updateTimeEntry(entry.id, { deliverableId: null }, db),
+    ).toEqual({ ok: false, refusal: "billed" });
+
+    await deleteDeliverable(deliverable.id, db);
+
+    const read = await getTimeEntry(entry.id, db);
+    expect(read?.deliverableId).toBeNull();
+    expect(read?.minutes).toBe(120);
+    expect(read?.billedInvoiceId).toBe("inv_0001");
+  });
+
+  it("takes billed time with the project it belongs to", async () => {
+    // `deleteTimeEntry` refuses to remove billed time one entry at a time,
+    // and deleting the project removes all of it. Phase 6 is where that gets
+    // a guard, because an issued invoice is the thing that should stop a
+    // project being deleted — see NOTES.md.
+    const other = await createProject(
+      {
+        clientId: (await createClient({ name: "Beam Ltd" }, db)).id,
+        name: "Invoiced and doomed",
+      },
+      db,
+    );
+    const entry = await createTimeEntry(
+      { projectId: other.id, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    await markTimeEntryBilled(entry.id, "inv_0001", db);
+    expect(await deleteTimeEntry(entry.id, db)).toEqual({
+      ok: false,
+      refusal: "billed",
+    });
+
+    await deleteProject(other.id, db);
+
+    expect(await getTimeEntry(entry.id, db)).toBeNull();
+  });
+});
