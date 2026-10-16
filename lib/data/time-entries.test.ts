@@ -6,7 +6,11 @@ import { createTestDb } from "@/lib/db/testing";
 import { createClient } from "./clients";
 import { createDeliverable } from "./deliverables";
 import { createProject } from "./projects";
-import { createTimeEntry, getTimeEntry } from "./time-entries";
+import {
+  createTimeEntry,
+  getTimeEntry,
+  listTimeEntries,
+} from "./time-entries";
 
 let db: Database;
 /** Every time entry hangs off a project, which hangs off a client. */
@@ -21,6 +25,14 @@ beforeEach(async () => {
   );
   projectId = project.id;
 });
+
+/**
+ * `createdAt` comes from the wall clock, so two entries written in the same
+ * millisecond would tie and an ordering test would pass or fail by luck.
+ */
+function tick(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 2));
+}
 
 describe("createTimeEntry", () => {
   it("stores the entry and hands back the saved row", async () => {
@@ -280,5 +292,77 @@ describe("getTimeEntry", () => {
 
     const read = await getTimeEntry(written.id, db);
     expect(read?.billable).toBe(true);
+  });
+});
+
+describe("listTimeEntries", () => {
+  it("is empty for a project nothing has been logged against", async () => {
+    expect(await listTimeEntries(projectId, db)).toEqual([]);
+  });
+
+  it("reads the most recent day's work first", async () => {
+    await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-14", note: "Monday" },
+      db,
+    );
+    await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16", note: "Wednesday" },
+      db,
+    );
+    await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-15", note: "Tuesday" },
+      db,
+    );
+
+    const list = await listTimeEntries(projectId, db);
+    expect(list.map((entry) => entry.note)).toEqual([
+      "Wednesday",
+      "Tuesday",
+      "Monday",
+    ]);
+  });
+
+  it("reads the last entry typed first within one day", async () => {
+    const first = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16", note: "Call" },
+      db,
+    );
+    await tick();
+    const second = await createTimeEntry(
+      { projectId, minutes: 30, workedOn: "2026-10-16", note: "Notes after" },
+      db,
+    );
+
+    const list = await listTimeEntries(projectId, db);
+    expect(list.map((entry) => entry.id)).toEqual([second.id, first.id]);
+  });
+
+  it("leaves out another project's time", async () => {
+    const other = await createProject(
+      {
+        clientId: (await createClient({ name: "Beam Ltd" }, db)).id,
+        name: "Other",
+      },
+      db,
+    );
+    await createTimeEntry(
+      { projectId: other.id, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    const mine = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+
+    const list = await listTimeEntries(projectId, db);
+    expect(list.map((entry) => entry.id)).toEqual([mine.id]);
+  });
+
+  it("writes nothing when a guard refuses", async () => {
+    await expect(
+      createTimeEntry({ projectId, minutes: 0, workedOn: "2026-10-16" }, db),
+    ).rejects.toThrow();
+
+    expect(await listTimeEntries(projectId, db)).toEqual([]);
   });
 });
