@@ -227,3 +227,29 @@ export async function listTimeEntries(
     .where(eq(timeEntries.projectId, projectId))
     .orderBy(...NEWEST_FIRST);
 }
+
+/**
+ * One deliverable's time entries, most recent first.
+ *
+ * The question behind it is the one the whole scope-creep phase asks: this
+ * line was estimated at six hours, what has it actually taken. Its own query
+ * rather than filtering a project's list, so the `deliverable_id` index does
+ * the work and a page showing one line's time does not read every entry the
+ * engagement has.
+ *
+ * Unattributed entries are not reachable through this, which is deliberate:
+ * NULL is not a deliverable, and a list of "time against no line" is a
+ * question about a project rather than about a deliverable. The project list
+ * holds all of it, attributed or not, which is what keeps a total built from
+ * these from quietly leaving work out.
+ */
+export async function listTimeEntriesForDeliverable(
+  deliverableId: string,
+  database: Database = db,
+): Promise<TimeEntry[]> {
+  return database
+    .select()
+    .from(timeEntries)
+    .where(eq(timeEntries.deliverableId, deliverableId))
+    .orderBy(...NEWEST_FIRST);
+}
