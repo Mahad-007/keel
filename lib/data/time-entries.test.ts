@@ -11,6 +11,7 @@ import {
   getTimeEntry,
   listTimeEntries,
   listTimeEntriesForDeliverable,
+  markTimeEntryBilled,
   updateTimeEntry,
 } from "./time-entries";
 
@@ -702,5 +703,70 @@ describe("updateTimeEntry attribution", () => {
     ).rejects.toThrow();
 
     expect((await getTimeEntry(entry.id, db))?.minutes).toBe(60);
+  });
+});
+
+describe("markTimeEntryBilled", () => {
+  async function logged(billable = true) {
+    return createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16", billable },
+      db,
+    );
+  }
+
+  it("records which invoice billed the time", async () => {
+    const entry = await logged();
+
+    const marked = await markTimeEntryBilled(entry.id, "inv_0001", db);
+
+    expect(marked?.billedInvoiceId).toBe("inv_0001");
+  });
+
+  it("writes the change, so the next read agrees with it", async () => {
+    const entry = await logged();
+
+    await markTimeEntryBilled(entry.id, "inv_0001", db);
+
+    expect((await getTimeEntry(entry.id, db))?.billedInvoiceId).toBe(
+      "inv_0001",
+    );
+  });
+
+  it("refuses time somebody marked non-billable", async () => {
+    const entry = await logged(false);
+
+    expect(await markTimeEntryBilled(entry.id, "inv_0001", db)).toBeNull();
+    expect((await getTimeEntry(entry.id, db))?.billedInvoiceId).toBeNull();
+  });
+
+  it("refuses an hour a second invoice tries to claim", async () => {
+    const entry = await logged();
+    await markTimeEntryBilled(entry.id, "inv_0001", db);
+
+    expect(await markTimeEntryBilled(entry.id, "inv_0002", db)).toBeNull();
+    expect((await getTimeEntry(entry.id, db))?.billedInvoiceId).toBe(
+      "inv_0001",
+    );
+  });
+
+  it("lets the same invoice finish a send it had started", async () => {
+    const entry = await logged();
+    await markTimeEntryBilled(entry.id, "inv_0001", db);
+
+    const again = await markTimeEntryBilled(entry.id, "inv_0001", db);
+
+    expect(again?.billedInvoiceId).toBe("inv_0001");
+  });
+
+  it("is null for an id nothing was written under", async () => {
+    expect(await markTimeEntryBilled("tme_nope", "inv_0001", db)).toBeNull();
+  });
+
+  it("refuses an invoice id that names nothing", async () => {
+    const entry = await logged();
+
+    await expect(markTimeEntryBilled(entry.id, "  ", db)).rejects.toThrow(
+      "billed invoice is required",
+    );
   });
 });
