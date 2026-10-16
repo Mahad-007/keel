@@ -28,3 +28,53 @@ export type BillingSubject = {
 export function isBilled(entry: BillingSubject): boolean {
   return entry.billedInvoiceId !== null;
 }
+
+/**
+ * The columns an invoice reads a figure out of, and which a billed entry can
+ * therefore no longer move.
+ *
+ * `minutes` is the amount charged. `billable` is whether it should have been
+ * charged at all. `workedOn` decides which period the line falls in, which is
+ * what a client checks a dated invoice against. `deliverableId` decides which
+ * grouping it was billed under, and an invoice that lists work by deliverable
+ * is wrong if the attribution moves afterwards.
+ *
+ * `note` is deliberately absent. It is the one column on a time entry that an
+ * invoice does not compute anything from — correcting a typo in "Clled client
+ * re: hosting" changes no figure on any document — and freezing it would mean
+ * a reader who spots a mistake in their own description has to leave it there
+ * for good.
+ */
+export const BILLED_COLUMNS = [
+  "minutes",
+  "workedOn",
+  "billable",
+  "deliverableId",
+] as const;
+
+/** One of the columns an invoice has copied a figure out of. */
+export type BilledColumn = (typeof BILLED_COLUMNS)[number];
+
+/**
+ * A patch as these rules see it: which columns it names, not what it would
+ * write to them.
+ *
+ * The values are `unknown` because nothing here reads one. A patch setting
+ * `minutes` to the value the row already holds is still refused on a billed
+ * entry — comparing would make the refusal depend on the row being read first,
+ * and "it happened to be the same number" is not a reason to let a write
+ * through a rule about invoices.
+ */
+export type BilledColumnPatch = Partial<Record<BilledColumn, unknown>>;
+
+/**
+ * Which of the billed columns a patch would move, in the order they are
+ * declared.
+ *
+ * Present-and-undefined counts as absent, because that is what the data layer
+ * means by it: a patch built from a form spreads the fields that were
+ * submitted, and an explicitly undefined one is a field that was not.
+ */
+export function billedColumnsIn(patch: BilledColumnPatch): BilledColumn[] {
+  return BILLED_COLUMNS.filter((column) => patch[column] !== undefined);
+}
