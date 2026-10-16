@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull, or } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import {
@@ -359,4 +359,49 @@ export async function updateTimeEntry(
     },
     { behavior: "immediate" },
   );
+}
+
+/**
+ * Marks one entry as billed by an invoice and hands back the row as written,
+ * or null if nothing was written.
+ *
+ * One statement, so there is no window between checking and writing for the
+ * row to change in. The two conditions an invoice needs are in the WHERE
+ * clause rather than in a read in front of it: the entry has to be billable,
+ * because charging for time somebody marked non-billable is the mistake this
+ * column exists to prevent, and it has to be unbilled, because the whole point
+ * of the column is that an hour is not charged twice.
+ *
+ * Unbilled *or already billed by this same invoice*, which is what makes a
+ * retried send idempotent. An invoice that wrote half its entries and failed
+ * would otherwise be unable to finish: the half it already owns would come
+ * back as refusals indistinguishable from somebody else's time.
+ *
+ * Null is deliberately ambiguous between "no such entry", "not billable" and
+ * "another invoice has it". One statement cannot tell them apart, and either
+ * way this invoice has not billed the time — the caller that wants to say
+ * which reads the row for its message.
+ */
+export async function markTimeEntryBilled(
+  id: string,
+  invoiceId: string,
+  database: Database = db,
+): Promise<TimeEntry | null> {
+  const billedInvoiceId = requiredText(invoiceId, "billed invoice");
+
+  const [row] = await database
+    .update(timeEntries)
+    .set({ billedInvoiceId, updatedAt: new Date().toISOString() })
+    .where(
+      and(
+        eq(timeEntries.id, id),
+        eq(timeEntries.billable, true),
+        or(
+          isNull(timeEntries.billedInvoiceId),
+          eq(timeEntries.billedInvoiceId, billedInvoiceId),
+        ),
+      ),
+    )
+    .returning();
+  return row ?? null;
 }
