@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  calendarDate,
   isOptionalWholeCents,
   isPresentText,
   isWholeCents,
@@ -337,5 +338,39 @@ describe("isRecordableMinutes", () => {
       })();
       expect(isRecordableMinutes(value)).toBe(guarded);
     }
+  });
+});
+
+describe("calendarDate", () => {
+  it("returns the date it was given", () => {
+    expect(calendarDate("2026-10-16", "worked on")).toBe("2026-10-16");
+  });
+
+  it("removes surrounding whitespace", () => {
+    expect(calendarDate("  2026-10-16  ", "worked on")).toBe("2026-10-16");
+  });
+
+  it("refuses a timestamp rather than keeping its date part", () => {
+    expect(() => calendarDate("2026-10-16T09:36:00.000Z", "worked on")).toThrow(
+      /worked on must be a calendar date/,
+    );
+  });
+
+  it("refuses a day that does not exist", () => {
+    expect(() => calendarDate("2026-02-30", "worked on")).toThrow(
+      /worked on must be a calendar date/,
+    );
+  });
+
+  it("refuses a blank value", () => {
+    expect(() => calendarDate("   ", "worked on")).toThrow(
+      /worked on must be a calendar date/,
+    );
+  });
+
+  it("names the field and quotes what it was given", () => {
+    expect(() => calendarDate("last Tuesday", "worked on")).toThrow(
+      "worked on must be a calendar date, got last Tuesday",
+    );
   });
 });
