@@ -6,7 +6,7 @@ import { createTestDb } from "@/lib/db/testing";
 import { createClient } from "./clients";
 import { createDeliverable } from "./deliverables";
 import { createProject } from "./projects";
-import { createTimeEntry } from "./time-entries";
+import { createTimeEntry, getTimeEntry } from "./time-entries";
 
 let db: Database;
 /** Every time entry hangs off a project, which hangs off a client. */
@@ -255,5 +255,30 @@ describe("createTimeEntry attribution", () => {
     ).rejects.toThrow(
       `deliverable ${theirs.id} does not belong to project ${projectId}`,
     );
+  });
+});
+
+describe("getTimeEntry", () => {
+  it("reads back an entry that was written", async () => {
+    const written = await createTimeEntry(
+      { projectId, minutes: 45, workedOn: "2026-10-16", note: "Email" },
+      db,
+    );
+
+    expect(await getTimeEntry(written.id, db)).toEqual(written);
+  });
+
+  it("is null for an id nothing was written under", async () => {
+    expect(await getTimeEntry("tme_nope", db)).toBeNull();
+  });
+
+  it("reads the billable flag back as a boolean, not as a 1", async () => {
+    const written = await createTimeEntry(
+      { projectId, minutes: 45, workedOn: "2026-10-16" },
+      db,
+    );
+
+    const read = await getTimeEntry(written.id, db);
+    expect(read?.billable).toBe(true);
   });
 });
