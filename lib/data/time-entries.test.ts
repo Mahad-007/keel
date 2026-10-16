@@ -50,3 +50,50 @@ describe("createTimeEntry", () => {
     expect(entry.updatedAt).toBe(entry.createdAt);
   });
 });
+
+describe("createTimeEntry defaults", () => {
+  it("defaults to billable, because logged time is normally charged", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+
+    expect(entry.billable).toBe(true);
+  });
+
+  it("stores a deliberate non-billable entry as such", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16", billable: false },
+      db,
+    );
+
+    expect(entry.billable).toBe(false);
+  });
+
+  it("logs an entry unbilled, whatever the flag says", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+
+    expect(entry.billedInvoiceId).toBeNull();
+  });
+
+  it("stores an unattributed entry with no deliverable", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+
+    expect(entry.deliverableId).toBeNull();
+  });
+
+  it("stores an absent note as NULL", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+
+    expect(entry.note).toBeNull();
+  });
+});
