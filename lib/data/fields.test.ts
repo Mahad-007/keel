@@ -9,6 +9,7 @@ import {
   isWholeMinutes,
   optionalCents,
   optionalText,
+  positiveMinutes,
   requiredText,
   wholeCents,
   recordedMinutes,
@@ -372,5 +373,40 @@ describe("calendarDate", () => {
     expect(() => calendarDate("last Tuesday", "worked on")).toThrow(
       "worked on must be a calendar date, got last Tuesday",
     );
+  });
+});
+
+describe("positiveMinutes", () => {
+  it("returns a duration it accepts", () => {
+    expect(positiveMinutes(90, "time entry minutes")).toBe(90);
+  });
+
+  it("accepts a single minute", () => {
+    expect(positiveMinutes(1, "time entry minutes")).toBe(1);
+  });
+
+  it("refuses zero, where an estimate would allow it", () => {
+    expect(() => positiveMinutes(0, "time entry minutes")).toThrow(
+      "time entry minutes cannot be zero",
+    );
+    expect(wholeMinutes(0, "deliverable estimate")).toBe(0);
+  });
+
+  it("refuses a negative duration", () => {
+    expect(() => positiveMinutes(-30, "time entry minutes")).toThrow(
+      /cannot be negative/,
+    );
+  });
+
+  it("refuses a fractional duration", () => {
+    expect(() => positiveMinutes(90.5, "time entry minutes")).toThrow(
+      /must be whole minutes/,
+    );
+  });
+
+  it("refuses a duration too large to read back", () => {
+    expect(() =>
+      positiveMinutes(Number.MAX_SAFE_INTEGER + 2, "time entry minutes"),
+    ).toThrow(/must be whole minutes/);
   });
 });
