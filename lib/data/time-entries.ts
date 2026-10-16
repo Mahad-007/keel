@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import {
@@ -181,4 +181,49 @@ export async function getTimeEntry(
     .where(eq(timeEntries.id, id))
     .limit(1);
   return row ?? null;
+}
+
+/**
+ * The order every list of time comes back in: the most recent work first,
+ * then the most recently logged, with the id breaking ties.
+ *
+ * Most recent first because the question asked of a time list is almost always
+ * about now — what went on this week, what is not yet invoiced — and a list
+ * that starts at the beginning of a six-month engagement makes the reader
+ * scroll to reach it.
+ *
+ * Three keys, because the first two can both tie. Several entries share a day
+ * routinely, which is what `createdAt` separates: within a day they read in
+ * the reverse of the order they were typed, so the one just logged is at the
+ * top of the day it belongs to. Two logged in the same millisecond — a
+ * double-pressed button, a bulk write — are what the id is for, and without it
+ * the list would reorder itself between reloads.
+ *
+ * One constant, so the project list and the deliverable list cannot drift into
+ * disagreeing about which entry is the latest.
+ */
+const NEWEST_FIRST = [
+  desc(timeEntries.workedOn),
+  desc(timeEntries.createdAt),
+  desc(timeEntries.id),
+] as const;
+
+/**
+ * One project's time entries, most recent first.
+ *
+ * Scoped to a project rather than listing the table, because that is how time
+ * is read: a project's own list, a rollup against its estimates, an invoice
+ * drawn from its unbilled hours. The `project_id, worked_on` index covers both
+ * halves of the query, so the rows come back already in date order and only
+ * the within-day tie-break is sorted.
+ */
+export async function listTimeEntries(
+  projectId: string,
+  database: Database = db,
+): Promise<TimeEntry[]> {
+  return database
+    .select()
+    .from(timeEntries)
+    .where(eq(timeEntries.projectId, projectId))
+    .orderBy(...NEWEST_FIRST);
 }
