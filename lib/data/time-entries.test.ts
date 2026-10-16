@@ -4,6 +4,7 @@ import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 
 import { createClient } from "./clients";
+import { createDeliverable } from "./deliverables";
 import { createProject } from "./projects";
 import { createTimeEntry } from "./time-entries";
 
@@ -194,5 +195,65 @@ describe("createTimeEntry guards", () => {
         db,
       ),
     ).rejects.toThrow(/time entry worked on must be a calendar date/);
+  });
+});
+
+describe("createTimeEntry attribution", () => {
+  it("attributes time to a deliverable of the same project", async () => {
+    const deliverable = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+
+    const entry = await createTimeEntry(
+      {
+        projectId,
+        deliverableId: deliverable.id,
+        minutes: 120,
+        workedOn: "2026-10-16",
+      },
+      db,
+    );
+
+    expect(entry.deliverableId).toBe(deliverable.id);
+  });
+
+  it("refuses a deliverable that does not exist", async () => {
+    await expect(
+      createTimeEntry(
+        {
+          projectId,
+          deliverableId: "dlv_nope",
+          minutes: 60,
+          workedOn: "2026-10-16",
+        },
+        db,
+      ),
+    ).rejects.toThrow("no deliverable with id dlv_nope");
+  });
+
+  it("refuses a deliverable belonging to another project", async () => {
+    const other = await createProject(
+      { clientId: (await createClient({ name: "Beam Ltd" }, db)).id, name: "Other" },
+      db,
+    );
+    const theirs = await createDeliverable(
+      { projectId: other.id, title: "Their work" },
+      db,
+    );
+
+    await expect(
+      createTimeEntry(
+        {
+          projectId,
+          deliverableId: theirs.id,
+          minutes: 60,
+          workedOn: "2026-10-16",
+        },
+        db,
+      ),
+    ).rejects.toThrow(
+      `deliverable ${theirs.id} does not belong to project ${projectId}`,
+    );
   });
 });
