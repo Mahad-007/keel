@@ -8,7 +8,7 @@ import {
   type TimeEntry,
 } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
-import { editRefusedByInvoice } from "@/lib/time/billing";
+import { editRefusedByInvoice, isBilled } from "@/lib/time/billing";
 
 import {
   calendarDate,
@@ -437,4 +437,42 @@ export async function clearTimeEntryBilled(
     )
     .returning();
   return row ?? null;
+}
+
+/**
+ * Removes the entry and hands back the row it removed, or why it did not.
+ *
+ * Deleted outright rather than archived. A stretch of work that happened and
+ * should not be charged for is a non-billable entry, which keeps the record
+ * and the attribution; what is left to delete is a mistake — the wrong
+ * project, the duplicate of a double-pressed button, the forty minutes typed
+ * as forty hours — and keeping those is how a time list stops being read.
+ *
+ * Billed time is refused. An invoice has already charged for it, and deleting
+ * the entry would leave a line on a document somebody has been sent with
+ * nothing behind it: the project would show less time than it was paid for,
+ * and nothing anywhere would say why. The way to undo a bad invoice is a
+ * credit note, after which `clearTimeEntryBilled` frees the time and this
+ * will remove it.
+ *
+ * The read and the delete are one immediate transaction rather than a single
+ * conditional DELETE, because the two refusals are different news and one
+ * statement cannot tell them apart. Immediate, so no invoice can claim the
+ * entry between the read and the delete.
+ */
+export async function deleteTimeEntry(
+  id: string,
+  database: Database = db,
+): Promise<TimeEntryWrite> {
+  return database.transaction(
+    async (tx) => {
+      const current = await getTimeEntry(id, tx);
+      if (current === null) return { ok: false, refusal: "no-such-entry" };
+      if (isBilled(current)) return { ok: false, refusal: "billed" };
+
+      await tx.delete(timeEntries).where(eq(timeEntries.id, id));
+      return { ok: true, entry: current };
+    },
+    { behavior: "immediate" },
+  );
 }
