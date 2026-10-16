@@ -494,3 +494,78 @@ describe("updateTimeEntry", () => {
     expect(result).toEqual({ ok: false, refusal: "no-such-entry" });
   });
 });
+
+describe("updateTimeEntry with nothing to write", () => {
+  it("hands back the row unchanged", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+
+    const result = await updateTimeEntry(entry.id, {}, db);
+
+    expect(result).toEqual({ ok: true, entry });
+  });
+
+  it("does not bump updatedAt, so an untouched entry looks untouched", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    await tick();
+
+    await updateTimeEntry(entry.id, {}, db);
+
+    expect((await getTimeEntry(entry.id, db))?.updatedAt).toBe(entry.updatedAt);
+  });
+
+  it("still refuses an id nothing was written under", async () => {
+    expect(await updateTimeEntry("tme_nope", {}, db)).toEqual({
+      ok: false,
+      refusal: "no-such-entry",
+    });
+  });
+});
+
+describe("updateTimeEntry guards", () => {
+  async function logged() {
+    return createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+  }
+
+  it("refuses a duration of zero", async () => {
+    const entry = await logged();
+
+    await expect(updateTimeEntry(entry.id, { minutes: 0 }, db)).rejects.toThrow(
+      "time entry minutes cannot be zero",
+    );
+  });
+
+  it("refuses a negative duration", async () => {
+    const entry = await logged();
+
+    await expect(
+      updateTimeEntry(entry.id, { minutes: -15 }, db),
+    ).rejects.toThrow(/cannot be negative/);
+  });
+
+  it("refuses a day worked that is not a calendar date", async () => {
+    const entry = await logged();
+
+    await expect(
+      updateTimeEntry(entry.id, { workedOn: "2026-10-16T09:00:00.000Z" }, db),
+    ).rejects.toThrow(/must be a calendar date/);
+  });
+
+  it("writes nothing when a guard refuses", async () => {
+    const entry = await logged();
+
+    await expect(
+      updateTimeEntry(entry.id, { minutes: 0, note: "Would have stuck" }, db),
+    ).rejects.toThrow();
+
+    expect((await getTimeEntry(entry.id, db))?.note).toBeNull();
+  });
+});
