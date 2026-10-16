@@ -10,6 +10,7 @@ import {
   createTimeEntry,
   getTimeEntry,
   listTimeEntries,
+  listTimeEntriesForDeliverable,
 } from "./time-entries";
 
 let db: Database;
@@ -364,5 +365,66 @@ describe("listTimeEntries", () => {
     ).rejects.toThrow();
 
     expect(await listTimeEntries(projectId, db)).toEqual([]);
+  });
+});
+
+describe("listTimeEntriesForDeliverable", () => {
+  it("is empty for a deliverable nothing has been logged against", async () => {
+    const deliverable = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+
+    expect(await listTimeEntriesForDeliverable(deliverable.id, db)).toEqual([]);
+  });
+
+  it("reads only the entries attributed to that deliverable", async () => {
+    const discovery = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    const build = await createDeliverable({ projectId, title: "Build" }, db);
+    const mine = await createTimeEntry(
+      {
+        projectId,
+        deliverableId: discovery.id,
+        minutes: 60,
+        workedOn: "2026-10-16",
+      },
+      db,
+    );
+    await createTimeEntry(
+      {
+        projectId,
+        deliverableId: build.id,
+        minutes: 60,
+        workedOn: "2026-10-16",
+      },
+      db,
+    );
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-16" }, db);
+
+    const list = await listTimeEntriesForDeliverable(discovery.id, db);
+    expect(list.map((entry) => entry.id)).toEqual([mine.id]);
+  });
+
+  it("reads the most recent day's work first", async () => {
+    const deliverable = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    for (const workedOn of ["2026-10-14", "2026-10-16", "2026-10-15"]) {
+      await createTimeEntry(
+        { projectId, deliverableId: deliverable.id, minutes: 60, workedOn },
+        db,
+      );
+    }
+
+    const list = await listTimeEntriesForDeliverable(deliverable.id, db);
+    expect(list.map((entry) => entry.workedOn)).toEqual([
+      "2026-10-16",
+      "2026-10-15",
+      "2026-10-14",
+    ]);
   });
 });
