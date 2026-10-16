@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, or } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, or } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import {
@@ -401,6 +401,39 @@ export async function markTimeEntryBilled(
           eq(timeEntries.billedInvoiceId, billedInvoiceId),
         ),
       ),
+    )
+    .returning();
+  return row ?? null;
+}
+
+/**
+ * Frees one entry from the invoice that billed it and hands back the row as
+ * written, or null if there was no billed time to free.
+ *
+ * The way back out, and Phase 6 needs one: an invoice deleted before it was
+ * sent, a credit note, a line billed to the wrong client. Without this the
+ * column is a one-way door and the only remedy for a mis-sent invoice is to
+ * delete the time it was built from, which would take the record of the work
+ * with it.
+ *
+ * Conditional on the entry actually being billed, so clearing an unbilled one
+ * is not a write that changes nothing but bumps `updatedAt` — the same reason
+ * an empty patch is a no-op. Null therefore means "there was no billed time
+ * here", whether because the entry is gone or because nothing had it.
+ *
+ * `billable` is left alone. An invoice being withdrawn says nothing about
+ * whether the work should be charged for, and the hour this frees is almost
+ * always one that belongs on the next invoice.
+ */
+export async function clearTimeEntryBilled(
+  id: string,
+  database: Database = db,
+): Promise<TimeEntry | null> {
+  const [row] = await database
+    .update(timeEntries)
+    .set({ billedInvoiceId: null, updatedAt: new Date().toISOString() })
+    .where(
+      and(eq(timeEntries.id, id), isNotNull(timeEntries.billedInvoiceId)),
     )
     .returning();
   return row ?? null;
