@@ -5,7 +5,11 @@ import { createTestDb } from "@/lib/db/testing";
 
 import { createClient } from "./clients";
 import { createDeliverable, deleteDeliverable } from "./deliverables";
-import { createProject, deleteProject } from "./projects";
+import {
+  createProject,
+  deleteProject,
+  duplicateProject,
+} from "./projects";
 import {
   clearTimeEntryBilled,
   createTimeEntry,
@@ -1095,5 +1099,48 @@ describe("deliverable deletion", () => {
     await deleteDeliverable(discovery.id, db);
 
     expect((await getTimeEntry(kept.id, db))?.deliverableId).toBe(build.id);
+  });
+});
+
+describe("project duplication", () => {
+  it("does not carry a project's time onto the copy", async () => {
+    // Day 018 promised this and could not test it: the table did not exist
+    // yet. Scope is a plan worth starting the next engagement from; the hours
+    // spent on the first one are a fact about that one.
+    const deliverable = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    await createTimeEntry(
+      {
+        projectId,
+        deliverableId: deliverable.id,
+        minutes: 120,
+        workedOn: "2026-10-16",
+      },
+      db,
+    );
+
+    const result = await duplicateProject(projectId, { name: "Round two" }, db);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(await listTimeEntries(result.project.id, db)).toEqual([]);
+    expect(
+      await listTimeEntriesForDeliverable(result.deliverables[0].id, db),
+    ).toEqual([]);
+  });
+
+  it("leaves the original's time where it was", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 120, workedOn: "2026-10-16" },
+      db,
+    );
+
+    await duplicateProject(projectId, { name: "Round two" }, db);
+
+    expect((await listTimeEntries(projectId, db)).map((row) => row.id)).toEqual(
+      [entry.id],
+    );
   });
 });
