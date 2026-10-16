@@ -392,3 +392,99 @@ export const scopeSnapshotLines = sqliteTable(
 
 export type ScopeSnapshotLine = typeof scopeSnapshotLines.$inferSelect;
 export type NewScopeSnapshotLine = typeof scopeSnapshotLines.$inferInsert;
+
+/**
+ * One stretch of work: how long it took, which day it was done on, and which
+ * part of the project it was done against.
+ *
+ * This is the other half of the contract. The `deliverables` table holds what
+ * was promised and what it was estimated at; this one holds what it actually
+ * cost, and every figure the scope-creep phase is built on is a comparison
+ * between the two. A project with estimates and no time cannot be over budget,
+ * and a project with time and no estimates cannot be said to have crept — it
+ * takes both tables to say anything at all.
+ *
+ * `minutes` is whole minutes, the repo's unit of time, and it is never zero:
+ * unlike an estimate, where zero honestly means "nobody has sized this yet",
+ * an entry of no time records nothing that happened. The data layer refuses
+ * one rather than storing a row that every total has to skip.
+ *
+ * `deliverableId` is nullable, and the NULL is a real answer rather than a
+ * missing one. A great deal of real work — a call, a round of email, an
+ * afternoon of "looking into it" — belongs to the engagement without belonging
+ * to any one line of its scope, and forcing an attribution would mean picking
+ * a line at random and then reading the rollup as though that line had cost
+ * it. It is set to NULL rather than cascading when a deliverable is deleted:
+ * the hours were still worked and still count against the project, and dropping
+ * a line of scope must not quietly reduce what the engagement has cost.
+ *
+ * `workedOn` is a calendar date — `2026-10-16`, no time of day — because that
+ * is the unit the work is remembered and billed in. Nobody logs time to the
+ * second, a timesheet is a grid of days, and a timestamp would invite the
+ * timezone bug where an entry logged at 23:00 shows up on the wrong day for
+ * whoever reads it next. `createdAt` already records when the row was written,
+ * which is a different fact and sometimes a much later one.
+ *
+ * `billable` says whether this time is meant to be charged for. It defaults to
+ * true because that is what logging time against a client engagement normally
+ * means; the exceptions — a fix for the agency's own mistake, a goodwill hour,
+ * internal admin — are the ones worth a deliberate press. Non-billable time
+ * still counts against the estimate, which is the point of recording it.
+ *
+ * `billedInvoiceId` is NULL until the time is invoiced, and then the id of the
+ * invoice that billed it. It is what stops the same hour being charged twice,
+ * and it is deliberately **not** a foreign key: the `invoices` table does not
+ * exist yet, and the column is here now because the data layer that fills it
+ * has to be written once rather than bolted on. Phase 6 adds the constraint
+ * along with the table it points at.
+ *
+ * Rows cascade with the project, like deliverables: a time entry is part of an
+ * engagement rather than a record of one.
+ */
+export const timeEntries = sqliteTable(
+  "time_entries",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    /** The line of scope this went against. NULL for project-level work. */
+    deliverableId: text("deliverable_id").references(() => deliverables.id, {
+      onDelete: "set null",
+    }),
+    /** How long it took, in whole minutes. Never zero and never negative. */
+    minutes: integer("minutes").notNull(),
+    /** What was done, in a person's words. NULL when they did not say. */
+    note: text("note"),
+    /** The calendar date the work was done on: `YYYY-MM-DD`, no time of day. */
+    workedOn: text("worked_on").notNull(),
+    /** Whether this time is meant to be charged for. */
+    billable: integer("billable", { mode: "boolean" })
+      .notNull()
+      .default(true),
+    /** The invoice that billed it, once one has. Not yet a foreign key. */
+    billedInvoiceId: text("billed_invoice_id"),
+    ...timestamps,
+  },
+  /**
+   * Two indexes, because time is read two ways and both of them matter.
+   *
+   * By project and date: every list, timesheet and burn figure is "this
+   * project, this stretch of days", so the index covers the filter and hands
+   * back the rows already in date order.
+   *
+   * By deliverable: the rollup that puts a line's actual cost beside its
+   * estimate asks for one deliverable's entries, and without the index that
+   * question reads every entry the project has.
+   */
+  (table) => [
+    index("time_entries_project_id_worked_on_idx").on(
+      table.projectId,
+      table.workedOn,
+    ),
+    index("time_entries_deliverable_id_idx").on(table.deliverableId),
+  ],
+);
+
+export type TimeEntry = typeof timeEntries.$inferSelect;
+export type NewTimeEntry = typeof timeEntries.$inferInsert;
