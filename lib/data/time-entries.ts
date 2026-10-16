@@ -1,3 +1,16 @@
+import { eq } from "drizzle-orm";
+
+import { db, type Database } from "@/lib/db";
+import { projects, timeEntries, type TimeEntry } from "@/lib/db/schema";
+import { newId } from "@/lib/id";
+
+import {
+  calendarDate,
+  optionalText,
+  positiveMinutes,
+  requiredText,
+} from "./fields";
+
 /**
  * Data access for the `time_entries` table: the stretches of work a project
  * has actually cost.
@@ -46,3 +59,71 @@ export type NewTimeEntryInput = {
   /** Defaults to true: time logged against a client engagement is chargeable. */
   billable?: boolean;
 };
+
+/**
+ * Time logged against no project is not logged against anything, and the
+ * foreign key would stop it anyway — but it would stop it with a constraint
+ * error naming a column. Checking here means the caller gets a message naming
+ * the id it passed, which is the one thing that says what went wrong.
+ */
+async function requireProject(
+  id: string,
+  database: Database,
+): Promise<string> {
+  const projectId = requiredText(id, "time entry project");
+  const [row] = await database
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+  if (!row) throw new Error(`no project with id ${projectId}`);
+  return row.id;
+}
+
+/**
+ * Writes one time entry and hands back the saved row.
+ *
+ * Everything that can be checked without a query is checked first, so the
+ * common mistake — a duration of zero, a date with a time on it — costs no
+ * round trip, and the project lookup only happens for an entry that is
+ * otherwise valid.
+ *
+ * No transaction. The only write is the insert, and the project lookup in
+ * front of it is there for the error message rather than for correctness: if
+ * the project is deleted between the two, the foreign key refuses the insert,
+ * which is the same answer reached less politely.
+ *
+ * An absent attribution and a blank one are the same thing, so `deliverableId`
+ * goes through `optionalText`. A form with a "no deliverable" option submits
+ * it as an empty string, and storing that would be a third state meaning what
+ * NULL already means.
+ */
+export async function createTimeEntry(
+  input: NewTimeEntryInput,
+  database: Database = db,
+): Promise<TimeEntry> {
+  const now = new Date().toISOString();
+  const minutes = positiveMinutes(input.minutes, "time entry minutes");
+  const note = optionalText(input.note);
+  const workedOn = calendarDate(input.workedOn, "time entry worked on");
+  const deliverableId = optionalText(input.deliverableId);
+  const billable = input.billable ?? true;
+
+  const projectId = await requireProject(input.projectId, database);
+
+  const [row] = await database
+    .insert(timeEntries)
+    .values({
+      id: newId("tme"),
+      projectId,
+      deliverableId,
+      minutes,
+      note,
+      workedOn,
+      billable,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+  return row;
+}
