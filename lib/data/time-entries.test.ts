@@ -11,6 +11,7 @@ import {
   getTimeEntry,
   listTimeEntries,
   listTimeEntriesForDeliverable,
+  updateTimeEntry,
 } from "./time-entries";
 
 let db: Database;
@@ -426,5 +427,70 @@ describe("listTimeEntriesForDeliverable", () => {
       "2026-10-15",
       "2026-10-14",
     ]);
+  });
+});
+
+describe("updateTimeEntry", () => {
+  /** An ordinary unbilled entry, which is what most of these start from. */
+  async function logged() {
+    return createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16", note: "Call" },
+      db,
+    );
+  }
+
+  it("writes the fields the patch names", async () => {
+    const entry = await logged();
+
+    const result = await updateTimeEntry(
+      entry.id,
+      { minutes: 120, note: "Call and notes" },
+      db,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.entry.minutes).toBe(120);
+    expect(result.ok && result.entry.note).toBe("Call and notes");
+  });
+
+  it("leaves the fields the patch does not name", async () => {
+    const entry = await logged();
+
+    await updateTimeEntry(entry.id, { minutes: 120 }, db);
+
+    const read = await getTimeEntry(entry.id, db);
+    expect(read?.note).toBe("Call");
+    expect(read?.workedOn).toBe("2026-10-16");
+    expect(read?.billable).toBe(true);
+  });
+
+  it("writes the change, so the next read agrees with it", async () => {
+    const entry = await logged();
+
+    await updateTimeEntry(entry.id, { workedOn: "2026-10-15" }, db);
+
+    expect((await getTimeEntry(entry.id, db))?.workedOn).toBe("2026-10-15");
+  });
+
+  it("marks an entry non-billable", async () => {
+    const entry = await logged();
+
+    const result = await updateTimeEntry(entry.id, { billable: false }, db);
+
+    expect(result.ok && result.entry.billable).toBe(false);
+  });
+
+  it("clears a note back to NULL", async () => {
+    const entry = await logged();
+
+    const result = await updateTimeEntry(entry.id, { note: "  " }, db);
+
+    expect(result.ok && result.entry.note).toBeNull();
+  });
+
+  it("refuses an id nothing was written under", async () => {
+    const result = await updateTimeEntry("tme_nope", { minutes: 30 }, db);
+
+    expect(result).toEqual({ ok: false, refusal: "no-such-entry" });
   });
 });
