@@ -1,7 +1,12 @@
 import { eq } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
-import { projects, timeEntries, type TimeEntry } from "@/lib/db/schema";
+import {
+  deliverables,
+  projects,
+  timeEntries,
+  type TimeEntry,
+} from "@/lib/db/schema";
 import { newId } from "@/lib/id";
 
 import {
@@ -81,6 +86,40 @@ async function requireProject(
 }
 
 /**
+ * The deliverable's id if it is one of that project's, or a thrown error
+ * saying which of the two things was wrong.
+ *
+ * The foreign key only promises the deliverable exists somewhere. Time
+ * attributed to another project's line would be counted against an estimate on
+ * an engagement it was not worked for, and the rollup showing it would be
+ * wrong on both projects at once — so the relationship is checked here, where
+ * it can be named.
+ *
+ * One query rather than two. The row is read by id and its project compared in
+ * JavaScript, which is also what lets the two failures have different
+ * sentences: a deliverable that was deleted while the form sat open and one
+ * that belongs to somebody else's engagement are different mistakes.
+ */
+async function requireDeliverable(
+  id: string,
+  projectId: string,
+  database: Database,
+): Promise<string> {
+  const [row] = await database
+    .select({ id: deliverables.id, projectId: deliverables.projectId })
+    .from(deliverables)
+    .where(eq(deliverables.id, id))
+    .limit(1);
+  if (!row) throw new Error(`no deliverable with id ${id}`);
+  if (row.projectId !== projectId) {
+    throw new Error(
+      `deliverable ${id} does not belong to project ${projectId}`,
+    );
+  }
+  return row.id;
+}
+
+/**
  * Writes one time entry and hands back the saved row.
  *
  * Everything that can be checked without a query is checked first, so the
@@ -110,6 +149,9 @@ export async function createTimeEntry(
   const billable = input.billable ?? true;
 
   const projectId = await requireProject(input.projectId, database);
+  if (deliverableId !== null) {
+    await requireDeliverable(deliverableId, projectId, database);
+  }
 
   const [row] = await database
     .insert(timeEntries)
