@@ -97,3 +97,52 @@ describe("createTimeEntry defaults", () => {
     expect(entry.note).toBeNull();
   });
 });
+
+describe("createTimeEntry text columns", () => {
+  it("trims a note", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16", note: "  Scoping  " },
+      db,
+    );
+
+    expect(entry.note).toBe("Scoping");
+  });
+
+  it("stores a blank note as NULL rather than as an empty string", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16", note: "   " },
+      db,
+    );
+
+    expect(entry.note).toBeNull();
+  });
+
+  it("stores an explicitly null note as NULL", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16", note: null },
+      db,
+    );
+
+    expect(entry.note).toBeNull();
+  });
+
+  it("reads a blank attribution as no attribution", async () => {
+    // A form's "no deliverable" option submits an empty string, which means
+    // the same thing as the field being absent.
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16", deliverableId: "" },
+      db,
+    );
+
+    expect(entry.deliverableId).toBeNull();
+  });
+
+  it("trims surrounding whitespace off the day worked", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: " 2026-10-16 " },
+      db,
+    );
+
+    expect(entry.workedOn).toBe("2026-10-16");
+  });
+});
