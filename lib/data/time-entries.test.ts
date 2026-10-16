@@ -906,7 +906,7 @@ describe("clearTimeEntryBilled", () => {
     );
     await markTimeEntryBilled(entry.id, "inv_0001", db);
 
-    const freed = await clearTimeEntryBilled(entry.id, db);
+    const freed = await clearTimeEntryBilled(entry.id, "inv_0001", db);
 
     expect(freed?.billedInvoiceId).toBeNull();
     expect((await getTimeEntry(entry.id, db))?.billedInvoiceId).toBeNull();
@@ -918,7 +918,7 @@ describe("clearTimeEntryBilled", () => {
       db,
     );
     await markTimeEntryBilled(entry.id, "inv_0001", db);
-    await clearTimeEntryBilled(entry.id, db);
+    await clearTimeEntryBilled(entry.id, "inv_0001", db);
 
     const result = await updateTimeEntry(entry.id, { minutes: 120 }, db);
 
@@ -931,7 +931,7 @@ describe("clearTimeEntryBilled", () => {
       db,
     );
     await markTimeEntryBilled(entry.id, "inv_0001", db);
-    await clearTimeEntryBilled(entry.id, db);
+    await clearTimeEntryBilled(entry.id, "inv_0001", db);
 
     const marked = await markTimeEntryBilled(entry.id, "inv_0002", db);
 
@@ -945,9 +945,36 @@ describe("clearTimeEntryBilled", () => {
     );
     await markTimeEntryBilled(entry.id, "inv_0001", db);
 
-    const freed = await clearTimeEntryBilled(entry.id, db);
+    const freed = await clearTimeEntryBilled(entry.id, "inv_0001", db);
 
     expect(freed?.billable).toBe(true);
+  });
+
+  it("refuses to free time another invoice has since billed", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    await markTimeEntryBilled(entry.id, "inv_0001", db);
+    await clearTimeEntryBilled(entry.id, "inv_0001", db);
+    await markTimeEntryBilled(entry.id, "inv_0002", db);
+
+    expect(await clearTimeEntryBilled(entry.id, "inv_0001", db)).toBeNull();
+    expect((await getTimeEntry(entry.id, db))?.billedInvoiceId).toBe(
+      "inv_0002",
+    );
+  });
+
+  it("refuses an invoice id that names nothing", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    await markTimeEntryBilled(entry.id, "inv_0001", db);
+
+    await expect(clearTimeEntryBilled(entry.id, "  ", db)).rejects.toThrow(
+      "billed invoice is required",
+    );
   });
 
   it("is null when the entry was not billed in the first place", async () => {
@@ -956,7 +983,7 @@ describe("clearTimeEntryBilled", () => {
       db,
     );
 
-    expect(await clearTimeEntryBilled(entry.id, db)).toBeNull();
+    expect(await clearTimeEntryBilled(entry.id, "inv_0001", db)).toBeNull();
   });
 
   it("does not bump updatedAt when there was nothing to free", async () => {
@@ -966,13 +993,13 @@ describe("clearTimeEntryBilled", () => {
     );
     await tick();
 
-    await clearTimeEntryBilled(entry.id, db);
+    await clearTimeEntryBilled(entry.id, "inv_0001", db);
 
     expect((await getTimeEntry(entry.id, db))?.updatedAt).toBe(entry.updatedAt);
   });
 
   it("is null for an id nothing was written under", async () => {
-    expect(await clearTimeEntryBilled("tme_nope", db)).toBeNull();
+    expect(await clearTimeEntryBilled("tme_nope", "inv_0001", db)).toBeNull();
   });
 });
 
@@ -1043,7 +1070,7 @@ describe("deleteTimeEntry", () => {
       db,
     );
     await markTimeEntryBilled(entry.id, "inv_0001", db);
-    await clearTimeEntryBilled(entry.id, db);
+    await clearTimeEntryBilled(entry.id, "inv_0001", db);
 
     expect((await deleteTimeEntry(entry.id, db)).ok).toBe(true);
     expect(await getTimeEntry(entry.id, db)).toBeNull();
