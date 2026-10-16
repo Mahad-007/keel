@@ -416,7 +416,11 @@ export type NewScopeSnapshotLine = typeof scopeSnapshotLines.$inferInsert;
  * a line at random and then reading the rollup as though that line had cost
  * it. It is set to NULL rather than cascading when a deliverable is deleted:
  * the hours were still worked and still count against the project, and dropping
- * a line of scope must not quietly reduce what the engagement has cost.
+ * a line of scope must not quietly reduce what the engagement has cost. That
+ * holds even for time an invoice has already billed, which is the one edit
+ * `lib/time/billing.ts` refuses and this foreign key makes anyway — the
+ * alternative is a line of scope that can never be dropped once any of its
+ * time is billed. `NOTES.md` records what Phase 6 owes that trade.
  *
  * `workedOn` is a calendar date — `2026-10-16`, no time of day — because that
  * is the unit the work is remembered and billed in. Nobody logs time to the
