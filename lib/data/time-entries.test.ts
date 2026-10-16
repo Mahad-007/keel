@@ -569,3 +569,138 @@ describe("updateTimeEntry guards", () => {
     expect((await getTimeEntry(entry.id, db))?.note).toBeNull();
   });
 });
+
+describe("updateTimeEntry attribution", () => {
+  it("attributes previously unattributed time to a line of scope", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    const deliverable = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+
+    const result = await updateTimeEntry(
+      entry.id,
+      { deliverableId: deliverable.id },
+      db,
+    );
+
+    expect(result.ok && result.entry.deliverableId).toBe(deliverable.id);
+  });
+
+  it("moves time from one line of the project to another", async () => {
+    const discovery = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    const build = await createDeliverable({ projectId, title: "Build" }, db);
+    const entry = await createTimeEntry(
+      {
+        projectId,
+        deliverableId: discovery.id,
+        minutes: 60,
+        workedOn: "2026-10-16",
+      },
+      db,
+    );
+
+    await updateTimeEntry(entry.id, { deliverableId: build.id }, db);
+
+    expect(await listTimeEntriesForDeliverable(discovery.id, db)).toEqual([]);
+    expect(
+      (await listTimeEntriesForDeliverable(build.id, db)).map((row) => row.id),
+    ).toEqual([entry.id]);
+  });
+
+  it("clears an attribution back to project-level work", async () => {
+    const deliverable = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    const entry = await createTimeEntry(
+      {
+        projectId,
+        deliverableId: deliverable.id,
+        minutes: 60,
+        workedOn: "2026-10-16",
+      },
+      db,
+    );
+
+    const result = await updateTimeEntry(entry.id, { deliverableId: null }, db);
+
+    expect(result.ok && result.entry.deliverableId).toBeNull();
+  });
+
+  it("reads a blank attribution as clearing it", async () => {
+    const deliverable = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    const entry = await createTimeEntry(
+      {
+        projectId,
+        deliverableId: deliverable.id,
+        minutes: 60,
+        workedOn: "2026-10-16",
+      },
+      db,
+    );
+
+    const result = await updateTimeEntry(entry.id, { deliverableId: "" }, db);
+
+    expect(result.ok && result.entry.deliverableId).toBeNull();
+  });
+
+  it("refuses a deliverable that does not exist", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+
+    await expect(
+      updateTimeEntry(entry.id, { deliverableId: "dlv_nope" }, db),
+    ).rejects.toThrow("no deliverable with id dlv_nope");
+  });
+
+  it("refuses a deliverable belonging to another project", async () => {
+    const other = await createProject(
+      {
+        clientId: (await createClient({ name: "Beam Ltd" }, db)).id,
+        name: "Other",
+      },
+      db,
+    );
+    const theirs = await createDeliverable(
+      { projectId: other.id, title: "Their work" },
+      db,
+    );
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+
+    await expect(
+      updateTimeEntry(entry.id, { deliverableId: theirs.id }, db),
+    ).rejects.toThrow(/does not belong to project/);
+  });
+
+  it("writes nothing when the attribution is refused", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+
+    await expect(
+      updateTimeEntry(
+        entry.id,
+        { minutes: 30, deliverableId: "dlv_nope" },
+        db,
+      ),
+    ).rejects.toThrow();
+
+    expect((await getTimeEntry(entry.id, db))?.minutes).toBe(60);
+  });
+});
