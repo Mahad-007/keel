@@ -4,8 +4,8 @@ import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 
 import { createClient } from "./clients";
-import { createDeliverable } from "./deliverables";
-import { createProject } from "./projects";
+import { createDeliverable, deleteDeliverable } from "./deliverables";
+import { createProject, deleteProject } from "./projects";
 import {
   clearTimeEntryBilled,
   createTimeEntry,
@@ -1001,5 +1001,99 @@ describe("deleteTimeEntry", () => {
 
     expect((await deleteTimeEntry(entry.id, db)).ok).toBe(true);
     expect(await getTimeEntry(entry.id, db)).toBeNull();
+  });
+});
+
+describe("project cascade", () => {
+  it("takes a project's time with it", async () => {
+    const other = await createProject(
+      {
+        clientId: (await createClient({ name: "Beam Ltd" }, db)).id,
+        name: "Doomed",
+      },
+      db,
+    );
+    const going = await createTimeEntry(
+      { projectId: other.id, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    const kept = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+
+    await deleteProject(other.id, db);
+
+    expect(await getTimeEntry(going.id, db)).toBeNull();
+    expect(await getTimeEntry(kept.id, db)).not.toBeNull();
+  });
+});
+
+describe("deliverable deletion", () => {
+  it("keeps the time and drops only the attribution", async () => {
+    const deliverable = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    const entry = await createTimeEntry(
+      {
+        projectId,
+        deliverableId: deliverable.id,
+        minutes: 120,
+        workedOn: "2026-10-16",
+      },
+      db,
+    );
+
+    await deleteDeliverable(deliverable.id, db);
+
+    const read = await getTimeEntry(entry.id, db);
+    expect(read?.minutes).toBe(120);
+    expect(read?.projectId).toBe(projectId);
+    expect(read?.deliverableId).toBeNull();
+  });
+
+  it("leaves the hours counting against the project", async () => {
+    // Dropping a line of scope must not quietly reduce what the engagement
+    // has cost: the work was still done and still has to be accounted for.
+    const deliverable = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    await createTimeEntry(
+      {
+        projectId,
+        deliverableId: deliverable.id,
+        minutes: 120,
+        workedOn: "2026-10-16",
+      },
+      db,
+    );
+
+    await deleteDeliverable(deliverable.id, db);
+
+    const list = await listTimeEntries(projectId, db);
+    expect(list.map((row) => row.minutes)).toEqual([120]);
+  });
+
+  it("leaves another line's attribution alone", async () => {
+    const discovery = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    const build = await createDeliverable({ projectId, title: "Build" }, db);
+    const kept = await createTimeEntry(
+      {
+        projectId,
+        deliverableId: build.id,
+        minutes: 60,
+        workedOn: "2026-10-16",
+      },
+      db,
+    );
+
+    await deleteDeliverable(discovery.id, db);
+
+    expect((await getTimeEntry(kept.id, db))?.deliverableId).toBe(build.id);
   });
 });
