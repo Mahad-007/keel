@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { BILLED_COLUMNS, billedColumnsIn, isBilled } from "./billing";
+import {
+  BILLED_COLUMNS,
+  billedColumnsIn,
+  editRefusedByInvoice,
+  isBilled,
+} from "./billing";
 
 describe("isBilled", () => {
   it("reads an entry with no invoice as unbilled", () => {
@@ -53,5 +58,48 @@ describe("billedColumnsIn", () => {
 
   it("leaves the note off the frozen list", () => {
     expect(BILLED_COLUMNS).not.toContain("note");
+  });
+});
+
+describe("editRefusedByInvoice", () => {
+  const billed = { billedInvoiceId: "inv_0001" };
+  const unbilled = { billedInvoiceId: null };
+
+  it("refuses a billed entry's minutes", () => {
+    expect(editRefusedByInvoice(billed, { minutes: 120 })).toBe(true);
+  });
+
+  it("refuses a billed entry being marked non-billable", () => {
+    expect(editRefusedByInvoice(billed, { billable: false })).toBe(true);
+  });
+
+  it("refuses a billed entry being re-dated", () => {
+    expect(editRefusedByInvoice(billed, { workedOn: "2026-10-01" })).toBe(true);
+  });
+
+  it("refuses a billed entry being re-attributed", () => {
+    expect(editRefusedByInvoice(billed, { deliverableId: "dlv_two" })).toBe(
+      true,
+    );
+  });
+
+  it("allows a billed entry's note to be corrected", () => {
+    expect(editRefusedByInvoice(billed, { note: "Reworded" } as never)).toBe(
+      false,
+    );
+  });
+
+  it("allows an empty patch against a billed entry", () => {
+    expect(editRefusedByInvoice(billed, {})).toBe(false);
+  });
+
+  it("allows every column while the entry is unbilled", () => {
+    for (const column of BILLED_COLUMNS) {
+      expect(editRefusedByInvoice(unbilled, { [column]: 1 })).toBe(false);
+    }
+  });
+
+  it("refuses a value the row may already hold rather than comparing", () => {
+    expect(editRefusedByInvoice(billed, { minutes: 90 })).toBe(true);
   });
 });
