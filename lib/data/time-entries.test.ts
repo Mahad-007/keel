@@ -9,6 +9,7 @@ import { createProject } from "./projects";
 import {
   clearTimeEntryBilled,
   createTimeEntry,
+  deleteTimeEntry,
   getTimeEntry,
   listTimeEntries,
   listTimeEntriesForDeliverable,
@@ -926,5 +927,79 @@ describe("clearTimeEntryBilled", () => {
 
   it("is null for an id nothing was written under", async () => {
     expect(await clearTimeEntryBilled("tme_nope", db)).toBeNull();
+  });
+});
+
+describe("deleteTimeEntry", () => {
+  it("hands back the row it removed", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16", note: "Mistyped" },
+      db,
+    );
+
+    const result = await deleteTimeEntry(entry.id, db);
+
+    expect(result).toEqual({ ok: true, entry });
+  });
+
+  it("removes it, so the next read does not find it", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+
+    await deleteTimeEntry(entry.id, db);
+
+    expect(await getTimeEntry(entry.id, db)).toBeNull();
+    expect(await listTimeEntries(projectId, db)).toEqual([]);
+  });
+
+  it("leaves the project's other entries alone", async () => {
+    const doomed = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    const kept = await createTimeEntry(
+      { projectId, minutes: 30, workedOn: "2026-10-15" },
+      db,
+    );
+
+    await deleteTimeEntry(doomed.id, db);
+
+    expect((await listTimeEntries(projectId, db)).map((row) => row.id)).toEqual(
+      [kept.id],
+    );
+  });
+
+  it("refuses an id nothing was written under", async () => {
+    expect(await deleteTimeEntry("tme_nope", db)).toEqual({
+      ok: false,
+      refusal: "no-such-entry",
+    });
+  });
+
+  it("refuses time an invoice has charged for", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    await markTimeEntryBilled(entry.id, "inv_0001", db);
+
+    const result = await deleteTimeEntry(entry.id, db);
+
+    expect(result).toEqual({ ok: false, refusal: "billed" });
+    expect(await getTimeEntry(entry.id, db)).not.toBeNull();
+  });
+
+  it("removes it once a credit note has freed the time", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    await markTimeEntryBilled(entry.id, "inv_0001", db);
+    await clearTimeEntryBilled(entry.id, db);
+
+    expect((await deleteTimeEntry(entry.id, db)).ok).toBe(true);
+    expect(await getTimeEntry(entry.id, db)).toBeNull();
   });
 });
