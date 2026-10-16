@@ -87,37 +87,53 @@ async function requireProject(
 }
 
 /**
+ * Which project a deliverable belongs to, or null if there is no deliverable
+ * with that id.
+ *
+ * One query, and the project is compared by the callers rather than put in the
+ * WHERE clause, because the two failures are not the same kind of thing: a
+ * deliverable that was deleted while a form sat open is news for whoever is
+ * looking at the form, and one belonging to another engagement is a submission
+ * nobody could have made from a page this app rendered.
+ */
+async function deliverableProject(
+  id: string,
+  database: Database,
+): Promise<string | null> {
+  const [row] = await database
+    .select({ projectId: deliverables.projectId })
+    .from(deliverables)
+    .where(eq(deliverables.id, id))
+    .limit(1);
+  return row?.projectId ?? null;
+}
+
+/**
+ * Time attributed to another project's line would be counted against an
+ * estimate on an engagement it was not worked for, so the rollup would be
+ * wrong on both projects at once. The foreign key only promises the
+ * deliverable exists somewhere, which is why this is checked here.
+ *
+ * One sentence in one place, because both the write that creates an entry and
+ * the one that re-attributes it refuse the same thing.
+ */
+function foreignDeliverable(id: string, projectId: string): Error {
+  return new Error(`deliverable ${id} does not belong to project ${projectId}`);
+}
+
+/**
  * The deliverable's id if it is one of that project's, or a thrown error
  * saying which of the two things was wrong.
- *
- * The foreign key only promises the deliverable exists somewhere. Time
- * attributed to another project's line would be counted against an estimate on
- * an engagement it was not worked for, and the rollup showing it would be
- * wrong on both projects at once — so the relationship is checked here, where
- * it can be named.
- *
- * One query rather than two. The row is read by id and its project compared in
- * JavaScript, which is also what lets the two failures have different
- * sentences: a deliverable that was deleted while the form sat open and one
- * that belongs to somebody else's engagement are different mistakes.
  */
 async function requireDeliverable(
   id: string,
   projectId: string,
   database: Database,
 ): Promise<string> {
-  const [row] = await database
-    .select({ id: deliverables.id, projectId: deliverables.projectId })
-    .from(deliverables)
-    .where(eq(deliverables.id, id))
-    .limit(1);
-  if (!row) throw new Error(`no deliverable with id ${id}`);
-  if (row.projectId !== projectId) {
-    throw new Error(
-      `deliverable ${id} does not belong to project ${projectId}`,
-    );
-  }
-  return row.id;
+  const owner = await deliverableProject(id, database);
+  if (owner === null) throw new Error(`no deliverable with id ${id}`);
+  if (owner !== projectId) throw foreignDeliverable(id, projectId);
+  return id;
 }
 
 /**
