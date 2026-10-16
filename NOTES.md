@@ -241,3 +241,34 @@ checked against a fresh build and are unchanged at ten and eleven.
 - **`npm run lint`** reports seven `no-require-imports` errors in `scripts/*.js`.
   They predate Day 013 and CI runs `npm run verify`, not `npm run lint`, so
   nothing is red because of them.
+
+## What Phase 6 owes the billed-time guard
+
+Day 021 gave `time_entries` a `billedInvoiceId` and two guards in front of it:
+`updateTimeEntry` refuses to move anything an invoice copied a figure out of,
+and `deleteTimeEntry` refuses to remove billed time at all. Two foreign keys
+outrank both, and the day left them that way on purpose. Both are pinned by
+tests in `lib/data/time-entries.test.ts` so neither is a surprise later.
+
+- **Deleting a deliverable nulls a billed entry's attribution.** The column is
+  `ON DELETE SET NULL`, which is the right rule for the ordinary case: the
+  hours were worked and still count against the project, so dropping a line of
+  scope must not quietly reduce what the engagement cost. The consequence is
+  that an entry billed under "Discovery" can end up attributed to nothing,
+  which is exactly the change `editRefusedByInvoice` refuses one row at a time.
+  Refusing it in the cascade too would mean a line of scope can never be
+  dropped once any of its time is billed — a worse rule, and the reason this is
+  recorded rather than fixed. Phase 6 copies what it bills into
+  `invoice_line_items`, so no document changes when this happens; what is lost
+  is the entry agreeing with the invoice it was billed on.
+
+- **Deleting a project removes its billed time outright.** `projects` cascades,
+  so `deleteProject` takes every entry with it, billed or not. The guard that
+  belongs here is not in this table: an issued invoice is the thing that should
+  stop a project being deleted, and there are no invoices yet. Day 056 adds
+  them, and the project delete is where to put the refusal — a project with an
+  issued invoice is a record somebody has sent and may have been paid for.
+
+Neither cascade bumps `updatedAt` on the rows it touches, which SQLite cannot
+do. An entry whose attribution was cleared this way looks untouched since the
+day it was logged.
