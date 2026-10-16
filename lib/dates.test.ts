@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDate } from "./dates";
+import { formatDate, isCalendarDate } from "./dates";
 
 describe("formatDate", () => {
   it("formats a full ISO timestamp", () => {
@@ -34,5 +34,59 @@ describe("formatDate", () => {
     expect(formatDate("")).toBe("");
     expect(formatDate("21/09/2026")).toBe("21/09/2026");
     expect(formatDate("2026-09-2")).toBe("2026-09-2");
+  });
+});
+
+describe("isCalendarDate", () => {
+  it("accepts a plain calendar date", () => {
+    expect(isCalendarDate("2026-10-16")).toBe(true);
+  });
+
+  it("accepts the ends of a year", () => {
+    expect(isCalendarDate("2026-01-01")).toBe(true);
+    expect(isCalendarDate("2026-12-31")).toBe(true);
+  });
+
+  it("accepts February 29 in a leap year", () => {
+    expect(isCalendarDate("2024-02-29")).toBe(true);
+  });
+
+  it("refuses February 29 in a year that has no such day", () => {
+    expect(isCalendarDate("2026-02-29")).toBe(false);
+  });
+
+  it("refuses a day past the end of its month", () => {
+    expect(isCalendarDate("2026-04-31")).toBe(false);
+    expect(isCalendarDate("2026-02-30")).toBe(false);
+  });
+
+  it("refuses a month that does not exist", () => {
+    expect(isCalendarDate("2026-13-01")).toBe(false);
+    expect(isCalendarDate("2026-00-01")).toBe(false);
+  });
+
+  it("refuses a zeroth day", () => {
+    expect(isCalendarDate("2026-10-00")).toBe(false);
+  });
+
+  it("refuses a timestamp, which is the whole point", () => {
+    expect(isCalendarDate("2026-10-16T09:36:00.000Z")).toBe(false);
+    expect(isCalendarDate("2026-10-16 09:36:00")).toBe(false);
+  });
+
+  it("refuses an unpadded date, so stored dates sort as strings", () => {
+    expect(isCalendarDate("2026-1-5")).toBe(false);
+  });
+
+  it("refuses surrounding whitespace rather than trimming it", () => {
+    // The guard in front of the column trims before asking, so a value that
+    // reaches here with spaces on it is not what was stored.
+    expect(isCalendarDate(" 2026-10-16 ")).toBe(false);
+  });
+
+  it("refuses anything that is not a date at all", () => {
+    expect(isCalendarDate("")).toBe(false);
+    expect(isCalendarDate("yesterday")).toBe(false);
+    expect(isCalendarDate("16/10/2026")).toBe(false);
   });
 });
