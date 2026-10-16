@@ -7,6 +7,7 @@ import { createClient } from "./clients";
 import { createDeliverable } from "./deliverables";
 import { createProject } from "./projects";
 import {
+  clearTimeEntryBilled,
   createTimeEntry,
   getTimeEntry,
   listTimeEntries,
@@ -847,5 +848,83 @@ describe("updateTimeEntry on billed time", () => {
       ok: false,
       refusal: "billed",
     });
+  });
+});
+
+describe("clearTimeEntryBilled", () => {
+  it("frees time the invoice had billed", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    await markTimeEntryBilled(entry.id, "inv_0001", db);
+
+    const freed = await clearTimeEntryBilled(entry.id, db);
+
+    expect(freed?.billedInvoiceId).toBeNull();
+    expect((await getTimeEntry(entry.id, db))?.billedInvoiceId).toBeNull();
+  });
+
+  it("lets a freed entry be edited again", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    await markTimeEntryBilled(entry.id, "inv_0001", db);
+    await clearTimeEntryBilled(entry.id, db);
+
+    const result = await updateTimeEntry(entry.id, { minutes: 120 }, db);
+
+    expect(result.ok && result.entry.minutes).toBe(120);
+  });
+
+  it("lets the next invoice bill the freed hour", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    await markTimeEntryBilled(entry.id, "inv_0001", db);
+    await clearTimeEntryBilled(entry.id, db);
+
+    const marked = await markTimeEntryBilled(entry.id, "inv_0002", db);
+
+    expect(marked?.billedInvoiceId).toBe("inv_0002");
+  });
+
+  it("leaves the billable flag alone", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    await markTimeEntryBilled(entry.id, "inv_0001", db);
+
+    const freed = await clearTimeEntryBilled(entry.id, db);
+
+    expect(freed?.billable).toBe(true);
+  });
+
+  it("is null when the entry was not billed in the first place", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+
+    expect(await clearTimeEntryBilled(entry.id, db)).toBeNull();
+  });
+
+  it("does not bump updatedAt when there was nothing to free", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    await tick();
+
+    await clearTimeEntryBilled(entry.id, db);
+
+    expect((await getTimeEntry(entry.id, db))?.updatedAt).toBe(entry.updatedAt);
+  });
+
+  it("is null for an id nothing was written under", async () => {
+    expect(await clearTimeEntryBilled("tme_nope", db)).toBeNull();
   });
 });
