@@ -78,3 +78,22 @@ export type BilledColumnPatch = Partial<Record<BilledColumn, unknown>>;
 export function billedColumnsIn(patch: BilledColumnPatch): BilledColumn[] {
   return BILLED_COLUMNS.filter((column) => patch[column] !== undefined);
 }
+
+/**
+ * Whether an invoice stands in the way of this edit.
+ *
+ * Two questions, and both have to be yes: the entry has been billed, and the
+ * patch moves something the invoice copied. A billed entry whose note is being
+ * corrected is not refused, and an unbilled entry is never refused however
+ * much it moves.
+ *
+ * A boolean rather than a code, because the words for a reader belong with the
+ * form that shows them and the data layer has its own set of refusals to
+ * answer in. What this function owns is the rule, not the sentence.
+ */
+export function editRefusedByInvoice(
+  entry: BillingSubject,
+  patch: BilledColumnPatch,
+): boolean {
+  return isBilled(entry) && billedColumnsIn(patch).length > 0;
+}
