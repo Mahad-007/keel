@@ -8,6 +8,7 @@ import {
   type TimeEntry,
 } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
+import { editRefusedByInvoice } from "@/lib/time/billing";
 
 import {
   calendarDate,
@@ -288,3 +289,74 @@ export type TimeEntryRefusal = "no-such-entry" | "billed";
 export type TimeEntryWrite =
   | { readonly ok: true; readonly entry: TimeEntry }
   | { readonly ok: false; readonly refusal: TimeEntryRefusal };
+
+/**
+ * Applies the fields present in the patch and hands back the row as it now
+ * reads, or why it was not changed.
+ *
+ * An empty patch is a no-op rather than a write, so a form submitted without a
+ * change does not bump `updatedAt` and make an untouched entry look edited —
+ * the same rule `updateDeliverable` follows.
+ *
+ * Reading the row and writing it are one immediate transaction. The read is
+ * what the billed check is made against, and a deferred transaction takes no
+ * write lock until the update, so an invoice raised in between would be
+ * overwritten by an edit that was refused a moment later on the same figures.
+ *
+ * The guards run before the transaction is opened: a duration of zero or a
+ * date with a time on it costs no round trip, and it is a bug in the caller
+ * either way rather than news for the reader.
+ */
+export async function updateTimeEntry(
+  id: string,
+  patch: TimeEntryPatch,
+  database: Database = db,
+): Promise<TimeEntryWrite> {
+  const values: Partial<typeof timeEntries.$inferInsert> = {};
+  if (patch.minutes !== undefined) {
+    values.minutes = positiveMinutes(patch.minutes, "time entry minutes");
+  }
+  if (patch.note !== undefined) {
+    values.note = optionalText(patch.note);
+  }
+  if (patch.workedOn !== undefined) {
+    values.workedOn = calendarDate(patch.workedOn, "time entry worked on");
+  }
+  if (patch.billable !== undefined) {
+    values.billable = patch.billable;
+  }
+  if (patch.deliverableId !== undefined) {
+    values.deliverableId = optionalText(patch.deliverableId);
+  }
+
+  return database.transaction(
+    async (tx) => {
+      const current = await getTimeEntry(id, tx);
+      if (current === null) return { ok: false, refusal: "no-such-entry" };
+      if (editRefusedByInvoice(current, patch)) {
+        return { ok: false, refusal: "billed" };
+      }
+      if (Object.keys(values).length === 0) return { ok: true, entry: current };
+
+      /**
+       * Re-attribution is checked against the project the entry is already on,
+       * not against one the caller passes. The project is a fact about the row
+       * here, so a patch cannot move time onto another engagement's line by
+       * naming that engagement.
+       */
+      const attribution = values.deliverableId;
+      if (attribution !== undefined && attribution !== null) {
+        await requireDeliverable(attribution, current.projectId, tx);
+      }
+
+      values.updatedAt = new Date().toISOString();
+      const [row] = await tx
+        .update(timeEntries)
+        .set(values)
+        .where(eq(timeEntries.id, id))
+        .returning();
+      return { ok: true, entry: row };
+    },
+    { behavior: "immediate" },
+  );
+}
