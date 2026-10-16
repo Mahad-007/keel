@@ -661,15 +661,35 @@ describe("updateTimeEntry attribution", () => {
     expect(result.ok && result.entry.deliverableId).toBeNull();
   });
 
-  it("refuses a deliverable that does not exist", async () => {
+  it("refuses a line of scope that has been dropped since", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+    const deliverable = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+    await deleteDeliverable(deliverable.id, db);
+
+    const result = await updateTimeEntry(
+      entry.id,
+      { deliverableId: deliverable.id },
+      db,
+    );
+
+    expect(result).toEqual({ ok: false, refusal: "no-such-deliverable" });
+  });
+
+  it("refuses a deliverable id nothing was ever written under", async () => {
     const entry = await createTimeEntry(
       { projectId, minutes: 60, workedOn: "2026-10-16" },
       db,
     );
 
-    await expect(
-      updateTimeEntry(entry.id, { deliverableId: "dlv_nope" }, db),
-    ).rejects.toThrow("no deliverable with id dlv_nope");
+    expect(
+      await updateTimeEntry(entry.id, { deliverableId: "dlv_nope" }, db),
+    ).toEqual({ ok: false, refusal: "no-such-deliverable" });
   });
 
   it("refuses a deliverable belonging to another project", async () => {
@@ -700,12 +720,34 @@ describe("updateTimeEntry attribution", () => {
       db,
     );
 
+    await updateTimeEntry(
+      entry.id,
+      { minutes: 30, deliverableId: "dlv_nope" },
+      db,
+    );
+
+    expect((await getTimeEntry(entry.id, db))?.minutes).toBe(60);
+  });
+
+  it("writes nothing when another project's line is refused", async () => {
+    const other = await createProject(
+      {
+        clientId: (await createClient({ name: "Beam Ltd" }, db)).id,
+        name: "Other",
+      },
+      db,
+    );
+    const theirs = await createDeliverable(
+      { projectId: other.id, title: "Their work" },
+      db,
+    );
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16" },
+      db,
+    );
+
     await expect(
-      updateTimeEntry(
-        entry.id,
-        { minutes: 30, deliverableId: "dlv_nope" },
-        db,
-      ),
+      updateTimeEntry(entry.id, { minutes: 30, deliverableId: theirs.id }, db),
     ).rejects.toThrow();
 
     expect((await getTimeEntry(entry.id, db))?.minutes).toBe(60);

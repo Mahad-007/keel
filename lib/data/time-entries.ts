@@ -285,12 +285,22 @@ export type TimeEntryPatch = Partial<Omit<NewTimeEntryInput, "projectId">>;
 /**
  * Why a write against a time entry did not happen.
  *
- * Codes rather than sentences, the same arrangement the scope copies use: both
- * of these are reachable from a page that was right when it rendered — the
- * entry deleted in another tab, the invoice raised while the edit form sat
- * open — so the words for a reader belong with the form that shows them.
+ * Codes rather than sentences, the same arrangement the scope copies use.
+ * Every one of these is reachable from a page that was right when it
+ * rendered — the entry deleted in another tab, the line of scope dropped while
+ * the edit form sat open, the invoice raised a moment before Save — so the
+ * words for a reader belong with the form that shows them.
+ *
+ * What is *not* here is an attribution to another project's deliverable. No
+ * page this app renders offers one, so a submission carrying it is a caller
+ * that built the form wrong, and that throws: a refusal code exists to be
+ * turned into a sentence, and there is no sentence to write for a reader who
+ * did nothing.
  */
-export type TimeEntryRefusal = "no-such-entry" | "billed";
+export type TimeEntryRefusal =
+  | "no-such-entry"
+  | "no-such-deliverable"
+  | "billed";
 
 /**
  * The outcome of changing or removing a time entry: the row as it ended up, or
@@ -359,10 +369,24 @@ export async function updateTimeEntry(
        * not against one the caller passes. The project is a fact about the row
        * here, so a patch cannot move time onto another engagement's line by
        * naming that engagement.
+       *
+       * A line that has been dropped since the form was rendered is a refusal
+       * rather than a throw, which is where this parts company with
+       * `createTimeEntry` and with `updateProject`'s client reassignment. Both
+       * of those hand the reader "nothing was written — try again", and trying
+       * again cannot bring back a deleted deliverable; this already has a
+       * union to put the answer in, so it says which line is gone and the form
+       * can offer the ones that are left.
        */
       const attribution = values.deliverableId;
       if (attribution !== undefined && attribution !== null) {
-        await requireDeliverable(attribution, current.projectId, tx);
+        const owner = await deliverableProject(attribution, tx);
+        if (owner === null) {
+          return { ok: false, refusal: "no-such-deliverable" };
+        }
+        if (owner !== current.projectId) {
+          throw foreignDeliverable(attribution, current.projectId);
+        }
       }
 
       values.updatedAt = new Date().toISOString();
