@@ -146,3 +146,53 @@ describe("createTimeEntry text columns", () => {
     expect(entry.workedOn).toBe("2026-10-16");
   });
 });
+
+describe("createTimeEntry guards", () => {
+  it("refuses an entry against a project that does not exist", async () => {
+    await expect(
+      createTimeEntry(
+        { projectId: "prj_nope", minutes: 60, workedOn: "2026-10-16" },
+        db,
+      ),
+    ).rejects.toThrow("no project with id prj_nope");
+  });
+
+  it("refuses a blank project id without a query", async () => {
+    await expect(
+      createTimeEntry({ projectId: "  ", minutes: 60, workedOn: "2026-10-16" }, db),
+    ).rejects.toThrow("time entry project is required");
+  });
+
+  it("refuses a duration of zero", async () => {
+    await expect(
+      createTimeEntry({ projectId, minutes: 0, workedOn: "2026-10-16" }, db),
+    ).rejects.toThrow("time entry minutes cannot be zero");
+  });
+
+  it("refuses a negative duration", async () => {
+    await expect(
+      createTimeEntry({ projectId, minutes: -30, workedOn: "2026-10-16" }, db),
+    ).rejects.toThrow(/cannot be negative/);
+  });
+
+  it("refuses a fractional duration", async () => {
+    await expect(
+      createTimeEntry({ projectId, minutes: 90.5, workedOn: "2026-10-16" }, db),
+    ).rejects.toThrow(/must be whole minutes/);
+  });
+
+  it("refuses a day worked that is not a calendar date", async () => {
+    await expect(
+      createTimeEntry({ projectId, minutes: 60, workedOn: "2026-02-30" }, db),
+    ).rejects.toThrow(/time entry worked on must be a calendar date/);
+  });
+
+  it("refuses a timestamp as the day worked", async () => {
+    await expect(
+      createTimeEntry(
+        { projectId, minutes: 60, workedOn: "2026-10-16T09:36:00.000Z" },
+        db,
+      ),
+    ).rejects.toThrow(/time entry worked on must be a calendar date/);
+  });
+});
