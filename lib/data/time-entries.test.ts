@@ -806,6 +806,18 @@ describe("markTimeEntryBilled", () => {
     expect(again?.billedInvoiceId).toBe("inv_0001");
   });
 
+  it("does not bump updatedAt when it already had the time", async () => {
+    const entry = await logged();
+    const marked = await markTimeEntryBilled(entry.id, "inv_0001", db);
+    await tick();
+
+    await markTimeEntryBilled(entry.id, "inv_0001", db);
+
+    expect((await getTimeEntry(entry.id, db))?.updatedAt).toBe(
+      marked?.updatedAt,
+    );
+  });
+
   it("is null for an id nothing was written under", async () => {
     expect(await markTimeEntryBilled("tme_nope", "inv_0001", db)).toBeNull();
   });

@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, or } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import {
@@ -412,13 +412,16 @@ export async function updateTimeEntry(
  * column exists to prevent, and it has to be unbilled, because the whole point
  * of the column is that an hour is not charged twice.
  *
- * Unbilled *or already billed by this same invoice*, which is what makes a
- * retried send idempotent. An invoice that wrote half its entries and failed
- * would otherwise be unable to finish: the half it already owns would come
- * back as refusals indistinguishable from somebody else's time.
+ * An entry this invoice already holds is an answer rather than a failure, so a
+ * retried send can finish what it started: an invoice that wrote half its
+ * entries and failed would otherwise find the half it already owns coming back
+ * as refusals indistinguishable from somebody else's time. That case is
+ * answered by a read rather than by widening the WHERE clause to accept it,
+ * because the row needs no change and a write that changes nothing would still
+ * bump `updatedAt` — making every entry on a retried invoice look edited.
  *
  * Null is deliberately ambiguous between "no such entry", "not billable" and
- * "another invoice has it". One statement cannot tell them apart, and either
+ * "another invoice has it". Neither statement can tell them apart, and either
  * way this invoice has not billed the time — the caller that wants to say
  * which reads the row for its message.
  */
@@ -436,14 +439,19 @@ export async function markTimeEntryBilled(
       and(
         eq(timeEntries.id, id),
         eq(timeEntries.billable, true),
-        or(
-          isNull(timeEntries.billedInvoiceId),
-          eq(timeEntries.billedInvoiceId, billedInvoiceId),
-        ),
+        isNull(timeEntries.billedInvoiceId),
       ),
     )
     .returning();
-  return row ?? null;
+  if (row) return row;
+
+  /*
+    Nothing was written, which is the ordinary outcome of a retry as well as of
+    a refusal. The read tells them apart and reports; it writes nothing either
+    way, so the hour cannot land on two invoices however the two interleave.
+  */
+  const current = await getTimeEntry(id, database);
+  return current?.billedInvoiceId === billedInvoiceId ? current : null;
 }
 
 /**
