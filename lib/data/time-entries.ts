@@ -253,3 +253,38 @@ export async function listTimeEntriesForDeliverable(
     .where(eq(timeEntries.deliverableId, deliverableId))
     .orderBy(...NEWEST_FIRST);
 }
+
+/**
+ * Only the fields present are written, so a patch can touch one column.
+ *
+ * `projectId` is missing for the reason the module comment gives, and
+ * `billedInvoiceId` was never an input. What is left is everything a person
+ * can change about a stretch of work they logged: how long it took, what they
+ * were doing, the day, whether it is chargeable, and which line of scope it
+ * went against.
+ */
+export type TimeEntryPatch = Partial<Omit<NewTimeEntryInput, "projectId">>;
+
+/**
+ * Why a write against a time entry did not happen.
+ *
+ * Codes rather than sentences, the same arrangement the scope copies use: both
+ * of these are reachable from a page that was right when it rendered — the
+ * entry deleted in another tab, the invoice raised while the edit form sat
+ * open — so the words for a reader belong with the form that shows them.
+ */
+export type TimeEntryRefusal = "no-such-entry" | "billed";
+
+/**
+ * The outcome of changing or removing a time entry: the row as it ended up, or
+ * why nothing happened to it.
+ *
+ * A union rather than a nullable row, because the two refusals are not the
+ * same news. "It is gone" means the page is stale and reloading fixes it; "an
+ * invoice has it" means the edit will never be accepted and the way out is a
+ * credit note. Collapsing them into null would leave the form telling a reader
+ * to try again at something that cannot succeed.
+ */
+export type TimeEntryWrite =
+  | { readonly ok: true; readonly entry: TimeEntry }
+  | { readonly ok: false; readonly refusal: TimeEntryRefusal };
