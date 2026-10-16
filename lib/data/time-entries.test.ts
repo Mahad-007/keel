@@ -770,3 +770,82 @@ describe("markTimeEntryBilled", () => {
     );
   });
 });
+
+describe("updateTimeEntry on billed time", () => {
+  /** An entry an invoice has already charged for. */
+  async function billed() {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-16", note: "Call" },
+      db,
+    );
+    await markTimeEntryBilled(entry.id, "inv_0001", db);
+    return entry;
+  }
+
+  it("refuses the minutes an invoice has charged for", async () => {
+    const entry = await billed();
+
+    const result = await updateTimeEntry(entry.id, { minutes: 120 }, db);
+
+    expect(result).toEqual({ ok: false, refusal: "billed" });
+    expect((await getTimeEntry(entry.id, db))?.minutes).toBe(60);
+  });
+
+  it("refuses the day an invoice dated the work to", async () => {
+    const entry = await billed();
+
+    expect(
+      await updateTimeEntry(entry.id, { workedOn: "2026-10-01" }, db),
+    ).toEqual({ ok: false, refusal: "billed" });
+  });
+
+  it("refuses billed time being marked non-billable", async () => {
+    const entry = await billed();
+
+    expect(await updateTimeEntry(entry.id, { billable: false }, db)).toEqual({
+      ok: false,
+      refusal: "billed",
+    });
+  });
+
+  it("refuses moving billed time to another line of scope", async () => {
+    const entry = await billed();
+    const deliverable = await createDeliverable(
+      { projectId, title: "Discovery" },
+      db,
+    );
+
+    expect(
+      await updateTimeEntry(entry.id, { deliverableId: deliverable.id }, db),
+    ).toEqual({ ok: false, refusal: "billed" });
+  });
+
+  it("refuses the whole patch when one field of it is frozen", async () => {
+    const entry = await billed();
+
+    await updateTimeEntry(entry.id, { note: "Reworded", minutes: 30 }, db);
+
+    expect((await getTimeEntry(entry.id, db))?.note).toBe("Call");
+  });
+
+  it("still lets the note be corrected", async () => {
+    const entry = await billed();
+
+    const result = await updateTimeEntry(
+      entry.id,
+      { note: "Call with Priya" },
+      db,
+    );
+
+    expect(result.ok && result.entry.note).toBe("Call with Priya");
+  });
+
+  it("refuses the minutes even when they are the ones already stored", async () => {
+    const entry = await billed();
+
+    expect(await updateTimeEntry(entry.id, { minutes: 60 }, db)).toEqual({
+      ok: false,
+      refusal: "billed",
+    });
+  });
+});
