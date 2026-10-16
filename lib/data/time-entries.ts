@@ -169,3 +169,16 @@ export async function createTimeEntry(
     .returning();
   return row;
 }
+
+/** One time entry by id, or null if there is no entry with that id. */
+export async function getTimeEntry(
+  id: string,
+  database: Database = db,
+): Promise<TimeEntry | null> {
+  const [row] = await database
+    .select()
+    .from(timeEntries)
+    .where(eq(timeEntries.id, id))
+    .limit(1);
+  return row ?? null;
+}
