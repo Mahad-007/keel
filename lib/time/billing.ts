@@ -36,8 +36,20 @@ export function isBilled(entry: BillingSubject): boolean {
  * `minutes` is the amount charged. `billable` is whether it should have been
  * charged at all. `workedOn` decides which period the line falls in, which is
  * what a client checks a dated invoice against. `deliverableId` decides which
- * grouping it was billed under, and an invoice that lists work by deliverable
- * is wrong if the attribution moves afterwards.
+ * grouping it was billed under.
+ *
+ * None of this is about keeping the invoice itself right — Phase 6 copies what
+ * it bills into line items of its own, so a document already sent does not
+ * change when an entry does. It is about the charge staying checkable: an
+ * invoice is defended by going back to the hours behind it, and that only
+ * works while those hours still say what was charged for. An entry that has
+ * been re-dated and re-attributed since answers a question nobody asked.
+ *
+ * One edit this cannot hold the line on: deleting the deliverable itself,
+ * which nulls the attribution through the foreign key with nothing to stop it.
+ * Refusing that would mean a line of scope can never be dropped once any of
+ * its time is billed, and keeping the hours matters more than keeping the
+ * grouping — see the `time_entries` comment in the schema, and `NOTES.md`.
  *
  * `note` is deliberately absent. It is the one column on a time entry that an
  * invoice does not compute anything from — correcting a typo in "Clled client
