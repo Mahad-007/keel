@@ -1,3 +1,5 @@
+import { isCalendarDate } from "@/lib/dates";
+
 /**
  * The validators the data layer applies on the way into a column. They throw
  * rather than returning a result: by the time a value reaches `lib/data/`, a
@@ -180,4 +182,22 @@ export function recordedMinutes(value: number, field: string): number {
  */
 export function isRecordableMinutes(value: number): boolean {
   return Number.isSafeInteger(value);
+}
+
+/**
+ * A column that holds a day rather than a moment: `2026-10-16`, with no time
+ * of day on it.
+ *
+ * Trims first, like `requiredText`, so a date with a stray space around it
+ * stores as the date. A timestamp is refused rather than truncated to its
+ * first ten characters: the stored string is UTC, so truncating one written at
+ * 23:00 would file the work under a day its author did not work it, and the
+ * caller is the only thing that knows which day they meant.
+ */
+export function calendarDate(value: string, field: string): string {
+  const trimmed = value.trim();
+  if (!isCalendarDate(trimmed)) {
+    throw new Error(`${field} must be a calendar date, got ${value}`);
+  }
+  return trimmed;
 }
