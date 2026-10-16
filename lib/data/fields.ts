@@ -201,3 +201,20 @@ export function calendarDate(value: string, field: string): string {
   }
   return trimmed;
 }
+
+/**
+ * A duration column that records work done rather than work estimated: whole
+ * minutes, never negative, and never zero.
+ *
+ * `wholeMinutes` allows zero because an estimate of zero is an honest
+ * statement that nobody has sized the thing yet, which the scope summaries
+ * flag. A stretch of work of zero minutes is not the same kind of value: it
+ * records nothing that happened, totals as nothing, and is a row every later
+ * reading of the table has to skip. Refused at the column, so no rollup has to
+ * decide what it meant.
+ */
+export function positiveMinutes(value: number, field: string): number {
+  const minutes = wholeMinutes(value, field);
+  if (minutes === 0) throw new Error(`${field} cannot be zero`);
+  return minutes;
+}
