@@ -34,8 +34,7 @@ import {
  * number that is the one convention a reader could not guess. `90` is last
  * because it is the one that needs the explanation.
  */
-const DURATION_HINT =
-  "How long it took: 1h30m, 45m, or 90 for ninety minutes.";
+const DURATION_HINT = "How long it took: 1h30m, 45m, or 90 for ninety minutes.";
 
 export function LogTimeFields({
   state,
@@ -70,18 +69,30 @@ export function LogTimeFields({
           defaultValue={state.fields.workedOn}
         />
       </div>
-      <SelectField
-        name="deliverable"
-        label="Against"
-        hint="Which line of the scope list this went into. Time against the project itself still counts towards its burn — it just is not attributed to anything that was estimated."
-        placeholder={NO_DELIVERABLE_LABEL}
-        options={options.map((option) => ({
-          value: option.id,
-          label: option.label,
-        }))}
-        defaultValue={state.fields.deliverable}
-        error={state.errors.deliverable}
-      />
+      {/*
+        No picker on a project with nothing agreed yet. A `<select>` holding
+        only "the project itself" is a control with one option: it asks a
+        question that has one answer, and it would read as a scope list that
+        has gone missing rather than as one that was never written.
+
+        Nothing is lost by leaving it out — the field submits blank, which is
+        what the only option would have submitted, and the empty state on the
+        scope tab is where a reader is told what deliverables are for.
+      */}
+      {options.length === 0 ? null : (
+        <SelectField
+          name="deliverable"
+          label="Against"
+          hint="Which line of the scope list this went into. Time against the project itself still counts towards its burn — it just is not attributed to anything that was estimated."
+          placeholder={NO_DELIVERABLE_LABEL}
+          options={options.map((option) => ({
+            value: option.id,
+            label: option.label,
+          }))}
+          defaultValue={state.fields.deliverable}
+          error={state.errors.deliverable}
+        />
+      )}
       <TextAreaField
         name="note"
         label="What you did"
