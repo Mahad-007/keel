@@ -185,3 +185,23 @@ describe("parseDuration, given a fraction with no unit", () => {
     expect(minutes("1.5m")).toBe(2);
   });
 });
+
+describe("parseDuration, given a comma", () => {
+  it("refuses a comma decimal rather than reading it either way", () => {
+    // A point would make it 90 minutes; a thousands separator would make it
+    // 900. The two readings are a tenfold error apart.
+    expect(parseDuration("1,5h")).toEqual({ ok: false, reason: "comma" });
+  });
+
+  it("refuses a comma with no unit on it", () => {
+    expect(parseDuration("1,5")).toEqual({ ok: false, reason: "comma" });
+  });
+
+  it("refuses a comma used as a thousands separator", () => {
+    expect(parseDuration("1,500m")).toEqual({ ok: false, reason: "comma" });
+  });
+
+  it("reads the point spelling it is pointing the reader at", () => {
+    expect(minutes("1.5h")).toBe(90);
+  });
+});

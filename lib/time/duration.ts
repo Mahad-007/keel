@@ -32,13 +32,20 @@ import { MINUTES_PER_HOUR } from "@/lib/minutes";
  * - `bare-fraction`: `1.5`, with no unit. It is a minute and a half to this
  *   parser and an hour and a half to the person who typed it, and there is no
  *   way to tell which — see `parseDuration`.
+ * - `comma`: `1,5`, which is an hour and a half on a comma-decimal keyboard
+ *   and ten times that if the comma is read as a thousands separator.
  * - `clock`: `1:30`, which is a time of day as often as it is a duration.
  * - `unreadable`: everything else.
  *
  * Codes rather than sentences, the same arrangement as `TimeEntryRefusal`: the
  * words belong with the form that shows them, and the rule belongs here.
  */
-export type DurationReason = "blank" | "bare-fraction" | "clock" | "unreadable";
+export type DurationReason =
+  | "blank"
+  | "bare-fraction"
+  | "comma"
+  | "clock"
+  | "unreadable";
 
 /**
  * A duration read, or why it was not.
@@ -195,6 +202,17 @@ export function parseDuration(input: string): DurationParse {
   if (BARE_FRACTION.test(cleaned)) {
     return { ok: false, reason: "bare-fraction" };
   }
+
+  /*
+    A comma is never read as a point and never stripped as a separator.
+
+    On a comma-decimal keyboard `1,5h` is an hour and a half. Read as a
+    thousands separator it is fifteen hours — a tenfold error that looks like a
+    number somebody typed, which is the worst kind. `parseHours` refuses a
+    comma for exactly this reason; this says which key to press instead, since
+    the field has a syntax and the reader has already been asked to learn it.
+  */
+  if (cleaned.includes(",")) return { ok: false, reason: "comma" };
 
   const units = parseUnitParts(cleaned);
   if (units !== null) return units;
