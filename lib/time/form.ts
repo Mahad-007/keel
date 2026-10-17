@@ -1,5 +1,9 @@
 import { readFields } from "@/lib/forms/form-data";
+import { invalid, valid, type FieldResult } from "@/lib/forms/result";
 import type { FormState } from "@/lib/forms/state";
+import { MINUTES_PER_HOUR } from "@/lib/minutes";
+
+import { parseDuration, type DurationReason } from "./duration";
 
 /**
  * The log-time form, from submitted strings to something the data layer will
@@ -76,4 +80,80 @@ export type LogTimeFormState = FormState<LogTimeFieldName>;
 
 export function readLogTimeFields(formData: FormData): LogTimeFormFields {
   return readFields(formData, LOG_TIME_FIELD_NAMES);
+}
+
+/**
+ * The longest a single entry can be: one day.
+ *
+ * Not a judgement about how long anybody should work — twelve hours is a
+ * judgement, and Day 030 is where that belongs, as something flagged rather
+ * than refused. This is arithmetic: an entry is a stretch of work on one
+ * calendar day, and a stretch longer than the day it is filed under did not
+ * happen on that day.
+ *
+ * What it actually catches is the typo that matters — `40h` for `40m`, a
+ * slipped zero — where the figure is sixty times too big and poisons every
+ * burn number derived from it. Twenty-four is the ceiling that refuses those
+ * without arguing with anyone's hours.
+ */
+export const MAX_ENTRY_MINUTES = 24 * MINUTES_PER_HOUR;
+
+/**
+ * What to say about a duration that could not be read, one sentence per
+ * reason.
+ *
+ * Every one of them names a spelling that works, because the field has a
+ * syntax and a reader who got it wrong has no way of knowing what the syntax
+ * is. "That is not a valid duration" is the message that makes somebody try
+ * the same thing again in a different order.
+ *
+ * Exhaustive by its type, so a reason added to the parser is a compile error
+ * here rather than a blank message under a red box.
+ */
+export const DURATION_MESSAGES: Record<DurationReason, string> = {
+  blank: "Say how long it took — 1h30m, 45m, or 90 for ninety minutes.",
+  "bare-fraction":
+    "A fraction on its own could be minutes or hours. Write 1.5h for an hour and a half, or 90 for ninety minutes.",
+  comma: "Write the fraction with a point rather than a comma: 1.5h, not 1,5h.",
+  clock:
+    "Write how long it took rather than a clock reading: 1h30m or 90, not 1:30.",
+  unreadable:
+    "That is not a length of time. Write it as 1h30m, 45m, or 90 for ninety minutes.",
+};
+
+/** What a duration outside the readable range is told, in minutes and hours. */
+const MAX_ENTRY_HOURS = MAX_ENTRY_MINUTES / MINUTES_PER_HOUR;
+
+/**
+ * How long the work took, as whole minutes.
+ *
+ * Three refusals on top of the parser's, and each is a different thing to
+ * tell the reader. Zero is a field that was filled in and says nothing
+ * happened — the column refuses it, and an entry of no minutes is a row every
+ * later reading of the table has to skip. A negative is a typed minus sign,
+ * which is a slip rather than a syntax error, so it gets a sentence of its own
+ * rather than being lumped in with what cannot be read. And past a day it is
+ * the figure that is wrong, not the spelling.
+ */
+export function loggedMinutes(value: string): FieldResult<number> {
+  const parsed = parseDuration(value);
+  if (!parsed.ok) return invalid(DURATION_MESSAGES[parsed.reason]);
+
+  const minutes = parsed.minutes;
+  if (minutes < 0) {
+    return invalid(
+      "Time logged cannot be negative — say how long the work took.",
+    );
+  }
+  if (minutes === 0) {
+    return invalid(
+      "That rounds to no time at all. An entry has to be at least a minute long.",
+    );
+  }
+  if (minutes > MAX_ENTRY_MINUTES) {
+    return invalid(
+      `One entry cannot be longer than ${MAX_ENTRY_HOURS} hours — it is one day's work on one project. Split a longer stretch across the days it was worked.`,
+    );
+  }
+  return valid(minutes);
 }
