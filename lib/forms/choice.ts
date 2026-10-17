@@ -36,3 +36,35 @@ export function requiredChoice<T extends string>(
   }
   return valid(trimmed as T);
 }
+
+/**
+ * A picker whose first line means "none of these", and means it.
+ *
+ * The difference from `requiredChoice` is what blank is for. There, an empty
+ * value is a field the reader skipped and the message says so. Here it is an
+ * answer: time logged against no deliverable is project-level work — a call, a
+ * handover, an afternoon of nothing that fits a line of the scope list — and
+ * that is a true thing about the entry rather than a gap in it.
+ *
+ * Null rather than the empty string, so the one representation of "no
+ * deliverable" is the one the column holds. A blank id travelling further
+ * would be a third state meaning what NULL already means, and `optionalText`
+ * in the data layer would collapse it anyway — one conversion, at the edge.
+ *
+ * Anything else is still checked against the list, for the reason
+ * `requiredChoice` is: a form is a POST endpoint, and the id in it can name a
+ * row deleted while the page sat open or one that was never offered.
+ */
+export function optionalChoice<T extends string>(
+  value: string,
+  allowed: readonly T[],
+  { label, unknown }: ChoiceOptions,
+): FieldResult<T | null> {
+  const trimmed = value.trim();
+  if (trimmed === "") return valid(null);
+
+  if (!(allowed as readonly string[]).includes(trimmed)) {
+    return invalid(unknown ?? `${label} is not one of the options offered.`);
+  }
+  return valid(trimmed as T);
+}
