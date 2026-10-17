@@ -191,3 +191,33 @@ export function workedOnDate(value: string): FieldResult<string> {
   }
   return valid(trimmed);
 }
+
+/**
+ * What the chargeable checkbox submits when it is ticked.
+ *
+ * An explicit value rather than the browser's default `on`, because the
+ * default is a word with no meaning that both the input and the reader of this
+ * module have to remember. Exported so the input and the check cannot drift
+ * into disagreeing about it — a checkbox submitting `on` against a check for
+ * `yes` would quietly mark every entry non-billable.
+ */
+export const BILLABLE_VALUE = "yes";
+
+/**
+ * Whether the submission says this time is chargeable.
+ *
+ * A checkbox submits its value when ticked and nothing at all when not, so
+ * "absent" is how a browser says no. That makes the reading strict: only the
+ * exact value counts, and everything else — blank, `on`, `false`, `true` —
+ * reads as not chargeable.
+ *
+ * Strict in that direction on purpose. A loose reading would take any value as
+ * yes, so a submission carrying `billable=false` would bill the time, which is
+ * the one mistake the column exists to prevent: an hour somebody marked
+ * non-chargeable and got charged for is on a document a client has been sent.
+ * The other way round, an hour wrongly left out of an invoice is still in the
+ * list, still unbilled, and still billable tomorrow.
+ */
+export function readsAsBillable(value: string): boolean {
+  return value === BILLABLE_VALUE;
+}

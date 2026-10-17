@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BILLABLE_VALUE,
   DURATION_MESSAGES,
   loggedMinutes,
   MAX_ENTRY_MINUTES,
+  readsAsBillable,
   workedOnDate,
 } from "./form";
 
@@ -139,5 +141,27 @@ describe("workedOnDate", () => {
     // Readable, and somebody could mean it. An entry that looks implausible
     // is better flagged against the ones around it than refused here.
     expect(workedOnDate("2099-01-01").ok).toBe(true);
+  });
+});
+
+describe("readsAsBillable", () => {
+  it("reads the ticked box as chargeable", () => {
+    expect(readsAsBillable(BILLABLE_VALUE)).toBe(true);
+  });
+
+  it("reads an absent field as not chargeable", () => {
+    // Which is how a browser submits an unticked checkbox: it sends nothing,
+    // and `readFields` turns nothing into a blank string.
+    expect(readsAsBillable("")).toBe(false);
+  });
+
+  it("reads anything else as not chargeable", () => {
+    // Including the words that look like a yes. Billing an hour somebody
+    // marked non-chargeable is the mistake the column exists to prevent, so
+    // the only value that bills is the one the form sends.
+    expect(readsAsBillable("on")).toBe(false);
+    expect(readsAsBillable("true")).toBe(false);
+    expect(readsAsBillable("false")).toBe(false);
+    expect(readsAsBillable("1")).toBe(false);
   });
 });
