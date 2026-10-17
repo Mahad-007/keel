@@ -7,6 +7,7 @@ import {
   failedLogTimeState,
   INITIAL_LOG_TIME_STATE,
   LOG_TIME_FIELD_LIMITS,
+  loggedTimeNotice,
   loggedTimeState,
   loggedMinutes,
   MAX_ENTRY_MINUTES,
@@ -14,6 +15,7 @@ import {
   readsAsBillable,
   rejectedLogTimeState,
   workedOnDate,
+  type LoggedTime,
   type LogTimeFormFields,
 } from "./form";
 
@@ -284,7 +286,7 @@ describe("parseLogTimeForm", () => {
   });
 });
 
-const LOGGED = {
+const LOGGED: LoggedTime = {
   id: "tme_1",
   minutes: 90,
   workedOn: "2026-10-17",
@@ -365,5 +367,53 @@ describe("failedLogTimeState", () => {
     expect(state.formError).toBe("Nothing was written.");
     expect(state.errors).toEqual({});
     expect(state.logged).toBeNull();
+  });
+});
+
+describe("loggedTimeNotice", () => {
+  function notice(logged: Partial<typeof LOGGED> = {}) {
+    return loggedTimeNotice(loggedTimeState({ ...LOGGED, ...logged }));
+  }
+
+  it("says nothing before anything has been logged", () => {
+    expect(loggedTimeNotice(INITIAL_LOG_TIME_STATE)).toBeNull();
+  });
+
+  it("names the duration, the day and the line", () => {
+    expect(notice()).toBe(
+      "Logged 1h 30m on Oct 17, 2026 against “Wireframes”.",
+    );
+  });
+
+  it("reads the duration back as the column holds it", () => {
+    // Somebody who typed `90` is told they logged 1h 30m, which is the only
+    // confirmation that the bare-number convention did what they meant.
+    expect(notice({ minutes: 90 })).toContain("1h 30m");
+    expect(notice({ minutes: 45 })).toContain("45m");
+    expect(notice({ minutes: 120 })).toContain("2h");
+  });
+
+  it("says so when the time went against the project itself", () => {
+    // The picker resets after every entry, so this is the thing a reader most
+    // often discovers one entry too late.
+    expect(notice({ deliverableTitle: null })).toBe(
+      "Logged 1h 30m on Oct 17, 2026 against the project itself.",
+    );
+  });
+
+  it("says when an entry is not chargeable", () => {
+    expect(notice({ billable: false })).toBe(
+      "Logged 1h 30m on Oct 17, 2026 against “Wireframes”. Marked as not chargeable.",
+    );
+  });
+
+  it("says nothing about chargeability when it is chargeable", () => {
+    // Which is almost every entry, and a sentence repeated after every one of
+    // them is a sentence nobody reads.
+    expect(notice({ billable: true })).not.toContain("chargeable");
+  });
+
+  it("writes the day the way the rest of the app writes dates", () => {
+    expect(notice({ workedOn: "2026-01-05" })).toContain("Jan 5, 2026");
   });
 });

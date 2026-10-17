@@ -1,5 +1,5 @@
 import type { NewTimeEntryInput } from "@/lib/data/time-entries";
-import { isCalendarDate } from "@/lib/dates";
+import { formatDate, isCalendarDate } from "@/lib/dates";
 import { optionalChoice } from "@/lib/forms/choice";
 import { readFields } from "@/lib/forms/form-data";
 import {
@@ -17,7 +17,7 @@ import {
   type FormState,
 } from "@/lib/forms/state";
 import { optionalText } from "@/lib/forms/text";
-import { MINUTES_PER_HOUR } from "@/lib/minutes";
+import { formatMinutes, MINUTES_PER_HOUR } from "@/lib/minutes";
 
 import { parseDuration, type DurationReason } from "./duration";
 
@@ -432,3 +432,33 @@ export const TIME_PROBLEMS = {
  */
 export const LOG_TIME_NO_ANSWER =
   "Could not tell whether that time was logged — the answer never arrived. Reload and check what this project already has before logging it again.";
+
+/**
+ * What to say after an entry is logged, or null when there is nothing to say.
+ *
+ * The form does not navigate, so a successful submission changes the page in
+ * ways a reader may be looking at none of: the boxes empty, and an entry
+ * appears in a list somewhere above. Anyone working from a screen reader gets
+ * no notification of either. This is the sentence that goes in a live region.
+ *
+ * It names all four things that were decided, because each is a thing the
+ * reader could have got wrong and cannot now see. The duration is read back as
+ * the column holds it — somebody who typed `90` is told they logged 1h 30m,
+ * which is the one confirmation that the convention in `parseDuration` worked
+ * out the way they meant. The day is named because it was prefilled by the
+ * browser and may have been left as today by mistake. The line is named
+ * because the picker resets after every entry, so "against the project itself"
+ * is the thing a reader most often discovers one entry too late. And a
+ * non-chargeable entry says so, since an unticked box is the easiest mistake
+ * on this form to make and the most expensive to find out about in a month.
+ */
+export function loggedTimeNotice(state: LogTimeState): string | null {
+  if (state.logged === null) return null;
+
+  const { minutes, workedOn, deliverableTitle, billable } = state.logged;
+  const against =
+    deliverableTitle === null ? "the project itself" : `“${deliverableTitle}”`;
+  const charge = billable ? "" : " Marked as not chargeable.";
+
+  return `Logged ${formatMinutes(minutes)} on ${formatDate(workedOn)} against ${against}.${charge}`;
+}
