@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getDeliverable } from "@/lib/data/deliverables";
 import { getProject } from "@/lib/data/projects";
 import { createTimeEntry } from "@/lib/data/time-entries";
 import { projectPath } from "@/lib/projects/detail";
@@ -18,12 +19,14 @@ import { writeTimeEntry } from "./time-writes";
  * branching — reject, refuse, write — and the validation and the insert are
  * each already tested where they live.
  */
+vi.mock("@/lib/data/deliverables", () => ({ getDeliverable: vi.fn() }));
 vi.mock("@/lib/data/projects", () => ({ getProject: vi.fn() }));
 vi.mock("@/lib/data/time-entries", () => ({ createTimeEntry: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 const project = vi.mocked(getProject);
 const created = vi.mocked(createTimeEntry);
+const deliverable = vi.mocked(getDeliverable);
 
 const OFFERED: AttributableDeliverable[] = [
   { id: "dlv_wireframes", title: "Wireframes", estimatedMinutes: 360 },
@@ -183,5 +186,49 @@ describe("writeTimeEntry", () => {
       expect.objectContaining({ billable: false }),
     );
     expect(state.logged?.billable).toBe(false);
+  });
+});
+
+describe("writeTimeEntry, when the write fails", () => {
+  beforeEach(() => {
+    created.mockRejectedValue(new Error("FOREIGN KEY constraint failed"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("names a line that was deleted under the form", async () => {
+    // The picker offered it when the page was served and the scope list was
+    // tidied in another tab since. "Try again" is the one thing that cannot
+    // work, so it is not what the reader is told.
+    deliverable.mockResolvedValue(null);
+
+    const state = await log({ deliverable: "dlv_build" });
+
+    expect(deliverable).toHaveBeenCalledWith("dlv_build");
+    expect(state.formError).toBe(TIME_PROBLEMS.missingDeliverable);
+  });
+
+  it("falls back to try again when the line is still there", async () => {
+    deliverable.mockResolvedValue({ id: "dlv_build" } as never);
+
+    const state = await log({ deliverable: "dlv_build" });
+
+    expect(state.formError).toBe(TIME_PROBLEMS.failed);
+  });
+
+  it("does not look for a line when none was picked", async () => {
+    const state = await log();
+
+    expect(deliverable).not.toHaveBeenCalled();
+    expect(state.formError).toBe(TIME_PROBLEMS.failed);
+  });
+
+  it("says try again when the second read fails too", async () => {
+    // A driver that threw on the insert may well throw on this, and two
+    // failures in a row say nothing more than one did.
+    deliverable.mockRejectedValue(new Error("database is locked"));
+
+    const state = await log({ deliverable: "dlv_build" });
+
+    expect(state.formError).toBe(TIME_PROBLEMS.failed);
   });
 });

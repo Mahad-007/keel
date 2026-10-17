@@ -17,6 +17,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { getDeliverable } from "@/lib/data/deliverables";
 import { getProject } from "@/lib/data/projects";
 import { createTimeEntry } from "@/lib/data/time-entries";
 import { projectPath } from "@/lib/projects/detail";
@@ -30,6 +31,39 @@ import {
   TIME_PROBLEMS,
   type LogTimeState,
 } from "@/lib/time/form";
+
+/**
+ * Why the insert failed, as a sentence for the reader.
+ *
+ * The usual answer is "try again", and for a driver error that is the right
+ * one. The exception is the attribution: `createTimeEntry` throws when the
+ * deliverable has gone, and it goes between the check in front of the write
+ * and the write itself more often than that sounds — a scope list being
+ * tidied in another tab while an hour is logged in this one. Telling that
+ * reader to try again is telling them to retry something that cannot succeed.
+ *
+ * So the deliverable is read back, once, and only on the path where something
+ * has already failed. A line that is gone is named; anything else is the
+ * ordinary failure. The read is not a diagnosis of the error — it cannot be,
+ * since a driver that threw on the insert may throw on this too — which is
+ * why that case falls through to the same sentence as everything else.
+ */
+async function failureProblem(
+  deliverableId: string | null | undefined,
+): Promise<string> {
+  if (deliverableId === null || deliverableId === undefined) {
+    return TIME_PROBLEMS.failed;
+  }
+
+  try {
+    const deliverable = await getDeliverable(deliverableId);
+    if (deliverable === null) return TIME_PROBLEMS.missingDeliverable;
+  } catch (error) {
+    // Two failures in a row say nothing more than one did.
+    console.error("writeTimeEntry: could not read the deliverable", error);
+  }
+  return TIME_PROBLEMS.failed;
+}
 
 /**
  * Logging one stretch of work against a project.
@@ -81,7 +115,10 @@ export async function writeTimeEntry(
   } catch (error) {
     // The reader cannot act on a driver error, but the logs should keep it.
     console.error("writeTimeEntry: failed to log the time", error);
-    return failedLogTimeState(fields, TIME_PROBLEMS.failed);
+    return failedLogTimeState(
+      fields,
+      await failureProblem(parsed.value.deliverableId),
+    );
   }
 
   // The entry is read back off the page, so nothing shows it until the page is
