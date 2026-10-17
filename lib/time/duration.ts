@@ -121,7 +121,7 @@ const BARE_FRACTION = new RegExp(String.raw`^-?${NUMBER}$`);
  * sixty plus thirty.
  */
 const UNIT_PARTS = new RegExp(
-  String.raw`^(-?)(?:(${NUMBER})${HOUR_UNIT})?(?:(${NUMBER})${MINUTE_UNIT})?$`,
+  String.raw`^(-?)(?:(${NUMBER})${HOUR_UNIT})?(?:(${NUMBER})(${MINUTE_UNIT})?)?$`,
 );
 
 /**
@@ -151,9 +151,23 @@ function parseUnitParts(cleaned: string): DurationParse | null {
   const match = UNIT_PARTS.exec(cleaned);
   if (match === null) return null;
 
-  const [, sign, hours, mins] = match;
+  const [, sign, hours, mins, minuteUnit] = match;
   // Both parts absent is the regex matching a bare sign, or nothing at all.
   if (hours === undefined && mins === undefined) return null;
+
+  /*
+    `1h30` is an hour and a half. The minutes unit is optional once an hours
+    part has been written, because the hours part has already said what the
+    number after it counts — and dropping the trailing `m` is what people
+    type, in the same way they say "one thirty" out loud.
+
+    With no hours part in front of it, though, a bare number is not this form
+    at all: `90` is minutes by the rule above, and `1.5` is the fraction this
+    parser refuses to guess the unit of. Both are decided before this function
+    is reached, and refusing them here too keeps it from being the second
+    opinion that quietly overrules either.
+  */
+  if (hours === undefined && minuteUnit === undefined) return null;
 
   /*
     Rounded once, over the sum, rather than per part. `1.5h30.4m` rounded

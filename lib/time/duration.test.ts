@@ -262,3 +262,29 @@ describe("parseDuration, written in words", () => {
     expect(minutes("45mn")).toBeNull();
   });
 });
+
+describe("parseDuration, with the trailing unit left off", () => {
+  it("reads 1h30 as an hour and a half", () => {
+    expect(minutes("1h30")).toBe(90);
+  });
+
+  it("reads it with the hour spelled out", () => {
+    expect(minutes("2hr15")).toBe(135);
+    expect(minutes("1 hour 30")).toBe(90);
+  });
+
+  it("reads a minutes part past the hour", () => {
+    expect(minutes("1h90")).toBe(150);
+  });
+
+  it("still reads a bare number as minutes rather than as a minutes part", () => {
+    expect(minutes("30")).toBe(30);
+  });
+
+  it("still refuses a bare fraction, which has no hours part to lean on", () => {
+    expect(parseDuration("1.5")).toEqual({
+      ok: false,
+      reason: "bare-fraction",
+    });
+  });
+});
