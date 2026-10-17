@@ -38,11 +38,7 @@ import { MINUTES_PER_HOUR } from "@/lib/minutes";
  * Codes rather than sentences, the same arrangement as `TimeEntryRefusal`: the
  * words belong with the form that shows them, and the rule belongs here.
  */
-export type DurationReason =
-  | "blank"
-  | "bare-fraction"
-  | "clock"
-  | "unreadable";
+export type DurationReason = "blank" | "bare-fraction" | "clock" | "unreadable";
 
 /**
  * A duration read, or why it was not.
@@ -72,6 +68,16 @@ function normalise(input: string): string {
 const BARE_MINUTES = /^-?\d+$/;
 
 /**
+ * A number inside a written duration: `1`, `1.5`, `.5`, and `1.` as well.
+ *
+ * The same shape `parseHours` accepts, deliberately. A reader who types `.5h`
+ * in the duration field and `.5` in the estimate field above it should not
+ * find one of them refused — they are the same keystrokes with the same
+ * meaning, and the only difference is which field is asking.
+ */
+const NUMBER = String.raw`(?:\d+(?:\.\d*)?|\.\d+)`;
+
+/**
  * The written form: an hours part, a minutes part, either of them optional.
  *
  * Both parts optional and in that order, which is three decisions. `1h` and
@@ -82,7 +88,24 @@ const BARE_MINUTES = /^-?\d+$/;
  * than on each part, so `-1h30m` is minus ninety minutes rather than minus
  * sixty plus thirty.
  */
-const UNIT_PARTS = /^(-?)(?:(\d+)h)?(?:(\d+)m)?$/;
+const UNIT_PARTS = new RegExp(
+  String.raw`^(-?)(?:(${NUMBER})h)?(?:(${NUMBER})m)?$`,
+);
+
+/**
+ * A magnitude with its sign put back on, and zero left alone.
+ *
+ * `-0` is the reason this exists. It is a number that compares equal to zero
+ * and is not it — `Object.is(-0, 0)` is false — so `-0m` would produce a
+ * duration that reads as nothing, tests as something else, and sorts
+ * unpredictably once it has been through a column. Negative durations are
+ * refused by the form anyway, but a parser that can return two zeroes is a
+ * parser that returns a value nothing downstream was written for.
+ */
+function signedMinutes(magnitude: number, negative: boolean): number {
+  if (magnitude === 0) return 0;
+  return negative ? -magnitude : magnitude;
+}
 
 /**
  * The written form read, or null if this is not that form at all.
@@ -100,10 +123,17 @@ function parseUnitParts(cleaned: string): DurationParse | null {
   // Both parts absent is the regex matching a bare sign, or nothing at all.
   if (hours === undefined && mins === undefined) return null;
 
+  /*
+    Rounded once, over the sum, rather than per part. `1.5h30.4m` rounded
+    twice is 90 + 30 = 120; rounded once it is 120.4 → 120, which is the same
+    here and is not always: two parts each a third of a minute out round to
+    nothing twice and to one minute together, and the second answer is the one
+    that adds up.
+  */
   const total =
     (hours === undefined ? 0 : Number(hours) * MINUTES_PER_HOUR) +
     (mins === undefined ? 0 : Number(mins));
-  return { ok: true, minutes: sign === "-" ? -total : total };
+  return { ok: true, minutes: signedMinutes(Math.round(total), sign === "-") };
 }
 
 /**
@@ -114,6 +144,11 @@ function parseUnitParts(cleaned: string): DurationParse | null {
  * field is for: a stretch of work just finished, typed in the unit a timer
  * reads in. Nobody logs ninety hours as a single entry, and somebody who
  * means an hour and a half has `1h30m` and `1.5h` to say it with.
+ *
+ * The result is a whole number of minutes, because minutes are the unit the
+ * column holds. A fraction is rounded rather than refused: `0.4h` is a reading
+ * off a spreadsheet or a stopwatch, and refusing the seconds would be refusing
+ * a figure that is right.
  */
 export function parseDuration(input: string): DurationParse {
   const cleaned = normalise(input);
@@ -126,7 +161,15 @@ export function parseDuration(input: string): DurationParse {
   */
   if (cleaned === "") return { ok: false, reason: "blank" };
 
-  if (BARE_MINUTES.test(cleaned)) return { ok: true, minutes: Number(cleaned) };
+  if (BARE_MINUTES.test(cleaned)) {
+    return {
+      ok: true,
+      minutes: signedMinutes(
+        Math.abs(Number(cleaned)),
+        cleaned.startsWith("-"),
+      ),
+    };
+  }
 
   const units = parseUnitParts(cleaned);
   if (units !== null) return units;
