@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { requiredChoice } from "./choice";
+import { optionalChoice, requiredChoice } from "./choice";
 
 const CLIENTS = ["cli_ada", "cli_grace"] as const;
 const OPTIONS = { label: "Client" };
@@ -51,6 +51,68 @@ describe("requiredChoice", () => {
     expect(requiredChoice("cli_ada", [], OPTIONS)).toEqual({
       ok: false,
       message: "Client is not one of the options offered.",
+    });
+  });
+});
+
+describe("optionalChoice", () => {
+  const ids = ["dlv_wireframes", "dlv_build"] as const;
+
+  it("accepts one of the options", () => {
+    expect(optionalChoice("dlv_build", ids, { label: "Deliverable" })).toEqual({
+      ok: true,
+      value: "dlv_build",
+    });
+  });
+
+  it("reads a blank choice as none of them, not as a missing field", () => {
+    expect(optionalChoice("", ids, { label: "Deliverable" })).toEqual({
+      ok: true,
+      value: null,
+    });
+  });
+
+  it("reads a choice of only spaces as none of them", () => {
+    expect(optionalChoice("   ", ids, { label: "Deliverable" })).toEqual({
+      ok: true,
+      value: null,
+    });
+  });
+
+  it("trims a choice before matching it", () => {
+    expect(
+      optionalChoice(" dlv_build ", ids, { label: "Deliverable" }),
+    ).toEqual({ ok: true, value: "dlv_build" });
+  });
+
+  it("refuses a value that was never on offer", () => {
+    expect(optionalChoice("dlv_other", ids, { label: "Deliverable" })).toEqual({
+      ok: false,
+      message: "Deliverable is not one of the options offered.",
+    });
+  });
+
+  it("refuses with the caller's own sentence when it has one", () => {
+    expect(
+      optionalChoice("dlv_other", ids, {
+        label: "Deliverable",
+        unknown: "That deliverable is no longer on this project.",
+      }),
+    ).toEqual({
+      ok: false,
+      message: "That deliverable is no longer on this project.",
+    });
+  });
+
+  it("refuses everything when nothing is on offer", () => {
+    // A project with no deliverables offers no attribution, so the only valid
+    // answer is the blank one.
+    expect(optionalChoice("dlv_build", [], { label: "Deliverable" }).ok).toBe(
+      false,
+    );
+    expect(optionalChoice("", [], { label: "Deliverable" })).toEqual({
+      ok: true,
+      value: null,
     });
   });
 });
