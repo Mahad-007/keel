@@ -288,3 +288,37 @@ describe("parseDuration, with the trailing unit left off", () => {
     });
   });
 });
+
+describe("parseDuration, given a negative duration", () => {
+  it("reads a bare negative so the form can refuse it in words", () => {
+    // Refusing it here would make it "unreadable", and the reader would be
+    // told to check their spelling of a duration they spelled correctly.
+    expect(minutes("-30")).toBe(-30);
+  });
+
+  it("reads a negative written in units", () => {
+    expect(minutes("-1h30m")).toBe(-90);
+  });
+
+  it("puts the sign on the whole duration, not on its first part", () => {
+    // Minus an hour and a half, not minus an hour plus half an hour.
+    expect(minutes("-1h30m")).toBe(-90);
+    expect(minutes("-2h")).toBe(-120);
+  });
+
+  it("reads minus nothing as nothing, not as negative zero", () => {
+    // `-0` compares equal to zero and is not it, so a column that held one
+    // would read as nothing and test as something else.
+    expect(minutes("-0")).toBe(0);
+    expect(minutes("-0m")).toBe(0);
+    expect(Object.is(minutes("-0"), 0)).toBe(true);
+  });
+
+  it("refuses a sign with nothing after it", () => {
+    expect(minutes("-")).toBeNull();
+  });
+
+  it("refuses a plus sign, which nobody needs to type", () => {
+    expect(minutes("+30")).toBeNull();
+  });
+});
