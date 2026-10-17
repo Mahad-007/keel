@@ -4,11 +4,15 @@ import {
   BILLABLE_VALUE,
   DURATION_MESSAGES,
   EMPTY_LOG_TIME_FIELDS,
+  failedLogTimeState,
+  INITIAL_LOG_TIME_STATE,
   LOG_TIME_FIELD_LIMITS,
+  loggedTimeState,
   loggedMinutes,
   MAX_ENTRY_MINUTES,
   parseLogTimeForm,
   readsAsBillable,
+  rejectedLogTimeState,
   workedOnDate,
   type LogTimeFormFields,
 } from "./form";
@@ -277,5 +281,89 @@ describe("parseLogTimeForm", () => {
     );
 
     expect(parsed.ok === false && "billable" in parsed.errors).toBe(false);
+  });
+});
+
+const LOGGED = {
+  id: "tme_1",
+  minutes: 90,
+  workedOn: "2026-10-17",
+  deliverableTitle: "Wireframes",
+  billable: true,
+};
+
+describe("INITIAL_LOG_TIME_STATE", () => {
+  it("starts with the chargeable box ticked", () => {
+    // Which is what the column defaults to: time logged against a client
+    // engagement is chargeable until somebody says otherwise.
+    expect(readsAsBillable(INITIAL_LOG_TIME_STATE.fields.billable)).toBe(true);
+  });
+
+  it("leaves the day for the browser to fill in", () => {
+    // The server does not know what today is where the reader is standing.
+    expect(INITIAL_LOG_TIME_STATE.fields.workedOn).toBe("");
+  });
+
+  it("has nothing logged and nothing wrong", () => {
+    expect(INITIAL_LOG_TIME_STATE.logged).toBeNull();
+    expect(INITIAL_LOG_TIME_STATE.errors).toEqual({});
+    expect(INITIAL_LOG_TIME_STATE.formError).toBeNull();
+  });
+});
+
+describe("loggedTimeState", () => {
+  it("keeps the day, so the next entry on it needs no date", () => {
+    expect(loggedTimeState(LOGGED).fields.workedOn).toBe("2026-10-17");
+  });
+
+  it("empties the duration, so the same hour cannot be logged twice", () => {
+    expect(loggedTimeState(LOGGED).fields.duration).toBe("");
+  });
+
+  it("drops the attribution, so the next entry does not inherit it", () => {
+    expect(loggedTimeState(LOGGED).fields.deliverable).toBe("");
+  });
+
+  it("empties the note", () => {
+    expect(loggedTimeState(LOGGED).fields.note).toBe("");
+  });
+
+  it("puts the chargeable box back, however the last entry was marked", () => {
+    // One non-chargeable entry should not make the rest of the evening free.
+    const state = loggedTimeState({ ...LOGGED, billable: false });
+
+    expect(readsAsBillable(state.fields.billable)).toBe(true);
+  });
+
+  it("carries what was written, for the sentence that follows", () => {
+    expect(loggedTimeState(LOGGED).logged).toEqual(LOGGED);
+  });
+
+  it("has nothing wrong with it", () => {
+    expect(loggedTimeState(LOGGED).errors).toEqual({});
+    expect(loggedTimeState(LOGGED).formError).toBeNull();
+  });
+});
+
+describe("rejectedLogTimeState", () => {
+  it("echoes what was typed, so a refusal loses nothing", () => {
+    const typed = { ...EMPTY_LOG_TIME_FIELDS, duration: "ages", note: "Calls" };
+    const state = rejectedLogTimeState(typed, { duration: "No." });
+
+    expect(state.fields).toEqual(typed);
+    expect(state.errors).toEqual({ duration: "No." });
+    expect(state.logged).toBeNull();
+  });
+});
+
+describe("failedLogTimeState", () => {
+  it("says what happened to the submission as a whole", () => {
+    const typed = { ...EMPTY_LOG_TIME_FIELDS, duration: "90" };
+    const state = failedLogTimeState(typed, "Nothing was written.");
+
+    expect(state.fields).toEqual(typed);
+    expect(state.formError).toBe("Nothing was written.");
+    expect(state.errors).toEqual({});
+    expect(state.logged).toBeNull();
   });
 });
