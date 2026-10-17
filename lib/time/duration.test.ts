@@ -115,3 +115,48 @@ describe("parseDuration, written in hours and minutes", () => {
     expect(minutes("2d")).toBeNull();
   });
 });
+
+describe("parseDuration, written with a fraction", () => {
+  it("reads a fractional hour", () => {
+    expect(minutes("1.5h")).toBe(90);
+    expect(minutes("0.25h")).toBe(15);
+  });
+
+  it("reads an hour written with a leading point", () => {
+    expect(minutes(".5h")).toBe(30);
+  });
+
+  it("reads a trailing point as the whole number", () => {
+    expect(minutes("2.h")).toBe(120);
+  });
+
+  it("reads a fraction alongside a minutes part", () => {
+    expect(minutes("1.5h15m")).toBe(105);
+  });
+
+  it("rounds to the whole minute, which is the unit", () => {
+    // 0.4 of an hour is 24 minutes exactly; 0.41 is 24.6, and the column has
+    // nowhere to put the seconds.
+    expect(minutes("0.4h")).toBe(24);
+    expect(minutes("0.41h")).toBe(25);
+  });
+
+  it("rounds a figure a stopwatch produced", () => {
+    expect(minutes("1.2345h")).toBe(74);
+  });
+
+  it("rounds the sum rather than each part", () => {
+    // Each part is half a minute; rounded separately they are 1 and 1, which
+    // is a minute more than the duration somebody worked.
+    expect(minutes("0.00833333h0.5m")).toBe(1);
+  });
+
+  it("rounds a duration shorter than a minute up to one", () => {
+    expect(minutes("0.6m")).toBe(1);
+  });
+
+  it("rounds a duration of almost nothing down to nothing", () => {
+    // Readable and not loggable: the form has the sentence for zero.
+    expect(minutes("0.004h")).toBe(0);
+  });
+});
