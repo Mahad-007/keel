@@ -214,6 +214,22 @@ export function parseDuration(input: string): DurationParse {
   */
   if (cleaned.includes(",")) return { ok: false, reason: "comma" };
 
+  /*
+    `1:30` is refused with its own sentence rather than read as ninety minutes.
+
+    It is the one spelling a reader is likely to try that this parser could
+    plausibly accept, and `parseHours` already refuses it on the estimate field
+    for a reason that holds here too: a colon writes a time of day as readily
+    as a length of time, and `0:30` and `12:30` are both durations and both
+    clock readings. Accepting it on one field while the field above refuses it
+    would be two rules for one keystroke.
+
+    What it gets instead is a message naming the two spellings that work, which
+    is the thing a reader actually needs — the refusal is only annoying if it
+    does not say what to type.
+  */
+  if (cleaned.includes(":")) return { ok: false, reason: "clock" };
+
   const units = parseUnitParts(cleaned);
   if (units !== null) return units;
 

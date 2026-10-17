@@ -205,3 +205,21 @@ describe("parseDuration, given a comma", () => {
     expect(minutes("1.5h")).toBe(90);
   });
 });
+
+describe("parseDuration, given a clock reading", () => {
+  it("refuses the colon form in its own words", () => {
+    // Ninety minutes to one reader, half past one to another — and the
+    // estimate field above refuses a colon for the same reason.
+    expect(parseDuration("1:30")).toEqual({ ok: false, reason: "clock" });
+  });
+
+  it("refuses it however many parts it has", () => {
+    expect(parseDuration("0:30").ok).toBe(false);
+    expect(parseDuration("1:30:00").ok).toBe(false);
+  });
+
+  it("reads the spellings the message offers instead", () => {
+    expect(minutes("1h30m")).toBe(90);
+    expect(minutes("90")).toBe(90);
+  });
+});
