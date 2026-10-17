@@ -77,8 +77,15 @@ export function LogTimeFields({
         Nothing is lost by leaving it out — the field submits blank, which is
         what the only option would have submitted, and the empty state on the
         scope tab is where a reader is told what deliverables are for.
+
+        Unless there is a message about it, which is the one case where a
+        control with one option has something to say. A submission naming a
+        deliverable this project has none of is refused by the validator, and
+        a refusal with nowhere to put its sentence is the state a form must
+        never be in: the summary would count a bad field, nothing on screen
+        would say which, and the cursor would have nowhere to go.
       */}
-      {options.length === 0 ? null : (
+      {options.length === 0 && state.errors.deliverable === undefined ? null : (
         <SelectField
           name="deliverable"
           label="Against"
