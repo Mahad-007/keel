@@ -4,6 +4,7 @@ import {
   DURATION_MESSAGES,
   loggedMinutes,
   MAX_ENTRY_MINUTES,
+  workedOnDate,
 } from "./form";
 
 /** The message a refused field came back with, for the ordinary assertion. */
@@ -93,5 +94,50 @@ describe("loggedMinutes", () => {
         /cannot be longer than 24 hours/,
       );
     });
+  });
+});
+
+describe("workedOnDate", () => {
+  it("accepts the day a date input submits", () => {
+    expect(workedOnDate("2026-10-17")).toEqual({
+      ok: true,
+      value: "2026-10-17",
+    });
+  });
+
+  it("trims the day before storing it", () => {
+    expect(workedOnDate(" 2026-10-17 ")).toEqual({
+      ok: true,
+      value: "2026-10-17",
+    });
+  });
+
+  it("asks for a day when the field is empty", () => {
+    expect(workedOnDate("")).toEqual({
+      ok: false,
+      message: "Say which day the work was done on.",
+    });
+  });
+
+  it("counts a day of only spaces as empty", () => {
+    expect(workedOnDate("   ").ok).toBe(false);
+  });
+
+  it("refuses a timestamp, which would file the work under UTC's day", () => {
+    expect(workedOnDate("2026-10-17T09:36:00.000Z").ok).toBe(false);
+  });
+
+  it("refuses a day that does not exist", () => {
+    expect(workedOnDate("2026-02-30").ok).toBe(false);
+  });
+
+  it("refuses a date written any other way round", () => {
+    expect(workedOnDate("17/10/2026").ok).toBe(false);
+  });
+
+  it("accepts a day in the future rather than second-guessing it", () => {
+    // Readable, and somebody could mean it. An entry that looks implausible
+    // is better flagged against the ones around it than refused here.
+    expect(workedOnDate("2099-01-01").ok).toBe(true);
   });
 });

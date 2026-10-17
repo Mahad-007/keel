@@ -1,3 +1,4 @@
+import { isCalendarDate } from "@/lib/dates";
 import { readFields } from "@/lib/forms/form-data";
 import { invalid, valid, type FieldResult } from "@/lib/forms/result";
 import type { FormState } from "@/lib/forms/state";
@@ -156,4 +157,37 @@ export function loggedMinutes(value: string): FieldResult<number> {
     );
   }
   return valid(minutes);
+}
+
+/**
+ * The day the work was done on, as the `YYYY-MM-DD` the column holds.
+ *
+ * Required, with no default anywhere on the server side. "Today" is a
+ * timezone decision dressed up as a convenience — the server may be most of a
+ * day away from the person logging — so the field arrives prefilled from the
+ * browser's own clock and this only has to check what came back.
+ *
+ * A date input submits the right shape or nothing at all, so the second
+ * message is for the submission that did not come from one: a browser without
+ * the input type, a form posted directly. It says what the field wants rather
+ * than what was wrong with it, which is the only useful thing to say to
+ * somebody typing into a plain box.
+ *
+ * Nothing here looks at whether the day is in the future or implausibly far
+ * back. Both are readable dates that somebody could mean — a holiday logged
+ * on return, a correction to last quarter — and the ones that are mistakes are
+ * better flagged against the entries around them than refused one at a time
+ * by a form with no clock of its own.
+ */
+export function workedOnDate(value: string): FieldResult<string> {
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return invalid("Say which day the work was done on.");
+  }
+  if (!isCalendarDate(trimmed)) {
+    return invalid(
+      "Write the day as a date, like 2026-10-17 — the day the work was done on, not the time it started.",
+    );
+  }
+  return valid(trimmed);
 }
