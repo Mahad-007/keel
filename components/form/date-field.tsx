@@ -12,9 +12,11 @@ import { Field } from "./field";
  *
  * It has no `placeholder` and no `maxLength`, which is why it is not
  * `TextField` with another `type`: a date input shows neither, and offering
- * them would be offering props that silently do nothing. What it has instead
- * is `max`, because the dates a form wants are usually bounded on one side —
- * work cannot have been done tomorrow.
+ * them would be offering props that silently do nothing. It has no bounds
+ * either. A `max` of today looks obvious and is a trap in a server-rendered
+ * form — today is the browser's, so the attribute would have to be written
+ * after mount, and a page left open overnight would then refuse the day it is
+ * now. A date that looks implausible is better questioned than prevented.
  *
  * `autoComplete` is off for the reason it is off everywhere here: what the
  * browser has stored under a date is the user's own birthday or card expiry,
@@ -27,10 +29,6 @@ export type DateFieldProps = {
   error?: string;
   /** `YYYY-MM-DD`. Blank leaves the input empty. */
   defaultValue?: string;
-  /** The earliest day the input offers, as `YYYY-MM-DD`. */
-  min?: string;
-  /** The latest day the input offers, as `YYYY-MM-DD`. */
-  max?: string;
   /**
    * Which of several forms on the page this field belongs to, so two forms
    * asking for the same thing do not render two controls with one id. Omitted
@@ -45,8 +43,6 @@ export function DateField({
   hint,
   error,
   defaultValue,
-  min,
-  max,
   scope,
 }: DateFieldProps) {
   return (
@@ -57,8 +53,6 @@ export function DateField({
           name={name}
           type="date"
           autoComplete="off"
-          min={min}
-          max={max}
           defaultValue={defaultValue}
         />
       )}

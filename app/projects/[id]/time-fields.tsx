@@ -57,7 +57,6 @@ export function LogTimeFields({
           name="duration"
           label="Time"
           hint={DURATION_HINT}
-          inputMode="text"
           error={state.errors.duration}
           defaultValue={state.fields.duration}
           placeholder="1h30m"
