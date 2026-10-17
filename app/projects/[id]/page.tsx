@@ -12,15 +12,13 @@ import {
 } from "@/lib/data/scope-snapshots";
 import { parseProjectTabParam } from "@/lib/projects/detail";
 import { PROJECT_TAB_LABELS } from "@/lib/projects/tabs";
-import {
-  chosenSnapshot,
-  readSnapshotParam,
-} from "@/lib/snapshots/selection";
+import { chosenSnapshot, readSnapshotParam } from "@/lib/snapshots/selection";
 
 import { OverviewPanel } from "./overview-panel";
 import { ProjectHeader } from "./project-header";
 import { ProjectTabs } from "./project-tabs";
 import { ScopePanel } from "./scope-panel";
+import { TimePanel } from "./time-panel";
 import { UnbuiltTabPanel } from "./unbuilt-panel";
 
 /**
@@ -104,7 +102,16 @@ export default async function ProjectPage({
           listDeliverableTemplates(),
           listScopeSnapshots(project.id),
         ])
-      : [[], [], []];
+      : /*
+          The time tab needs the scope list too, for the picker that attributes
+          an entry to a line — and for nothing else, so it pays for one query
+          rather than the scope tab's three. The same read as above, so the
+          lines are offered in the order they were agreed and the write checks a
+          submission against the list this page rendered.
+        */
+        tab === "time"
+        ? [await listDeliverables(project.id), [], []]
+        : [[], [], []];
 
   /*
     Which snapshot the comparison is against: the one the URL named, else the
@@ -125,9 +132,9 @@ export default async function ProjectPage({
       <ProjectHeader project={project} />
       <ProjectTabs projectId={project.id} current={tab} />
       {/*
-        Overview and scope are the tabs with something behind them today. The
-        other three say so themselves rather than rendering an empty box, and
-        each one drops out of here as the phase that builds it lands.
+        Overview, scope and time are the tabs with something behind them
+        today. The other two say so themselves rather than rendering an empty
+        box, and each one drops out of here as the phase that builds it lands.
       */}
       <section aria-labelledby={TAB_HEADING_ID}>
         {/*
@@ -156,6 +163,8 @@ export default async function ProjectPage({
             snapshot={snapshot}
             snapshotLines={snapshotLines}
           />
+        ) : tab === "time" ? (
+          <TimePanel projectId={project.id} deliverables={deliverables} />
         ) : (
           <UnbuiltTabPanel tab={tab} />
         )}
