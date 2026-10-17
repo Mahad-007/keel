@@ -8,6 +8,7 @@ import {
   SubmitButton,
   useFirstErrorFocus,
 } from "@/components/form";
+import { localCalendarDate } from "@/lib/dates";
 import type { DeliverableOption } from "@/lib/time/attribution";
 import {
   failedLogTimeState,
@@ -83,6 +84,30 @@ export function LogTimeForm({
   const [state, formAction] = useActionState(attempt, initialState);
 
   useFirstErrorFocus(state, LOG_TIME_FIELD_NAMES);
+
+  /*
+    The day starts on today, and "today" is the browser's — the one clock that
+    belongs to the person logging.
+
+    This cannot be done on the server. A date rendered there is the server's
+    today, which for anybody east or west of it is the wrong day for part of
+    every day: somebody logging at nine in the morning in Auckland would find
+    the form offering a day that is already over. Rendering it in the browser
+    during the first pass is no better, because that pass happens on the server
+    too and the two would disagree, which is a hydration mismatch.
+
+    So it is written after mount, straight to the input, and only when the box
+    is empty. Empty is what the initial state holds; after an entry lands the
+    day it kept is already there, and after a rejection what was typed is. On
+    mount only, for the same reason: a reader who deliberately cleared the day
+    and submitted it should get the message asking for one, not a box quietly
+    refilled with today underneath that message.
+  */
+  useEffect(() => {
+    const day = document.getElementById(fieldId("workedOn"));
+    if (!(day instanceof HTMLInputElement) || day.value !== "") return;
+    day.value = localCalendarDate(new Date());
+  }, []);
 
   /*
     Back to the duration box once an entry lands. Time is written up in a run,
