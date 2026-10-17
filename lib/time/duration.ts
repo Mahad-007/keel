@@ -85,6 +85,24 @@ const BARE_MINUTES = /^-?\d+$/;
 const NUMBER = String.raw`(?:\d+(?:\.\d*)?|\.\d+)`;
 
 /**
+ * The ways people write the two units.
+ *
+ * `h` and `m` are what the hint asks for and what most people will type. The
+ * longer spellings are here because the others are what people type anyway —
+ * `1hr 30min` is how a duration is written down on paper, and a field that
+ * refuses it is a field that looks broken to somebody who wrote what they
+ * meant. Every alias is unambiguous: nothing a reader could mean by `min` is
+ * anything other than minutes.
+ *
+ * `s` and `sec` are deliberately absent. Minutes are the unit the column
+ * holds, so a duration in seconds would round to something that is not what
+ * was typed, and the honest answer to it is the same as the answer to `2d`:
+ * this field does not take that.
+ */
+const HOUR_UNIT = String.raw`h(?:r|rs|our|ours)?`;
+const MINUTE_UNIT = String.raw`m(?:in|ins|inute|inutes)?`;
+
+/**
  * A number with a fraction in it and no unit on it: `1.5`, `.5`, `2.`.
  *
  * Checked only after the bare integer, which it would otherwise match too.
@@ -103,7 +121,7 @@ const BARE_FRACTION = new RegExp(String.raw`^-?${NUMBER}$`);
  * sixty plus thirty.
  */
 const UNIT_PARTS = new RegExp(
-  String.raw`^(-?)(?:(${NUMBER})h)?(?:(${NUMBER})m)?$`,
+  String.raw`^(-?)(?:(${NUMBER})${HOUR_UNIT})?(?:(${NUMBER})${MINUTE_UNIT})?$`,
 );
 
 /**

@@ -223,3 +223,42 @@ describe("parseDuration, given a clock reading", () => {
     expect(minutes("90")).toBe(90);
   });
 });
+
+describe("parseDuration, written in words", () => {
+  it("reads the short spellings of the hour", () => {
+    expect(minutes("2hr")).toBe(120);
+    expect(minutes("2hrs")).toBe(120);
+  });
+
+  it("reads the long spellings of the hour", () => {
+    expect(minutes("1hour")).toBe(60);
+    expect(minutes("2hours")).toBe(120);
+  });
+
+  it("reads the short spellings of the minute", () => {
+    expect(minutes("45min")).toBe(45);
+    expect(minutes("45mins")).toBe(45);
+  });
+
+  it("reads the long spellings of the minute", () => {
+    expect(minutes("1minute")).toBe(1);
+    expect(minutes("45minutes")).toBe(45);
+  });
+
+  it("reads the two units spelled differently from each other", () => {
+    expect(minutes("1hr 30min")).toBe(90);
+    expect(minutes("1 hour 30 m")).toBe(90);
+  });
+
+  it("still refuses a unit it does not hold", () => {
+    // Minutes are the unit the column holds, so seconds would be rounded into
+    // something other than what was typed.
+    expect(minutes("90sec")).toBeNull();
+    expect(minutes("2days")).toBeNull();
+  });
+
+  it("refuses a misspelling it cannot be sure of", () => {
+    expect(minutes("2hs")).toBeNull();
+    expect(minutes("45mn")).toBeNull();
+  });
+});
