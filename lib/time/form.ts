@@ -6,10 +6,16 @@ import {
   collect,
   invalid,
   valid,
+  type FieldErrors,
   type FieldResult,
   type ParseResult,
 } from "@/lib/forms/result";
-import type { FormState } from "@/lib/forms/state";
+import {
+  failedFormState,
+  initialFormState,
+  rejectedFormState,
+  type FormState,
+} from "@/lib/forms/state";
 import { optionalText } from "@/lib/forms/text";
 import { MINUTES_PER_HOUR } from "@/lib/minutes";
 
@@ -290,4 +296,102 @@ export function parseLogTimeForm(
       billable: readsAsBillable(fields.billable),
     },
   };
+}
+
+/**
+ * What was logged, which is the one thing a redirecting form never needs to
+ * carry.
+ *
+ * Logging time does not navigate. It is the act somebody performs several
+ * times in a sitting — three stretches of work on a Tuesday, each a different
+ * length against a different line — and a redirect per entry would reload the
+ * page and throw the cursor away every time. So the form stays where it is,
+ * and this is how it knows the last submission landed.
+ *
+ * The id is here because a live region needs its text to change for a screen
+ * reader to notice it: two identical half-hours logged against the same line
+ * would otherwise render the same words twice, and the second would be
+ * announced to nobody.
+ *
+ * The rest is what the sentence afterwards has to say, and it is carried as
+ * what was *written* rather than what was submitted. The duration is the
+ * minutes the column holds, so a reader who typed `0.6m` is told they logged
+ * a minute; the title is the line as the project has it; and the chargeable
+ * flag is there because an unticked box is the easiest thing on this form to
+ * get wrong by accident.
+ */
+export type LoggedTime = {
+  readonly id: string;
+  readonly minutes: number;
+  readonly workedOn: string;
+  /** The line it went against, or null for work on the project itself. */
+  readonly deliverableTitle: string | null;
+  readonly billable: boolean;
+};
+
+export type LogTimeState = LogTimeFormState & {
+  readonly logged: LoggedTime | null;
+};
+
+/**
+ * What the form starts from: every field empty, including the day.
+ *
+ * The day is filled in by the browser rather than here, for the reason
+ * `workedOnDate` gives — the server does not know what today is where the
+ * reader is standing.
+ *
+ * The box is ticked, though, and that is a decision rather than an absence.
+ * Time logged against a client engagement is chargeable until somebody says
+ * otherwise, which is also what the column defaults to.
+ */
+export const INITIAL_LOG_TIME_STATE: LogTimeState = {
+  ...initialFormState({
+    ...EMPTY_LOG_TIME_FIELDS,
+    billable: BILLABLE_VALUE,
+  }),
+  logged: null,
+};
+
+/**
+ * An entry was written. The form comes back ready for the next one, holding
+ * the day and nothing else.
+ *
+ * The day is kept because it is the field most likely to be right again and
+ * the most tedious to re-pick: somebody writing up Tuesday evening is writing
+ * up three stretches of the same Tuesday, and resetting the date to blank
+ * would make them say so three times.
+ *
+ * Everything else goes back to its default, because everything else is about
+ * the particular stretch of work that has just been filed. A duration left in
+ * the box is one press from logging the same hour twice; an attribution left
+ * selected is how the next entry quietly lands on the wrong line; and the
+ * checkbox goes back to ticked rather than staying as it was, so a single
+ * non-chargeable entry cannot make the rest of the evening's work free
+ * without anybody noticing.
+ */
+export function loggedTimeState(logged: LoggedTime): LogTimeState {
+  return {
+    ...INITIAL_LOG_TIME_STATE,
+    fields: {
+      ...INITIAL_LOG_TIME_STATE.fields,
+      workedOn: logged.workedOn,
+    },
+    logged,
+  };
+}
+
+/** Validation refused the submission. Nothing was written. */
+export function rejectedLogTimeState(
+  fields: LogTimeFormFields,
+  errors: FieldErrors<LogTimeFieldName>,
+): LogTimeState {
+  return { ...rejectedFormState(fields, errors), logged: null };
+}
+
+/** The submission was good and nothing was written anyway. */
+export function failedLogTimeState(
+  fields: LogTimeFormFields,
+  formError: string,
+): LogTimeState {
+  return { ...failedFormState(fields, formError), logged: null };
 }
