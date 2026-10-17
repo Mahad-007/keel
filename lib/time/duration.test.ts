@@ -322,3 +322,27 @@ describe("parseDuration, given a negative duration", () => {
     expect(minutes("+30")).toBeNull();
   });
 });
+
+describe("parseDuration, given a number split by a space", () => {
+  it("refuses it rather than closing the gap", () => {
+    // `1 30` is almost certainly an hour and a half, and closing the gap would
+    // read it as 130 minutes — two hours and ten.
+    expect(parseDuration("1 30")).toEqual({ ok: false, reason: "unreadable" });
+    expect(minutes("2 15")).toBeNull();
+  });
+
+  it("refuses however wide the gap is", () => {
+    expect(minutes("1   30")).toBeNull();
+    expect(minutes("1\t30")).toBeNull();
+  });
+
+  it("still ignores a space between a unit and the next number", () => {
+    expect(minutes("1h 30m")).toBe(90);
+    expect(minutes("1h 30")).toBe(90);
+    expect(minutes("1 h 30 m")).toBe(90);
+  });
+
+  it("still ignores the spaces around the whole thing", () => {
+    expect(minutes("  90  ")).toBe(90);
+  });
+});

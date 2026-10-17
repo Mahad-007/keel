@@ -71,6 +71,18 @@ function normalise(input: string): string {
   return input.trim().toLowerCase().replace(/\s/g, "");
 }
 
+/**
+ * Whitespace sitting between two digits: `1 30`, `9 0`, `1 5`.
+ *
+ * Checked against what was typed, before the spaces come out, because taking
+ * them out is what makes this unreadable thing readable: `1 30` becomes `130`,
+ * which is two hours and ten minutes and is nobody's intention. It is almost
+ * certainly `1h30m` — "one thirty" written the way it is said — and almost is
+ * not good enough for a figure that reaches an invoice. The same rule as the
+ * bare fraction and the comma: a duration with two readings gets neither.
+ */
+const SPLIT_NUMBER = /\d\s+\d/;
+
 /** A number on its own, with no unit after it. */
 const BARE_MINUTES = /^-?\d+$/;
 
@@ -206,6 +218,10 @@ export function parseDuration(input: string): DurationParse {
     the button too early rather than by typing something odd.
   */
   if (cleaned === "") return { ok: false, reason: "blank" };
+
+  // Before the spaces are gone, since removing them is what would make this
+  // read as a number nobody typed.
+  if (SPLIT_NUMBER.test(input)) return { ok: false, reason: "unreadable" };
 
   if (BARE_MINUTES.test(cleaned)) {
     return {
