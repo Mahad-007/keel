@@ -60,3 +60,58 @@ describe("parseDuration, with nothing typed", () => {
     expect(parseDuration("   ")).toEqual({ ok: false, reason: "blank" });
   });
 });
+
+describe("parseDuration, written in hours and minutes", () => {
+  it("reads both parts", () => {
+    expect(minutes("1h30m")).toBe(90);
+    expect(minutes("2h15m")).toBe(135);
+  });
+
+  it("reads hours alone", () => {
+    expect(minutes("2h")).toBe(120);
+  });
+
+  it("reads minutes alone", () => {
+    expect(minutes("45m")).toBe(45);
+  });
+
+  it("does not mind the space between the parts", () => {
+    expect(minutes("1h 30m")).toBe(90);
+    expect(minutes("1 h 30 m")).toBe(90);
+  });
+
+  it("does not mind the case", () => {
+    expect(minutes("1H30M")).toBe(90);
+  });
+
+  it("adds a minutes part that runs past the hour", () => {
+    // Nothing is gained by refusing it: somebody who worked an hour and
+    // ninety minutes has said what they mean, and it is 150 minutes.
+    expect(minutes("1h90m")).toBe(150);
+  });
+
+  it("reads a long day", () => {
+    expect(minutes("12h")).toBe(720);
+  });
+
+  it("refuses the parts in the wrong order", () => {
+    // `30m1h` is not something anybody says, and guessing at it would mean
+    // guessing at `1m30h` too.
+    expect(minutes("30m1h")).toBeNull();
+  });
+
+  it("refuses a unit with no number in front of it", () => {
+    expect(minutes("h")).toBeNull();
+    expect(minutes("h30m")).toBeNull();
+  });
+
+  it("refuses a repeated part", () => {
+    expect(minutes("1h1h")).toBeNull();
+    expect(minutes("30m30m")).toBeNull();
+  });
+
+  it("refuses a unit it has never heard of", () => {
+    expect(minutes("90s")).toBeNull();
+    expect(minutes("2d")).toBeNull();
+  });
+});
