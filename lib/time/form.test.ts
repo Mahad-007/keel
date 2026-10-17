@@ -3,10 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   BILLABLE_VALUE,
   DURATION_MESSAGES,
+  EMPTY_LOG_TIME_FIELDS,
+  LOG_TIME_FIELD_LIMITS,
   loggedMinutes,
   MAX_ENTRY_MINUTES,
+  parseLogTimeForm,
   readsAsBillable,
   workedOnDate,
+  type LogTimeFormFields,
 } from "./form";
 
 /** The message a refused field came back with, for the ordinary assertion. */
@@ -163,5 +167,115 @@ describe("readsAsBillable", () => {
     expect(readsAsBillable("true")).toBe(false);
     expect(readsAsBillable("false")).toBe(false);
     expect(readsAsBillable("1")).toBe(false);
+  });
+});
+
+describe("parseLogTimeForm", () => {
+  const OFFERED = ["dlv_wireframes", "dlv_build"];
+
+  function fields(
+    overrides: Partial<Record<string, string>> = {},
+  ): LogTimeFormFields {
+    return {
+      ...EMPTY_LOG_TIME_FIELDS,
+      duration: "1h30m",
+      workedOn: "2026-10-17",
+      billable: BILLABLE_VALUE,
+      ...overrides,
+    };
+  }
+
+  it("yields the columns a time entry is made of", () => {
+    const parsed = parseLogTimeForm(
+      fields({ deliverable: "dlv_build", note: "Paired on the booking flow" }),
+      OFFERED,
+    );
+
+    expect(parsed).toEqual({
+      ok: true,
+      value: {
+        minutes: 90,
+        workedOn: "2026-10-17",
+        deliverableId: "dlv_build",
+        note: "Paired on the booking flow",
+        billable: true,
+      },
+    });
+  });
+
+  it("logs against the project itself when no line was picked", () => {
+    const parsed = parseLogTimeForm(fields(), OFFERED);
+
+    expect(parsed.ok && parsed.value.deliverableId).toBeNull();
+  });
+
+  it("stores a blank note as nothing rather than as an empty string", () => {
+    const parsed = parseLogTimeForm(fields({ note: "   " }), OFFERED);
+
+    expect(parsed.ok && parsed.value.note).toBeNull();
+  });
+
+  it("trims a note before storing it", () => {
+    const parsed = parseLogTimeForm(fields({ note: "  Invoicing  " }), OFFERED);
+
+    expect(parsed.ok && parsed.value.note).toBe("Invoicing");
+  });
+
+  it("marks the time non-chargeable when the box is unticked", () => {
+    const parsed = parseLogTimeForm(fields({ billable: "" }), OFFERED);
+
+    expect(parsed.ok && parsed.value.billable).toBe(false);
+  });
+
+  it("reports every bad field at once", () => {
+    const parsed = parseLogTimeForm(
+      fields({ duration: "ages", workedOn: "", note: "x".repeat(501) }),
+      OFFERED,
+    );
+
+    expect(parsed.ok).toBe(false);
+    expect(parsed.ok === false && Object.keys(parsed.errors).sort()).toEqual([
+      "duration",
+      "note",
+      "workedOn",
+    ]);
+  });
+
+  it("refuses a deliverable that is not on the project", () => {
+    const parsed = parseLogTimeForm(
+      fields({ deliverable: "dlv_elsewhere" }),
+      OFFERED,
+    );
+
+    expect(parsed.ok === false && parsed.errors.deliverable).toMatch(
+      /no longer on this project/,
+    );
+  });
+
+  it("refuses any attribution on a project with no scope", () => {
+    const parsed = parseLogTimeForm(fields({ deliverable: "dlv_build" }), []);
+
+    expect(parsed.ok).toBe(false);
+  });
+
+  it("accepts a note at the limit and refuses one past it", () => {
+    const limit = LOG_TIME_FIELD_LIMITS.note;
+    expect(
+      parseLogTimeForm(fields({ note: "x".repeat(limit) }), OFFERED).ok,
+    ).toBe(true);
+    expect(
+      parseLogTimeForm(fields({ note: "x".repeat(limit + 1) }), OFFERED).ok,
+    ).toBe(false);
+  });
+
+  it("never blames the checkbox for anything", () => {
+    // It submits one of two values and both are answers, so there is no
+    // message that could ever appear under it.
+    const parsed = parseLogTimeForm(
+      fields({ duration: "", billable: "nonsense" }),
+      OFFERED,
+    );
+
+    expect(parsed.ok === false && "billable" in parsed.errors).toBe(false);
   });
 });
