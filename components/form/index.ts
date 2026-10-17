@@ -9,6 +9,7 @@
 
 export { AlertNote } from "./alert-note";
 export { CaveatNote } from "./caveat-note";
+export { CheckboxField, type CheckboxFieldProps } from "./checkbox-field";
 export { DateField, type DateFieldProps } from "./date-field";
 export { Field, type FieldProps } from "./field";
 export { FieldError } from "./field-error";
