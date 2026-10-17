@@ -50,3 +50,13 @@ describe("parseDuration", () => {
     });
   });
 });
+
+describe("parseDuration, with nothing typed", () => {
+  it("reports a blank field as blank rather than unreadable", () => {
+    expect(parseDuration("")).toEqual({ ok: false, reason: "blank" });
+  });
+
+  it("counts a field holding only spaces as blank", () => {
+    expect(parseDuration("   ")).toEqual({ ok: false, reason: "blank" });
+  });
+});

@@ -81,6 +81,14 @@ const BARE_MINUTES = /^-?\d+$/;
 export function parseDuration(input: string): DurationParse {
   const cleaned = normalise(input);
 
+  /*
+    Nothing typed is its own answer rather than an unreadable one. The sentence
+    a reader needs is "say how long it took", not "that is not a duration" —
+    and the field is required, so this is the branch a reader meets by pressing
+    the button too early rather than by typing something odd.
+  */
+  if (cleaned === "") return { ok: false, reason: "blank" };
+
   if (BARE_MINUTES.test(cleaned)) return { ok: true, minutes: Number(cleaned) };
 
   return { ok: false, reason: "unreadable" };
