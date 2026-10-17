@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDate, isCalendarDate } from "./dates";
+import { formatDate, isCalendarDate, localCalendarDate } from "./dates";
 
 describe("formatDate", () => {
   it("formats a full ISO timestamp", () => {
@@ -88,5 +88,35 @@ describe("isCalendarDate", () => {
     expect(isCalendarDate("")).toBe(false);
     expect(isCalendarDate("yesterday")).toBe(false);
     expect(isCalendarDate("16/10/2026")).toBe(false);
+  });
+});
+
+describe("localCalendarDate", () => {
+  it("reads the local day off a moment", () => {
+    // Constructed from local components, so the assertion holds wherever the
+    // test runs: the point of the function is that it never consults UTC.
+    expect(localCalendarDate(new Date(2026, 9, 17, 9, 36))).toBe("2026-10-17");
+  });
+
+  it("pads a single-digit month and day", () => {
+    // Unpadded, `isCalendarDate` refuses the value and the column with it.
+    expect(localCalendarDate(new Date(2026, 0, 5))).toBe("2026-01-05");
+  });
+
+  it("produces a value the calendar-date guard accepts", () => {
+    expect(isCalendarDate(localCalendarDate(new Date(2026, 1, 28)))).toBe(true);
+    expect(isCalendarDate(localCalendarDate(new Date(2024, 1, 29)))).toBe(true);
+  });
+
+  it("stays on the local day at either end of it", () => {
+    // The two moments a UTC reading gets wrong for somebody east or west of
+    // it: a minute into the day and a minute before it ends.
+    expect(localCalendarDate(new Date(2026, 9, 17, 0, 1))).toBe("2026-10-17");
+    expect(localCalendarDate(new Date(2026, 9, 17, 23, 59))).toBe("2026-10-17");
+  });
+
+  it("rolls over at midnight rather than at noon", () => {
+    expect(localCalendarDate(new Date(2026, 11, 31, 23, 59))).toBe("2026-12-31");
+    expect(localCalendarDate(new Date(2027, 0, 1, 0, 0))).toBe("2027-01-01");
   });
 });
