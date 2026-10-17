@@ -1,3 +1,5 @@
+import { MINUTES_PER_HOUR } from "@/lib/minutes";
+
 /**
  * How long something took, as a person writes it down.
  *
@@ -70,6 +72,41 @@ function normalise(input: string): string {
 const BARE_MINUTES = /^-?\d+$/;
 
 /**
+ * The written form: an hours part, a minutes part, either of them optional.
+ *
+ * Both parts optional and in that order, which is three decisions. `1h` and
+ * `45m` are durations on their own, so neither part can be required. `30m1h`
+ * is not one, so the order is fixed — a reader who wrote it backwards has
+ * written something nobody says aloud, and guessing at it would mean also
+ * guessing at `1m30h`. And the sign is on the front of the whole thing rather
+ * than on each part, so `-1h30m` is minus ninety minutes rather than minus
+ * sixty plus thirty.
+ */
+const UNIT_PARTS = /^(-?)(?:(\d+)h)?(?:(\d+)m)?$/;
+
+/**
+ * The written form read, or null if this is not that form at all.
+ *
+ * Null rather than a reason, because "not hours and minutes" is not yet an
+ * answer — `90` reaches here too, and so does `1,5`, and each of those has
+ * somewhere else to go. Only `parseDuration` knows what is left once every
+ * form has been tried.
+ */
+function parseUnitParts(cleaned: string): DurationParse | null {
+  const match = UNIT_PARTS.exec(cleaned);
+  if (match === null) return null;
+
+  const [, sign, hours, mins] = match;
+  // Both parts absent is the regex matching a bare sign, or nothing at all.
+  if (hours === undefined && mins === undefined) return null;
+
+  const total =
+    (hours === undefined ? 0 : Number(hours) * MINUTES_PER_HOUR) +
+    (mins === undefined ? 0 : Number(mins));
+  return { ok: true, minutes: sign === "-" ? -total : total };
+}
+
+/**
  * A duration as minutes, or why it could not be read.
  *
  * A bare number is minutes. That is the one convention here worth arguing
@@ -90,6 +127,9 @@ export function parseDuration(input: string): DurationParse {
   if (cleaned === "") return { ok: false, reason: "blank" };
 
   if (BARE_MINUTES.test(cleaned)) return { ok: true, minutes: Number(cleaned) };
+
+  const units = parseUnitParts(cleaned);
+  if (units !== null) return units;
 
   return { ok: false, reason: "unreadable" };
 }
