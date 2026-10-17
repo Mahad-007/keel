@@ -53,3 +53,35 @@ export type DurationReason =
 export type DurationParse =
   | { readonly ok: true; readonly minutes: number }
   | { readonly ok: false; readonly reason: DurationReason };
+
+/**
+ * What the parser works on: lower-cased, with every space taken out.
+ *
+ * All the whitespace rather than only the ends, so `1h 30m` and `1h30m` are
+ * the same duration — the space between the parts is typing, not meaning, and
+ * `parseHours` already treats it that way. Lower-cased so `1H30M` is the same
+ * too: a reader with caps lock on has not made a mistake worth a message.
+ */
+function normalise(input: string): string {
+  return input.trim().toLowerCase().replace(/\s/g, "");
+}
+
+/** A number on its own, with no unit after it. */
+const BARE_MINUTES = /^-?\d+$/;
+
+/**
+ * A duration as minutes, or why it could not be read.
+ *
+ * A bare number is minutes. That is the one convention here worth arguing
+ * about — `90` could be ninety hours — and minutes win because of what the
+ * field is for: a stretch of work just finished, typed in the unit a timer
+ * reads in. Nobody logs ninety hours as a single entry, and somebody who
+ * means an hour and a half has `1h30m` and `1.5h` to say it with.
+ */
+export function parseDuration(input: string): DurationParse {
+  const cleaned = normalise(input);
+
+  if (BARE_MINUTES.test(cleaned)) return { ok: true, minutes: Number(cleaned) };
+
+  return { ok: false, reason: "unreadable" };
+}
