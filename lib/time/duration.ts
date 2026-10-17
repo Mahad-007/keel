@@ -78,6 +78,13 @@ const BARE_MINUTES = /^-?\d+$/;
 const NUMBER = String.raw`(?:\d+(?:\.\d*)?|\.\d+)`;
 
 /**
+ * A number with a fraction in it and no unit on it: `1.5`, `.5`, `2.`.
+ *
+ * Checked only after the bare integer, which it would otherwise match too.
+ */
+const BARE_FRACTION = new RegExp(String.raw`^-?${NUMBER}$`);
+
+/**
  * The written form: an hours part, a minutes part, either of them optional.
  *
  * Both parts optional and in that order, which is three decisions. `1h` and
@@ -169,6 +176,24 @@ export function parseDuration(input: string): DurationParse {
         cleaned.startsWith("-"),
       ),
     };
+  }
+
+  /*
+    `1.5` is refused rather than read, and it is the only refusal here that is
+    not about something unreadable.
+
+    By the rule above it is a minute and a half. By what the person typing it
+    almost certainly meant, it is an hour and a half — fractions are how people
+    write hours, and nobody times a job to the half minute. The two readings
+    are sixty times apart, so guessing either way is a figure that could be an
+    hour out on an invoice, and the field cannot tell which.
+
+    So it says so, and the sentence the form puts on it offers both spellings.
+    That is cheap for the reader — one keystroke — and it is the only answer
+    that cannot be wrong.
+  */
+  if (BARE_FRACTION.test(cleaned)) {
+    return { ok: false, reason: "bare-fraction" };
   }
 
   const units = parseUnitParts(cleaned);

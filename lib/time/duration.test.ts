@@ -160,3 +160,28 @@ describe("parseDuration, written with a fraction", () => {
     expect(minutes("0.004h")).toBe(0);
   });
 });
+
+describe("parseDuration, given a fraction with no unit", () => {
+  it("refuses it rather than guessing the unit", () => {
+    expect(parseDuration("1.5")).toEqual({
+      ok: false,
+      reason: "bare-fraction",
+    });
+  });
+
+  it("refuses the leading-point and trailing-point spellings too", () => {
+    expect(parseDuration(".5").ok).toBe(false);
+    expect(parseDuration("2.").ok).toBe(false);
+  });
+
+  it("keeps reading a bare whole number as minutes", () => {
+    // The ambiguity is the fraction, not the missing unit: `90` has one
+    // sensible reading and `1.5` has two.
+    expect(minutes("90")).toBe(90);
+  });
+
+  it("is answered by either spelling the reader meant", () => {
+    expect(minutes("1.5h")).toBe(90);
+    expect(minutes("1.5m")).toBe(2);
+  });
+});
