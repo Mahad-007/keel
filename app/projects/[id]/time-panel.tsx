@@ -1,8 +1,8 @@
-import { deliverableOptions } from "@/lib/time/attribution";
 import {
-  INITIAL_LOG_TIME_STATE,
-  type LogTimeState,
-} from "@/lib/time/form";
+  deliverableOptions,
+  type AttributableDeliverable,
+} from "@/lib/time/attribution";
+import { INITIAL_LOG_TIME_STATE, type LogTimeState } from "@/lib/time/form";
 
 import { LogTimeForm } from "./log-time-form";
 import { writeTimeEntry } from "./time-writes";
@@ -28,11 +28,7 @@ export function TimePanel({
    * stays in one place — and so the list the picker offers is the same list
    * the write checks a submission against.
    */
-  deliverables: readonly {
-    id: string;
-    title: string;
-    estimatedMinutes: number;
-  }[];
+  deliverables: readonly AttributableDeliverable[];
 }) {
   /*
     Narrowed to the three columns the picker and the sentence afterwards need,
@@ -70,8 +66,8 @@ export function TimePanel({
       <p className="mt-1 max-w-prose text-sm leading-6 text-zinc-600 dark:text-zinc-400">
         Every minute logged here counts against what this project was agreed
         for. Attributing an entry to a deliverable is optional and it is the
-        part that pays off later: it is what lets the hours a line actually
-        took sit beside the hours it was estimated at.
+        part that pays off later: it is what lets the hours a line actually took
+        sit beside the hours it was estimated at.
       </p>
       <LogTimeForm
         log={log}
