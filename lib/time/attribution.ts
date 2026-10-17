@@ -55,3 +55,40 @@ export function deliverableOptionLabel(
     : "no estimate";
   return `${deliverable.title} · ${estimate}`;
 }
+
+/**
+ * The first line of the picker, standing for time that went against no
+ * particular deliverable.
+ *
+ * Not a placeholder, which is what the other pickers in the app put there. A
+ * blank client on a project is a field somebody forgot; a blank deliverable on
+ * a time entry is a fact about the work — the call, the invoicing, the
+ * afternoon of email that the scope list has no line for. So the option says
+ * what it means rather than "Choose a deliverable", and it is the one the
+ * field starts on, because most time is logged in a hurry and the attribution
+ * is the part a reader can add later.
+ */
+export const NO_DELIVERABLE_LABEL = "No deliverable — the project itself";
+
+/**
+ * The deliverables on offer, in the order the scope list reads in.
+ *
+ * Scope order rather than alphabetical or most-used, because that is the order
+ * the reader has just been looking at on the tab next door: a picker that
+ * re-sorts the list makes somebody hunt for the line they can picture the
+ * position of.
+ *
+ * Every line is offered, including the ones marked done. Work arrives after a
+ * deliverable is called finished more often than anybody would like — a
+ * revision, a bug, a question — and that time belongs against the line it was
+ * spent on. Hiding those would push it onto the project, where the comparison
+ * Day 024 makes would quietly stop seeing it.
+ */
+export function deliverableOptions(
+  deliverables: readonly AttributableDeliverable[],
+): DeliverableOption[] {
+  return deliverables.map((deliverable) => ({
+    id: deliverable.id,
+    label: deliverableOptionLabel(deliverable),
+  }));
+}
