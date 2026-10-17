@@ -395,3 +395,40 @@ export function failedLogTimeState(
 ): LogTimeState {
   return { ...failedFormState(fields, formError), logged: null };
 }
+
+/**
+ * The things that can stop an entry that the form itself cannot see.
+ *
+ * Each one is reachable from a page that was right when it rendered — the
+ * project deleted in another tab, the line of scope dropped while the form sat
+ * open — so each says what to do rather than only what went wrong.
+ *
+ * `missingDeliverable` is the second half of the message `parseLogTimeForm`
+ * puts beside the picker. That one catches a line that was already gone when
+ * the page was served; this one catches a line that goes between the check and
+ * the write, which is the same news arriving a moment later and belongs to the
+ * submission rather than to a field, because by then the picker on screen is
+ * offering something that no longer exists.
+ */
+export const TIME_PROBLEMS = {
+  missingProject:
+    "That project no longer exists, so there is nothing to log time against.",
+  missingDeliverable:
+    "That deliverable was deleted a moment ago. Nothing was logged — reload the page and pick again, or log the time against the project itself.",
+  failed: "Could not log that time. Nothing was written — try again.",
+} as const;
+
+/**
+ * What to say when the submission never got an answer — the connection
+ * dropped, the tab was suspended mid-request, the request was aborted.
+ *
+ * It does not claim nothing was written, because from the client there is no
+ * way to know: the request may have been lost on the way out, or the answer
+ * lost on the way back with the entry already stored. Nor does it say "try
+ * again", which is the instruction that would log the same hour twice — and a
+ * duplicated hour is worse here than a duplicated anything else on this page,
+ * because it is money, and the invoice it reaches will be defended line by
+ * line.
+ */
+export const LOG_TIME_NO_ANSWER =
+  "Could not tell whether that time was logged — the answer never arrived. Reload and check what this project already has before logging it again.";
