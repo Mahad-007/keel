@@ -67,3 +67,26 @@ export function isCalendarDate(value: string): boolean {
   if (Number.isNaN(parsed.getTime())) return false;
   return parsed.toISOString().startsWith(value);
 }
+
+/**
+ * The calendar date a moment falls on, read off the clock it is handed: `new
+ * Date()` in a browser in Auckland becomes that browser's today, not UTC's.
+ *
+ * The only use for this is defaulting a field that asks which day somebody
+ * worked on something, and that is why it reads local components rather than
+ * calling `toISOString`. A `Date` is a moment, and the UTC day it falls on is
+ * the wrong answer for most of the world for part of every day: at 09:00 in
+ * Auckland it is still yesterday in UTC, so a server-rendered default would
+ * file this morning's work under a day that is over.
+ *
+ * So this is called where the clock belongs to the person: the browser. The
+ * value it produces is the `YYYY-MM-DD` the `workedOn` column wants, and
+ * `isCalendarDate` accepts everything it returns — the padding is what
+ * guarantees that for a single-digit month or day.
+ */
+export function localCalendarDate(moment: Date): string {
+  const year = String(moment.getFullYear()).padStart(4, "0");
+  const month = String(moment.getMonth() + 1).padStart(2, "0");
+  const day = String(moment.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
