@@ -1,7 +1,16 @@
+import type { NewTimeEntryInput } from "@/lib/data/time-entries";
 import { isCalendarDate } from "@/lib/dates";
+import { optionalChoice } from "@/lib/forms/choice";
 import { readFields } from "@/lib/forms/form-data";
-import { invalid, valid, type FieldResult } from "@/lib/forms/result";
+import {
+  collect,
+  invalid,
+  valid,
+  type FieldResult,
+  type ParseResult,
+} from "@/lib/forms/result";
 import type { FormState } from "@/lib/forms/state";
+import { optionalText } from "@/lib/forms/text";
 import { MINUTES_PER_HOUR } from "@/lib/minutes";
 
 import { parseDuration, type DurationReason } from "./duration";
@@ -220,4 +229,65 @@ export const BILLABLE_VALUE = "yes";
  */
 export function readsAsBillable(value: string): boolean {
   return value === BILLABLE_VALUE;
+}
+
+/**
+ * What the form yields once every field is good: exactly the columns a time
+ * entry is made of that a person decides.
+ *
+ * `projectId` is not among them, and that is the one thing about this type
+ * worth saying twice. The project comes from the page the form was served
+ * for — captured by a server closure, encrypted — so no field of the
+ * submission names the engagement an hour gets billed to.
+ */
+export type LogTimeFormValue = Pick<
+  NewTimeEntryInput,
+  "minutes" | "note" | "workedOn" | "billable" | "deliverableId"
+>;
+
+/**
+ * The submitted form, checked against the deliverables that were on offer.
+ *
+ * The attribution is checked against the list rather than trusted, for the
+ * reason every picker in the app is: a form is a POST endpoint, and the id in
+ * it can name a line deleted while the page sat open, or one belonging to
+ * another project entirely. The data layer refuses the second outright — it is
+ * not a mistake a reader can make — and checking here means the first comes
+ * back as a sentence beside the field instead of as a failed write.
+ *
+ * The checkbox is not collected with the others because it cannot fail: a
+ * checkbox submits one of two things, and both of them are answers. It would
+ * only ever occupy a slot in the error map that nothing could ever fill.
+ */
+export function parseLogTimeForm(
+  fields: LogTimeFormFields,
+  offeredDeliverableIds: readonly string[],
+): ParseResult<LogTimeFormValue, LogTimeFieldName> {
+  const parsed = collect({
+    duration: loggedMinutes(fields.duration),
+    workedOn: workedOnDate(fields.workedOn),
+    deliverable: optionalChoice(fields.deliverable, offeredDeliverableIds, {
+      label: "Deliverable",
+      unknown:
+        "That deliverable is no longer on this project. Reload the page and pick again, or log the time against the project itself.",
+    }),
+    note: optionalText(fields.note, {
+      label: "Note",
+      max: LOG_TIME_FIELD_LIMITS.note,
+    }),
+  });
+
+  if (!parsed.ok) return parsed;
+
+  const { duration, workedOn, deliverable, note } = parsed.value;
+  return {
+    ok: true,
+    value: {
+      minutes: duration,
+      workedOn,
+      deliverableId: deliverable,
+      note,
+      billable: readsAsBillable(fields.billable),
+    },
+  };
 }
