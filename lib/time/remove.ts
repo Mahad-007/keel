@@ -57,3 +57,30 @@ export function describeTimeDeletion(name: string, billable: boolean): string {
   if (!billable) return question;
   return `${question} If the time was worked but should not be charged for, untick Chargeable instead — that keeps it on the project and off the invoice.`;
 }
+
+/**
+ * The ids the step and the row's own button are known by.
+ *
+ * Derived from the entry rather than generated, because they are needed from
+ * outside the components that render them: opening the step moves the cursor
+ * into it, and closing it has to put the cursor back on the button that opened
+ * it. Neither is a thing a parent can do by holding a ref — the step is not
+ * mounted when the press happens, and the button is unmounted again by the
+ * time the step closes on a stale list.
+ *
+ * Prefixed with what they belong to, the same as the edit button's, so a page
+ * holding both lists cannot have a scope row and a time row claim one id.
+ */
+export function timeDeletePromptId(id: string): string {
+  return `time-${id}-delete-prompt`;
+}
+
+/** The button inside the step, which the cursor moves to when it opens. */
+export function confirmDeleteTimeId(id: string): string {
+  return `time-${id}-delete-confirm`;
+}
+
+/** The button in the row that opens the step, and takes the cursor back. */
+export function deleteTimeButtonId(id: string): string {
+  return `time-${id}-delete`;
+}

@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 
+import { editTimeButtonId } from "./edit";
 import {
+  confirmDeleteTimeId,
   confirmDeleteTimeLabel,
+  deleteTimeButtonId,
   deleteTimeButtonLabel,
   describeTimeDeletion,
   keepTimeEntryLabel,
+  timeDeletePromptId,
 } from "./remove";
 
 const NAME = "1h 30m on Oct 17, 2026 against “Wireframes”";
@@ -47,5 +51,29 @@ describe("the sentence in front of a deletion", () => {
 
   it("asks about the entry rather than about the reader's state of mind", () => {
     expect(describeTimeDeletion(NAME, true)).not.toMatch(/sure/i);
+  });
+});
+
+describe("the ids an entry's delete controls are found by", () => {
+  it("gives the step, the confirming button and the asking button their own", () => {
+    const ids = [
+      timeDeletePromptId("tme_a"),
+      confirmDeleteTimeId("tme_a"),
+      deleteTimeButtonId("tme_a"),
+    ];
+    expect(new Set(ids).size).toBe(3);
+  });
+
+  it("keeps two rows' controls apart", () => {
+    expect(deleteTimeButtonId("tme_a")).not.toBe(deleteTimeButtonId("tme_b"));
+    expect(confirmDeleteTimeId("tme_a")).not.toBe(confirmDeleteTimeId("tme_b"));
+  });
+
+  it("does not run one row's id into another's", () => {
+    expect(timeDeletePromptId("tme_a")).not.toBe(timeDeletePromptId("tme_a_b"));
+  });
+
+  it("does not collide with the same row's edit button", () => {
+    expect(deleteTimeButtonId("tme_a")).not.toBe(editTimeButtonId("tme_a"));
   });
 });
