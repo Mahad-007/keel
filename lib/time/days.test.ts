@@ -4,6 +4,7 @@ import {
   billableMinutes,
   describeDay,
   describeDayTotal,
+  describeTimeList,
   groupTimeByDay,
   showsRunningTotal,
   totalMinutes,
@@ -243,6 +244,59 @@ describe("a day's heading as one sentence", () => {
     // the previous day for anybody behind UTC.
     expect(describeDay(day({ workedOn: "2026-01-01" }))).toMatch(
       /^Jan 1, 2026/,
+    );
+  });
+});
+
+describe("the line above a time list", () => {
+  function listOf(...minutes: readonly [number, string][]) {
+    return groupTimeByDay(
+      minutes.map(([length, workedOn], index) =>
+        entry({ id: `tme_${index}`, minutes: length, workedOn }),
+      ),
+    );
+  }
+
+  it("says there is nothing yet rather than counting to zero", () => {
+    expect(describeTimeList([])).toBe(
+      "No time logged against this project yet.",
+    );
+  });
+
+  it("counts one entry in words and in the singular", () => {
+    expect(describeTimeList(listOf([90, "2026-10-17"]))).toBe(
+      "One entry, 1h 30m in total. It can be edited or deleted with the buttons beside it.",
+    );
+  });
+
+  it("says a run of entries on one day happened on one day", () => {
+    expect(
+      describeTimeList(listOf([90, "2026-10-17"], [45, "2026-10-17"])),
+    ).toBe(
+      "2 entries on one day, 2h 15m in total. Each can be edited or deleted with the buttons beside it.",
+    );
+  });
+
+  it("counts the days the work was spread over", () => {
+    expect(
+      describeTimeList(
+        listOf([90, "2026-10-17"], [45, "2026-10-16"], [30, "2026-10-14"]),
+      ),
+    ).toBe(
+      "3 entries over 3 days, 2h 45m in total. Each can be edited or deleted with the buttons beside it.",
+    );
+  });
+
+  it("totals the whole list rather than the newest day", () => {
+    const said = describeTimeList(
+      listOf([90, "2026-10-17"], [90, "2026-10-16"]),
+    );
+    expect(said).toContain("3h in total");
+  });
+
+  it("says where the controls are", () => {
+    expect(describeTimeList(listOf([90, "2026-10-17"]))).toContain(
+      "buttons beside it",
     );
   });
 });

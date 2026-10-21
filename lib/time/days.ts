@@ -220,3 +220,37 @@ export function describeDay(day: TimeDay): string {
   }
   return parts.join(" — ");
 }
+
+/**
+ * The line above a time list: how much work it holds, over how many days, and
+ * what can be done to it.
+ *
+ * Three figures rather than one, because they answer different questions and a
+ * reader wants all of them before scrolling. The entry count says how long the
+ * list is. The day count says how spread out the work was — nine entries over
+ * nine days is a retainer and nine entries over two days is a sprint, and the
+ * list itself takes a lot of scrolling to tell them apart. The total is the one
+ * figure the whole page is for.
+ *
+ * Saying where the controls are costs a clause and saves a hunt: they sit at
+ * the end of each row, which is the last place a reader scanning a column of
+ * durations would look.
+ */
+export function describeTimeList(days: readonly TimeDay[]): string {
+  const entries = days.reduce((count, day) => count + day.entries.length, 0);
+  if (entries === 0) return "No time logged against this project yet.";
+
+  const total = formatMinutes(
+    days.reduce((sum, day) => sum + day.minutes, 0),
+  );
+  const controls =
+    entries === 1
+      ? "It can be edited or deleted with the buttons beside it."
+      : "Each can be edited or deleted with the buttons beside it.";
+
+  if (entries === 1) return `One entry, ${total} in total. ${controls}`;
+  if (days.length === 1) {
+    return `${entries} entries on one day, ${total} in total. ${controls}`;
+  }
+  return `${entries} entries over ${days.length} days, ${total} in total. ${controls}`;
+}
