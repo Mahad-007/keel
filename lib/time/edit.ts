@@ -1,4 +1,5 @@
 import type { TimeEntryPatch } from "@/lib/data/time-entries";
+import { readField } from "@/lib/forms/form-data";
 import type { FieldErrors } from "@/lib/forms/result";
 import {
   failedFormState,
@@ -253,3 +254,41 @@ export const EDIT_TIME_PROBLEMS = {
  */
 export const EDIT_TIME_NO_ANSWER =
   "Could not tell whether that edit was saved — the answer never arrived. Reload to see what this project has logged.";
+
+/**
+ * Saving an entry, with the project and its scope list already captured by
+ * the page that served the list.
+ *
+ * The entry's id is *not* captured. One action serves every row, and which row
+ * a submission was aimed at is what the submission says; the project is what
+ * the page says, and the write checks that the two agree. Capturing the id
+ * instead would make it look protected while a `.bind` in a client component
+ * serialises it in the clear anyway.
+ */
+export type EditTimeAction = (
+  previous: EditTimeState,
+  formData: FormData,
+) => Promise<EditTimeState>;
+
+/**
+ * The field an edit submission names its row in.
+ *
+ * Written down once because it is read in two places that cannot see each
+ * other: the hidden input in the form, and the write that reads it. A typo in
+ * one of them compiles and makes every save fail as though the entry were
+ * gone.
+ */
+export const EDIT_TIME_FIELD_NAMES = { id: "id" } as const;
+
+/**
+ * Which entry a submission was aimed at, or the empty string if it did not
+ * say.
+ *
+ * Trimmed, because an id is matched against a stored one and whitespace around
+ * it is not a different row. Empty is left for the caller to refuse: the write
+ * answers it with the same sentence it answers an unknown id with, since from
+ * the reader's side both mean the entry is not there to save.
+ */
+export function readTimeEntryId(formData: FormData): string {
+  return readField(formData, EDIT_TIME_FIELD_NAMES.id).trim();
+}

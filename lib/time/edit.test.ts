@@ -6,6 +6,7 @@ import {
   EDIT_TIME_PROBLEMS,
   editTimeState,
   failedTimeEditState,
+  readTimeEntryId,
   rejectedTimeEditState,
   savedTimeNotice,
   savedTimeState,
@@ -317,5 +318,26 @@ describe("the sentences a refused save comes back with", () => {
   it("points a billed entry at the credit note rather than at a retry", () => {
     expect(EDIT_TIME_PROBLEMS.billed).toContain("credit note");
     expect(EDIT_TIME_PROBLEMS.billed).not.toContain("try again");
+  });
+});
+
+describe("which entry a submission was aimed at", () => {
+  function submit(values: Record<string, string>): FormData {
+    const form = new FormData();
+    for (const [name, value] of Object.entries(values)) form.set(name, value);
+    return form;
+  }
+
+  it("reads the id out of the field the form writes it in", () => {
+    expect(readTimeEntryId(submit({ id: "tme_call" }))).toBe("tme_call");
+  });
+
+  it("trims it, because whitespace is not a different row", () => {
+    expect(readTimeEntryId(submit({ id: " tme_call " }))).toBe("tme_call");
+  });
+
+  it("comes back empty for a submission that did not say", () => {
+    expect(readTimeEntryId(submit({}))).toBe("");
+    expect(readTimeEntryId(submit({ id: "   " }))).toBe("");
   });
 });
