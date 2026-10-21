@@ -197,3 +197,26 @@ export function showsRunningTotal(day: TimeDay): boolean {
  * figure is of what is shown.
  */
 export const RUNNING_TOTAL_LABEL = "up to this day";
+
+/**
+ * A day's heading as one sentence, for a reader who is not looking at the
+ * figures laid out in a row.
+ *
+ * On screen the heading is a date on the left and two figures on the right,
+ * which works because the columns repeat down the page and the eye learns them
+ * once. Read aloud it is three numbers with nothing between them: "October
+ * seventeen, four thirty, twelve forty-five" says almost nothing. So the group
+ * carries this as its accessible name instead, and the figures themselves are
+ * hidden from assistive technology rather than announced twice.
+ *
+ * The running total drops out of the sentence on the day where it would repeat
+ * the day's own, the same rule the screen follows — hearing the same number
+ * twice is worse than reading it twice.
+ */
+export function describeDay(day: TimeDay): string {
+  const parts = [formatDate(day.workedOn), describeDayTotal(day)];
+  if (showsRunningTotal(day)) {
+    parts.push(`${formatMinutes(day.runningMinutes)} ${RUNNING_TOTAL_LABEL}`);
+  }
+  return parts.join(" — ");
+}

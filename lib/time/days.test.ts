@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   billableMinutes,
+  describeDay,
   describeDayTotal,
   groupTimeByDay,
   showsRunningTotal,
@@ -215,5 +216,33 @@ describe("whether a day shows its running total", () => {
   it("hides it on a list holding one day", () => {
     const [only] = groupTimeByDay([entry({ minutes: 45 })]);
     expect(showsRunningTotal(only)).toBe(false);
+  });
+});
+
+describe("a day's heading as one sentence", () => {
+  it("names the day and what was logged on it", () => {
+    expect(describeDay(day({ runningMinutes: 270 }))).toBe(
+      "Oct 17, 2026 — 4h 30m logged",
+    );
+  });
+
+  it("adds the running total once there is something before the day", () => {
+    expect(describeDay(day())).toBe(
+      "Oct 17, 2026 — 4h 30m logged — 12h 45m up to this day",
+    );
+  });
+
+  it("carries the non-chargeable clause into it", () => {
+    expect(describeDay(day({ billableMinutes: 210 }))).toContain(
+      "1h of it not chargeable",
+    );
+  });
+
+  it("reads the day off the string rather than through a Date", () => {
+    // A `Date` would be a moment, and the moment a calendar date falls on is
+    // the previous day for anybody behind UTC.
+    expect(describeDay(day({ workedOn: "2026-01-01" }))).toMatch(
+      /^Jan 1, 2026/,
+    );
   });
 });
