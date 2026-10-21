@@ -6,6 +6,7 @@ import {
   confirmDeleteTimeLabel,
   DELETE_TIME_CONFIRM_VALUE,
   deleteTimeButtonId,
+  deletedTimeAnnouncement,
   deleteTimeButtonLabel,
   describeTimeDeletion,
   keepTimeEntryLabel,
@@ -126,5 +127,31 @@ describe("reading a confirmed deletion off a submission", () => {
         submit({ id: " tme_call ", remove: DELETE_TIME_CONFIRM_VALUE }),
       ),
     ).toBe("tme_call");
+  });
+});
+
+describe("what a deletion says out loud", () => {
+  it("names what went and counts what is left", () => {
+    expect(deletedTimeAnnouncement(NAME, 675)).toBe(
+      `Deleted ${NAME}. 11h 15m left on this project.`,
+    );
+  });
+
+  it("counts the minutes rather than the entries", () => {
+    // A time list is a list of minutes. "Nine entries left" is the one figure
+    // that does not answer the question a deletion was about.
+    expect(deletedTimeAnnouncement(NAME, 675)).not.toMatch(/entr/);
+  });
+
+  it("says the project has nothing logged rather than counting to zero", () => {
+    expect(deletedTimeAnnouncement(NAME, 0)).toBe(
+      `Deleted ${NAME}. No time is logged against this project now.`,
+    );
+  });
+
+  it("says the same for a total that has somehow gone negative", () => {
+    // Not reachable: minutes are positive and the deleted entry was one of
+    // them. A page that renders is worth more than a figure of "-30m left".
+    expect(deletedTimeAnnouncement(NAME, -30)).toContain("No time is logged");
   });
 });

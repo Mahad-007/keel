@@ -16,6 +16,7 @@
  */
 
 import { readField } from "@/lib/forms/form-data";
+import { formatMinutes } from "@/lib/minutes";
 
 /** The control that asks for the deletion, which only opens the step below. */
 export function deleteTimeButtonLabel(name: string): string {
@@ -129,4 +130,30 @@ export function readTimeDeletion(formData: FormData): string | null {
   if (id === "") return null;
   if (readField(formData, DELETE_TIME_FIELD_NAMES.remove) === "") return null;
   return id;
+}
+
+/**
+ * What to say out loud once an entry is gone.
+ *
+ * The row vanishes from under the reader with no page load, which on screen is
+ * obvious and to anyone working from a screen reader is silence: removing a
+ * node announces nothing, and the focus that was on the Delete button is now
+ * on nothing at all. So the deletion gets a sentence.
+ *
+ * It counts what is left in minutes rather than in entries, which is where
+ * this parts company with the scope list's version. A scope list is a list of
+ * things and "three deliverables left" is the fact a reader has lost the
+ * ability to check; a time list is a list of minutes, and the figure the whole
+ * page is for is the total. Being told "nine entries left" after deleting a
+ * mis-typed forty hours would be the one number that does not answer the
+ * question the deletion was about.
+ */
+export function deletedTimeAnnouncement(
+  name: string,
+  remainingMinutes: number,
+): string {
+  if (remainingMinutes <= 0) {
+    return `Deleted ${name}. No time is logged against this project now.`;
+  }
+  return `Deleted ${name}. ${formatMinutes(remainingMinutes)} left on this project.`;
 }
