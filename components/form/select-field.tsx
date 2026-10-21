@@ -31,6 +31,12 @@ export type SelectFieldProps = {
    * client without anyone saying so.
    */
   placeholder?: string;
+  /**
+   * Which of several forms on the page this field belongs to, so two forms
+   * asking for the same thing do not render two controls with one id. Omitted
+   * on a page with one form — see `fieldId`.
+   */
+  scope?: string;
 };
 
 export function SelectField({
@@ -41,9 +47,10 @@ export function SelectField({
   defaultValue,
   options,
   placeholder,
+  scope,
 }: SelectFieldProps) {
   return (
-    <Field name={name} label={label} hint={hint} error={error}>
+    <Field name={name} label={label} hint={hint} error={error} scope={scope}>
       {(description) => (
         <select
           {...controlAttributes(description)}
