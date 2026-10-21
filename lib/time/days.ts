@@ -1,6 +1,8 @@
 import { formatDate } from "@/lib/dates";
 import { formatMinutes } from "@/lib/minutes";
 
+import { isChargeable } from "./billing";
+
 /**
  * A project's time, gathered into the days it was worked.
  *
@@ -83,15 +85,12 @@ export function totalMinutes(entries: readonly LoggedEntry[]): number {
 /**
  * How much of a set of entries is meant to be charged for.
  *
- * The non-chargeable ones are left out rather than subtracted, so an entry
- * whose flag is missing or unreadable — the column is an integer and a
- * hand-edited row can hold anything — counts as not chargeable. That is the
- * safe direction: an hour wrongly left out of this figure is still in the
- * list and still billable tomorrow, where an hour wrongly counted in is one
- * somebody marked free and got charged for.
+ * The non-chargeable ones are left out rather than subtracted, through the
+ * same predicate the mark on the row uses — so a day's figure cannot read a
+ * flag differently from the row that produced it.
  */
 export function billableMinutes(entries: readonly LoggedEntry[]): number {
-  return totalMinutes(entries.filter((entry) => entry.billable === true));
+  return totalMinutes(entries.filter(isChargeable));
 }
 
 /**

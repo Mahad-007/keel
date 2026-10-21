@@ -1,7 +1,7 @@
 import { formatDate } from "@/lib/dates";
 import { formatMinutes } from "@/lib/minutes";
 
-import { isBilled, type BillingSubject } from "./billing";
+import { isBilled, isChargeable, type BillingSubject } from "./billing";
 
 /**
  * How one logged stretch of work reads in a list.
@@ -156,7 +156,7 @@ export const NO_NOTE_LABEL = "No note";
  */
 export function entryMarks(entry: ListedTimeEntry): string[] {
   const marks: string[] = [];
-  if (entry.billable !== true) marks.push("Not chargeable");
+  if (!isChargeable(entry)) marks.push("Not chargeable");
   if (isBilled(entry)) marks.push("Billed");
   return marks;
 }

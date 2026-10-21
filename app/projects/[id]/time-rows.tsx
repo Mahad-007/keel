@@ -25,6 +25,7 @@ import {
   deliverableOptions,
   type AttributableDeliverable,
 } from "@/lib/time/attribution";
+import { isChargeable } from "@/lib/time/billing";
 import { describeTimeList, groupTimeByDay, totalMinutes } from "@/lib/time/days";
 import {
   editAttributionOptions,
@@ -444,7 +445,7 @@ export function TimeRows({
                     <DeleteTimePrompt
                       id={entry.id}
                       name={named(entry)}
-                      billable={entry.billable}
+                      billable={isChargeable(entry)}
                       confirm={confirmDelete}
                       onKeep={() => closeRow(entry.id, "confirm", null)}
                     />
