@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { timeEntryFormFields } from "./edit";
+import {
+  editTimeState,
+  failedTimeEditState,
+  rejectedTimeEditState,
+  savedTimeState,
+  timeEntryFormFields,
+} from "./edit";
 import type { ListedTimeEntry } from "./entry";
 import { parseLogTimeForm, readsAsBillable } from "./form";
 
@@ -93,5 +99,57 @@ describe("opening an entry and saving it untouched", () => {
     for (let minutes = 1; minutes <= 24 * 60; minutes += 1) {
       expect(roundTrip(listed({ minutes })).minutes).toBe(minutes);
     }
+  });
+});
+
+describe("the state an edit form opens in", () => {
+  it("holds the stored entry and nothing wrong with it", () => {
+    const state = editTimeState(listed({ note: "Booking flow" }));
+    expect(state.fields.note).toBe("Booking flow");
+    expect(state.errors).toEqual({});
+    expect(state.formError).toBeNull();
+  });
+
+  it("has nothing saved yet, so the row stays open", () => {
+    expect(editTimeState(listed()).saved).toBeNull();
+  });
+});
+
+describe("the state a landed edit comes back in", () => {
+  const saved = { id: "tme_1", name: "1h 30m on Oct 17, 2026", changed: true };
+
+  it("shows the row as saved rather than as submitted", () => {
+    const state = savedTimeState(saved, {
+      ...timeEntryFormFields(listed()),
+      note: "Trimmed",
+    });
+    expect(state.fields.note).toBe("Trimmed");
+    expect(state.saved).toBe(saved);
+  });
+
+  it("has nothing wrong with it, so the summary stays quiet", () => {
+    const state = savedTimeState(saved, timeEntryFormFields(listed()));
+    expect(state.errors).toEqual({});
+    expect(state.formError).toBeNull();
+  });
+});
+
+describe("the state a refused edit comes back in", () => {
+  it("keeps what was typed so the work is not thrown away", () => {
+    const fields = { ...timeEntryFormFields(listed()), duration: "banana" };
+    const state = rejectedTimeEditState(fields, {
+      duration: "That is not a length of time.",
+    });
+    expect(state.fields.duration).toBe("banana");
+    expect(state.errors.duration).toBe("That is not a length of time.");
+    expect(state.saved).toBeNull();
+  });
+
+  it("puts a problem with the submission as a whole above the fields", () => {
+    const fields = timeEntryFormFields(listed());
+    const state = failedTimeEditState(fields, "Nothing was written.");
+    expect(state.formError).toBe("Nothing was written.");
+    expect(state.errors).toEqual({});
+    expect(state.saved).toBeNull();
   });
 });

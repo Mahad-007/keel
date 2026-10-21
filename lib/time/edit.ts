@@ -1,7 +1,18 @@
+import type { FieldErrors } from "@/lib/forms/result";
+import {
+  failedFormState,
+  initialFormState,
+  rejectedFormState,
+} from "@/lib/forms/state";
 import { formatMinutes } from "@/lib/minutes";
 
 import type { ListedTimeEntry } from "./entry";
-import { BILLABLE_VALUE, type LogTimeFormFields } from "./form";
+import {
+  BILLABLE_VALUE,
+  type LogTimeFieldName,
+  type LogTimeFormFields,
+  type LogTimeFormState,
+} from "./form";
 
 /**
  * Editing a stretch of work already logged: what the form opens holding, and
@@ -49,4 +60,82 @@ export function timeEntryFormFields(
     note: entry.note ?? "",
     billable: entry.billable ? BILLABLE_VALUE : "",
   };
+}
+
+/**
+ * What a landed edit tells the page.
+ *
+ * The id, because the row that was editing has to know the answer is its own:
+ * a time list can be forty rows long and only one of them should close.
+ *
+ * The name as *saved*, which is not the name the form was opened with — that
+ * is the point of an edit — and is what the sentence said out loud afterwards
+ * has to use. Named rather than carried as five columns, because an entry has
+ * no title and `entryName` is the one place that decides how one is referred
+ * to; two spellings of that would mean the row and the confirmation calling
+ * the same entry different things.
+ *
+ * `changed` because a form opened and saved untouched is a real thing a reader
+ * does, and it deserves a different sentence from one that wrote something.
+ * Telling somebody their change was saved when there was no change is a small
+ * lie that makes every other confirmation less believable.
+ */
+export type SavedTimeEntry = {
+  readonly id: string;
+  readonly name: string;
+  readonly changed: boolean;
+};
+
+/**
+ * A form state plus what landed, the same shape the log line uses and for the
+ * same reason: an edit in a row does not navigate. The reader is looking at
+ * the list they are editing, so there is nowhere to redirect to and the row
+ * has to learn from the state that it may close.
+ */
+export type EditTimeState = LogTimeFormState & {
+  readonly saved: SavedTimeEntry | null;
+};
+
+/**
+ * What the form starts from: the stored entry, nothing wrong with it yet.
+ *
+ * A function rather than a constant, because unlike the blank log line an
+ * edit form is different every time it opens.
+ */
+export function editTimeState(entry: ListedTimeEntry): EditTimeState {
+  return { ...initialFormState(timeEntryFormFields(entry)), saved: null };
+}
+
+/**
+ * The edit landed. The fields come back as the row now reads rather than as
+ * they were submitted, so a form that stays open after a save — one the reader
+ * reopens, or one whose close is still a render away — shows the saved entry
+ * and not an untrimmed copy of what they typed.
+ */
+export function savedTimeState(
+  saved: SavedTimeEntry,
+  fields: LogTimeFormFields,
+): EditTimeState {
+  return { ...initialFormState(fields), saved };
+}
+
+/**
+ * Validation refused the submission. Nothing was written, and the row stays
+ * open holding exactly what was typed: an edit form that closed on a rejection
+ * would throw away the work and leave the reader to find the entry again in a
+ * list of forty.
+ */
+export function rejectedTimeEditState(
+  fields: LogTimeFormFields,
+  errors: FieldErrors<LogTimeFieldName>,
+): EditTimeState {
+  return { ...rejectedFormState(fields, errors), saved: null };
+}
+
+/** The submission was good and nothing was written anyway. */
+export function failedTimeEditState(
+  fields: LogTimeFormFields,
+  formError: string,
+): EditTimeState {
+  return { ...failedFormState(fields, formError), saved: null };
 }
