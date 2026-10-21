@@ -276,50 +276,6 @@ export function announceScopeChange<T extends ArrangedDeliverable>(
 }
 
 /**
- * What was last said about a press, and which press said it.
- *
- * The number is not shown anywhere. It is there because a live region only
- * announces text that has *changed*, and two presses running can say the same
- * thing — marking a line done, reopening it, marking it done again. Keying the
- * sentence on the press makes the second one a new node rather than the same
- * words, which is the difference between being told and not.
- *
- * It is also what lets a press withdraw its own sentence and nobody else's,
- * which matters because presses are sent one at a time and answered in that
- * order: by the time one is refused, a later press may already have said
- * something true.
- */
-export type Announcement = {
-  readonly text: string;
-  readonly press: number;
-};
-
-/**
- * The live region's contents once the press numbered `press` takes back what it
- * said — because the server refused it, so the sentence claiming it worked is
- * no longer true.
- *
- * Only that press's own sentence goes. Presses are sent one at a time and
- * answered in the order they were made, so a press that is refused can be
- * answered *after* a later press has already announced something that did
- * happen: "Start" then "Mark done" on one line is two presses in under a
- * second, and the first can fail while the second succeeds. Clearing whatever
- * the region happens to hold would wipe the later sentence moments after it was
- * inserted, and the later press has no reason to say it twice — so a reader
- * working from a screen reader would simply never hear it.
- *
- * A number no sentence was said under leaves the region alone, which is the
- * answer for a press that had nothing to announce in the first place.
- */
-export function withdrawAnnouncement(
-  said: Announcement | null,
-  press: number,
-): Announcement | null {
-  if (said === null || said.press !== press) return said;
-  return null;
-}
-
-/**
  * What a scope write hands back: nothing to say, or the one sentence worth
  * saying about why the list did not change.
  *

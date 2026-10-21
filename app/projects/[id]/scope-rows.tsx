@@ -22,8 +22,6 @@ import {
   readScopeChange,
   SCOPE_NO_ANSWER,
   scopeWriteProblem,
-  withdrawAnnouncement,
-  type Announcement,
   type DeleteScopeAction,
   type MoveScopeAction,
   type ScopeChange,
@@ -39,6 +37,8 @@ import {
   openRowStillThere,
   rowAfterRemoval,
   rowMode,
+  withdrawAnnouncement,
+  type Announcement,
   type OpenRow,
   type RowMode,
 } from "@/lib/rows";
