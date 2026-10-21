@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   billableMinutes,
+  describeDayTotal,
   groupTimeByDay,
   totalMinutes,
   type LoggedEntry,
+  type TimeDay,
 } from "./days";
 
 function entry(fields: Partial<LoggedEntry> = {}): LoggedEntry {
@@ -158,5 +160,40 @@ describe("the running total on a day", () => {
       entry({ minutes: 30, workedOn: "2026-10-16" }),
     ]);
     expect(days[0].runningMinutes).toBe(90);
+  });
+});
+
+function day(fields: Partial<TimeDay> = {}): TimeDay {
+  return {
+    workedOn: "2026-10-17",
+    entries: [],
+    minutes: 270,
+    billableMinutes: 270,
+    runningMinutes: 765,
+    ...fields,
+  };
+}
+
+describe("what a day's heading says about the day", () => {
+  it("says how long was logged", () => {
+    expect(describeDayTotal(day())).toBe("4h 30m logged");
+  });
+
+  it("says nothing about chargeability when all of it is chargeable", () => {
+    // A clause that is true on every day is a clause nobody reads, and the one
+    // day it mattered would look like the rest.
+    expect(describeDayTotal(day())).not.toMatch(/chargeable/);
+  });
+
+  it("says how much of the day will not be charged for", () => {
+    expect(describeDayTotal(day({ billableMinutes: 210 }))).toBe(
+      "4h 30m logged, 1h of it not chargeable",
+    );
+  });
+
+  it("says so when none of the day is chargeable", () => {
+    expect(describeDayTotal(day({ billableMinutes: 0 }))).toBe(
+      "4h 30m logged, 4h 30m of it not chargeable",
+    );
   });
 });

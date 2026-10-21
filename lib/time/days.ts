@@ -1,3 +1,6 @@
+import { formatDate } from "@/lib/dates";
+import { formatMinutes } from "@/lib/minutes";
+
 /**
  * A project's time, gathered into the days it was worked.
  *
@@ -141,4 +144,26 @@ export function groupTimeByDay<T extends LoggedEntry>(
     billableMinutes: billableMinutes(day),
     runningMinutes: running.get(workedOn) ?? 0,
   }));
+}
+
+/**
+ * What a day's heading says about the day: how long was logged, and how much
+ * of it will not be charged for.
+ *
+ * The chargeable figure is only mentioned when it differs from the total,
+ * which is almost never — time logged against a client engagement is
+ * chargeable unless somebody says otherwise. Printing "4h 30m logged, 4h 30m
+ * of it chargeable" on every day would be a clause that is always true and
+ * therefore never read, and the one day it mattered would look like the rest.
+ *
+ * Said as what is *not* chargeable rather than what is, because that is the
+ * part a reader is checking: the day's total is already in the sentence, and
+ * the interesting figure is the gap between it and the invoice.
+ */
+export function describeDayTotal(day: TimeDay): string {
+  const logged = `${formatMinutes(day.minutes)} logged`;
+  if (day.billableMinutes === day.minutes) return logged;
+
+  const free = day.minutes - day.billableMinutes;
+  return `${logged}, ${formatMinutes(free)} of it not chargeable`;
 }
