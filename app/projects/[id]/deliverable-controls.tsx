@@ -12,7 +12,7 @@ import {
   nextDeliverableStatus,
 } from "@/lib/deliverables/status";
 
-import { ScopeButton } from "./scope-button";
+import { RowButton } from "./row-button";
 
 /**
  * The controls on one line of a scope list: what it is doing, and where it sits.
@@ -76,13 +76,13 @@ export function DeliverableControls({
         reader sees it, which during a press is the optimistic copy, so the verb
         and the status it asks for move together.
       */}
-      <ScopeButton
+      <RowButton
         name={SCOPE_FIELD_NAMES.status}
         value={nextDeliverableStatus(deliverable.status)}
         label={statusButtonLabel(deliverable.title, deliverable.status)}
       >
         {deliverableStatusVerb(deliverable.status)}
-      </ScopeButton>
+      </RowButton>
       {/*
         Both move controls are drawn on every line, and the one that cannot act
         is greyed rather than missing. A column of buttons that appears and
@@ -91,7 +91,7 @@ export function DeliverableControls({
         a fact about the list worth showing rather than hiding.
       */}
       {MOVE_DIRECTIONS.map((direction) => (
-        <ScopeButton
+        <RowButton
           key={direction}
           name={SCOPE_FIELD_NAMES.direction}
           value={direction}
@@ -99,7 +99,7 @@ export function DeliverableControls({
           unavailable={!canMove(position, count, direction)}
         >
           {MOVE_LABELS[direction]}
-        </ScopeButton>
+        </RowButton>
       ))}
       {/*
         Edit comes after the controls that change the list and before the one
@@ -108,26 +108,26 @@ export function DeliverableControls({
         deletion is final. A reader tabbing along the row meets them in that
         order rather than meeting Delete on the way to Up.
       */}
-      <ScopeButton
+      <RowButton
         id={editButtonId(deliverable.id)}
         onPress={onEdit}
         label={editButtonLabel(deliverable.title)}
       >
         Edit
-      </ScopeButton>
+      </RowButton>
       {/*
         Last, because it is the one press on the row that cannot be taken back —
         a reader tabbing along should not have to pass it to reach anything. It
         carries an id because the step it opens has to be able to put the cursor
         back here when it closes.
       */}
-      <ScopeButton
+      <RowButton
         id={deleteButtonId(deliverable.id)}
         onPress={onDelete}
         label={deleteButtonLabel(deliverable.title)}
       >
         Delete
-      </ScopeButton>
+      </RowButton>
     </form>
   );
 }

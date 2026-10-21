@@ -1,14 +1,16 @@
 /**
- * One of the small controls on a line of a scope list.
+ * One of the small controls at the end of a row of a list — a scope line, a
+ * logged stretch of work.
  *
- * Usually a submit button, because the row is a form: a press that changes the
+ * Sometimes a submit button, because a row can be a form: a press that changes the
  * list has to say which deliverable it was aimed at and what it asked for, and
  * a button's own name and value is how a browser says that.
  *
- * Two of them change nothing, though — Edit and Delete only open something on
+ * Some of them change nothing, though — Edit and Delete only open something on
  * the page — and those pass `onPress` instead and submit nothing. They have to
  * be the same control to look at: five buttons in a row where two of them are
- * built somewhere else is five buttons that will not stay the same size.
+ * built somewhere else is five buttons that will not stay the same size. The
+ * same reason this is one component for both lists rather than one each.
  *
  * It is deliberately not `SubmitButton`. That one disables itself while the
  * form is in flight, which is right for a save — an impatient second press
@@ -17,8 +19,8 @@
  * done in runs. Lifting a deliverable from fifth to first is four presses in
  * under a second, and a control that greyed out between them would drop three.
  *
- * Quiet by design. Each line of the list may carry three of these, and they are
- * not what the page is for — the scope is. They have to be reachable without
+ * Quiet by design. A row may carry three of these, and they are not what the
+ * page is for — the scope and the hours are. They have to be reachable without
  * being the loudest thing in the row.
  */
 
@@ -30,7 +32,7 @@ const AVAILABLE =
 const UNAVAILABLE =
   "cursor-not-allowed border-zinc-200 text-zinc-400 dark:border-zinc-800 dark:text-zinc-600";
 
-export function ScopeButton({
+export function RowButton({
   name,
   value,
   onPress,
@@ -54,9 +56,9 @@ export function ScopeButton({
   /** For a control the page has to move the cursor back to. */
   id?: string;
   /**
-   * The accessible name, which carries the deliverable's title: a column of
-   * buttons reading "Up" is one control repeated to anyone who cannot see
-   * which line they are on.
+   * The accessible name, which carries whatever names the row: a column of
+   * buttons reading "Up" or "Delete" is one control repeated to anyone who
+   * cannot see which row they are on.
    */
   label: string;
   /** For a move the list cannot make — the first line cannot go up. */
