@@ -90,3 +90,55 @@ export function totalMinutes(entries: readonly LoggedEntry[]): number {
 export function billableMinutes(entries: readonly LoggedEntry[]): number {
   return totalMinutes(entries.filter((entry) => entry.billable === true));
 }
+
+/**
+ * The entries gathered into days, in the order the days first appear.
+ *
+ * The order is the caller's: the data layer hands back the newest work first,
+ * so that is the order the days come out in and the order the list renders.
+ * Nothing here sorts, because a list that re-sorted its input would quietly
+ * disagree with whatever the query asked for — and Day 028 is going to ask for
+ * ranges and orders this module has no opinion about.
+ *
+ * Entries sharing a day are gathered even when they are not next to each other
+ * in the array. That cannot happen with the data layer's own ordering, and it
+ * is cheap to be right about anyway: a day that appeared twice in the list
+ * would show two headings with two totals, and neither would be the day's.
+ *
+ * `runningMinutes` is worked out from the calendar rather than from the
+ * position in the array — every entry on this day or an earlier one. That is
+ * what makes the figure the same whichever end of the list the caller handed
+ * over, and it is the only reading that survives Day 028 turning the sort
+ * around.
+ */
+export function groupTimeByDay<T extends LoggedEntry>(
+  entries: readonly T[],
+): TimeDay<T>[] {
+  const byDay = new Map<string, T[]>();
+  for (const entry of entries) {
+    const day = byDay.get(entry.workedOn);
+    if (day === undefined) byDay.set(entry.workedOn, [entry]);
+    else day.push(entry);
+  }
+
+  /*
+    The running total is accumulated over the days in calendar order, then read
+    back off in whatever order the caller's list put them in. Two passes rather
+    than a sum per day, so a project with two years of entries does not do
+    quadratic work to draw one page.
+  */
+  const running = new Map<string, number>();
+  let far = 0;
+  for (const workedOn of [...byDay.keys()].sort()) {
+    far += totalMinutes(byDay.get(workedOn) ?? []);
+    running.set(workedOn, far);
+  }
+
+  return [...byDay].map(([workedOn, day]) => ({
+    workedOn,
+    entries: day,
+    minutes: totalMinutes(day),
+    billableMinutes: billableMinutes(day),
+    runningMinutes: running.get(workedOn) ?? 0,
+  }));
+}
