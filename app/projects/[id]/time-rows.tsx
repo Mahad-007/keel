@@ -210,6 +210,13 @@ export function TimeRows({
 
   const options = deliverableOptions(deliverables);
   const days = groupTimeByDay(rows);
+  /*
+    The rows that carry controls, which is every row until an invoice bills
+    one. Counted here because two things need it: the line above the list,
+    which cannot claim every entry is editable, and the sentence under it that
+    explains the rows with nothing beside them.
+  */
+  const changeable = rows.filter(canChangeEntry).length;
 
   /** One entry named the way its controls and its confirmations name it. */
   function named(entry: ListedTimeEntry): string {
@@ -376,7 +383,7 @@ export function TimeRows({
     setProblem(result.problem);
   }
 
-  const anyBilled = rows.some((row) => !canChangeEntry(row));
+  const anyBilled = changeable < rows.length;
 
   return (
     <div onKeyDown={leaveOnEscape}>
@@ -387,7 +394,7 @@ export function TimeRows({
         entries above a list showing eight.
       */}
       <p className="mt-5 text-sm text-zinc-600 dark:text-zinc-400">
-        {describeTimeList(days)}
+        {describeTimeList(days, changeable)}
       </p>
       {/*
         The list changes under the reader with no page load and no form

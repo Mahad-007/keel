@@ -258,29 +258,33 @@ describe("the line above a time list", () => {
     );
   }
 
+  /** Every entry editable, which is every project that has not invoiced. */
+  function describe_(days: readonly TimeDay[]) {
+    const entries = days.reduce((count, one) => count + one.entries.length, 0);
+    return describeTimeList(days, entries);
+  }
+
   it("says there is nothing yet rather than counting to zero", () => {
-    expect(describeTimeList([])).toBe(
+    expect(describeTimeList([], 0)).toBe(
       "No time logged against this project yet.",
     );
   });
 
   it("counts one entry in words and in the singular", () => {
-    expect(describeTimeList(listOf([90, "2026-10-17"]))).toBe(
+    expect(describe_(listOf([90, "2026-10-17"]))).toBe(
       "One entry, 1h 30m in total. It can be edited or deleted with the buttons beside it.",
     );
   });
 
   it("says a run of entries on one day happened on one day", () => {
-    expect(
-      describeTimeList(listOf([90, "2026-10-17"], [45, "2026-10-17"])),
-    ).toBe(
+    expect(describe_(listOf([90, "2026-10-17"], [45, "2026-10-17"]))).toBe(
       "2 entries on one day, 2h 15m in total. Each can be edited or deleted with the buttons beside it.",
     );
   });
 
   it("counts the days the work was spread over", () => {
     expect(
-      describeTimeList(
+      describe_(
         listOf([90, "2026-10-17"], [45, "2026-10-16"], [30, "2026-10-14"]),
       ),
     ).toBe(
@@ -289,45 +293,35 @@ describe("the line above a time list", () => {
   });
 
   it("totals the whole list rather than the newest day", () => {
-    const said = describeTimeList(
-      listOf([90, "2026-10-17"], [90, "2026-10-16"]),
+    expect(describe_(listOf([90, "2026-10-17"], [90, "2026-10-16"]))).toContain(
+      "3h in total",
     );
-    expect(said).toContain("3h in total");
   });
 
   it("says where the controls are", () => {
-    expect(describeTimeList(listOf([90, "2026-10-17"]))).toContain(
+    expect(describe_(listOf([90, "2026-10-17"]))).toContain(
       "buttons beside it",
     );
   });
-});
 
-describe("the figures that qualify a day's total", () => {
-  it("has nothing to add to an all-chargeable oldest day", () => {
-    expect(dayQualifiers(day({ runningMinutes: 270 }))).toEqual([]);
-  });
-
-  it("says where the engagement stands", () => {
-    expect(dayQualifiers(day())).toEqual(["12h 45m up to this day"]);
-  });
-
-  it("says how much of the day will not be charged for", () => {
-    expect(dayQualifiers(day({ billableMinutes: 210 }))).toEqual([
-      "1h not chargeable",
-      "12h 45m up to this day",
-    ]);
-  });
-
-  it("puts the day's own qualifier before the one about the list", () => {
-    // The reader is looking at a day. What it cost comes before where it sits.
-    expect(dayQualifiers(day({ billableMinutes: 210 }))[0]).toContain(
-      "not chargeable",
+  it("says which rows have controls when some of them are billed", () => {
+    // Claiming every entry can be edited would be false, and contradicted by
+    // the sentence under the same list explaining the rows with no buttons.
+    const days = listOf([90, "2026-10-17"], [45, "2026-10-16"]);
+    expect(describeTimeList(days, 1)).toBe(
+      "2 entries over 2 days, 2h 15m in total. The entries no invoice has billed can be edited or deleted with the buttons beside them.",
     );
   });
 
-  it("leaves the date out, which the heading beside it already shows", () => {
-    for (const qualifier of dayQualifiers(day({ billableMinutes: 0 }))) {
-      expect(qualifier).not.toContain("Oct");
-    }
+  it("points at no controls at all when every entry is billed", () => {
+    const days = listOf([90, "2026-10-17"], [45, "2026-10-16"]);
+    expect(describeTimeList(days, 0)).toBe(
+      "2 entries over 2 days, 2h 15m in total.",
+    );
+  });
+
+  it("still counts a billed list, which is what the figures are for", () => {
+    const days = listOf([90, "2026-10-17"]);
+    expect(describeTimeList(days, 0)).toContain("1h 30m in total");
   });
 });

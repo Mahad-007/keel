@@ -221,6 +221,33 @@ export function describeDay(day: TimeDay): string {
 }
 
 /**
+ * What the line above the list says about its controls, or null when there is
+ * nothing true to say.
+ *
+ * Three cases, because a billed entry renders no buttons. Claiming every entry
+ * can be edited would be false on any project that has invoiced something —
+ * and it would be contradicted by the sentence under the same list explaining
+ * why some rows have nothing beside them.
+ *
+ * All of them billed says nothing at all. The note under the list is the
+ * explanation then, and a clause here pointing at buttons that are nowhere on
+ * the page would send the reader looking for them.
+ */
+function describeListControls(
+  entries: number,
+  changeable: number,
+): string | null {
+  if (changeable === 0) return null;
+  if (changeable < entries) {
+    return "The entries no invoice has billed can be edited or deleted with the buttons beside them.";
+  }
+  if (entries === 1) {
+    return "It can be edited or deleted with the buttons beside it.";
+  }
+  return "Each can be edited or deleted with the buttons beside it.";
+}
+
+/**
  * The line above a time list: how much work it holds, over how many days, and
  * what can be done to it.
  *
@@ -233,25 +260,26 @@ export function describeDay(day: TimeDay): string {
  *
  * Saying where the controls are costs a clause and saves a hunt: they sit at
  * the end of each row, which is the last place a reader scanning a column of
- * durations would look.
+ * durations would look. `changeable` is how many of the entries have any —
+ * billed time has none — so the clause can say which rows it means.
  */
-export function describeTimeList(days: readonly TimeDay[]): string {
+export function describeTimeList(
+  days: readonly TimeDay[],
+  changeable: number,
+): string {
   const entries = days.reduce((count, day) => count + day.entries.length, 0);
   if (entries === 0) return "No time logged against this project yet.";
 
-  const total = formatMinutes(
-    days.reduce((sum, day) => sum + day.minutes, 0),
-  );
-  const controls =
+  const total = formatMinutes(days.reduce((sum, day) => sum + day.minutes, 0));
+  const counted =
     entries === 1
-      ? "It can be edited or deleted with the buttons beside it."
-      : "Each can be edited or deleted with the buttons beside it.";
+      ? `One entry, ${total} in total.`
+      : days.length === 1
+        ? `${entries} entries on one day, ${total} in total.`
+        : `${entries} entries over ${days.length} days, ${total} in total.`;
 
-  if (entries === 1) return `One entry, ${total} in total. ${controls}`;
-  if (days.length === 1) {
-    return `${entries} entries on one day, ${total} in total. ${controls}`;
-  }
-  return `${entries} entries over ${days.length} days, ${total} in total. ${controls}`;
+  const controls = describeListControls(entries, changeable);
+  return controls === null ? counted : `${counted} ${controls}`;
 }
 
 /**
