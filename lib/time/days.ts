@@ -60,3 +60,33 @@ export type TimeDay<T extends LoggedEntry = LoggedEntry> = {
   readonly billableMinutes: number;
   readonly runningMinutes: number;
 };
+
+/**
+ * What a set of entries comes to, in whole minutes.
+ *
+ * Integer addition, which is the whole reason time is minutes and not hours:
+ * forty entries of twenty minutes add up to exactly 800, where forty values of
+ * `0.3333` hours add up to something that has to be rounded before it can be
+ * shown and rounds differently depending on where the rounding happens.
+ *
+ * An empty set comes to nothing, which is a real answer rather than a gap — a
+ * day with no entries is not in the list at all, but a filtered list can hand
+ * this an empty array and zero is what it has logged.
+ */
+export function totalMinutes(entries: readonly LoggedEntry[]): number {
+  return entries.reduce((sum, entry) => sum + entry.minutes, 0);
+}
+
+/**
+ * How much of a set of entries is meant to be charged for.
+ *
+ * The non-chargeable ones are left out rather than subtracted, so an entry
+ * whose flag is missing or unreadable — the column is an integer and a
+ * hand-edited row can hold anything — counts as not chargeable. That is the
+ * safe direction: an hour wrongly left out of this figure is still in the
+ * list and still billable tomorrow, where an hour wrongly counted in is one
+ * somebody marked free and got charged for.
+ */
+export function billableMinutes(entries: readonly LoggedEntry[]): number {
+  return totalMinutes(entries.filter((entry) => entry.billable === true));
+}
