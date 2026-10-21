@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, type KeyboardEvent } from "react";
 
 import {
   fieldId,
@@ -118,7 +118,10 @@ export function EditTimeForm({
     return state;
   }
 
-  const [state, formAction] = useActionState(attempt, editTimeState(entry));
+  const [state, formAction, saving] = useActionState(
+    attempt,
+    editTimeState(entry),
+  );
 
   // Scoped to this row: the log line at the top of the tab renders the same
   // five fields, and an unscoped lookup would move the cursor into it.
@@ -141,10 +144,30 @@ export function EditTimeForm({
     document.getElementById(fieldId("duration", entry.id))?.focus();
   }, [entry.id]);
 
+  /*
+    While a save is in flight there is no way out of the editor.
+
+    Leaving it would unmount this component before the action settles, and the
+    state the action comes back with would be set on something that is no
+    longer rendering — so a refusal, which is the whole reason the editor stays
+    open, would be set and never shown. The write itself goes through either
+    way, so the reader would be left with a row that had silently changed or
+    silently not.
+
+    Two ways out to hold: the button below, which is disabled, and the list's
+    Escape handler, which is a listener above this form. The key press is
+    stopped here rather than guarded there, because the list has no business
+    knowing whether a row it is not rendering has a request outstanding.
+  */
+  function holdEscapeWhileSaving(event: KeyboardEvent<HTMLFormElement>) {
+    if (saving && event.key === "Escape") event.stopPropagation();
+  }
+
   return (
     <form
       action={formAction}
       noValidate
+      onKeyDown={holdEscapeWhileSaving}
       aria-label={editTimeFormLabel(name)}
       className="flex w-full flex-col gap-4 py-1"
     >
@@ -164,11 +187,19 @@ export function EditTimeForm({
           form, which is a thing that happens on this page and nothing a URL
           should be able to describe.
         */}
+        {/*
+          Disabled rather than hidden while the save is in flight, so the way
+          out stays where the reader last saw it. `disabled` and not
+          `aria-disabled` here, unlike the row's own controls: this press has
+          to be refused rather than reported, and the state it would leave
+          behind lasts only as long as the request.
+        */}
         <button
           type="button"
           onClick={onCancel}
+          disabled={saving}
           aria-label={cancelTimeEditLabel(name)}
-          className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 disabled:cursor-not-allowed disabled:text-zinc-400 dark:text-zinc-400 dark:hover:text-zinc-100 dark:disabled:text-zinc-600"
         >
           Cancel
         </button>
