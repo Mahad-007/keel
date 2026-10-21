@@ -254,9 +254,16 @@ export function TimeRows({
       be sent somewhere before the row goes. The row that takes its place,
       normally; the duration box of the log form when there is no row left,
       which is where somebody who has just emptied a time list is going next.
+
+      Measured over the rows that *have* controls, not over the whole list. A
+      billed row renders no buttons, so sending the cursor to its Delete button
+      would send it to an element that is not in the document — and the browser
+      answers that by dropping focus to the document, which is the exact thing
+      this is here to prevent. The deleted row is itself one of these, since it
+      had a Delete button to press.
     */
     const next = rowAfterRemoval(
-      list.map((row) => row.id),
+      list.filter(canChangeEntry).map((row) => row.id),
       id,
     );
     moveFocusTo.current =
