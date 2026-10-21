@@ -212,3 +212,27 @@ export const DELETE_TIME_PROBLEMS = {
  */
 export const DELETE_TIME_NO_ANSWER =
   "Could not tell whether that entry was deleted — the answer never arrived. Reload to see what this project has logged.";
+
+/**
+ * The list as it reads once a deletion has been asked for.
+ *
+ * It exists because the list on screen has to change before the server has
+ * agreed to it. A row that waited for the round trip would sit there for a
+ * beat after the reader confirmed, which on the one press that cannot be taken
+ * back is the worst place in the app to leave somebody unsure whether it
+ * worked.
+ *
+ * Pure, and the same function the day totals are then recomputed from, so the
+ * figures in the headings cannot disagree with the rows under them while the
+ * write is in flight. React drops the change when the action settles, so a
+ * deletion the server refuses rolls back on its own.
+ *
+ * An entry the list does not have leaves it alone, which is the honest answer
+ * to a press made on a page that has since moved on.
+ */
+export function timeListWithout<T extends { readonly id: string }>(
+  entries: readonly T[],
+  id: string,
+): readonly T[] {
+  return entries.filter((entry) => entry.id !== id);
+}

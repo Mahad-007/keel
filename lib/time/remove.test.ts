@@ -14,6 +14,7 @@ import {
   DELETE_TIME_PROBLEMS,
   readTimeDeletion,
   TIME_WRITE_DONE,
+  timeListWithout,
   timeWriteProblem,
   timeDeletePromptId,
 } from "./remove";
@@ -194,5 +195,33 @@ describe("the sentences a refused deletion comes back with", () => {
   it("does not claim either way when the answer never arrived", () => {
     expect(DELETE_TIME_NO_ANSWER).not.toMatch(/[Nn]othing was/);
     expect(DELETE_TIME_NO_ANSWER).toMatch(/Reload/);
+  });
+});
+
+describe("the list as it reads once a deletion is asked for", () => {
+  const entries = [{ id: "a" }, { id: "b" }, { id: "c" }];
+
+  it("takes the entry out", () => {
+    expect(timeListWithout(entries, "b")).toEqual([{ id: "a" }, { id: "c" }]);
+  });
+
+  it("keeps the order of what is left", () => {
+    expect(timeListWithout(entries, "a").map((one) => one.id)).toEqual([
+      "b",
+      "c",
+    ]);
+  });
+
+  it("leaves a list that does not have the entry alone", () => {
+    expect(timeListWithout(entries, "z")).toEqual(entries);
+  });
+
+  it("empties a list of one", () => {
+    expect(timeListWithout([{ id: "a" }], "a")).toEqual([]);
+  });
+
+  it("hands the entries back rather than copies of them", () => {
+    const kept = entries[0];
+    expect(timeListWithout(entries, "b")[0]).toBe(kept);
   });
 });
