@@ -236,3 +236,17 @@ export function timeListWithout<T extends { readonly id: string }>(
 ): readonly T[] {
   return entries.filter((entry) => entry.id !== id);
 }
+
+/**
+ * Deleting one entry, as the list sees it: the project is already captured, so
+ * a press only has to say which entry it was aimed at.
+ *
+ * Captured by a `"use server"` closure in the server component that renders
+ * the list, and handed down as a prop — rather than the list holding a project
+ * id and passing it as an argument. The difference is not tidiness. An
+ * argument to a server action is wire data: the call is a POST, and every
+ * argument in it is whatever the caller put there, so a project id passed that
+ * way is supplied by the client and the check that the entry belongs to the
+ * project would be comparing two values from the same source.
+ */
+export type DeleteTimeAction = (id: string) => Promise<TimeWriteResult>;

@@ -45,6 +45,7 @@ import {
   readTimeDeletion,
   timeListWithout,
   timeWriteProblem,
+  type DeleteTimeAction,
   type TimeWriteResult,
 } from "@/lib/time/remove";
 
@@ -97,7 +98,7 @@ export function TimeRows({
    * named that way is named by whoever is holding the page.
    */
   edit: EditTimeAction;
-  remove: (id: string) => Promise<TimeWriteResult>;
+  remove: DeleteTimeAction;
 }) {
   /*
     The list as the reader sees it, which is the server's list minus whatever
