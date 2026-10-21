@@ -1,3 +1,4 @@
+import type { TimeEntryPatch } from "@/lib/data/time-entries";
 import type { FieldErrors } from "@/lib/forms/result";
 import {
   failedFormState,
@@ -12,6 +13,7 @@ import {
   type LogTimeFieldName,
   type LogTimeFormFields,
   type LogTimeFormState,
+  type LogTimeFormValue,
 } from "./form";
 
 /**
@@ -138,4 +140,52 @@ export function failedTimeEditState(
   formError: string,
 ): EditTimeState {
   return { ...failedFormState(fields, formError), saved: null };
+}
+
+/**
+ * What the submitted form actually changes about the stored entry — only the
+ * columns whose value is different.
+ *
+ * A patch of all five fields would also work: the data layer writes what it is
+ * given and the row would end up the same. Two things would not be the same.
+ * `updatedAt`, which a write bumps — so opening an entry to read the note and
+ * pressing Save would mark it as edited this morning, and a list where every
+ * row claims to have changed today cannot say which one did. And the billed
+ * check, which refuses a patch naming any column an invoice copied a figure
+ * out of: a patch of everything would refuse every save on a billed entry,
+ * including one that changes nothing.
+ *
+ * An empty patch is therefore meaningful rather than a degenerate case: it is
+ * how the write knows there is nothing to do and the row can say so.
+ */
+export function timeEntryChanges(
+  before: ListedTimeEntry,
+  value: LogTimeFormValue,
+): TimeEntryPatch {
+  /*
+    The three optional fields are read through their absent value rather than
+    compared as they arrive. All three are optional on the input type because
+    logging time may leave them out, and leaving one out means what the form's
+    empty box means: no note, no attribution, chargeable. Comparing an absent
+    key against the column directly would put `undefined` in the patch, which
+    the data layer skips and this file would still count as a change.
+  */
+  const note = value.note ?? null;
+  const deliverableId = value.deliverableId ?? null;
+  const billable = value.billable ?? true;
+
+  const patch: TimeEntryPatch = {};
+  if (value.minutes !== before.minutes) patch.minutes = value.minutes;
+  if (value.workedOn !== before.workedOn) patch.workedOn = value.workedOn;
+  if (note !== before.note) patch.note = note;
+  if (deliverableId !== before.deliverableId) {
+    patch.deliverableId = deliverableId;
+  }
+  if (billable !== before.billable) patch.billable = billable;
+  return patch;
+}
+
+/** Whether a submitted form asks for any change at all. */
+export function changesTimeEntry(patch: TimeEntryPatch): boolean {
+  return Object.keys(patch).length > 0;
 }

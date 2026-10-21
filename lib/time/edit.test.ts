@@ -1,14 +1,20 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  changesTimeEntry,
   editTimeState,
   failedTimeEditState,
   rejectedTimeEditState,
   savedTimeState,
+  timeEntryChanges,
   timeEntryFormFields,
 } from "./edit";
 import type { ListedTimeEntry } from "./entry";
-import { parseLogTimeForm, readsAsBillable } from "./form";
+import {
+  parseLogTimeForm,
+  readsAsBillable,
+  type LogTimeFormValue,
+} from "./form";
 
 function listed(fields: Partial<ListedTimeEntry> = {}): ListedTimeEntry {
   return {
@@ -151,5 +157,103 @@ describe("the state a refused edit comes back in", () => {
     expect(state.formError).toBe("Nothing was written.");
     expect(state.errors).toEqual({});
     expect(state.saved).toBeNull();
+  });
+});
+
+describe("what a submitted edit changes about the stored entry", () => {
+  const before = listed({
+    minutes: 90,
+    note: "Booking flow",
+    workedOn: "2026-10-17",
+    deliverableId: "dlv_wire",
+    billable: true,
+  });
+
+  function submitted(changes: Partial<LogTimeFormValue> = {}) {
+    return {
+      minutes: 90,
+      workedOn: "2026-10-17",
+      note: "Booking flow",
+      deliverableId: "dlv_wire",
+      billable: true,
+      ...changes,
+    };
+  }
+
+  it("asks for nothing when nothing moved", () => {
+    const patch = timeEntryChanges(before, submitted());
+    expect(patch).toEqual({});
+    expect(changesTimeEntry(patch)).toBe(false);
+  });
+
+  it("names only the column that moved", () => {
+    expect(timeEntryChanges(before, submitted({ minutes: 120 }))).toEqual({
+      minutes: 120,
+    });
+  });
+
+  it("re-dates an entry filed under the wrong day", () => {
+    expect(
+      timeEntryChanges(before, submitted({ workedOn: "2026-10-16" })),
+    ).toEqual({ workedOn: "2026-10-16" });
+  });
+
+  it("clears a note that was emptied", () => {
+    expect(timeEntryChanges(before, submitted({ note: null }))).toEqual({
+      note: null,
+    });
+  });
+
+  it("reads an absent note as no note rather than as no change", () => {
+    const { note: _note, ...withoutNote } = submitted();
+    expect(timeEntryChanges(before, withoutNote)).toEqual({ note: null });
+  });
+
+  it("moves the attribution onto another line", () => {
+    expect(
+      timeEntryChanges(before, submitted({ deliverableId: "dlv_build" })),
+    ).toEqual({ deliverableId: "dlv_build" });
+  });
+
+  it("takes the attribution off onto the project itself", () => {
+    expect(
+      timeEntryChanges(before, submitted({ deliverableId: null })),
+    ).toEqual({ deliverableId: null });
+  });
+
+  it("asks for nothing when unattributed work stays unattributed", () => {
+    const unattributed = { ...before, deliverableId: null };
+    const patch = timeEntryChanges(
+      unattributed,
+      submitted({ deliverableId: null }),
+    );
+    expect(patch).toEqual({});
+  });
+
+  it("unticks the chargeable flag", () => {
+    expect(timeEntryChanges(before, submitted({ billable: false }))).toEqual({
+      billable: false,
+    });
+  });
+
+  it("reads an absent chargeable flag as chargeable", () => {
+    const { billable: _billable, ...withoutFlag } = submitted();
+    expect(timeEntryChanges(before, withoutFlag)).toEqual({});
+  });
+
+  it("normalises a stored flag that is neither true nor false", () => {
+    // The column is an integer and a hand-edited row can hold anything. An
+    // edit is the chance to write a real boolean back.
+    const odd = { ...before, billable: 2 as unknown as boolean };
+    expect(timeEntryChanges(odd, submitted())).toEqual({ billable: true });
+  });
+
+  it("names several columns at once when several moved", () => {
+    const patch = timeEntryChanges(
+      before,
+      submitted({ minutes: 45, note: null, billable: false }),
+    );
+    expect(patch).toEqual({ minutes: 45, note: null, billable: false });
+    expect(changesTimeEntry(patch)).toBe(true);
   });
 });
