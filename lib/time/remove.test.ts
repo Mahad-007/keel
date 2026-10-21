@@ -10,7 +10,11 @@ import {
   deleteTimeButtonLabel,
   describeTimeDeletion,
   keepTimeEntryLabel,
+  DELETE_TIME_NO_ANSWER,
+  DELETE_TIME_PROBLEMS,
   readTimeDeletion,
+  TIME_WRITE_DONE,
+  timeWriteProblem,
   timeDeletePromptId,
 } from "./remove";
 
@@ -153,5 +157,42 @@ describe("what a deletion says out loud", () => {
     // Not reachable: minutes are positive and the deleted entry was one of
     // them. A page that renders is worth more than a figure of "-30m left".
     expect(deletedTimeAnnouncement(NAME, -30)).toContain("No time is logged");
+  });
+});
+
+describe("what a deletion hands back", () => {
+  it("says nothing at all when it landed", () => {
+    expect(TIME_WRITE_DONE).toEqual({ ok: true });
+  });
+
+  it("carries one sentence when it did not", () => {
+    expect(timeWriteProblem(DELETE_TIME_PROBLEMS.missing)).toEqual({
+      ok: false,
+      problem: DELETE_TIME_PROBLEMS.missing,
+    });
+  });
+});
+
+describe("the sentences a refused deletion comes back with", () => {
+  it("tells a reader what to do rather than only what went wrong", () => {
+    for (const problem of Object.values(DELETE_TIME_PROBLEMS)) {
+      expect(problem).toMatch(/Reload|try again|credit note/);
+    }
+  });
+
+  it("says nothing was deleted in every one of them", () => {
+    for (const problem of Object.values(DELETE_TIME_PROBLEMS)) {
+      expect(problem).toMatch(/nothing was deleted|Nothing was written|cannot be deleted/);
+    }
+  });
+
+  it("points a billed entry at the credit note rather than at a retry", () => {
+    expect(DELETE_TIME_PROBLEMS.billed).toContain("credit note");
+    expect(DELETE_TIME_PROBLEMS.billed).not.toContain("try again");
+  });
+
+  it("does not claim either way when the answer never arrived", () => {
+    expect(DELETE_TIME_NO_ANSWER).not.toMatch(/[Nn]othing was/);
+    expect(DELETE_TIME_NO_ANSWER).toMatch(/Reload/);
   });
 });

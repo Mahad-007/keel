@@ -157,3 +157,58 @@ export function deletedTimeAnnouncement(
   }
   return `Deleted ${name}. ${formatMinutes(remainingMinutes)} left on this project.`;
 }
+
+/**
+ * What a deletion hands back: nothing to say, or the one sentence worth saying
+ * about why the entry is still there.
+ *
+ * Not a form state, because a press is not a form being filled in. There is no
+ * field to put a message under and nothing the reader typed to render back —
+ * the entry either went or it did not, and if it did not, the list on screen
+ * has already put it back. The sentence is there to explain that.
+ */
+export type TimeWriteResult =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly problem: string };
+
+/** The write landed. The revalidated page is the rest of the answer. */
+export const TIME_WRITE_DONE: TimeWriteResult = { ok: true };
+
+export function timeWriteProblem(problem: string): TimeWriteResult {
+  return { ok: false, problem };
+}
+
+/**
+ * The sentences a refused deletion comes back with.
+ *
+ * Each says what to do next, because "something went wrong" leaves a reader
+ * pressing the same button again.
+ *
+ * `billed` is the one that no press will ever get past, and it is the reason
+ * the step is offered on a billed row at all rather than the controls simply
+ * being absent: the row *does* hide its controls, so reaching this means the
+ * invoice arrived while the step was open. That reader pressed Delete on an
+ * entry that was deletable a second ago, and they are owed the explanation
+ * rather than a row that silently refuses to go.
+ */
+export const DELETE_TIME_PROBLEMS = {
+  /** The entry is gone, or belongs to a project this page is not showing. */
+  missing:
+    "That entry is not on this project any more, so nothing was deleted. Reload to see what this project has logged.",
+  /** An invoice has billed it since the page was drawn. */
+  billed:
+    "An invoice has billed that time, so it cannot be deleted. A credit note frees the entry, after which it can be removed.",
+  /** The write itself failed — the driver, the disk, the network. */
+  failed: "Could not delete that entry. Nothing was written — try again.",
+} as const;
+
+/**
+ * What to say about a deletion whose answer never arrived.
+ *
+ * It does not claim either way, because from here there is no way to know: the
+ * request may have been lost on the way out, or the answer lost on the way back
+ * with the row already gone. Reloading is the only honest instruction — the
+ * server knows, and the page can go and ask it.
+ */
+export const DELETE_TIME_NO_ANSWER =
+  "Could not tell whether that entry was deleted — the answer never arrived. Reload to see what this project has logged.";
