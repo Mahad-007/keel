@@ -18,11 +18,12 @@ import {
  * The five things a logged stretch of work is: how long, which day, which line
  * of scope, what was done, and whether it is chargeable.
  *
- * Its own component because Day 023 adds an editor for an entry already
- * logged, and the two forms have to ask for the same things with the same
- * words, the same hints and the same limits. A hint that says one thing on the
- * log line and another in the editor is two different rules as far as the
- * reader is concerned, and the validator behind both is one function.
+ * Rendered by both forms on the time tab — the log line at the top and the
+ * editor that opens inside a row. They have to ask for the same things with
+ * the same words, the same hints and the same limits: a hint that says one
+ * thing on the log line and another in the editor is two different rules as
+ * far as the reader is concerned, and the validator behind both is one
+ * function.
  */
 
 /**
@@ -39,10 +40,21 @@ const DURATION_HINT = "How long it took: 1h30m, 45m, or 90 for ninety minutes.";
 export function LogTimeFields({
   state,
   options,
+  scope,
 }: {
   state: LogTimeFormState;
   /** The deliverables this project has, for the attribution picker. */
   options: readonly DeliverableOption[];
+  /**
+   * Which of several forms on the page these fields belong to. Both are
+   * mounted at once while a row is open for editing, and two controls
+   * carrying `field-duration` would mean a label that focuses the wrong box —
+   * and a log form whose effect puts the cursor into the editor.
+   *
+   * Unique on the page. The entry's id for an editor, absent for the log
+   * line, which is the one form the tab always has.
+   */
+  scope?: string;
 }) {
   return (
     <>
@@ -60,12 +72,14 @@ export function LogTimeFields({
           error={state.errors.duration}
           defaultValue={state.fields.duration}
           placeholder="1h30m"
+          scope={scope}
         />
         <DateField
           name="workedOn"
           label="Day"
           error={state.errors.workedOn}
           defaultValue={state.fields.workedOn}
+          scope={scope}
         />
       </div>
       {/*
@@ -97,6 +111,7 @@ export function LogTimeFields({
           }))}
           defaultValue={state.fields.deliverable}
           error={state.errors.deliverable}
+          scope={scope}
         />
       )}
       <TextAreaField
@@ -107,6 +122,7 @@ export function LogTimeFields({
         error={state.errors.note}
         defaultValue={state.fields.note}
         maxLength={LOG_TIME_FIELD_LIMITS.note}
+        scope={scope}
       />
       <CheckboxField
         name="billable"
@@ -115,6 +131,7 @@ export function LogTimeFields({
         value={BILLABLE_VALUE}
         defaultChecked={readsAsBillable(state.fields.billable)}
         error={state.errors.billable}
+        scope={scope}
       />
     </>
   );
