@@ -4,10 +4,12 @@ import { editTimeButtonId } from "./edit";
 import {
   confirmDeleteTimeId,
   confirmDeleteTimeLabel,
+  DELETE_TIME_CONFIRM_VALUE,
   deleteTimeButtonId,
   deleteTimeButtonLabel,
   describeTimeDeletion,
   keepTimeEntryLabel,
+  readTimeDeletion,
   timeDeletePromptId,
 } from "./remove";
 
@@ -75,5 +77,54 @@ describe("the ids an entry's delete controls are found by", () => {
 
   it("does not collide with the same row's edit button", () => {
     expect(deleteTimeButtonId("tme_a")).not.toBe(editTimeButtonId("tme_a"));
+  });
+});
+
+describe("reading a confirmed deletion off a submission", () => {
+  function submit(values: Record<string, string>): FormData {
+    const form = new FormData();
+    for (const [name, value] of Object.entries(values)) form.set(name, value);
+    return form;
+  }
+
+  it("names the entry the confirming press was made on", () => {
+    expect(
+      readTimeDeletion(
+        submit({ id: "tme_call", remove: DELETE_TIME_CONFIRM_VALUE }),
+      ),
+    ).toBe("tme_call");
+  });
+
+  it("deletes nothing for a submission carrying only an id", () => {
+    // The step is the only form a time row has. Without this check, every
+    // field in it would be a deletion waiting to happen.
+    expect(readTimeDeletion(submit({ id: "tme_call" }))).toBeNull();
+  });
+
+  it("deletes nothing for a confirmation that names no entry", () => {
+    expect(
+      readTimeDeletion(submit({ remove: DELETE_TIME_CONFIRM_VALUE })),
+    ).toBeNull();
+    expect(
+      readTimeDeletion(submit({ id: "  ", remove: DELETE_TIME_CONFIRM_VALUE })),
+    ).toBeNull();
+  });
+
+  it("deletes nothing for an empty submission", () => {
+    expect(readTimeDeletion(submit({}))).toBeNull();
+  });
+
+  it("takes any non-empty confirmation, because its presence is the message", () => {
+    expect(readTimeDeletion(submit({ id: "tme_call", remove: "x" }))).toBe(
+      "tme_call",
+    );
+  });
+
+  it("trims the id, because whitespace is not a different row", () => {
+    expect(
+      readTimeDeletion(
+        submit({ id: " tme_call ", remove: DELETE_TIME_CONFIRM_VALUE }),
+      ),
+    ).toBe("tme_call");
   });
 });

@@ -15,6 +15,8 @@
  * it is asking about behind itself.
  */
 
+import { readField } from "@/lib/forms/form-data";
+
 /** The control that asks for the deletion, which only opens the step below. */
 export function deleteTimeButtonLabel(name: string): string {
   return `Delete ${name}`;
@@ -83,4 +85,48 @@ export function confirmDeleteTimeId(id: string): string {
 /** The button in the row that opens the step, and takes the cursor back. */
 export function deleteTimeButtonId(id: string): string {
   return `time-${id}-delete`;
+}
+
+/**
+ * The names the step's form submits under.
+ *
+ * `id` is the same word the edit form uses, deliberately: both answer the
+ * question "which entry is this about?", and there is no reason for a reader
+ * of either to learn a second word for it. They are separate forms, so there
+ * is nothing to collide.
+ *
+ * `remove` exists only on the confirming button, which is what makes a
+ * deletion impossible to arrive at by accident: no other press on the page
+ * produces the field, so a submission carrying it came from the step.
+ */
+export const DELETE_TIME_FIELD_NAMES = { id: "id", remove: "remove" } as const;
+
+/**
+ * What the confirming button submits, which only has to be something: the
+ * reader below treats any non-empty value as "delete this", because the
+ * field's presence is the whole message.
+ */
+export const DELETE_TIME_CONFIRM_VALUE = "yes";
+
+/**
+ * Which entry a confirmed deletion was aimed at, or null if the submission
+ * does not describe one.
+ *
+ * Null rather than a thrown error, because every cause is the same kind of
+ * thing — a form submitted some other way, a step whose row has gone, a
+ * submission with no id in it. There is nothing for the reader to fix and
+ * nothing to tell them: the honest response to a press that says nothing is to
+ * do nothing.
+ *
+ * The confirming field is checked as well as the id, so a form that carries
+ * only an entry id cannot delete anything. That matters more here than on the
+ * scope tab, where the row's own controls share a form with the step: here the
+ * step is the only form a row has, and without this check every field in it
+ * would be a deletion waiting to happen.
+ */
+export function readTimeDeletion(formData: FormData): string | null {
+  const id = readField(formData, DELETE_TIME_FIELD_NAMES.id).trim();
+  if (id === "") return null;
+  if (readField(formData, DELETE_TIME_FIELD_NAMES.remove) === "") return null;
+  return id;
 }
