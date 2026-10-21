@@ -23,10 +23,24 @@ import {
   createTimeEntry,
   deleteTimeEntry,
   getTimeEntry,
+  updateTimeEntry,
+  type TimeEntryRefusal,
 } from "@/lib/data/time-entries";
 import type { TimeEntry } from "@/lib/db/schema";
 import { projectPath } from "@/lib/projects/detail";
 import type { AttributableDeliverable } from "@/lib/time/attribution";
+import {
+  changesTimeEntry,
+  EDIT_TIME_PROBLEMS,
+  failedTimeEditState,
+  readTimeEntryId,
+  rejectedTimeEditState,
+  savedTimeState,
+  timeEntryChanges,
+  timeEntryFormFields,
+  type EditTimeState,
+} from "@/lib/time/edit";
+import { canChangeEntry, entryAttribution, entryName } from "@/lib/time/entry";
 import {
   failedLogTimeState,
   loggedTimeState,
@@ -225,4 +239,113 @@ export async function writeTimeEntryDelete(
   */
   revalidatePath(projectPath(projectId));
   return TIME_WRITE_DONE;
+}
+
+/**
+ * What a refusal from the data layer says to the reader.
+ *
+ * Exhaustive by its type, so a refusal added to `updateTimeEntry` is a compile
+ * error here rather than a blank message above a form.
+ */
+const EDIT_REFUSAL_PROBLEMS: Record<TimeEntryRefusal, string> = {
+  "no-such-entry": EDIT_TIME_PROBLEMS.missing,
+  "no-such-deliverable": EDIT_TIME_PROBLEMS.missingDeliverable,
+  billed: EDIT_TIME_PROBLEMS.billed,
+};
+
+/**
+ * One entry named the way the row and its controls name it.
+ *
+ * Built from the scope list the page rendered rather than from a query, so the
+ * line in the confirmation is the line the picker offered. The same function
+ * the row uses, so a save cannot confirm an entry in different words from the
+ * ones it is about to be listed under.
+ */
+function named(
+  entry: TimeEntry,
+  offered: readonly AttributableDeliverable[],
+): string {
+  return entryName(entry, entryAttribution(entry, offered));
+}
+
+/**
+ * Saving a change to one stretch of work already logged.
+ *
+ * The validation is `parseLogTimeForm` — the same function the log line uses,
+ * against the same list of offered deliverables — because a duration the log
+ * refuses is a duration an edit must refuse too.
+ *
+ * `offered` is the scope list the page rendered the picker from, passed in
+ * rather than re-read. That is what makes a re-attribution checkable against
+ * the list somebody actually saw: a check against a fresh read would accept a
+ * line added since the page was served, which is a line that was never on the
+ * dropdown the submission came from.
+ *
+ * A billed entry is refused here rather than left to the data layer, and
+ * deliberately earlier than it has to be. `updateTimeEntry` would let a billed
+ * entry's note be corrected, because no figure on any document comes from it;
+ * this list does not offer that, because a form that accepts one field out of
+ * five and refuses the rest is a form that looks broken, and the reader who
+ * opened it wanted to fix the duration.
+ */
+export async function writeTimeEntryEdit(
+  projectId: string,
+  offered: readonly AttributableDeliverable[],
+  _previous: EditTimeState,
+  formData: FormData,
+): Promise<EditTimeState> {
+  const fields = readLogTimeFields(formData);
+
+  const parsed = parseLogTimeForm(
+    fields,
+    offered.map((deliverable) => deliverable.id),
+  );
+  if (!parsed.ok) return rejectedTimeEditState(fields, parsed.errors);
+
+  const before = await projectTimeEntry(projectId, readTimeEntryId(formData));
+  if (before === null) {
+    return failedTimeEditState(fields, EDIT_TIME_PROBLEMS.missing);
+  }
+  if (!canChangeEntry(before)) {
+    return failedTimeEditState(fields, EDIT_TIME_PROBLEMS.billed);
+  }
+
+  /*
+    A form opened to read the note and saved untouched is not a write. Writing
+    it anyway would bump `updatedAt` and mark the entry as edited today, which
+    is how a time list stops being able to say which row actually moved.
+  */
+  const patch = timeEntryChanges(before, parsed.value);
+  if (!changesTimeEntry(patch)) {
+    return savedTimeState(
+      { id: before.id, name: named(before, offered), changed: false },
+      timeEntryFormFields(before),
+    );
+  }
+
+  let result;
+  try {
+    result = await updateTimeEntry(before.id, patch);
+  } catch (error) {
+    // The reader cannot act on a driver error, but the logs should keep it.
+    console.error("writeTimeEntryEdit: failed to save the entry", error);
+    return failedTimeEditState(fields, EDIT_TIME_PROBLEMS.failed);
+  }
+
+  /*
+    Every refusal here is something that changed between the read above and the
+    write: the entry deleted in another tab, the line of scope dropped while
+    the form sat open, an invoice raised a moment before Save.
+  */
+  if (!result.ok) {
+    return failedTimeEditState(fields, EDIT_REFUSAL_PROBLEMS[result.refusal]);
+  }
+
+  // The row is read off the page, so the line only reads differently once the
+  // page is re-rendered.
+  revalidatePath(projectPath(projectId));
+  return savedTimeState(
+    { id: result.entry.id, name: named(result.entry, offered), changed: true },
+    timeEntryFormFields(result.entry),
+  );
 }
