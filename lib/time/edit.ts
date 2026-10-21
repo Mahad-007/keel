@@ -189,3 +189,67 @@ export function timeEntryChanges(
 export function changesTimeEntry(patch: TimeEntryPatch): boolean {
   return Object.keys(patch).length > 0;
 }
+
+/**
+ * What to say once an edit lands, which the reader may otherwise not notice at
+ * all: the row closes back into a line of the list, and a line that now reads
+ * slightly differently is not an event anybody is told about.
+ *
+ * Two sentences, because there are two things that can have happened. A save
+ * that wrote something names the entry as it now stands — which is the only
+ * way to confirm an edit to a thing with no title, since "Saved" over a list
+ * of forty rows says nothing about which one. A save that wrote nothing says
+ * *that*, because the alternative is the kind of confirmation that teaches
+ * people not to read confirmations.
+ */
+export function savedTimeNotice(state: EditTimeState): string | null {
+  if (state.saved === null) return null;
+  if (!state.saved.changed) {
+    return `No changes to save — that entry is as it was: ${state.saved.name}.`;
+  }
+  return `Saved ${state.saved.name}.`;
+}
+
+/**
+ * The sentences a refused save comes back with, in the form that renders above
+ * the fields rather than under one of them: none of them is about anything the
+ * reader typed.
+ *
+ * Each one says what to do next, because "something went wrong" leaves a
+ * reader pressing Save again. Three of these end in reloading — the page is
+ * describing a list that has since moved on, and no amount of pressing will
+ * make it describe the current one.
+ *
+ * `billed` is the one that cannot be fixed by reloading or retrying, and it is
+ * the reason this set is longer than the scope tab's. An invoice has copied
+ * the figure into a line somebody has been sent, so the edit will never be
+ * accepted as it stands; the way out is a credit note, which is a different
+ * act in a different place.
+ */
+export const EDIT_TIME_PROBLEMS = {
+  /** The entry is gone, or belongs to a project this page is not showing. */
+  missing:
+    "That entry is not on this project any more, so nothing was saved. Reload to see what this project has logged.",
+  /** An invoice has billed it, and the edit moves something it charged for. */
+  billed:
+    "An invoice has billed that time, so its duration, day, attribution and chargeable flag can no longer change. Nothing was saved. A credit note frees the entry, after which it can be edited again.",
+  /** The line of scope was dropped while the form sat open. */
+  missingDeliverable:
+    "That deliverable is no longer on this project, so nothing was saved. Reload the page and pick again, or attribute the time to the project itself.",
+  /** The write itself failed — the driver, the disk, the network. */
+  failed: "Could not save that change. Nothing was written — try again.",
+} as const;
+
+/**
+ * What to say when an edit never got an answer — the connection dropped, the
+ * tab was suspended mid-request, the request was aborted.
+ *
+ * It does not claim nothing was written, because from the client there is no
+ * way to know: the request may have been lost on the way out, or the answer
+ * lost on the way back with the row already saved. Unlike the log line it can
+ * safely suggest reloading rather than warning against a retry — saving the
+ * same edit twice writes the same row, where logging the same hour twice
+ * writes two of them.
+ */
+export const EDIT_TIME_NO_ANSWER =
+  "Could not tell whether that edit was saved — the answer never arrived. Reload to see what this project has logged.";

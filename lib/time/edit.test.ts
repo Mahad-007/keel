@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   changesTimeEntry,
+  EDIT_TIME_NO_ANSWER,
+  EDIT_TIME_PROBLEMS,
   editTimeState,
   failedTimeEditState,
   rejectedTimeEditState,
+  savedTimeNotice,
   savedTimeState,
   timeEntryChanges,
   timeEntryFormFields,
@@ -255,5 +258,64 @@ describe("what a submitted edit changes about the stored entry", () => {
     );
     expect(patch).toEqual({ minutes: 45, note: null, billable: false });
     expect(changesTimeEntry(patch)).toBe(true);
+  });
+});
+
+describe("what is said once an edit lands", () => {
+  const name = "1h 30m on Oct 17, 2026 against “Wireframes”";
+
+  it("says nothing while nothing has landed", () => {
+    expect(savedTimeNotice(editTimeState(listed()))).toBeNull();
+  });
+
+  it("names the entry as it now stands", () => {
+    const state = savedTimeState(
+      { id: "tme_1", name, changed: true },
+      timeEntryFormFields(listed()),
+    );
+    expect(savedTimeNotice(state)).toBe(`Saved ${name}.`);
+  });
+
+  it("does not claim a save that wrote nothing changed something", () => {
+    const state = savedTimeState(
+      { id: "tme_1", name, changed: false },
+      timeEntryFormFields(listed()),
+    );
+    expect(savedTimeNotice(state)).toBe(
+      `No changes to save — that entry is as it was: ${name}.`,
+    );
+  });
+
+  it("says nothing about a refused submission", () => {
+    const state = rejectedTimeEditState(timeEntryFormFields(listed()), {
+      duration: "That is not a length of time.",
+    });
+    expect(savedTimeNotice(state)).toBeNull();
+  });
+});
+
+describe("the sentences a refused save comes back with", () => {
+  it("tells a reader what to do rather than only what went wrong", () => {
+    for (const problem of Object.values(EDIT_TIME_PROBLEMS)) {
+      expect(problem).toMatch(/Reload|try again|credit note/);
+    }
+  });
+
+  it("says nothing was saved in every one of them", () => {
+    for (const problem of Object.values(EDIT_TIME_PROBLEMS)) {
+      expect(problem).toMatch(/[Nn]othing was (saved|written)/);
+    }
+  });
+
+  it("does not claim nothing was written when the answer never arrived", () => {
+    // From the client there is no way to know, and a guess is wrong exactly
+    // when it matters.
+    expect(EDIT_TIME_NO_ANSWER).not.toMatch(/[Nn]othing was/);
+    expect(EDIT_TIME_NO_ANSWER).toMatch(/Reload/);
+  });
+
+  it("points a billed entry at the credit note rather than at a retry", () => {
+    expect(EDIT_TIME_PROBLEMS.billed).toContain("credit note");
+    expect(EDIT_TIME_PROBLEMS.billed).not.toContain("try again");
   });
 });
