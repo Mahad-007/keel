@@ -1,3 +1,4 @@
+import type { TimeEntry } from "@/lib/db/schema";
 import {
   deliverableOptions,
   type AttributableDeliverable,
@@ -5,21 +6,26 @@ import {
 import { INITIAL_LOG_TIME_STATE, type LogTimeState } from "@/lib/time/form";
 
 import { LogTimeForm } from "./log-time-form";
+import { TimeList } from "./time-list";
 import { writeTimeEntry } from "./time-writes";
 
 /**
  * The time tab: where the hours this engagement has actually cost get written
  * down.
  *
- * The form leads, and for now it is all there is. That order is not a
- * placeholder for a list arriving later — logging is what somebody opens this
- * tab to do, several times a day, and the reading of what has been logged is
- * what they open it for occasionally. A page that puts the record first makes
- * the common act scroll.
+ * The form leads and the record follows. Logging is what somebody opens this
+ * tab to do, several times a day; reading back what has been logged is what
+ * they open it for occasionally, and a tab that put the record first would
+ * make the common act scroll past it.
+ *
+ * It also means the two reads of the scope list are the same read: the picker
+ * in the form and the attribution on every row are built from one query, so a
+ * line cannot be called one thing above and another below.
  */
 export function TimePanel({
   projectId,
   deliverables,
+  entries,
 }: {
   projectId: string;
   /**
@@ -29,6 +35,8 @@ export function TimePanel({
    * the write checks a submission against.
    */
   deliverables: readonly AttributableDeliverable[];
+  /** Every stretch of work logged against this project, newest first. */
+  entries: readonly TimeEntry[];
 }) {
   /*
     Narrowed to the three columns the picker and the sentence afterwards need,
@@ -73,6 +81,19 @@ export function TimePanel({
         log={log}
         initialState={INITIAL_LOG_TIME_STATE}
         options={deliverableOptions(offered)}
+      />
+      {/*
+        The record, under a heading of its own. A rule above it rather than more
+        space, because the form and the list are two different things to be
+        doing and the eye needs to be told where one ends.
+      */}
+      <h3 className="mt-10 border-t border-zinc-200 pt-6 text-sm font-medium text-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
+        Logged
+      </h3>
+      <TimeList
+        projectId={projectId}
+        entries={entries}
+        deliverables={offered}
       />
     </section>
   );

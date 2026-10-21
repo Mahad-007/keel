@@ -6,6 +6,7 @@ import { listDeliverableTemplates } from "@/lib/data/deliverable-templates";
 import { countDeliverables, listDeliverables } from "@/lib/data/deliverables";
 import { listProjectStatusEvents } from "@/lib/data/project-status-events";
 import { getProjectWithClient } from "@/lib/data/projects";
+import { listTimeEntries } from "@/lib/data/time-entries";
 import {
   listScopeSnapshots,
   listSnapshotLines,
@@ -95,23 +96,33 @@ export default async function ProjectPage({
     and awaiting them in sequence would make the tab wait for the sum of two
     round trips to show one page.
   */
-  const [deliverables, templates, snapshots] =
+  const [deliverables, templates, snapshots, timeEntries] =
     tab === "scope"
       ? await Promise.all([
           listDeliverables(project.id),
           listDeliverableTemplates(),
           listScopeSnapshots(project.id),
+          [],
         ])
       : /*
-          The time tab needs the scope list too, for the picker that attributes
-          an entry to a line — and for nothing else, so it pays for one query
-          rather than the scope tab's three. The same read as above, so the
-          lines are offered in the order they were agreed and the write checks a
-          submission against the list this page rendered.
+          The time tab needs two: its entries, and the scope list — which the
+          attribution picker is built from and every row's attribution is named
+          from. Two rather than the scope tab's three, and together rather than
+          one after the other, so the tab waits for one round trip instead of
+          the sum of two.
+
+          The scope list is the same read as above, so the lines are offered in
+          the order they were agreed and the write checks a submission against
+          the list this page rendered.
         */
         tab === "time"
-        ? [await listDeliverables(project.id), [], []]
-        : [[], [], []];
+        ? await Promise.all([
+            listDeliverables(project.id),
+            [],
+            [],
+            listTimeEntries(project.id),
+          ])
+        : [[], [], [], []];
 
   /*
     Which snapshot the comparison is against: the one the URL named, else the
@@ -164,7 +175,11 @@ export default async function ProjectPage({
             snapshotLines={snapshotLines}
           />
         ) : tab === "time" ? (
-          <TimePanel projectId={project.id} deliverables={deliverables} />
+          <TimePanel
+            projectId={project.id}
+            deliverables={deliverables}
+            entries={timeEntries}
+          />
         ) : (
           <UnbuiltTabPanel tab={tab} />
         )}
