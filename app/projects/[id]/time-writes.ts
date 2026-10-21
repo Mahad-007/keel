@@ -19,7 +19,12 @@ import { revalidatePath } from "next/cache";
 
 import { getDeliverable } from "@/lib/data/deliverables";
 import { getProject } from "@/lib/data/projects";
-import { createTimeEntry } from "@/lib/data/time-entries";
+import {
+  createTimeEntry,
+  deleteTimeEntry,
+  getTimeEntry,
+} from "@/lib/data/time-entries";
+import type { TimeEntry } from "@/lib/db/schema";
 import { projectPath } from "@/lib/projects/detail";
 import type { AttributableDeliverable } from "@/lib/time/attribution";
 import {
@@ -31,6 +36,12 @@ import {
   TIME_PROBLEMS,
   type LogTimeState,
 } from "@/lib/time/form";
+import {
+  DELETE_TIME_PROBLEMS,
+  TIME_WRITE_DONE,
+  timeWriteProblem,
+  type TimeWriteResult,
+} from "@/lib/time/remove";
 
 /**
  * Why the insert failed, as a sentence for the reader.
@@ -141,4 +152,77 @@ export async function writeTimeEntry(
     deliverableTitle: attributed?.title ?? null,
     billable: entry.billable,
   });
+}
+
+/**
+ * The entry that press or submission was aimed at, if it is one of this
+ * project's.
+ *
+ * The check is the whole point. The project comes from the page's encrypted
+ * closure and the entry id comes from the submission, so comparing the two is
+ * what stops a POST naming any entry in the database and having it edited or
+ * deleted under cover of a page the caller was legitimately served. Without
+ * it, every write below would act on whatever id arrived.
+ *
+ * Null for an id that is blank, unknown, or belongs elsewhere, because from
+ * the reader's side those are one answer: the entry is not on the list in
+ * front of them. Telling them which would be telling a caller whether an id
+ * they guessed exists.
+ *
+ * As everywhere else in this file, this says which page made the call and not
+ * who was holding it. Phase 8 answers the second question from the session.
+ */
+async function projectTimeEntry(
+  projectId: string,
+  id: string,
+): Promise<TimeEntry | null> {
+  if (id === "") return null;
+
+  const entry = await getTimeEntry(id);
+  if (entry === null || entry.projectId !== projectId) return null;
+  return entry;
+}
+
+/**
+ * Deleting one entry from a project's time list.
+ *
+ * The confirmation is not here, and it is worth saying why: it is a step in
+ * the page, taken before this is ever called. A second check in the write
+ * would be a second thing to get past rather than a second thing to think
+ * about — the press that arrives here has already been made twice.
+ *
+ * The billed refusal *is* here, because it is not a confirmation. The row
+ * hides its controls once an invoice has the time, so reaching that refusal
+ * means the invoice was raised while the step sat open — and that reader
+ * pressed Delete on an entry that was deletable a second earlier.
+ */
+export async function writeTimeEntryDelete(
+  projectId: string,
+  id: string,
+): Promise<TimeWriteResult> {
+  const entry = await projectTimeEntry(projectId, id);
+  if (entry === null) return timeWriteProblem(DELETE_TIME_PROBLEMS.missing);
+
+  let result;
+  try {
+    result = await deleteTimeEntry(entry.id);
+  } catch (error) {
+    // The reader cannot act on a driver error, but the logs should keep it.
+    console.error("writeTimeEntryDelete: failed to delete the entry", error);
+    return timeWriteProblem(DELETE_TIME_PROBLEMS.failed);
+  }
+
+  if (!result.ok && result.refusal === "billed") {
+    return timeWriteProblem(DELETE_TIME_PROBLEMS.billed);
+  }
+
+  /*
+    Any other refusal is `no-such-entry`: it had already gone between the read
+    above and the delete itself — somebody else, or a second press of the same
+    button. That is not a problem to report, because what was asked for is
+    true. The page is still revalidated, because it is the page that is out of
+    date.
+  */
+  revalidatePath(projectPath(projectId));
+  return TIME_WRITE_DONE;
 }
