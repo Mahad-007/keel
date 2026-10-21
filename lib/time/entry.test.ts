@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   attributionLabel,
   attributionPhrase,
+  canChangeEntry,
   entryAttribution,
+  entryMarks,
   type ListedTimeEntry,
 } from "./entry";
 
@@ -87,5 +89,59 @@ describe("where the work went, inside a sentence", () => {
     expect(attributionPhrase({ kind: "unknown" })).toBe(
       "a deliverable this page cannot show",
     );
+  });
+});
+
+describe("the marks on an entry", () => {
+  it("leaves the ordinary entry unmarked", () => {
+    // Chargeable and unbilled is what every entry is. A mark on all of them is
+    // a mark that says nothing.
+    expect(entryMarks(listed())).toEqual([]);
+  });
+
+  it("marks time nobody is going to be charged for", () => {
+    expect(entryMarks(listed({ billable: false }))).toEqual([
+      "Not chargeable",
+    ]);
+  });
+
+  it("marks time an invoice has already taken", () => {
+    expect(entryMarks(listed({ billedInvoiceId: "inv_7" }))).toEqual([
+      "Billed",
+    ]);
+  });
+
+  it("shows both marks on a row that contradicts itself", () => {
+    // Nothing in this app can write it, which is exactly why it is worth
+    // showing rather than simplifying away.
+    expect(
+      entryMarks(listed({ billable: false, billedInvoiceId: "inv_7" })),
+    ).toEqual(["Not chargeable", "Billed"]);
+  });
+
+  it("marks an unreadable chargeable flag as not chargeable", () => {
+    const odd = listed({ billable: 2 as unknown as boolean });
+    expect(entryMarks(odd)).toEqual(["Not chargeable"]);
+  });
+});
+
+describe("whether an entry can still be changed", () => {
+  it("lets an unbilled entry be edited and deleted", () => {
+    expect(canChangeEntry(listed())).toBe(true);
+  });
+
+  it("refuses a billed entry outright", () => {
+    expect(canChangeEntry(listed({ billedInvoiceId: "inv_7" }))).toBe(false);
+  });
+
+  it("refuses one billed by an invoice with a blank id", () => {
+    // The write that bills matches on IS NULL, so a blank is already a row
+    // that cannot be billed again. Reading it as editable would let the two
+    // rules disagree about the same row.
+    expect(canChangeEntry(listed({ billedInvoiceId: "" }))).toBe(false);
+  });
+
+  it("does not care whether the time was chargeable", () => {
+    expect(canChangeEntry(listed({ billable: false }))).toBe(true);
   });
 });

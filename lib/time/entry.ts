@@ -1,3 +1,5 @@
+import { isBilled, type BillingSubject } from "./billing";
+
 /**
  * How one logged stretch of work reads in a list.
  *
@@ -124,3 +126,59 @@ export function attributionPhrase(where: EntryAttribution): string {
   if (where.kind === "unknown") return "a deliverable this page cannot show";
   return "the project itself";
 }
+
+/**
+ * What a note-less entry's row says where the note would be.
+ *
+ * Said rather than left blank, because the gap is the one worth noticing: a
+ * note is what an invoice line gets written from, and an entry without one is
+ * forty minutes nobody will be able to account for in three months. Naming the
+ * absence is how a reader scanning the list spots the ones to go back and
+ * fill in.
+ */
+export const NO_NOTE_LABEL = "No note";
+
+/**
+ * The marks on an entry that are not its duration: whether it will be charged
+ * for, and whether it already has been.
+ *
+ * Both, rather than one taking precedence, and they can appear together. An
+ * entry that is billed and marked non-chargeable is a contradiction nothing in
+ * this app can produce — `markTimeEntryBilled` only accepts billable time —
+ * and precisely because of that, a row that holds both is a row worth looking
+ * at rather than one to simplify into whichever fact seemed more important.
+ *
+ * Nothing is said about the ordinary case. A chargeable, unbilled entry is
+ * what every entry is, and a mark on all of them is a mark that says nothing.
+ */
+export function entryMarks(entry: ListedTimeEntry): string[] {
+  const marks: string[] = [];
+  if (entry.billable !== true) marks.push("Not chargeable");
+  if (isBilled(entry)) marks.push("Billed");
+  return marks;
+}
+
+/**
+ * Whether this entry can still be changed.
+ *
+ * The rule is `isBilled` and nothing more, which is deliberately stricter than
+ * the data layer's: `updateTimeEntry` lets a billed entry's note be corrected,
+ * because no figure on any document comes from it. The list does not offer
+ * that, because an edit form that accepts one field out of five and refuses
+ * the rest is a form that looks broken — and the reader who opened it wanted
+ * to fix the duration.
+ */
+export function canChangeEntry(entry: BillingSubject): boolean {
+  return !isBilled(entry);
+}
+
+/**
+ * Why an entry has no controls beside it, for the rows that have none.
+ *
+ * It says what to do about it, because "billed" on its own reads as a dead
+ * end and it is not one: a credit note frees the time, after which the entry
+ * is editable and deletable like any other. Phase 6 is where that door gets
+ * built; until then this is the sentence that says it exists.
+ */
+export const BILLED_ENTRY_NOTE =
+  "An invoice has billed this time, so it can no longer be edited or deleted. A credit note frees it again.";
