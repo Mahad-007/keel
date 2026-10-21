@@ -79,3 +79,48 @@ export function entryAttribution(
   if (found === undefined) return { kind: "unknown" };
   return { kind: "deliverable", title: found.title };
 }
+
+/**
+ * What an unattributed entry's row says, in the words that make it an answer
+ * rather than a gap.
+ *
+ * "The project itself" rather than a dash or an empty cell. A column of
+ * durations with blanks down the side of it reads as a list somebody has not
+ * finished filling in, and the fix a reader reaches for is to attribute the
+ * work to whichever line looks closest — which is how a scope comparison
+ * starts lying.
+ */
+export const PROJECT_ITSELF_LABEL = "The project itself";
+
+/**
+ * What a row says about a line of scope the page cannot name.
+ *
+ * It says what is true — this page could not find it — rather than guessing at
+ * why. The usual cause is a deliverable deleted between the read that built
+ * the scope list and the read that fetched the entries, but a reader does not
+ * need the diagnosis: they need to know the attribution exists and that this
+ * page is not showing it, which reloading fixes.
+ */
+export const UNSHOWN_DELIVERABLE_LABEL = "A deliverable this page cannot show";
+
+/** Where the work went, as the row's own line of text. */
+export function attributionLabel(where: EntryAttribution): string {
+  if (where.kind === "deliverable") return where.title;
+  if (where.kind === "unknown") return UNSHOWN_DELIVERABLE_LABEL;
+  return PROJECT_ITSELF_LABEL;
+}
+
+/**
+ * The same thing as a clause inside a sentence: "logged against …".
+ *
+ * A separate function rather than lower-casing the label, because the two
+ * differ by more than a capital. A title is quoted here and not there — in a
+ * sentence the quotes are what stop "against Build on Oct 17" from reading as
+ * one phrase, and in a column of its own the title is obviously a title and
+ * the quotes are clutter.
+ */
+export function attributionPhrase(where: EntryAttribution): string {
+  if (where.kind === "deliverable") return `“${where.title}”`;
+  if (where.kind === "unknown") return "a deliverable this page cannot show";
+  return "the project itself";
+}
