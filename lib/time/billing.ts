@@ -15,6 +15,34 @@ export type BillingSubject = {
   billedInvoiceId: string | null;
 };
 
+/** The part of a time entry that says whether it is meant to be charged for. */
+export type ChargeableSubject = {
+  billable: boolean;
+};
+
+/**
+ * Whether this time is meant to be charged for.
+ *
+ * Strictly `=== true`, which is the same strictness `readsAsBillable` applies
+ * to the checkbox and for the same reason: the column is an integer, so a
+ * hand-written row can hold a 2, and anything that is not exactly true reads
+ * as not chargeable.
+ *
+ * Strict in that direction on purpose. An hour wrongly left out of a billable
+ * figure is still in the list, still unbilled, and still billable tomorrow; an
+ * hour wrongly counted in is one somebody marked free and got charged for, on
+ * a document a client has been sent.
+ *
+ * Written down once because three places read it — the marks on a row, the
+ * chargeable half of a day's total, and the step that offers the checkbox
+ * instead of a deletion — and a day's figures disagreeing with the mark beside
+ * the row that produced them is the kind of inconsistency nobody can debug
+ * from the screen.
+ */
+export function isChargeable(entry: ChargeableSubject): boolean {
+  return entry.billable === true;
+}
+
 /**
  * Whether an invoice has billed this time.
  *

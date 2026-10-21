@@ -5,6 +5,7 @@ import {
   billedColumnsIn,
   editRefusedByInvoice,
   isBilled,
+  isChargeable,
 } from "./billing";
 
 describe("isBilled", () => {
@@ -101,5 +102,22 @@ describe("editRefusedByInvoice", () => {
 
   it("refuses a value the row may already hold rather than comparing", () => {
     expect(editRefusedByInvoice(billed, { minutes: 90 })).toBe(true);
+  });
+});
+
+describe("whether time is meant to be charged for", () => {
+  it("reads a ticked flag as chargeable", () => {
+    expect(isChargeable({ billable: true })).toBe(true);
+  });
+
+  it("reads an unticked flag as not chargeable", () => {
+    expect(isChargeable({ billable: false })).toBe(false);
+  });
+
+  it("reads anything that is not exactly true as not chargeable", () => {
+    // The column is an integer, so a hand-written row can hold a 2. Charging
+    // for it is the expensive direction to be wrong in.
+    expect(isChargeable({ billable: 2 as unknown as boolean })).toBe(false);
+    expect(isChargeable({ billable: null as unknown as boolean })).toBe(false);
   });
 });
