@@ -10,9 +10,10 @@ import { createProject } from "@/lib/data/projects";
 import type { Database } from "@/lib/db";
 import type { Deliverable } from "@/lib/db/schema";
 import { createTestDb } from "@/lib/db/testing";
+import { rowAfterRemoval } from "@/lib/rows";
 
 import { announceScopeChange, applyScopeChange } from "./arrange";
-import { deletedAnnouncement, rowAfterDelete } from "./remove";
+import { deletedAnnouncement } from "./remove";
 
 /**
  * The seam between a deletion on screen and the same deletion in the database.
@@ -110,7 +111,7 @@ describe("the sentence a deletion says out loud", () => {
 describe("the line the cursor moves to", () => {
   it("is one the list still has", async () => {
     const rows = await scope();
-    const next = rowAfterDelete(
+    const next = rowAfterRemoval(
       rows.map((row) => row.id),
       rows[2].id,
     );
@@ -123,7 +124,7 @@ describe("the line the cursor moves to", () => {
 
   it("is nothing at all once the list is empty", async () => {
     const only = await createDeliverable({ projectId, title: "Discovery" }, db);
-    expect(rowAfterDelete([only.id], only.id)).toBeNull();
+    expect(rowAfterRemoval([only.id], only.id)).toBeNull();
 
     await deleteDeliverable(only.id, db);
     expect(await listDeliverables(projectId, db)).toEqual([]);

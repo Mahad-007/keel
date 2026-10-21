@@ -31,16 +31,17 @@ import {
   type StatusScopeAction,
 } from "@/lib/deliverables/arrange";
 import { describeScopeList } from "@/lib/deliverables/list";
+import { deleteButtonId } from "@/lib/deliverables/remove";
 import {
-  closeScopeRow,
+  closedRow,
   NO_OPEN_ROW,
+  openedRow,
   openRowStillThere,
-  openScopeRow,
-  scopeRowMode,
-  type OpenScopeRow,
-  type ScopeRowMode,
-} from "@/lib/deliverables/open-row";
-import { deleteButtonId, rowAfterDelete } from "@/lib/deliverables/remove";
+  rowAfterRemoval,
+  rowMode,
+  type OpenRow,
+  type RowMode,
+} from "@/lib/rows";
 
 import { DeleteDeliverablePrompt } from "./delete-deliverable-prompt";
 import { DeliverableControls } from "./deliverable-controls";
@@ -100,10 +101,10 @@ export function ScopeRows({
 
   /*
     Which row has unfolded into something bigger than a line, and into what.
-    One at a time, which is `openScopeRow`'s rule rather than this component's —
+    One at a time, which is `openedRow`'s rule rather than this component's —
     see the module for why a list of half-open forms is not a list.
   */
-  const [opened, setOpen] = useState<OpenScopeRow>(NO_OPEN_ROW);
+  const [opened, setOpen] = useState<OpenRow>(NO_OPEN_ROW);
 
   /*
     What is open, as the list as it now stands allows.
@@ -259,7 +260,7 @@ export function ScopeRows({
       */
       setOpen(NO_OPEN_ROW);
 
-      const next = rowAfterDelete(
+      const next = rowAfterRemoval(
         list.map((row) => row.id),
         change.id,
       );
@@ -328,9 +329,9 @@ export function ScopeRows({
    * working in, reads as being about whatever they did most recently. Pressing
    * Edit or Delete is as much a new act as pressing Up.
    */
-  function openRow(id: string, mode: ScopeRowMode) {
+  function openRow(id: string, mode: RowMode) {
     setProblem(null);
-    setOpen(openScopeRow(id, mode));
+    setOpen(openedRow(id, mode));
   }
 
   /**
@@ -344,11 +345,11 @@ export function ScopeRows({
    */
   function closeRow(
     id: string,
-    mode: ScopeRowMode,
+    mode: RowMode,
     notice: string | null,
   ) {
     say(notice);
-    setOpen((open) => closeScopeRow(open, id));
+    setOpen((open) => closedRow(open, id));
     // Back to the control that opened it, which is where the reader was before
     // the row unfolded and is the only place that still makes sense afterwards.
     moveFocusTo.current = mode === "edit" ? editButtonId(id) : deleteButtonId(id);
@@ -431,7 +432,7 @@ export function ScopeRows({
         className="mt-3 border-t border-zinc-200 dark:border-zinc-800"
       >
         {rows.map((deliverable, index) =>
-          scopeRowMode(open, deliverable.id) === "edit" ? (
+          rowMode(open, deliverable.id) === "edit" ? (
             /*
               The editor replaces the line rather than appearing beside it. A row
               showing both would be the same three values twice over, and the
@@ -465,7 +466,7 @@ export function ScopeRows({
                 />
               }
               prompt={
-                scopeRowMode(open, deliverable.id) === "confirm" ? (
+                rowMode(open, deliverable.id) === "confirm" ? (
                   <DeleteDeliverablePrompt
                     id={deliverable.id}
                     title={deliverable.title}
