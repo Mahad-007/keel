@@ -1,3 +1,6 @@
+import { formatDate } from "@/lib/dates";
+import { formatMinutes } from "@/lib/minutes";
+
 import { isBilled, type BillingSubject } from "./billing";
 
 /**
@@ -182,3 +185,49 @@ export function canChangeEntry(entry: BillingSubject): boolean {
  */
 export const BILLED_ENTRY_NOTE =
   "An invoice has billed this time, so it can no longer be edited or deleted. A credit note frees it again.";
+
+/**
+ * How much of a note goes into a button's name.
+ *
+ * Enough to tell two entries apart and not enough to read aloud as a
+ * paragraph. A note can be five hundred characters, and a Delete button whose
+ * accessible name is five hundred characters is a button nobody can skip past.
+ */
+const NOTE_IN_NAME = 60;
+
+/** A note cut to fit, with an ellipsis saying that is what happened. */
+function shortened(note: string): string {
+  if (note.length <= NOTE_IN_NAME) return note;
+  return `${note.slice(0, NOTE_IN_NAME).trimEnd()}…`;
+}
+
+/**
+ * One entry named well enough to be acted on, which is the hard part of
+ * listing things that have no title.
+ *
+ * Every control beside a row carries this: a list of nine entries would
+ * otherwise hold nine buttons reading "Edit" and nine reading "Delete", and
+ * anybody working through the controls rather than the rows would be choosing
+ * blind. The step in front of a deletion says it too, because that is the
+ * sentence a reader checks before pressing the button that cannot be undone.
+ *
+ * Four parts, in the order they distinguish entries. The duration and the day
+ * come first because they are what an entry *is*. The attribution follows,
+ * because a day's work is usually spread across two or three lines of scope.
+ * The note comes last and only when there is one — two identical half-hours
+ * against the same line on the same day are an ordinary thing to log, and the
+ * note is then the only thing that tells them apart.
+ */
+export function entryName(
+  entry: ListedTimeEntry,
+  where: EntryAttribution,
+): string {
+  const named = `${formatMinutes(entry.minutes)} on ${formatDate(
+    entry.workedOn,
+  )} against ${attributionPhrase(where)}`;
+  if (entry.note === null) return named;
+
+  const note = entry.note.trim();
+  if (note === "") return named;
+  return `${named}, ${shortened(note)}`;
+}

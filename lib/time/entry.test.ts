@@ -6,6 +6,7 @@ import {
   canChangeEntry,
   entryAttribution,
   entryMarks,
+  entryName,
   type ListedTimeEntry,
 } from "./entry";
 
@@ -143,5 +144,51 @@ describe("whether an entry can still be changed", () => {
 
   it("does not care whether the time was chargeable", () => {
     expect(canChangeEntry(listed({ billable: false }))).toBe(true);
+  });
+});
+
+describe("naming one entry well enough to act on it", () => {
+  const where = { kind: "deliverable", title: "Wireframes" } as const;
+
+  it("leads with what the entry is: how long, and which day", () => {
+    expect(entryName(listed(), { kind: "project" })).toBe(
+      "1h 30m on Oct 17, 2026 against the project itself",
+    );
+  });
+
+  it("names the line the work went against", () => {
+    expect(entryName(listed(), where)).toBe(
+      "1h 30m on Oct 17, 2026 against “Wireframes”",
+    );
+  });
+
+  it("adds the note, which is what tells two identical entries apart", () => {
+    expect(entryName(listed({ note: "Paired on the booking flow" }), where)).toBe(
+      "1h 30m on Oct 17, 2026 against “Wireframes”, Paired on the booking flow",
+    );
+  });
+
+  it("ends at the attribution when there is no note", () => {
+    expect(entryName(listed({ note: null }), where)).toBe(
+      "1h 30m on Oct 17, 2026 against “Wireframes”",
+    );
+  });
+
+  it("treats a note of whitespace as no note", () => {
+    expect(entryName(listed({ note: "   " }), where)).toBe(
+      entryName(listed({ note: null }), where),
+    );
+  });
+
+  it("cuts a long note down rather than reading a paragraph aloud", () => {
+    const named = entryName(listed({ note: "x".repeat(200) }), where);
+    expect(named).toContain(`${"x".repeat(60)}…`);
+    expect(named).not.toContain("x".repeat(61));
+  });
+
+  it("tells two entries of the same length on the same day apart", () => {
+    const first = listed({ id: "a", note: "Booking flow" });
+    const second = listed({ id: "b", note: "Invoice screen" });
+    expect(entryName(first, where)).not.toBe(entryName(second, where));
   });
 });
