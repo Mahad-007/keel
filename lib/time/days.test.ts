@@ -4,6 +4,7 @@ import {
   billableMinutes,
   describeDayTotal,
   groupTimeByDay,
+  showsRunningTotal,
   totalMinutes,
   type LoggedEntry,
   type TimeDay,
@@ -195,5 +196,24 @@ describe("what a day's heading says about the day", () => {
     expect(describeDayTotal(day({ billableMinutes: 0 }))).toBe(
       "4h 30m logged, 4h 30m of it not chargeable",
     );
+  });
+});
+
+describe("whether a day shows its running total", () => {
+  it("shows it once there is something before the day", () => {
+    expect(showsRunningTotal(day({ minutes: 270, runningMinutes: 765 }))).toBe(
+      true,
+    );
+  });
+
+  it("hides it on the oldest day, where it repeats the day's own total", () => {
+    expect(showsRunningTotal(day({ minutes: 270, runningMinutes: 270 }))).toBe(
+      false,
+    );
+  });
+
+  it("hides it on a list holding one day", () => {
+    const [only] = groupTimeByDay([entry({ minutes: 45 })]);
+    expect(showsRunningTotal(only)).toBe(false);
   });
 });

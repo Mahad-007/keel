@@ -167,3 +167,33 @@ export function describeDayTotal(day: TimeDay): string {
   const free = day.minutes - day.billableMinutes;
   return `${logged}, ${formatMinutes(free)} of it not chargeable`;
 }
+
+/**
+ * Whether the running total on this day says anything the day's own total has
+ * not already said.
+ *
+ * On the oldest day in the list the two figures are the same number, because
+ * there is nothing before it to add. Printing it twice side by side is the
+ * kind of repetition that makes a reader stop trusting that the two columns
+ * mean different things — so the earliest day shows one figure, and every day
+ * above it shows both.
+ *
+ * Compared rather than worked out from the position in the list, so it is also
+ * false on a list of one day and on a day whose predecessors happen to total
+ * nothing.
+ */
+export function showsRunningTotal(day: TimeDay): boolean {
+  return day.runningMinutes !== day.minutes;
+}
+
+/**
+ * What the running figure is called, in the words that say which way it runs.
+ *
+ * "Up to this day" rather than "total" or "to date". The list is newest first,
+ * so the figure beside the top day is the whole of it and the figure beside
+ * the bottom day is one day's worth — a column labelled "total" would read as
+ * four different totals of the same thing. And "to date" would be a claim
+ * about today, which this is not: Day 028 filters the list, and then the
+ * figure is of what is shown.
+ */
+export const RUNNING_TOTAL_LABEL = "up to this day";
