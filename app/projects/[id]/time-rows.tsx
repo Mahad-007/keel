@@ -26,7 +26,11 @@ import {
   type AttributableDeliverable,
 } from "@/lib/time/attribution";
 import { describeTimeList, groupTimeByDay, totalMinutes } from "@/lib/time/days";
-import { editTimeButtonId, type EditTimeAction } from "@/lib/time/edit";
+import {
+  editAttributionOptions,
+  editTimeButtonId,
+  type EditTimeAction,
+} from "@/lib/time/edit";
 import {
   BILLED_ENTRY_NOTE,
   canChangeEntry,
@@ -406,7 +410,7 @@ export function TimeRows({
                 <EditTimeForm
                   entry={entry}
                   name={named(entry)}
-                  options={options}
+                  options={editAttributionOptions(entry, options)}
                   save={edit}
                   onSaved={(notice) => closeRow(entry.id, "edit", notice)}
                   onCancel={() => closeRow(entry.id, "edit", null)}

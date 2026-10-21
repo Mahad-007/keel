@@ -5,6 +5,7 @@ import {
   changesTimeEntry,
   EDIT_TIME_NO_ANSWER,
   EDIT_TIME_PROBLEMS,
+  editAttributionOptions,
   editTimeButtonId,
   editTimeButtonLabel,
   editTimeFormLabel,
@@ -373,5 +374,61 @@ describe("the id an entry's edit button is found by", () => {
 
   it("says what it belongs to, so a scope row cannot claim it", () => {
     expect(editTimeButtonId("tme_a")).toMatch(/^time-/);
+  });
+});
+
+describe("the lines an editor's picker offers", () => {
+  const options = [
+    { id: "dlv_wire", label: "Wireframes · 6h estimated" },
+    { id: "dlv_build", label: "Build · no estimate" },
+  ];
+
+  it("offers the project's list to an unattributed entry", () => {
+    expect(editAttributionOptions(listed(), options)).toBe(options);
+  });
+
+  it("offers the project's list when it holds the entry's own line", () => {
+    const entry = listed({ deliverableId: "dlv_build" });
+    expect(editAttributionOptions(entry, options)).toBe(options);
+  });
+
+  it("keeps a line the project's list does not hold on the picker", () => {
+    // Without it the select would fall back to its placeholder, and saving the
+    // form untouched would null an attribution nobody asked to remove.
+    const entry = listed({ deliverableId: "dlv_gone" });
+    const offered = editAttributionOptions(entry, options);
+
+    expect(offered).toHaveLength(3);
+    expect(offered[2].id).toBe("dlv_gone");
+  });
+
+  it("says of that line only that this page cannot show it", () => {
+    const entry = listed({ deliverableId: "dlv_gone" });
+    const [, , unshown] = editAttributionOptions(entry, options);
+    expect(unshown.label).toMatch(/cannot show/);
+  });
+
+  it("leaves the project's own lines in the order they were agreed", () => {
+    const entry = listed({ deliverableId: "dlv_gone" });
+    const offered = editAttributionOptions(entry, options);
+    expect(offered.slice(0, 2)).toEqual(options);
+  });
+
+  it("offers it even when the project has no scope list at all", () => {
+    const entry = listed({ deliverableId: "dlv_gone" });
+    expect(editAttributionOptions(entry, [])).toHaveLength(1);
+  });
+
+  it("is an option a submission would be refused for", () => {
+    // Deliberately: the sentence beside the picker is better news than a
+    // silently emptied column.
+    const entry = listed({ deliverableId: "dlv_gone" });
+    const offered = editAttributionOptions(entry, options);
+    const parsed = parseLogTimeForm(
+      { ...timeEntryFormFields(entry), deliverable: offered[2].id },
+      options.map((option) => option.id),
+    );
+
+    expect(parsed.ok).toBe(false);
   });
 });

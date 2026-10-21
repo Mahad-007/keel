@@ -8,7 +8,8 @@ import {
 } from "@/lib/forms/state";
 import { formatMinutes } from "@/lib/minutes";
 
-import type { ListedTimeEntry } from "./entry";
+import type { DeliverableOption } from "./attribution";
+import { UNSHOWN_DELIVERABLE_LABEL, type ListedTimeEntry } from "./entry";
 import {
   BILLABLE_VALUE,
   type LogTimeFieldName,
@@ -333,4 +334,36 @@ export function editTimeFormLabel(name: string): string {
 /** The way out of an open editor without writing anything. */
 export function cancelTimeEditLabel(name: string): string {
   return `Stop editing ${name}`;
+}
+
+/**
+ * The lines an editor's picker offers, which is the project's list plus — if
+ * the project's list does not hold it — the line this entry is already
+ * attributed to.
+ *
+ * Without the extra option the picker would fall back to its placeholder, and
+ * "no deliverable" is a real answer rather than an empty one: saving the form
+ * untouched would then null an attribution nobody asked to remove, and the
+ * only record of which line the hour went against would be gone.
+ *
+ * The extra option is deliberately one the validator refuses. It is not in the
+ * list the write checks against, so a save keeps the selection and comes back
+ * with the sentence beside the picker saying that line is no longer on the
+ * project — which is the truth, and which leaves the reader to pick a line
+ * that exists or move the time onto the project itself. Silence and a nulled
+ * column would have been the alternative.
+ *
+ * Only reachable from a page whose two reads disagreed: deleting a deliverable
+ * nulls the attribution through the foreign key, so an entry naming a line the
+ * project does not have is one read a moment either side of that delete.
+ */
+export function editAttributionOptions(
+  entry: Pick<ListedTimeEntry, "deliverableId">,
+  options: readonly DeliverableOption[],
+): readonly DeliverableOption[] {
+  const { deliverableId } = entry;
+  if (deliverableId === null) return options;
+  if (options.some((option) => option.id === deliverableId)) return options;
+
+  return [...options, { id: deliverableId, label: UNSHOWN_DELIVERABLE_LABEL }];
 }
