@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  cancelTimeEditLabel,
   changesTimeEntry,
   EDIT_TIME_NO_ANSWER,
   EDIT_TIME_PROBLEMS,
+  editTimeButtonId,
+  editTimeButtonLabel,
+  editTimeFormLabel,
   editTimeState,
   failedTimeEditState,
   readTimeEntryId,
@@ -339,5 +343,35 @@ describe("which entry a submission was aimed at", () => {
   it("comes back empty for a submission that did not say", () => {
     expect(readTimeEntryId(submit({}))).toBe("");
     expect(readTimeEntryId(submit({ id: "   " }))).toBe("");
+  });
+});
+
+describe("what an entry's edit controls are called", () => {
+  const name = "1h 30m on Oct 17, 2026 against “Wireframes”";
+
+  it("names the entry each one acts on", () => {
+    expect(editTimeButtonLabel(name)).toBe(`Edit ${name}`);
+    expect(editTimeFormLabel(name)).toBe(`Editing ${name}`);
+    expect(cancelTimeEditLabel(name)).toBe(`Stop editing ${name}`);
+  });
+
+  it("tells the button that opens the editor from the editor itself", () => {
+    // Only one is in the document at a time, but a reader moving between them
+    // should not hear the same words for the press and the place.
+    expect(editTimeButtonLabel(name)).not.toBe(editTimeFormLabel(name));
+  });
+});
+
+describe("the id an entry's edit button is found by", () => {
+  it("keeps two rows' buttons apart", () => {
+    expect(editTimeButtonId("tme_a")).not.toBe(editTimeButtonId("tme_b"));
+  });
+
+  it("does not run one row's id into another's", () => {
+    expect(editTimeButtonId("tme_a")).not.toBe(editTimeButtonId("tme_a_b"));
+  });
+
+  it("says what it belongs to, so a scope row cannot claim it", () => {
+    expect(editTimeButtonId("tme_a")).toMatch(/^time-/);
   });
 });

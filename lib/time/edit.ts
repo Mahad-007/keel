@@ -292,3 +292,45 @@ export const EDIT_TIME_FIELD_NAMES = { id: "id" } as const;
 export function readTimeEntryId(formData: FormData): string {
   return readField(formData, EDIT_TIME_FIELD_NAMES.id).trim();
 }
+
+/**
+ * What the control that opens an edit is called.
+ *
+ * The entry's name is in it for the reason every control in a list carries
+ * one: forty rows hold forty buttons saying "Edit", and to anybody who cannot
+ * see which row they are on that is one control repeated. An entry has no
+ * title to use, so the name is built — see `entryName`.
+ */
+export function editTimeButtonLabel(name: string): string {
+  return `Edit ${name}`;
+}
+
+/**
+ * The id the control that opens an edit is known by.
+ *
+ * Needed from outside the row, because the cursor has to come back here when
+ * an editor closes — and by then the button is being rendered again for the
+ * first time, since the editor had replaced it. There is no ref to hold onto
+ * across that, so the id is derived from the entry instead.
+ *
+ * Prefixed with what it belongs to, because the scope tab derives ids the same
+ * way and both lists could one day be on one page. An entry id is unique, so
+ * these cannot collide between rows.
+ */
+export function editTimeButtonId(id: string): string {
+  return `time-${id}-edit`;
+}
+
+/**
+ * What the open editor is called, which is not the same as the button that
+ * opened it: the form replaces the row, so a reader arriving in it needs to be
+ * told which entry they are now inside.
+ */
+export function editTimeFormLabel(name: string): string {
+  return `Editing ${name}`;
+}
+
+/** The way out of an open editor without writing anything. */
+export function cancelTimeEditLabel(name: string): string {
+  return `Stop editing ${name}`;
+}
