@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   billableMinutes,
+  dayQualifiers,
   describeDay,
   describeDayTotal,
   describeTimeList,
@@ -298,5 +299,35 @@ describe("the line above a time list", () => {
     expect(describeTimeList(listOf([90, "2026-10-17"]))).toContain(
       "buttons beside it",
     );
+  });
+});
+
+describe("the figures that qualify a day's total", () => {
+  it("has nothing to add to an all-chargeable oldest day", () => {
+    expect(dayQualifiers(day({ runningMinutes: 270 }))).toEqual([]);
+  });
+
+  it("says where the engagement stands", () => {
+    expect(dayQualifiers(day())).toEqual(["12h 45m up to this day"]);
+  });
+
+  it("says how much of the day will not be charged for", () => {
+    expect(dayQualifiers(day({ billableMinutes: 210 }))).toEqual([
+      "1h not chargeable",
+      "12h 45m up to this day",
+    ]);
+  });
+
+  it("puts the day's own qualifier before the one about the list", () => {
+    // The reader is looking at a day. What it cost comes before where it sits.
+    expect(dayQualifiers(day({ billableMinutes: 210 }))[0]).toContain(
+      "not chargeable",
+    );
+  });
+
+  it("leaves the date out, which the heading beside it already shows", () => {
+    for (const qualifier of dayQualifiers(day({ billableMinutes: 0 }))) {
+      expect(qualifier).not.toContain("Oct");
+    }
   });
 });

@@ -254,3 +254,31 @@ export function describeTimeList(days: readonly TimeDay[]): string {
   }
   return `${entries} entries over ${days.length} days, ${total} in total. ${controls}`;
 }
+
+/**
+ * The figures that qualify a day's total, as the heading shows them: how much
+ * of the day is not chargeable, and where the engagement stands.
+ *
+ * Separate from `describeDay` because the two are different shapes for
+ * different readers. The sentence is one string, with the date in it, for the
+ * group's accessible name; this is the pieces, without the date, to set beside
+ * the total in smaller type. Trying to serve both from one function would mean
+ * the screen parsing a sentence back apart.
+ *
+ * Both are omitted when they have nothing to add — an all-chargeable day, and
+ * the oldest day in the list — so the usual heading is a date and one figure,
+ * and a heading with more in it is a heading worth reading.
+ */
+export function dayQualifiers(day: TimeDay): string[] {
+  const qualifiers: string[] = [];
+  if (day.billableMinutes !== day.minutes) {
+    const free = day.minutes - day.billableMinutes;
+    qualifiers.push(`${formatMinutes(free)} not chargeable`);
+  }
+  if (showsRunningTotal(day)) {
+    qualifiers.push(
+      `${formatMinutes(day.runningMinutes)} ${RUNNING_TOTAL_LABEL}`,
+    );
+  }
+  return qualifiers;
+}
