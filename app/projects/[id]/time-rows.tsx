@@ -401,9 +401,16 @@ export function TimeRows({
    * as long as the request, with the Save button reading "Saving…" throughout,
    * which is why a press that does nothing is the better answer here than one
    * that throws the edit away.
+   *
+   * Only while that editor is on screen, though. An answer can outlive its
+   * form — the row it was editing leaves the list, so `openRowStillThere`
+   * drops it and the form is unmounted with the request still out. There is
+   * nothing left to protect then and nowhere to show a refusal, and a list
+   * that went on refusing every press with no editor in sight would be a list
+   * that looks broken.
    */
   function holdsOpenRow(): boolean {
-    return savesInFlight.current > 0;
+    return savesInFlight.current > 0 && open?.mode === "edit";
   }
 
   /**
