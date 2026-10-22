@@ -138,6 +138,22 @@ export function TimeRows({
     rows.map((row) => row.id),
   );
 
+  /*
+    What is open, as a handler answering later has to read it.
+
+    The same problem `shown` below solves for the list, and the same answer. A
+    save is dispatched in one render and answered in another, and the function
+    that handles the answer is the one the editor was holding when the press
+    was made — so the `open` in its closure says what was open then, which is
+    by definition the row that was being edited. Asking that captured value
+    whether the row is still open is asking a question whose answer was written
+    before the question could arise.
+  */
+  const openNow = useRef<OpenRow>(open);
+  useEffect(() => {
+    openNow.current = open;
+  }, [open]);
+
   const [said, setSaid] = useState<Announcement | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -416,8 +432,11 @@ export function TimeRows({
       anything. The cursor has to be held back by the same question, or a late
       answer from one row drags the focus onto that row's Edit button while the
       reader is typing in another.
+
+      Asked of `openNow` rather than of this render's `open`, which would be
+      the row that was open when the press was made and so always this one.
     */
-    if (rowMode(open, id) !== mode) return;
+    if (rowMode(openNow.current, id) !== mode) return;
 
     setOpen((was) => closedRow(was, id));
     // Back to the control that opened it, which is where the reader was before
