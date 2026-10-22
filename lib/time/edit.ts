@@ -279,6 +279,23 @@ export const EDIT_TIME_NO_ANSWER =
   "Could not tell whether that edit was saved — the answer never arrived. Reload to see what this project has logged.";
 
 /**
+ * What to say to a press the list would not act on because an editor is
+ * waiting on a save.
+ *
+ * The press has to be refused — closing the editor would throw away both the
+ * correction and the answer on its way back to it — and a control that does
+ * nothing and says nothing is the worst version of that. On screen the Save
+ * button reads "Saving…" and the refusal explains itself; to anyone working
+ * from a screen reader, pressing Edit and getting silence is a page that has
+ * stopped responding.
+ *
+ * It says to press again rather than to wait, because that is the act: the
+ * hold lasts as long as one request and the same press works a moment later.
+ */
+export const EDIT_TIME_STILL_SAVING =
+  "That edit is still saving, so nothing else can open yet. Press again in a moment.";
+
+/**
  * Saving an entry, with the project and its scope list already captured by
  * the page that served the list.
  *

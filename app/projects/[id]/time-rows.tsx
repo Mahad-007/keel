@@ -28,6 +28,7 @@ import {
 import { isChargeable } from "@/lib/time/billing";
 import { describeTimeList, groupTimeByDay, totalMinutes } from "@/lib/time/days";
 import {
+  EDIT_TIME_STILL_SAVING,
   editAttributionOptions,
   editTimeButtonId,
   type EditTimeAction,
@@ -378,9 +379,16 @@ export function TimeRows({
    * working in, reads as being about whatever they did most recently.
    */
   function openRow(id: string, mode: RowMode) {
-    // Not while an editor is waiting on a save: opening anything replaces what
-    // is open, and that includes the editor. See `holdsOpenRow`.
-    if (holdsOpenRow()) return;
+    /*
+      Not while an editor is waiting on a save: opening anything replaces what
+      is open, and that includes the editor. See `holdsOpenRow` — and the press
+      is told so rather than dropped, because a control that does nothing and
+      says nothing is a page that has stopped working.
+    */
+    if (holdsOpenRow()) {
+      say(EDIT_TIME_STILL_SAVING);
+      return;
+    }
     setProblem(null);
     setOpen(openedRow(id, mode));
   }
