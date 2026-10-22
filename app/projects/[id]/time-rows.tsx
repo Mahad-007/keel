@@ -31,6 +31,7 @@ import {
   editAttributionOptions,
   editTimeButtonId,
   type EditTimeAction,
+  type EditTimeState,
 } from "@/lib/time/edit";
 import {
   BILLED_ENTRY_NOTE,
@@ -168,6 +169,39 @@ export function TimeRows({
     because the list already shows the result.
   */
   const queue = useRef<Promise<unknown>>(Promise.resolve());
+
+  /*
+    How many saves an open editor has outstanding, which is how this list knows
+    not to close the row it is editing.
+
+    Counted rather than flagged, because a save can outlive the editor it was
+    sent from — a row deleted in another tab takes its editor out from under an
+    answer still on its way — and a flag that the next save cleared on landing
+    would say nothing is in flight while something still is.
+  */
+  const savesInFlight = useRef(0);
+
+  /**
+   * The editor's save, counted on the way out and on the way back.
+   *
+   * The write is the page's, bound to the project; what this adds is the only
+   * thing the list needs to know about it, which is that one is outstanding.
+   * Going through here rather than being reported back by the editor keeps the
+   * fact in one place and makes it exact: the count rises as the press is
+   * dispatched and falls when the answer arrives, both before anything else
+   * can act on it.
+   */
+  async function save(
+    previous: EditTimeState,
+    formData: FormData,
+  ): Promise<EditTimeState> {
+    savesInFlight.current += 1;
+    try {
+      return await edit(previous, formData);
+    } finally {
+      savesInFlight.current -= 1;
+    }
+  }
 
   /*
     The list each press is measured against: what is still there, so the
@@ -445,7 +479,7 @@ export function TimeRows({
                   entry={entry}
                   name={named(entry)}
                   options={editAttributionOptions(entry, options)}
-                  save={edit}
+                  save={save}
                   onSaved={(notice) => closeRow(entry.id, "edit", notice)}
                   onCancel={() => closeRow(entry.id, "edit", null)}
                 />
