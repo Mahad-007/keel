@@ -417,10 +417,12 @@ export function TimeRows({
    * the correction they typed gone.
    *
    * So every way out is held, not only the Cancel button the editor disables:
-   * Escape, and the Edit or Delete button on any other row. It lasts exactly
-   * as long as the request, with the Save button reading "Saving…" throughout,
-   * which is why a press that does nothing is the better answer here than one
-   * that throws the edit away.
+   * Escape, and the Edit or Delete button on any row — this one included,
+   * since opening the deletion step on the row being saved would replace the
+   * editor just as surely as opening another row's. It lasts exactly as long
+   * as the request, with the Save button reading "Saving…" throughout, which
+   * is why a press that does nothing is the better answer here than one that
+   * throws the edit away.
    *
    * Only the editor that is open, and only while its own save is out. An
    * answer can outlive its form — the row it was editing leaves the list, so
