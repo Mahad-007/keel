@@ -362,8 +362,32 @@ export function TimeRows({
    * working in, reads as being about whatever they did most recently.
    */
   function openRow(id: string, mode: RowMode) {
+    // Not while an editor is waiting on a save: opening anything replaces what
+    // is open, and that includes the editor. See `holdsOpenRow`.
+    if (holdsOpenRow()) return;
     setProblem(null);
     setOpen(openedRow(id, mode));
+  }
+
+  /**
+   * Whether the list has to stay as it is because an editor is waiting on a
+   * save.
+   *
+   * Closing the row then would unmount the form before its answer arrived, and
+   * the state that answer comes back with would be set on something no longer
+   * rendering — so a refusal, which is the whole reason the editor stays open,
+   * would be set and never shown. The write goes through either way, leaving
+   * the reader with a row that had silently changed or silently not, and with
+   * the correction they typed gone.
+   *
+   * So every way out is held, not only the Cancel button the editor disables:
+   * Escape, and the Edit or Delete button on any other row. It lasts exactly
+   * as long as the request, with the Save button reading "Saving…" throughout,
+   * which is why a press that does nothing is the better answer here than one
+   * that throws the edit away.
+   */
+  function holdsOpenRow(): boolean {
+    return savesInFlight.current > 0;
   }
 
   /**
@@ -414,7 +438,7 @@ export function TimeRows({
    * anything either of them grows later.
    */
   function leaveOnEscape(event: KeyboardEvent<HTMLElement>) {
-    if (event.key !== "Escape" || open === null) return;
+    if (event.key !== "Escape" || open === null || holdsOpenRow()) return;
     closeRow(open.id, open.mode, null);
   }
 

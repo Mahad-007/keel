@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, type KeyboardEvent } from "react";
+import { useActionState, useEffect } from "react";
 
 import {
   fieldId,
@@ -144,30 +144,10 @@ export function EditTimeForm({
     document.getElementById(fieldId("duration", entry.id))?.focus();
   }, [entry.id]);
 
-  /*
-    While a save is in flight there is no way out of the editor.
-
-    Leaving it would unmount this component before the action settles, and the
-    state the action comes back with would be set on something that is no
-    longer rendering — so a refusal, which is the whole reason the editor stays
-    open, would be set and never shown. The write itself goes through either
-    way, so the reader would be left with a row that had silently changed or
-    silently not.
-
-    Two ways out to hold: the button below, which is disabled, and the list's
-    Escape handler, which is a listener above this form. The key press is
-    stopped here rather than guarded there, because the list has no business
-    knowing whether a row it is not rendering has a request outstanding.
-  */
-  function holdEscapeWhileSaving(event: KeyboardEvent<HTMLFormElement>) {
-    if (saving && event.key === "Escape") event.stopPropagation();
-  }
-
   return (
     <form
       action={formAction}
       noValidate
-      onKeyDown={holdEscapeWhileSaving}
       aria-label={editTimeFormLabel(name)}
       className="flex w-full flex-col gap-4 py-1"
     >
@@ -193,6 +173,11 @@ export function EditTimeForm({
           `aria-disabled` here, unlike the row's own controls: this press has
           to be refused rather than reported, and the state it would leave
           behind lasts only as long as the request.
+
+          It is one of several ways out, and the only one this form owns — the
+          list holds the rest while a save is outstanding, for the reason
+          written out at `holdsOpenRow`. A refusal has nowhere to be shown
+          once this component is unmounted.
         */}
         <button
           type="button"
