@@ -172,9 +172,11 @@ in-row editor, the deletion step.
 
 ## What the Day 023 audit changed
 
-`/code-review` on `99ab53d..HEAD` found three things, and a second review of
-the audit's own diff found three more — two of them in the first fix, which is
-the argument for the second pass all over again.
+`/code-review` on `99ab53d..HEAD` found three things. A second pass over the
+audit's own diff found three more, two of them in the first fix; a third pass
+over those fixes found two more, both in the same mechanism. Every pass but the
+first was reviewing the audit rather than the day, and every pass but the first
+found something — which is the whole argument for running them.
 
 - **An editor could be unmounted with its save in flight.** The day had
   already noticed half of this: the Cancel button is disabled while a save is
@@ -188,15 +190,21 @@ the argument for the second pass all over again.
   rule now lives on the list, which is the thing that owns the open row, and
   the editor no longer holds a half of it.
 
-- **The hold had to be narrower than "a save is in flight".** An answer can
-  outlive its form: the row leaves the list, `openRowStillThere` drops it, and
-  the editor is unmounted with the request still out. Held on that, the list
-  spent the rest of the round trip refusing every press with no editor
-  anywhere in sight — a page that looks broken, to fix one that merely loses a
-  sentence. It holds only while the editor is on screen, and a press it
-  refuses now says so in the live region: on screen the Save button reads
-  "Saving…", but through a screen reader a control that does nothing and says
-  nothing is a page that has stopped working.
+- **The hold had to be narrower than "a save is in flight", twice over.** An
+  answer can outlive its form: the row leaves the list, `openRowStillThere`
+  drops it, and the editor is unmounted with the request still out. Held on
+  that, the list spent the rest of the round trip refusing every press with no
+  editor anywhere in sight — a page that looks broken, to fix one that merely
+  loses a sentence. Narrowing it to "an editor is open" was still too wide: an
+  orphaned save then held whichever row the reader had moved on to, refusing
+  presses about an edit that was not the one in front of them. The saves are
+  counted per row, and the hold asks only about the row that is open.
+
+  A press the hold refuses says so in the live region — both of them, the
+  controls on another row and Escape. On screen the Save button reads
+  "Saving…" and explains itself; through a screen reader a control that does
+  nothing and says nothing is a page that has stopped working, and Escape was
+  the one left silent after the first fix.
 
 - **The first attempt at the late-answer cursor guard protected nothing.** A
   row's save is answered by the handler the editor was holding when the press
