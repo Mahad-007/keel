@@ -7,6 +7,7 @@ import {
   failedLogTimeState,
   INITIAL_LOG_TIME_STATE,
   LOG_TIME_FIELD_LIMITS,
+  LOG_TIME_UNKNOWN_DELIVERABLE,
   loggedTimeNotice,
   loggedTimeState,
   loggedMinutes,
@@ -253,9 +254,32 @@ describe("parseLogTimeForm", () => {
       OFFERED,
     );
 
-    expect(parsed.ok === false && parsed.errors.deliverable).toMatch(
-      /no longer on this project/,
+    expect(parsed.ok === false && parsed.errors.deliverable).toBe(
+      LOG_TIME_UNKNOWN_DELIVERABLE,
     );
+  });
+
+  it("says what the caller asked it to about a dropped line", () => {
+    const parsed = parseLogTimeForm(
+      fields({ deliverable: "dlv_elsewhere" }),
+      OFFERED,
+      "Pick again, or attribute the time to the project itself.",
+    );
+
+    expect(parsed.ok === false && parsed.errors.deliverable).toBe(
+      "Pick again, or attribute the time to the project itself.",
+    );
+  });
+
+  it("leaves the other refusals to say the same thing either way", () => {
+    const sentence = "Something else entirely.";
+    const parsed = parseLogTimeForm(
+      fields({ duration: "ages" }),
+      OFFERED,
+      sentence,
+    );
+
+    expect(parsed.ok === false && parsed.errors.duration).not.toBe(sentence);
   });
 
   it("refuses any attribution on a project with no scope", () => {

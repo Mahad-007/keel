@@ -252,6 +252,19 @@ export type LogTimeFormValue = Pick<
 >;
 
 /**
+ * What the picker says when a submission names a line the project does not
+ * have, on the form that logs time.
+ *
+ * The second half is an instruction, which is the half that has to belong to
+ * the form it is shown on: this one is about to write a new entry, so the way
+ * past the refusal is to log the time against the project instead. The form
+ * that edits an entry already written says the same thing about attributing
+ * it — see `EDIT_TIME_UNKNOWN_DELIVERABLE`.
+ */
+export const LOG_TIME_UNKNOWN_DELIVERABLE =
+  "That deliverable is no longer on this project. Reload the page and pick again, or log the time against the project itself.";
+
+/**
  * The submitted form, checked against the deliverables that were on offer.
  *
  * The attribution is checked against the list rather than trusted, for the
@@ -264,18 +277,24 @@ export type LogTimeFormValue = Pick<
  * The checkbox is not collected with the others because it cannot fail: a
  * checkbox submits one of two things, and both of them are answers. It would
  * only ever occupy a slot in the error map that nothing could ever fill.
+ *
+ * Both forms on the time tab validate through here, so the one sentence the
+ * caller supplies is the one that tells the reader what to do next. Everything
+ * else these rules say is true of a duration or a day wherever it was typed;
+ * the dropped attribution is the single refusal whose instruction depends on
+ * whether an entry is being written or corrected.
  */
 export function parseLogTimeForm(
   fields: LogTimeFormFields,
   offeredDeliverableIds: readonly string[],
+  unknownDeliverable: string = LOG_TIME_UNKNOWN_DELIVERABLE,
 ): ParseResult<LogTimeFormValue, LogTimeFieldName> {
   const parsed = collect({
     duration: loggedMinutes(fields.duration),
     workedOn: workedOnDate(fields.workedOn),
     deliverable: optionalChoice(fields.deliverable, offeredDeliverableIds, {
       label: "Deliverable",
-      unknown:
-        "That deliverable is no longer on this project. Reload the page and pick again, or log the time against the project itself.",
+      unknown: unknownDeliverable,
     }),
     note: optionalText(fields.note, {
       label: "Note",
