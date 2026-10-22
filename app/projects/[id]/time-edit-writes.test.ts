@@ -4,8 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getTimeEntry, updateTimeEntry } from "@/lib/data/time-entries";
 import { projectPath } from "@/lib/projects/detail";
 import type { AttributableDeliverable } from "@/lib/time/attribution";
-import { editTimeState, EDIT_TIME_PROBLEMS } from "@/lib/time/edit";
-import { BILLABLE_VALUE } from "@/lib/time/form";
+import {
+  editTimeState,
+  EDIT_TIME_PROBLEMS,
+  EDIT_TIME_UNKNOWN_DELIVERABLE,
+} from "@/lib/time/edit";
+import {
+  BILLABLE_VALUE,
+  LOG_TIME_UNKNOWN_DELIVERABLE,
+} from "@/lib/time/form";
 
 import { writeTimeEntryEdit } from "./time-writes";
 
@@ -160,7 +167,14 @@ describe("a submission validation refuses", () => {
     const state = await edit({ deliverable: "dlv_elsewhere" });
 
     expect(saved).not.toHaveBeenCalled();
-    expect(state.errors.deliverable).toMatch(/no longer on this project/);
+    expect(state.errors.deliverable).toBe(EDIT_TIME_UNKNOWN_DELIVERABLE);
+  });
+
+  it("refuses it in the words of a form that is not logging anything", async () => {
+    const state = await edit({ deliverable: "dlv_elsewhere" });
+
+    expect(state.errors.deliverable).not.toBe(LOG_TIME_UNKNOWN_DELIVERABLE);
+    expect(state.errors.deliverable).toContain("attribute the time");
   });
 
   it("does not read the entry for a submission it already refused", async () => {

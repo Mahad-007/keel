@@ -243,6 +243,28 @@ export const EDIT_TIME_PROBLEMS = {
 } as const;
 
 /**
+ * What the picker says when a save names a line the project does not have.
+ *
+ * The editor's own wording of `LOG_TIME_UNKNOWN_DELIVERABLE`, and the one
+ * sentence of the shared validation that has to differ: the log line tells a
+ * reader to log the time against the project instead, and there is nothing to
+ * log here — the hour is already on the record, and what they are choosing is
+ * what it counts against.
+ *
+ * It is a field error rather than one of `EDIT_TIME_PROBLEMS`, because it sits
+ * beside the picker that is wrong and the reader's next act is in that
+ * control. `EDIT_TIME_PROBLEMS.missingDeliverable` is the same situation found
+ * a moment later, by the write rather than by the check, where there is no
+ * field left to put a sentence under.
+ *
+ * Reachable from the editor and not from the log line, because the editor's
+ * picker deliberately offers the entry's own attribution even when the
+ * project's list does not hold it — see `editAttributionOptions`.
+ */
+export const EDIT_TIME_UNKNOWN_DELIVERABLE =
+  "That deliverable is no longer on this project. Reload the page and pick again, or attribute the time to the project itself.";
+
+/**
  * What to say when an edit never got an answer — the connection dropped, the
  * tab was suspended mid-request, the request was aborted.
  *

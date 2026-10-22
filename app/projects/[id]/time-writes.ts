@@ -32,6 +32,7 @@ import type { AttributableDeliverable } from "@/lib/time/attribution";
 import {
   changesTimeEntry,
   EDIT_TIME_PROBLEMS,
+  EDIT_TIME_UNKNOWN_DELIVERABLE,
   failedTimeEditState,
   readTimeEntryId,
   rejectedTimeEditState,
@@ -296,9 +297,15 @@ export async function writeTimeEntryEdit(
 ): Promise<EditTimeState> {
   const fields = readLogTimeFields(formData);
 
+  /*
+    The same rules the log line applies, with the one sentence that cannot be
+    shared: a refused attribution here is not a reader to be told to log the
+    time against the project instead, because the time is already logged.
+  */
   const parsed = parseLogTimeForm(
     fields,
     offered.map((deliverable) => deliverable.id),
+    EDIT_TIME_UNKNOWN_DELIVERABLE,
   );
   if (!parsed.ok) return rejectedTimeEditState(fields, parsed.errors);
 
