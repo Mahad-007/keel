@@ -330,6 +330,20 @@ holding it. Phase 8 answers the second question from the session.
   for a press made at 11:36 local would be a new kind of wrong. Day 098 sets
   date formats across every view and is the place to decide it.
 
+- **The scope tab's editor can still be unmounted mid-save.** The hold the
+  Day 023 audit added lives in `time-rows.tsx`, and `scope-rows.tsx` has the
+  same shape of bug in a wider form: `EditDeliverableForm` does not read its
+  pending state at all, so Escape closes it and its Cancel button stays live
+  while a save is outstanding — and a refused edit to a deliverable is lost the
+  same way a refused edit to a time entry was. `lib/rows.ts` argues in its own
+  header that these two lists must not diverge about the open row, and this is
+  a divergence. Left because closing it means changing Day 013's editor, its
+  action plumbing and its Cancel button with no component tests anywhere in the
+  repo to catch a regression, which is a day's work on another day's milestone
+  rather than an audit's. The fix, when it is taken: the counted save and
+  `holdsOpenRow` move next to `lib/rows.ts`, and both lists route their edit
+  through it.
+
 - **`npm run lint`** reports seven `no-require-imports` errors in `scripts/*.js`.
   They predate Day 013 and CI runs `npm run verify`, not `npm run lint`, so
   nothing is red because of them.
