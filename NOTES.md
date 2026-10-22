@@ -157,6 +157,98 @@ list by `chosenSnapshot` before `listSnapshotLines` sees it, so a snapshot id
 from a URL cannot read another project's lines. The capture counts above were
 checked against a fresh build and are unchanged at ten and eleven.
 
+## Day 023 ran twice, for the reason Days 013 and 020 did
+
+Day 023 — the time entry list, grouped by day with running totals, with an
+editor and a deletion step inside the rows — was built on 2026-10-21 in 49
+commits (`99ab53d..cd596cc`), and pushed: `origin/main` was already at
+`cd596cc` when 2026-10-22 started. The box in `ROADMAP.md` was never ticked, so
+the workflow picked Day 023 again.
+
+So 2026-10-22 audited what was there rather than rebuilding it or padding the
+history. `npm run verify` was green on arrival — 109 files, 2533 tests — and
+the milestone was complete: the grouping, the day and running totals, the
+in-row editor, the deletion step.
+
+## What the Day 023 audit changed
+
+`/code-review` on `99ab53d..HEAD` found three things, and a second review of
+the audit's own diff found three more — two of them in the first fix, which is
+the argument for the second pass all over again.
+
+- **An editor could be unmounted with its save in flight.** The day had
+  already noticed half of this: the Cancel button is disabled while a save is
+  outstanding, and the editor stopped Escape from reaching the list. But
+  Escape was only stopped when the key was pressed *inside* the form, and the
+  Edit or Delete button on any other row replaced the open editor outright.
+  Either way the form went before its answer arrived, so a refusal — a billed
+  entry, a dropped line of scope, a connection that died — was set on a
+  component that no longer existed. The write went through regardless, leaving
+  a row that had silently changed or silently not, and the correction gone. The
+  rule now lives on the list, which is the thing that owns the open row, and
+  the editor no longer holds a half of it.
+
+- **The hold had to be narrower than "a save is in flight".** An answer can
+  outlive its form: the row leaves the list, `openRowStillThere` drops it, and
+  the editor is unmounted with the request still out. Held on that, the list
+  spent the rest of the round trip refusing every press with no editor
+  anywhere in sight — a page that looks broken, to fix one that merely loses a
+  sentence. It holds only while the editor is on screen, and a press it
+  refuses now says so in the live region: on screen the Save button reads
+  "Saving…", but through a screen reader a control that does nothing and says
+  nothing is a page that has stopped working.
+
+- **The first attempt at the late-answer cursor guard protected nothing.** A
+  row's save is answered by the handler the editor was holding when the press
+  was made, so the `open` captured in that closure is the row being edited by
+  definition — asking it whether the row is still open is asking a question
+  whose answer was written before it could arise. The guard was therefore
+  always true, and the cursor steal it was meant to stop was being prevented
+  only by the hold above. `openNow` is a ref kept in step by an effect, which
+  is the device this file already uses to let a press read the list as it
+  stands rather than as it was.
+
+- **An edit refused in the words of the form that logs time.** The editor's
+  picker deliberately offers the entry's own attribution when the project's
+  scope list no longer holds it, so saving one is a refusal a reader can
+  reach — and the sentence beside the picker told them to "log the time
+  against the project itself", on a form that logs nothing and whose entry is
+  already on the record. `parseLogTimeForm` now takes that sentence from its
+  caller. It is the only one of its refusals that needs to: everything else it
+  says is true of a duration or a day wherever it was typed, and this one ends
+  in an instruction that depends on whether an entry is being written or
+  corrected.
+
+`/security-review` could not be run as a skill again, and for a plainer reason
+than Day 020's: it diffs against `origin/HEAD`, which this checkout does not
+set, so the skill fails before it starts. The pass was done by hand over the
+day's surface, and the day's own reasoning held up:
+
+- Both writes are reachable only through the `"use server"` closures declared
+  in `time-list.tsx`, which capture the project and the offered scope list
+  encrypted. `time-writes.ts` has no module-level `"use server"`, so neither
+  function is an endpoint of its own.
+- `projectTimeEntry` is the ownership check: the project comes from the
+  closure, the entry id from the submission, and an id that is blank, unknown
+  or another project's gets the same sentence as the other two — so a POST
+  cannot use a page it was legitimately served to edit or delete anything else,
+  and cannot learn from the refusal which of the three it was.
+- A re-attribution is checked against the list the page rendered rather than a
+  fresh read, so an entry cannot be moved onto a deliverable the reader never
+  saw; `updateTimeEntry` refuses `no-such-deliverable` behind it.
+- A deletion needs the `remove` field that only the confirming button carries,
+  so no other press and no form submitted another way can produce one.
+- The validation is the log line's: the duration bounded at both ends, the day
+  a real calendar date, the note trimmed and capped at 500, the checkbox read
+  strictly. Notes reach the page as text children, so a note is escaped by
+  JSX rather than by anything this code does.
+- What crosses to the client is narrowed: seven columns of an entry and three
+  of a deliverable, no timestamps and no project ids, which is also what keeps
+  the captured closures small.
+
+As everywhere else, all of this says which page made the call and not who was
+holding it. Phase 8 answers the second question from the session.
+
 ## Left alone deliberately
 
 - **Day 010's `transitionProjectAction`** is still a bare export of a
