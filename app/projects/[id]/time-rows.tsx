@@ -342,7 +342,25 @@ export function TimeRows({
    * about to go back to being a line.
    */
   function closeRow(id: string, mode: RowMode, notice: string | null) {
+    /*
+      Said first and said regardless. A save that landed is worth saying out
+      loud even if the reader has since left the editor it was sent from: the
+      write went through, and this sentence is the only sign of it on a page
+      whose row simply reads differently now.
+    */
     say(notice);
+
+    /*
+      Nothing else happens unless this row is still open for the thing that is
+      closing. The asking is asynchronous — a save answers some time after the
+      press, and by then the row may have left the list or been opened for a
+      deletion instead — which is why `closedRow` checks the id before shutting
+      anything. The cursor has to be held back by the same question, or a late
+      answer from one row drags the focus onto that row's Edit button while the
+      reader is typing in another.
+    */
+    if (rowMode(open, id) !== mode) return;
+
     setOpen((was) => closedRow(was, id));
     // Back to the control that opened it, which is where the reader was before
     // the row unfolded and the only place that still makes sense afterwards.
