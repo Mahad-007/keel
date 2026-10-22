@@ -485,7 +485,13 @@ export function TimeRows({
    * anything either of them grows later.
    */
   function leaveOnEscape(event: KeyboardEvent<HTMLElement>) {
-    if (event.key !== "Escape" || open === null || holdsOpenRow()) return;
+    if (event.key !== "Escape" || open === null) return;
+    // Told why, the same as a refused press on another row: a way out that
+    // does nothing and says nothing is the one that reads as a broken page.
+    if (holdsOpenRow()) {
+      say(EDIT_TIME_STILL_SAVING);
+      return;
+    }
     closeRow(open.id, open.mode, null);
   }
 
