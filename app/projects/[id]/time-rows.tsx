@@ -31,6 +31,7 @@ import {
   EDIT_TIME_STILL_SAVING,
   editAttributionOptions,
   editTimeButtonId,
+  readTimeEntryId,
   type EditTimeAction,
   type EditTimeState,
 } from "@/lib/time/edit";
@@ -188,35 +189,46 @@ export function TimeRows({
   const queue = useRef<Promise<unknown>>(Promise.resolve());
 
   /*
-    How many saves an open editor has outstanding, which is how this list knows
-    not to close the row it is editing.
+    Which rows have a save outstanding, and how many.
 
-    Counted rather than flagged, because a save can outlive the editor it was
-    sent from — a row deleted in another tab takes its editor out from under an
-    answer still on its way — and a flag that the next save cleared on landing
-    would say nothing is in flight while something still is.
+    By row rather than one count for the list, because a save can outlive the
+    editor it was sent from: a row deleted in another tab takes its editor out
+    from under an answer still on its way, and the reader goes on to edit
+    something else. A single count would then hold the row they have moved to
+    on behalf of the row that has gone — refusing presses about an edit that is
+    not the one in front of them.
+
+    Counted rather than flagged, so a second save for a row that already has
+    one out cannot be reported as none by the first one landing.
   */
-  const savesInFlight = useRef(0);
+  const savesInFlight = useRef(new Map<string, number>());
 
   /**
-   * The editor's save, counted on the way out and on the way back.
+   * The editor's save, counted against its row on the way out and back.
    *
    * The write is the page's, bound to the project; what this adds is the only
-   * thing the list needs to know about it, which is that one is outstanding.
-   * Going through here rather than being reported back by the editor keeps the
-   * fact in one place and makes it exact: the count rises as the press is
-   * dispatched and falls when the answer arrives, both before anything else
-   * can act on it.
+   * thing the list needs to know about it, which is that the row has one
+   * outstanding. Going through here rather than being reported back by the
+   * editor keeps the fact in one place and makes it exact: the count rises as
+   * the press is dispatched and falls when the answer arrives, both before
+   * anything else can act on it.
+   *
+   * The row is read from the submission, which is where the editor says which
+   * entry it is saving — the same field the write itself is told by.
    */
   async function save(
     previous: EditTimeState,
     formData: FormData,
   ): Promise<EditTimeState> {
-    savesInFlight.current += 1;
+    const id = readTimeEntryId(formData);
+    const outstanding = savesInFlight.current;
+    outstanding.set(id, (outstanding.get(id) ?? 0) + 1);
     try {
       return await edit(previous, formData);
     } finally {
-      savesInFlight.current -= 1;
+      const left = (outstanding.get(id) ?? 1) - 1;
+      if (left > 0) outstanding.set(id, left);
+      else outstanding.delete(id);
     }
   }
 
@@ -410,15 +422,16 @@ export function TimeRows({
    * which is why a press that does nothing is the better answer here than one
    * that throws the edit away.
    *
-   * Only while that editor is on screen, though. An answer can outlive its
-   * form — the row it was editing leaves the list, so `openRowStillThere`
-   * drops it and the form is unmounted with the request still out. There is
-   * nothing left to protect then and nowhere to show a refusal, and a list
-   * that went on refusing every press with no editor in sight would be a list
-   * that looks broken.
+   * Only the editor that is open, and only while its own save is out. An
+   * answer can outlive its form — the row it was editing leaves the list, so
+   * `openRowStillThere` drops it and the form is unmounted with the request
+   * still on its way. There is nothing to protect then and nowhere to show a
+   * refusal, so nothing is held: neither the list as a whole, which would
+   * refuse every press with no editor in sight, nor the next row the reader
+   * opens, whose own save has not been sent.
    */
   function holdsOpenRow(): boolean {
-    return savesInFlight.current > 0 && open?.mode === "edit";
+    return open?.mode === "edit" && savesInFlight.current.has(open.id);
   }
 
   /**
