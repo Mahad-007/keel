@@ -1,12 +1,11 @@
 import type { TimeEntry } from "@/lib/db/schema";
-import {
-  deliverableOptions,
-  type AttributableDeliverable,
-} from "@/lib/time/attribution";
+import { deliverableOptions } from "@/lib/time/attribution";
 import { INITIAL_LOG_TIME_STATE, type LogTimeState } from "@/lib/time/form";
+import { rollUpProject, type RolledUpDeliverable } from "@/lib/time/rollup";
 
 import { LogTimeForm } from "./log-time-form";
 import { TimeList } from "./time-list";
+import { TimeRollupPanel } from "./time-rollup";
 import { writeTimeEntry } from "./time-writes";
 
 /**
@@ -29,12 +28,16 @@ export function TimePanel({
 }: {
   projectId: string;
   /**
-   * This project's scope list, in agreed order, for the attribution picker.
+   * This project's scope list, in agreed order. The attribution picker is
+   * built from it, every row's attribution is named from it, and the rollup
+   * sets each line's estimate against the time logged to it — which is why
+   * the status comes along too.
+   *
    * Read by the page rather than here, so every query the project page makes
    * stays in one place — and so the list the picker offers is the same list
    * the write checks a submission against.
    */
-  deliverables: readonly AttributableDeliverable[];
+  deliverables: readonly RolledUpDeliverable[];
   /** Every stretch of work logged against this project, newest first. */
   entries: readonly TimeEntry[];
 }) {
@@ -66,6 +69,14 @@ export function TimePanel({
     return writeTimeEntry(projectId, offered, previous, formData);
   }
 
+  /*
+    Worked out here, from the one read of the scope list and the one read of
+    the entries this tab was given. A rollup computed from a second read could
+    disagree with the list underneath it, and the figures in it are exactly
+    the ones somebody would quote at a client.
+  */
+  const rollup = rollUpProject(deliverables, entries);
+
   return (
     <section className="mt-6">
       <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -82,6 +93,7 @@ export function TimePanel({
         initialState={INITIAL_LOG_TIME_STATE}
         options={deliverableOptions(offered)}
       />
+      <TimeRollupPanel rollup={rollup} />
       {/*
         The record, under a heading of its own. A rule above it rather than more
         space, because the form and the list are two different things to be
