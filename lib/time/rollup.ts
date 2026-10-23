@@ -227,3 +227,29 @@ export function loggedShare(
   if (estimatedMinutes <= 0) return null;
   return loggedMinutes / estimatedMinutes;
 }
+
+/**
+ * Both readings of one estimate at once: what it was sized at, the
+ * difference, and the share.
+ *
+ * One call rather than two, so a figure and the share beside it are always
+ * about the same pair of numbers. The estimate is echoed back for the same
+ * reason `summariseScope` echoes the contract value — a variance with no
+ * estimate beside it is a number with no working, and a reader cannot check
+ * it against the scope list without one.
+ *
+ * The two nulls do not always agree, which is deliberate. A negative estimate
+ * yields a difference and no share: subtracting from it is arithmetic a reader
+ * can redo, and dividing by it flips the sign into a figure that reads as
+ * healthy. An unsized line yields neither.
+ */
+export function compareToEstimate(
+  loggedMinutes: number,
+  estimatedMinutes: number,
+): EstimateComparison {
+  return {
+    estimatedMinutes,
+    varianceMinutes: varianceMinutes(loggedMinutes, estimatedMinutes),
+    loggedShare: loggedShare(loggedMinutes, estimatedMinutes),
+  };
+}
