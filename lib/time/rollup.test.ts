@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   compareToEstimate,
+  entriesByDeliverable,
   loggedShare,
   loggedTotals,
+  unattributedEntries,
   varianceMinutes,
   type AttributedEntry,
 } from "./rollup";
@@ -147,5 +149,66 @@ describe("setting logged minutes against an estimate", () => {
       varianceMinutes: 180,
       loggedShare: null,
     });
+  });
+});
+
+describe("filing entries under the line each went against", () => {
+  it("gathers the entries for one deliverable under its id", () => {
+    const first = entry({ id: "tme_1", deliverableId: "dlv_a" });
+    const second = entry({ id: "tme_2", deliverableId: "dlv_a" });
+    const byDeliverable = entriesByDeliverable([first, second]);
+    expect(byDeliverable.get("dlv_a")).toEqual([first, second]);
+  });
+
+  it("keeps two lines' entries apart", () => {
+    const a = entry({ id: "tme_1", deliverableId: "dlv_a" });
+    const b = entry({ id: "tme_2", deliverableId: "dlv_b" });
+    const byDeliverable = entriesByDeliverable([a, b]);
+    expect(byDeliverable.get("dlv_a")).toEqual([a]);
+    expect(byDeliverable.get("dlv_b")).toEqual([b]);
+  });
+
+  it("gathers entries sharing a line that are not next to each other", () => {
+    const first = entry({ id: "tme_1", deliverableId: "dlv_a" });
+    const other = entry({ id: "tme_2", deliverableId: "dlv_b" });
+    const third = entry({ id: "tme_3", deliverableId: "dlv_a" });
+    expect(entriesByDeliverable([first, other, third]).get("dlv_a")).toEqual([
+      first,
+      third,
+    ]);
+  });
+
+  it("keeps the order the caller handed the entries over in", () => {
+    // The data layer orders newest first, and this must not re-sort it.
+    const newer = entry({ id: "tme_2", workedOn: "2026-10-18", deliverableId: "dlv_a" });
+    const older = entry({ id: "tme_1", workedOn: "2026-10-11", deliverableId: "dlv_a" });
+    expect(
+      entriesByDeliverable([newer, older]).get("dlv_a")?.map((one) => one.id),
+    ).toEqual(["tme_2", "tme_1"]);
+  });
+
+  it("leaves unattributed time out of the map entirely", () => {
+    const byDeliverable = entriesByDeliverable([
+      entry({ deliverableId: null }),
+    ]);
+    expect(byDeliverable.size).toBe(0);
+  });
+
+  it("has no bucket for a line nothing was logged against", () => {
+    expect(entriesByDeliverable([]).get("dlv_a")).toBeUndefined();
+  });
+});
+
+describe("the entries that went against no line", () => {
+  it("picks out the ones with no attribution", () => {
+    const loose = entry({ id: "tme_1", deliverableId: null });
+    const attributed = entry({ id: "tme_2", deliverableId: "dlv_a" });
+    expect(unattributedEntries([loose, attributed])).toEqual([loose]);
+  });
+
+  it("comes back empty when every entry went against a line", () => {
+    expect(unattributedEntries([entry({ deliverableId: "dlv_a" })])).toEqual(
+      [],
+    );
   });
 });
