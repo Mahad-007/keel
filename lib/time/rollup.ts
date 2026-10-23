@@ -1,6 +1,6 @@
 import type { ScopeLine } from "@/lib/scope";
 
-import type { LoggedEntry } from "./days";
+import { billableMinutes, totalMinutes, type LoggedEntry } from "./days";
 
 /**
  * What a project's logged time comes to, set against what it was estimated at.
@@ -144,3 +144,24 @@ export type ProjectRollup = LoggedTotals &
     /** Minutes attributed to a line that is not in this rollup. */
     readonly unmatchedMinutes: number;
   };
+
+/**
+ * What a set of entries comes to, as the three figures a rollup line carries.
+ *
+ * Both totals go through the day grouping's functions rather than being summed
+ * again here. The chargeable half especially: `isChargeable` is strict about a
+ * flag that is not exactly true, and a second reduce written out in this file
+ * would be a second reading of the same column — which is how a rollup ends up
+ * disagreeing with the day heading over the row that produced it.
+ *
+ * An empty set comes to three zeroes, which is a real answer. A deliverable
+ * nobody has logged against has logged nothing, and that is the figure the
+ * table shows beside its estimate.
+ */
+export function loggedTotals(entries: readonly LoggedEntry[]): LoggedTotals {
+  return {
+    entryCount: entries.length,
+    loggedMinutes: totalMinutes(entries),
+    billableMinutes: billableMinutes(entries),
+  };
+}
