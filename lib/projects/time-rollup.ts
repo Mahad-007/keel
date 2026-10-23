@@ -386,3 +386,70 @@ export function againstEstimateFigure(rollup: ProjectRollup): PanelFigure {
     note: describeProjectComparison(rollup),
   };
 }
+
+/**
+ * The point past which unattributed time stops being a footnote.
+ *
+ * More than half the hours against no line means the table below covers a
+ * minority of the work, and every row in it understates what the project has
+ * actually cost. That is worth a clause, because the figures would otherwise
+ * look reassuring for the one reason a reader cannot see.
+ *
+ * Half rather than a tuned threshold: it is the point at which the
+ * unattributed figure is larger than everything the table accounts for put
+ * together, which is a fact about the arithmetic rather than a judgement
+ * somebody has to agree with.
+ */
+const MOSTLY_UNATTRIBUTED = 0.5;
+
+/**
+ * What the unattributed figure means, which is not that anything is wrong.
+ *
+ * Time against no line is an answer — the call, the invoicing, the afternoon
+ * of email the scope list has no line for — and the sentence says where it
+ * went rather than asking for it to be tidied up. What it does say is where
+ * the minutes are and are not counted, because that is the only way the
+ * project total and the column of rows can be seen to reconcile.
+ *
+ * A project with every entry attributed is told so. It is a one-line
+ * reassurance that the table below accounts for everything, which is
+ * precisely the thing a reader would otherwise have to check by adding the
+ * column up.
+ *
+ * Nothing at all when nothing has been logged. There is then no attribution
+ * to have an opinion about, and the logged figure above has already said so.
+ */
+export function describeUnattributed(rollup: ProjectRollup): string | null {
+  if (rollup.entryCount === 0) return null;
+
+  const loose = rollup.unattributed;
+  if (loose.loggedMinutes === 0) {
+    return "Every entry on this project is attributed to a line of the scope list.";
+  }
+
+  const counted = `Across ${entriesPhrase(
+    loose.entryCount,
+  )}. Counted in the total above and in none of the rows below — there is no line of scope for it to be set against.`;
+  if (loose.loggedMinutes > rollup.loggedMinutes * MOSTLY_UNATTRIBUTED) {
+    return `${counted} That is most of the time logged on this project, so the rows below account for the smaller part of it.`;
+  }
+  return counted;
+}
+
+/**
+ * What went against the project itself rather than a line, as a line of the
+ * panel.
+ *
+ * Last of the four, because it is the figure that qualifies the other three
+ * rather than one of the comparisons. It is also the only one that cannot be
+ * worked out from the table below, which is the reason it is on the panel at
+ * all: without it the rows add up to less than the total and nothing says
+ * where the difference went.
+ */
+export function unattributedFigure(rollup: ProjectRollup): PanelFigure {
+  return {
+    label: "Against no deliverable",
+    value: describeLogged(rollup.unattributed.loggedMinutes),
+    note: describeUnattributed(rollup),
+  };
+}
