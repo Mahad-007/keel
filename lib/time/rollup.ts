@@ -1,5 +1,9 @@
 import { isEstimated } from "@/lib/deliverables/list";
-import { isDelivered, type ScopeLine } from "@/lib/scope";
+import {
+  isDelivered,
+  totalEstimatedMinutes,
+  type ScopeLine,
+} from "@/lib/scope";
 
 import { billableMinutes, totalMinutes, type LoggedEntry } from "./days";
 
@@ -325,4 +329,33 @@ export function rollUpDeliverable(
     ...totals,
     ...compareToEstimate(totals.loggedMinutes, deliverable.estimatedMinutes),
   };
+}
+
+/**
+ * Time attributed to a line this rollup was not given, in whole minutes.
+ *
+ * It should always be nought, and it is computed anyway. The scope list and
+ * the time list are two reads, and a deliverable added or dropped between them
+ * leaves entries pointing at a line the table has no row for. Those minutes
+ * are in the project's total and in none of its lines, so without this figure
+ * the column would not add up and nothing on screen would say why — which is
+ * worse than the stale page that caused it, because a reader would conclude
+ * the arithmetic is wrong.
+ *
+ * Deleting a deliverable nulls the attribution through the foreign key, so the
+ * usual way here is the opposite order: the entries were read first, a line
+ * was added, and the scope list read after it holds a row the entries predate.
+ * Either way the answer is to reload, which is what the sentence beside this
+ * says — the same reading `entryAttribution` gives an unnameable row.
+ */
+export function unmatchedMinutes(
+  entries: readonly AttributedEntry[],
+  deliverableIds: ReadonlySet<string>,
+): number {
+  return totalMinutes(
+    entries.filter(
+      (entry) =>
+        entry.deliverableId !== null && !deliverableIds.has(entry.deliverableId),
+    ),
+  );
 }
