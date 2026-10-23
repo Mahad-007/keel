@@ -1,5 +1,6 @@
 import { describeEstimate } from "@/lib/deliverables/list";
 import { formatMinutes } from "@/lib/minutes";
+import { unestimatedCount } from "@/lib/scope";
 import type {
   DeliverableRollup,
   EstimateComparison,
@@ -9,7 +10,7 @@ import type {
 
 import type { PanelFigure } from "./figure";
 
-import { formatSharePercent } from "./scope-summary";
+import { describeUnestimated, formatSharePercent } from "./scope-summary";
 
 /**
  * The words a time rollup is read in.
@@ -309,5 +310,36 @@ export function loggedFigure(rollup: ProjectRollup): PanelFigure {
     label: "Logged",
     value: describeLogged(rollup.loggedMinutes),
     note: describeLoggedTotal(rollup),
+  };
+}
+
+/**
+ * What the scope list was sized at, as a line of the panel.
+ *
+ * The figure a reader is about to judge the hours against, and it is the Day
+ * 015 total rather than anything worked out here — the same number the scope
+ * tab shows, so a reader moving between the two tabs is not quietly handed
+ * two different estimates for one project.
+ *
+ * The caveat under it is the scope summary's own, through the same function.
+ * A total that does not cover the whole list is exactly as misleading here as
+ * it is there, and more so: on this panel it is the denominator of a
+ * percentage somebody might repeat out loud.
+ *
+ * A project with no deliverables gets its own sentence rather than that
+ * caveat. "No line has an estimate" would send a reader looking for lines to
+ * fill in, and there are none — what is missing is the scope list itself.
+ */
+export function estimatedFigure(rollup: ProjectRollup): PanelFigure {
+  return {
+    label: "Estimated",
+    value: describeEstimate(rollup.estimatedMinutes),
+    note:
+      rollup.lines.length === 0
+        ? "No deliverables have been agreed, so there is nothing for these hours to be set against."
+        : describeUnestimated(
+            rollup.lines.length,
+            unestimatedCount(rollup.lines),
+          ),
   };
 }
