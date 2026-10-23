@@ -528,6 +528,15 @@ export function unattributedFigure(rollup: ProjectRollup): PanelFigure {
  * row component.
  */
 export function rollupFigures(rollup: ProjectRollup): PanelFigure[] {
+  /*
+    With no scope list the last three figures are three ways of saying the
+    same thing: nothing is estimated, there is nothing to compare, and all of
+    the time went against no line. Printing them would state one fact four
+    times — the panel's own sentence says it a fifth, and that one says what
+    to do about it. So only the fact survives: the hours, which are real.
+  */
+  if (rollup.lines.length === 0) return [loggedFigure(rollup)];
+
   return [
     loggedFigure(rollup),
     estimatedFigure(rollup),

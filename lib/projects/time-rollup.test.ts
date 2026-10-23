@@ -539,12 +539,25 @@ describe("the hours that went against no line of scope", () => {
 
 describe("the project's half of the rollup, in reading order", () => {
   it("runs fact, estimate, conclusion, qualification", () => {
-    expect(rollupFigures(project()).map((figure) => figure.label)).toEqual([
+    expect(
+      rollupFigures(project({ lines: [rolled()] })).map(
+        (figure) => figure.label,
+      ),
+    ).toEqual([
       "Logged",
       "Estimated",
       "Against the estimate",
       "Against no deliverable",
     ]);
+  });
+
+  it("keeps only the hours when there is no scope list to compare with", () => {
+    // The other three would say "nothing estimated", "nothing to compare"
+    // and "all of it against no line" — one fact, three times, with the
+    // panel's own sentence making it four.
+    expect(rollupFigures(project({ lines: [] })).map((one) => one.label)).toEqual(
+      ["Logged"],
+    );
   });
 
   it("builds each row from the same rollup", () => {

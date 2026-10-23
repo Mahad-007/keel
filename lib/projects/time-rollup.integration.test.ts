@@ -148,9 +148,8 @@ describe("the rollup panel over rows the database holds", () => {
 
     const { rows, figures } = await panel();
     expect(rows).toEqual([]);
+    expect(figures.map((one) => one.label)).toEqual(["Logged"]);
     expect(figure(figures, "Logged").value).toBe("1h 30m");
-    expect(figure(figures, "Estimated").note).toBe(
-      "No deliverables have been agreed, so there is nothing for these hours to be set against.",
-    );
+    expect(figure(figures, "Logged").note).toBe("Across 1 entry.");
   });
 });
