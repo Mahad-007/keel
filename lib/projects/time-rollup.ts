@@ -468,9 +468,18 @@ export function describeUnattributed(rollup: ProjectRollup): string | null {
     return "Every entry on this project is attributed to a line of the scope list.";
   }
 
-  const counted = `Across ${entriesPhrase(
-    loose.entryCount,
-  )}. Counted in the total above and in none of the rows below — there is no line of scope for it to be set against.`;
+  /*
+    With no scope list there is no table under this figure, so the sentence
+    cannot point at rows. It says what is true instead — there is no line for
+    any of this time to be set against — and the panel's own sentence under
+    the figures says where a scope list gets written.
+  */
+  const across = `Across ${entriesPhrase(loose.entryCount)}.`;
+  if (rollup.lines.length === 0) {
+    return `${across} There are no deliverables on this project, so there is no line of scope for any of it to be set against.`;
+  }
+
+  const counted = `${across} Counted in the total above and in none of the rows below — there is no line of scope for it to be set against.`;
   if (loose.loggedMinutes > rollup.loggedMinutes * MOSTLY_UNATTRIBUTED) {
     return `${counted} That is most of the time logged on this project, so the rows below account for the smaller part of it.`;
   }

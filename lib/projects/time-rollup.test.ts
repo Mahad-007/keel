@@ -478,7 +478,7 @@ describe("the hours that went against no line of scope", () => {
 
   it("says where loose time is counted and where it is not", () => {
     const figure = unattributedFigure(
-      project({ unattributed: loose(2, 75) }),
+      project({ lines: [rolled()], unattributed: loose(2, 75) }),
     );
     expect(figure.value).toBe("1h 15m");
     expect(figure.note).toBe(
@@ -490,16 +490,31 @@ describe("the hours that went against no line of scope", () => {
     // Every row below then understates its line, and the figures would look
     // reassuring for the one reason a reader cannot see.
     const figure = unattributedFigure(
-      project({ unattributed: loose(2, 300) }),
+      project({ lines: [rolled()], unattributed: loose(2, 300) }),
     );
     expect(figure.note).toContain("most of the time logged on this project");
+  });
+
+  it("does not point at rows that are not on the page", () => {
+    // With no scope list the panel renders a sentence instead of a table, so
+    // "in none of the rows below" would promise rows nobody can see.
+    const figure = unattributedFigure(
+      project({ lines: [], unattributed: loose(2, 90) }),
+    );
+    expect(figure.note).toBe(
+      "Across 2 entries. There are no deliverables on this project, so there is no line of scope for any of it to be set against.",
+    );
   });
 
   it("does not flag loose time that is exactly half the total", () => {
     // Half is not more than half, and the clause is about the rows covering
     // the smaller part.
     const figure = unattributedFigure(
-      project({ loggedMinutes: 400, unattributed: loose(2, 200) }),
+      project({
+        lines: [rolled()],
+        loggedMinutes: 400,
+        unattributed: loose(2, 200),
+      }),
     );
     expect(figure.note).not.toContain("most of the time logged");
   });
