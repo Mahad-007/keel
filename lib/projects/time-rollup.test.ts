@@ -10,6 +10,7 @@ import {
   estimatedFigure,
   loggedFigure,
   rollupRow,
+  unattributedFigure,
   DONE_WITH_NOTHING_LOGGED,
   NO_ESTIMATE_TO_COMPARE,
   NOTHING_LOGGED_LABEL,
@@ -448,5 +449,55 @@ describe("how the whole project stands against its scope list", () => {
     expect(figure.note).toBe(
       "Put an estimate on the deliverables and this figure starts saying whether the project is running over.",
     );
+  });
+});
+
+describe("the hours that went against no line of scope", () => {
+  function loose(entryCount: number, loggedMinutes: number) {
+    return { entryCount, loggedMinutes, billableMinutes: loggedMinutes };
+  }
+
+  it("reassures a project whose every entry is attributed", () => {
+    const figure = unattributedFigure(project());
+    expect(figure.label).toBe("Against no deliverable");
+    expect(figure.value).toBe(NOTHING_LOGGED_LABEL);
+    expect(figure.note).toBe(
+      "Every entry on this project is attributed to a line of the scope list.",
+    );
+  });
+
+  it("says where loose time is counted and where it is not", () => {
+    const figure = unattributedFigure(
+      project({ unattributed: loose(2, 75) }),
+    );
+    expect(figure.value).toBe("1h 15m");
+    expect(figure.note).toBe(
+      "Across 2 entries. Counted in the total above and in none of the rows below — there is no line of scope for it to be set against.",
+    );
+  });
+
+  it("flags a project whose time is mostly unattributed", () => {
+    // Every row below then understates its line, and the figures would look
+    // reassuring for the one reason a reader cannot see.
+    const figure = unattributedFigure(
+      project({ unattributed: loose(2, 300) }),
+    );
+    expect(figure.note).toContain("most of the time logged on this project");
+  });
+
+  it("does not flag loose time that is exactly half the total", () => {
+    // Half is not more than half, and the clause is about the rows covering
+    // the smaller part.
+    const figure = unattributedFigure(
+      project({ loggedMinutes: 400, unattributed: loose(2, 200) }),
+    );
+    expect(figure.note).not.toContain("most of the time logged");
+  });
+
+  it("has no opinion on a project with nothing logged at all", () => {
+    const figure = unattributedFigure(
+      project({ entryCount: 0, loggedMinutes: 0, billableMinutes: 0 }),
+    );
+    expect(figure.note).toBeNull();
   });
 });
