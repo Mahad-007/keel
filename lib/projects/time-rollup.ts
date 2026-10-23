@@ -192,3 +192,25 @@ export function describeNotChargeable(totals: LoggedTotals): string | null {
   const free = totals.loggedMinutes - totals.billableMinutes;
   return `${formatMinutes(free)} not chargeable`;
 }
+
+/**
+ * What the four columns of the rollup table are called.
+ *
+ * "Against the estimate" rather than "Variance" or "Difference": the first is
+ * an accountant's word and the other two describe the arithmetic rather than
+ * the question. A reader scanning this table is asking how each line is doing
+ * against what was agreed, and the heading should be that question.
+ *
+ * "Estimated" and "Logged" in that order, so the pair reads left to right as
+ * what was promised and then what it took. Reversing them would put the
+ * figure that moves in front of the figure it is being judged against.
+ *
+ * One object rather than four strings in the markup, so the headings and the
+ * cells that say the same things in words cannot drift apart.
+ */
+export const ROLLUP_COLUMNS = {
+  deliverable: "Deliverable",
+  estimated: "Estimated",
+  logged: "Logged",
+  against: "Against the estimate",
+} as const;
