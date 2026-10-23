@@ -197,3 +197,33 @@ export function varianceMinutes(
   if (!isEstimated(estimatedMinutes)) return null;
   return loggedMinutes - estimatedMinutes;
 }
+
+/**
+ * How much of an estimate the logged time has used, as a fraction of one.
+ *
+ * A fraction rather than a percentage, because a percentage is a thing you
+ * print — and unrounded, because the only thing that prints it is a formatter.
+ * The same arrangement `deliveredShare` keeps next door, so the two shares on
+ * a project page round once each and in the same place.
+ *
+ * The share says what the difference cannot. Twenty minutes over is nothing on
+ * a forty-hour line and half as much work again on a half-hour one; the
+ * variance reads the same in both and the share reads 101% and 167%.
+ *
+ * Not clamped. A line at 240% is the single most useful number this file
+ * produces and capping it at the estimate would be the one thing that hides a
+ * runaway deliverable behind a figure that looks merely finished.
+ *
+ * Null with no positive estimate to divide by, which covers both an unsized
+ * line and the hand-edited negative. Zero would say no time has gone into the
+ * work, which is a claim about the hours rather than an admission the
+ * denominator is missing — and it is the claim that would put an unestimated
+ * line at the healthy end of any ranking built on this.
+ */
+export function loggedShare(
+  loggedMinutes: number,
+  estimatedMinutes: number,
+): number | null {
+  if (estimatedMinutes <= 0) return null;
+  return loggedMinutes / estimatedMinutes;
+}
