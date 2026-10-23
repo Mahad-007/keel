@@ -10,7 +10,11 @@ import type {
 
 import type { PanelFigure } from "./figure";
 
-import { describeUnestimated, formatSharePercent } from "./scope-summary";
+import {
+  deliverablesPhrase,
+  describeUnestimated,
+  formatSharePercent,
+} from "./scope-summary";
 
 /**
  * The words a time rollup is read in.
@@ -501,4 +505,40 @@ export function describeUnmatchedTime(rollup: ProjectRollup): string | null {
   return `${formatMinutes(
     rollup.unmatchedMinutes,
   )} is attributed to a deliverable this page does not have, so it is in the total above and in none of the rows below. The scope list and the time list were read a moment apart; reloading should settle it.`;
+}
+
+/**
+ * The line above the table: how many lines it holds, how many have anything
+ * against them, and how many have gone past what they were sized at.
+ *
+ * The last count is the headline, and it is here rather than left to the eye
+ * because the rows are not sorted by it — they are in the order the scope was
+ * agreed, which is the order a reader can match against the scope tab, and a
+ * project with nineteen deliverables can hide two overruns in the middle of
+ * it.
+ *
+ * The middle count is the one that says how far to trust the table. Three
+ * lines with time against them out of nineteen is an engagement where almost
+ * nothing is attributed yet, and the fourteen rows reading "None yet" are
+ * about bookkeeping rather than about the work.
+ */
+export function describeRollupTable(rollup: ProjectRollup): string {
+  const counted = deliverablesPhrase(rollup.lines.length);
+  const worked = rollup.lines.filter(
+    (line) => line.loggedMinutes > 0,
+  ).length;
+  if (worked === 0) {
+    return `${counted}, none of them with any time logged against it yet.`;
+  }
+
+  const over = rollup.lines.filter(
+    (line) => line.varianceMinutes !== null && line.varianceMinutes > 0,
+  ).length;
+  const past =
+    over === 0
+      ? "None has gone past its estimate."
+      : over === 1
+        ? "One has gone past its estimate."
+        : `${over} have gone past their estimates.`;
+  return `${counted}, ${worked} of them with time logged. ${past}`;
 }
