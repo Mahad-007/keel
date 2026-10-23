@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  compareToEstimate,
   loggedShare,
   loggedTotals,
   varianceMinutes,
@@ -118,5 +119,33 @@ describe("how much of an estimate the logged time has used", () => {
 
   it("does not round, leaving that to whatever prints it", () => {
     expect(loggedShare(100, 300)).toBeCloseTo(1 / 3, 12);
+  });
+});
+
+describe("setting logged minutes against an estimate", () => {
+  it("echoes the estimate back beside both readings of it", () => {
+    expect(compareToEstimate(360, 240)).toEqual({
+      estimatedMinutes: 240,
+      varianceMinutes: 120,
+      loggedShare: 1.5,
+    });
+  });
+
+  it("has neither reading for a line nobody estimated", () => {
+    expect(compareToEstimate(360, 0)).toEqual({
+      estimatedMinutes: 0,
+      varianceMinutes: null,
+      loggedShare: null,
+    });
+  });
+
+  it("keeps the difference but not the share on a negative estimate", () => {
+    // Subtracting from it is arithmetic a reader can redo; dividing by it
+    // flips the sign into a figure that reads as healthy.
+    expect(compareToEstimate(60, -120)).toEqual({
+      estimatedMinutes: -120,
+      varianceMinutes: 180,
+      loggedShare: null,
+    });
   });
 });
