@@ -9,6 +9,7 @@ import {
   describeVariance,
   estimatedFigure,
   loggedFigure,
+  rollupFigures,
   rollupRow,
   unattributedFigure,
   DONE_WITH_NOTHING_LOGGED,
@@ -499,5 +500,24 @@ describe("the hours that went against no line of scope", () => {
       project({ entryCount: 0, loggedMinutes: 0, billableMinutes: 0 }),
     );
     expect(figure.note).toBeNull();
+  });
+});
+
+describe("the project's half of the rollup, in reading order", () => {
+  it("runs fact, estimate, conclusion, qualification", () => {
+    expect(rollupFigures(project()).map((figure) => figure.label)).toEqual([
+      "Logged",
+      "Estimated",
+      "Against the estimate",
+      "Against no deliverable",
+    ]);
+  });
+
+  it("builds each row from the same rollup", () => {
+    const figures = rollupFigures(project({ lines: [rolled()] }));
+    expect(figures[0].value).toBe("7h 15m");
+    expect(figures[1].value).toBe("6h");
+    expect(figures[2].value).toBe("1h 15m over · 121% of it");
+    expect(figures[3].value).toBe(NOTHING_LOGGED_LABEL);
   });
 });

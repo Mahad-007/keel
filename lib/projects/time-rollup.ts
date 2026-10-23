@@ -453,3 +453,26 @@ export function unattributedFigure(rollup: ProjectRollup): PanelFigure {
     note: describeUnattributed(rollup),
   };
 }
+
+/**
+ * The project's half of the rollup, in the order it is read.
+ *
+ * Logged first, because it is the fact; estimated second, because it is what
+ * the fact is being held against; the comparison third, because it is the
+ * conclusion the first two lead to. Then the unattributed figure, which is
+ * not a comparison at all but the qualification that makes the table below
+ * reconcile with the total above.
+ *
+ * One array rather than four calls from the panel, so the order is a decision
+ * made once in the place that explains it — the same arrangement
+ * `scopeSummaryFigures` keeps next door, and these render through the same
+ * row component.
+ */
+export function rollupFigures(rollup: ProjectRollup): PanelFigure[] {
+  return [
+    loggedFigure(rollup),
+    estimatedFigure(rollup),
+    againstEstimateFigure(rollup),
+    unattributedFigure(rollup),
+  ];
+}
