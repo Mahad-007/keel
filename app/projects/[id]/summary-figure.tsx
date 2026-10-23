@@ -1,8 +1,12 @@
-import type { ScopeFigure } from "@/lib/projects/scope-summary";
+import type { PanelFigure } from "@/lib/projects/figure";
 
 /**
- * One line of the scope summary: what it is called, what it says, and how to
+ * One line of a figures panel: what it is called, what it says, and how to
  * read it.
+ *
+ * The scope summary's four figures and the time rollup's are the same shape
+ * and read the same way, so they are drawn by the same row rather than by two
+ * components that would drift apart a release at a time.
  *
  * A definition list for the same reason the overview tab uses one — these are
  * one project's figures, not a set of rows to compare — and the label column
@@ -18,7 +22,7 @@ import type { ScopeFigure } from "@/lib/projects/scope-summary";
  * `tabular-nums` on the value, so the digits in a column of durations and
  * money line up even though none of these rows is the same kind of quantity.
  */
-export function SummaryFigure({ label, value, note }: ScopeFigure) {
+export function SummaryFigure({ label, value, note }: PanelFigure) {
   return (
     <div className="grid gap-x-6 gap-y-0.5 border-b border-zinc-100 py-2.5 sm:grid-cols-[11rem_1fr] dark:border-zinc-900">
       <dt className="text-zinc-500 dark:text-zinc-400">{label}</dt>

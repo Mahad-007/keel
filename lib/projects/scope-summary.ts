@@ -3,6 +3,8 @@ import { formatMinutes } from "@/lib/minutes";
 import { formatCents } from "@/lib/money";
 import type { ScopeSummary } from "@/lib/scope";
 
+import type { PanelFigure } from "./figure";
+
 /**
  * The words a scope summary is read in.
  *
@@ -23,26 +25,13 @@ import type { ScopeSummary } from "@/lib/scope";
  */
 
 /**
- * One line of the summary: what it is called, what it says, and the caveat a
- * reader needs to read it correctly.
+ * One line of the scope summary, which is one line of a figures panel.
  *
- * A value that is always a string, never a number, because half of these are
- * not numbers — "Not estimated" is the honest reading of an unsized list, and
- * a panel that had to choose between a figure and a sentence per row would
- * make that choice four times.
- *
- * The note is null rather than empty when there is nothing to add. A row with
- * no caveat is a row with no caveat; an empty paragraph under it would space
- * the panel out for the sake of what is not there.
+ * Re-exported rather than redeclared so the panel and its rows can go on
+ * importing it from here, and so a figure built by the time rollup is the same
+ * shape as a figure built by this.
  */
-export type ScopeFigure = {
-  /** What the figure is called, in words a client would recognise. */
-  label: string;
-  /** The figure itself, or what stands in for it when there is none. */
-  value: string;
-  /** How to read it, where the figure alone would mislead. */
-  note: string | null;
-};
+export type ScopeFigure = PanelFigure;
 
 /**
  * An hours figure as it reads inside a sentence.
