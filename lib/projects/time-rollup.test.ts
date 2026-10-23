@@ -607,16 +607,33 @@ describe("the line above the rollup table", () => {
     );
   });
 
-  it("does not count an unsized line as having run over", () => {
-    // It has no estimate to be past, however many hours went into it.
-    const unsized = rolled({
-      deliverableId: "dlv_e",
-      estimatedMinutes: 0,
-      varianceMinutes: null,
-      loggedShare: null,
-    });
+  const unsized = rolled({
+    deliverableId: "dlv_e",
+    estimatedMinutes: 0,
+    varianceMinutes: null,
+    loggedShare: null,
+  });
+
+  it("refuses to reassure about a lone line that has no estimate", () => {
+    // "It has not gone past its estimate" above a row reading "No estimate to
+    // compare" is false comfort.
     expect(describeRollupTable(project({ lines: [unsized] }))).toBe(
-      "1 deliverable, with time logged against it. It has not gone past its estimate.",
+      "1 deliverable, with time logged against it. It has no estimate for the time to be set against.",
+    );
+  });
+
+  it("refuses to reassure about a list where nothing is estimated", () => {
+    const second = rolled({ ...unsized, deliverableId: "dlv_f" });
+    expect(describeRollupTable(project({ lines: [unsized, second] }))).toBe(
+      "2 deliverables, 2 of them with time logged. None of them has an estimate for the time to be set against.",
+    );
+  });
+
+  it("does not count an unsized line among the overruns", () => {
+    // It has no estimate to be past, however many hours went into it, but
+    // the sized line beside it is still worth reassuring about.
+    expect(describeRollupTable(project({ lines: [under, unsized] }))).toBe(
+      "2 deliverables, 2 of them with time logged. None has gone past its estimate.",
     );
   });
 });

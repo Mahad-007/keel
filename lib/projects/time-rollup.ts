@@ -570,22 +570,50 @@ export function describeRollupTable(rollup: ProjectRollup): string {
     } yet.`;
   }
 
-  const over = lines.filter(
-    (line) => line.varianceMinutes !== null && line.varianceMinutes > 0,
-  ).length;
   const having = alone
     ? `${counted}, with time logged against it.`
     : `${counted}, ${worked} of them with time logged.`;
-  const past = alone
-    ? over === 1
+  return `${having} ${describePastEstimate(lines, alone)}`;
+}
+
+/**
+ * What the lead-in says about overruns, or why it cannot say anything.
+ *
+ * "None has gone past its estimate" is a reassurance, and a reassurance about
+ * lines that have no estimate is false comfort of the worst kind: every row
+ * below reads "No estimate to compare", and the sentence above them says the
+ * project is fine. So the lines that *can* be compared are counted first, and
+ * where there are none the sentence says that instead.
+ *
+ * A line is comparable when it has a variance, which is `varianceMinutes`
+ * being non-null rather than a second zero check written out here — so a line
+ * this sentence passes over is exactly a line the table's last column refuses
+ * to judge.
+ */
+function describePastEstimate(
+  lines: readonly DeliverableRollup[],
+  alone: boolean,
+): string {
+  const comparable = lines.filter(
+    (line) => line.varianceMinutes !== null,
+  ).length;
+  if (comparable === 0) {
+    return alone
+      ? "It has no estimate for the time to be set against."
+      : "None of them has an estimate for the time to be set against.";
+  }
+
+  const over = lines.filter(
+    (line) => line.varianceMinutes !== null && line.varianceMinutes > 0,
+  ).length;
+  if (alone) {
+    return over === 1
       ? "It has gone past its estimate."
-      : "It has not gone past its estimate."
-    : over === 0
-      ? "None has gone past its estimate."
-      : over === 1
-        ? "One has gone past its estimate."
-        : `${over} have gone past their estimates.`;
-  return `${having} ${past}`;
+      : "It has not gone past its estimate.";
+  }
+  if (over === 0) return "None has gone past its estimate.";
+  if (over === 1) return "One has gone past its estimate.";
+  return `${over} have gone past their estimates.`;
 }
 
 /**
