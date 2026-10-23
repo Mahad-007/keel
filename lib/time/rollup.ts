@@ -1,3 +1,4 @@
+import { isEstimated } from "@/lib/deliverables/list";
 import type { ScopeLine } from "@/lib/scope";
 
 import { billableMinutes, totalMinutes, type LoggedEntry } from "./days";
@@ -164,4 +165,35 @@ export function loggedTotals(entries: readonly LoggedEntry[]): LoggedTotals {
     loggedMinutes: totalMinutes(entries),
     billableMinutes: billableMinutes(entries),
   };
+}
+
+/**
+ * How far logged time has run past its estimate, in whole minutes.
+ *
+ * Logged minus estimated, so over is positive and under is negative. That is
+ * the direction a reader expects of a figure called a variance, and it is the
+ * direction in which a column of them sums to the project's overrun rather
+ * than to its underrun.
+ *
+ * Null when nothing was estimated, which is not the same as nought. A
+ * deliverable nobody sized has no number to be over or under, and reporting
+ * six hours as "six hours over" would be an accusation built on an estimate
+ * nobody gave — the one reading that would send somebody into a client
+ * conversation with a figure they cannot defend. The same distinction
+ * `impliedRateCents` makes, through the same predicate the scope list words an
+ * unsized line with, so a line the table calls "Not estimated" is a line this
+ * refuses to compare.
+ *
+ * A negative estimate is compared anyway, and the arithmetic is left to say
+ * what it says. Only a hand-edited row holds one, `summariseScope` already
+ * counts them, and the panel's job is to flag the row rather than to quietly
+ * drop the comparison — a line silently missing from the variance column is
+ * harder to find than a figure that looks wrong.
+ */
+export function varianceMinutes(
+  loggedMinutes: number,
+  estimatedMinutes: number,
+): number | null {
+  if (!isEstimated(estimatedMinutes)) return null;
+  return loggedMinutes - estimatedMinutes;
 }
