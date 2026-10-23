@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   describeAgainstEstimate,
   describeLogged,
+  describeNotChargeable,
   describeShare,
   describeVariance,
   DONE_WITH_NOTHING_LOGGED,
@@ -198,5 +199,47 @@ describe("a line's whole comparison in one cell", () => {
         false,
       ),
     ).toBe("3h over");
+  });
+});
+
+describe("the part of a row's time that will not be invoiced", () => {
+  it("says nothing when all of it is chargeable", () => {
+    expect(
+      describeNotChargeable({
+        entryCount: 3,
+        loggedMinutes: 360,
+        billableMinutes: 360,
+      }),
+    ).toBeNull();
+  });
+
+  it("says nothing on a row with no time against it", () => {
+    expect(
+      describeNotChargeable({
+        entryCount: 0,
+        loggedMinutes: 0,
+        billableMinutes: 0,
+      }),
+    ).toBeNull();
+  });
+
+  it("names the gap between the hours and the invoice", () => {
+    expect(
+      describeNotChargeable({
+        entryCount: 3,
+        loggedMinutes: 360,
+        billableMinutes: 300,
+      }),
+    ).toBe("1h not chargeable");
+  });
+
+  it("names the whole of it when none of it is chargeable", () => {
+    expect(
+      describeNotChargeable({
+        entryCount: 1,
+        loggedMinutes: 90,
+        billableMinutes: 0,
+      }),
+    ).toBe("1h 30m not chargeable");
   });
 });
