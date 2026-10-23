@@ -6,6 +6,7 @@ import {
   describeLogged,
   describeNotChargeable,
   describeShare,
+  describeUnmatchedTime,
   describeVariance,
   estimatedFigure,
   loggedFigure,
@@ -519,5 +520,23 @@ describe("the project's half of the rollup, in reading order", () => {
     expect(figures[1].value).toBe("6h");
     expect(figures[2].value).toBe("1h 15m over · 121% of it");
     expect(figures[3].value).toBe(NOTHING_LOGGED_LABEL);
+  });
+});
+
+describe("why the rows might not add up to the total", () => {
+  it("says nothing on the ordinary project, which is every project", () => {
+    expect(describeUnmatchedTime(project())).toBeNull();
+  });
+
+  it("names the minutes that are in the total and in no row", () => {
+    const note = describeUnmatchedTime(project({ unmatchedMinutes: 25 }));
+    expect(note).toContain("25m");
+    expect(note).toContain("in none of the rows below");
+  });
+
+  it("tells the reader the move that fixes it", () => {
+    expect(describeUnmatchedTime(project({ unmatchedMinutes: 25 }))).toContain(
+      "reloading",
+    );
   });
 });

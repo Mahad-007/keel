@@ -476,3 +476,29 @@ export function rollupFigures(rollup: ProjectRollup): PanelFigure[] {
     unattributedFigure(rollup),
   ];
 }
+
+/**
+ * Why the rows do not add up to the total, when they do not.
+ *
+ * Time attributed to a line this page was not given. It should never happen,
+ * and when it does the cause is two reads a moment apart — the scope list
+ * fetched before a deliverable was added, or the entries fetched after it was.
+ * The minutes are in the project's total and in none of the rows, so without
+ * a sentence the table is simply wrong by that much and a reader would go
+ * looking for the arithmetic error.
+ *
+ * It says to reload, because reloading is the fix and the reader has no other
+ * move: nothing is broken in the data, and the next render will have both
+ * lists from the same moment. The same reading `entryAttribution` gives a row
+ * whose line it cannot name.
+ *
+ * Null the rest of the time, which is always. This is a sentence that appears
+ * when something has genuinely gone out of step, not a disclaimer under every
+ * project.
+ */
+export function describeUnmatchedTime(rollup: ProjectRollup): string | null {
+  if (rollup.unmatchedMinutes === 0) return null;
+  return `${formatMinutes(
+    rollup.unmatchedMinutes,
+  )} is attributed to a deliverable this page does not have, so it is in the total above and in none of the rows below. The scope list and the time list were read a moment apart; reloading should settle it.`;
+}
