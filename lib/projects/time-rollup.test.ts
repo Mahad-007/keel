@@ -1,12 +1,24 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  describeAgainstEstimate,
   describeLogged,
   describeShare,
   describeVariance,
+  DONE_WITH_NOTHING_LOGGED,
+  NO_ESTIMATE_TO_COMPARE,
   NOTHING_LOGGED_LABEL,
   ON_THE_ESTIMATE_LABEL,
 } from "./time-rollup";
+
+function compared(fields: {
+  loggedMinutes: number;
+  estimatedMinutes: number;
+  varianceMinutes: number | null;
+  loggedShare: number | null;
+}) {
+  return fields;
+}
 
 describe("a logged total as its cell reads", () => {
   it("reads a duration as hours and minutes", () => {
@@ -84,5 +96,107 @@ describe("the share of an estimate that has gone", () => {
 
   it("does not round a line short of its estimate up to all of it", () => {
     expect(describeShare(0.999)).toBe("more than 99% of it");
+  });
+});
+
+describe("a line's whole comparison in one cell", () => {
+  it("puts the difference and the share either side of a dot", () => {
+    expect(
+      describeAgainstEstimate(
+        compared({
+          loggedMinutes: 360,
+          estimatedMinutes: 240,
+          varianceMinutes: 120,
+          loggedShare: 1.5,
+        }),
+        false,
+      ),
+    ).toBe("2h over · 150% of it");
+  });
+
+  it("leaves the share off where it would repeat the difference", () => {
+    expect(
+      describeAgainstEstimate(
+        compared({
+          loggedMinutes: 240,
+          estimatedMinutes: 240,
+          varianceMinutes: 0,
+          loggedShare: 1,
+        }),
+        false,
+      ),
+    ).toBe(ON_THE_ESTIMATE_LABEL);
+  });
+
+  it("says there is nothing to compare on a line nobody sized", () => {
+    expect(
+      describeAgainstEstimate(
+        compared({
+          loggedMinutes: 480,
+          estimatedMinutes: 0,
+          varianceMinutes: null,
+          loggedShare: null,
+        }),
+        false,
+      ),
+    ).toBe(NO_ESTIMATE_TO_COMPARE);
+  });
+
+  it("refuses to call a delivered line with no hours a win", () => {
+    // The arithmetic would say it came in under by the whole estimate, which
+    // is the most flattering sentence here and almost never the true one.
+    expect(
+      describeAgainstEstimate(
+        compared({
+          loggedMinutes: 0,
+          estimatedMinutes: 240,
+          varianceMinutes: -240,
+          loggedShare: 0,
+        }),
+        true,
+      ),
+    ).toBe(DONE_WITH_NOTHING_LOGGED);
+  });
+
+  it("still reports an open line with no hours as its estimate left", () => {
+    expect(
+      describeAgainstEstimate(
+        compared({
+          loggedMinutes: 0,
+          estimatedMinutes: 240,
+          varianceMinutes: -240,
+          loggedShare: 0,
+        }),
+        false,
+      ),
+    ).toBe("4h left");
+  });
+
+  it("says a delivered line came in under rather than having budget left", () => {
+    expect(
+      describeAgainstEstimate(
+        compared({
+          loggedMinutes: 180,
+          estimatedMinutes: 240,
+          varianceMinutes: -60,
+          loggedShare: 0.75,
+        }),
+        true,
+      ),
+    ).toBe("1h under · 75% of it");
+  });
+
+  it("keeps the difference and drops the share on a negative estimate", () => {
+    expect(
+      describeAgainstEstimate(
+        compared({
+          loggedMinutes: 60,
+          estimatedMinutes: -120,
+          varianceMinutes: 180,
+          loggedShare: null,
+        }),
+        false,
+      ),
+    ).toBe("3h over");
   });
 });
