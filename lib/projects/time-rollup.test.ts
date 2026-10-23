@@ -656,3 +656,24 @@ describe("what is wrong with a rollup, if anything", () => {
     expect(problems[1]).toContain("25m");
   });
 });
+
+describe("an estimate total its own lines cancelled out", () => {
+  const plus = rolled({ deliverableId: "dlv_a", estimatedMinutes: 120 });
+  const minus = rolled({ deliverableId: "dlv_b", estimatedMinutes: -120 });
+
+  it("does not call a sized project unestimated", () => {
+    // The scope tab counts the lines and shows "0m". Reading the sum instead
+    // would have this tab say "Not estimated" about the same project.
+    const figure = estimatedFigure(
+      project({ lines: [plus, minus], estimatedMinutes: 0 }),
+    );
+    expect(figure.value).toBe("0m");
+  });
+
+  it("still calls a wholly unsized project unestimated", () => {
+    const figure = estimatedFigure(
+      project({ lines: [rolled({ estimatedMinutes: 0 })], estimatedMinutes: 0 }),
+    );
+    expect(figure.value).toBe("Not estimated");
+  });
+});
