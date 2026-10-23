@@ -448,7 +448,12 @@ describe("how the whole project stands against its scope list", () => {
 
   it("says what would turn the figure on when nothing is estimated", () => {
     const figure = againstEstimateFigure(
-      project({ estimatedMinutes: 0, varianceMinutes: null, loggedShare: null }),
+      project({
+        lines: [rolled({ estimatedMinutes: 0 })],
+        estimatedMinutes: 0,
+        varianceMinutes: null,
+        loggedShare: null,
+      }),
     );
     expect(figure.value).toBe(NO_ESTIMATE_TO_COMPARE);
     expect(figure.note).toBe(
@@ -675,5 +680,52 @@ describe("an estimate total its own lines cancelled out", () => {
       project({ lines: [rolled({ estimatedMinutes: 0 })], estimatedMinutes: 0 }),
     );
     expect(figure.value).toBe("Not estimated");
+  });
+});
+
+describe("the working behind the project comparison when there is none", () => {
+  it("asks for a scope list when there are no deliverables", () => {
+    const figure = againstEstimateFigure(
+      project({
+        lines: [],
+        estimatedMinutes: 0,
+        varianceMinutes: null,
+        loggedShare: null,
+      }),
+    );
+    expect(figure.note).toBe(
+      "There are no deliverables to estimate, so the hours have nothing to be set against.",
+    );
+  });
+
+  it("says the estimates cancelled out rather than asking for estimates", () => {
+    // Both lines are sized. Asking for an estimate would send a reader to
+    // fill in fields that are already full.
+    const figure = againstEstimateFigure(
+      project({
+        lines: [
+          rolled({ deliverableId: "dlv_a", estimatedMinutes: 120 }),
+          rolled({ deliverableId: "dlv_b", estimatedMinutes: -120 }),
+        ],
+        estimatedMinutes: 0,
+        varianceMinutes: null,
+        loggedShare: null,
+      }),
+    );
+    expect(figure.note).toBe(
+      "The estimates on this list cancel out to no hours at all, so there is nothing for the logged time to be set against.",
+    );
+  });
+
+  it("still asks for estimates on an ordinary unsized list", () => {
+    const figure = againstEstimateFigure(
+      project({
+        lines: [rolled({ estimatedMinutes: 0 })],
+        estimatedMinutes: 0,
+        varianceMinutes: null,
+        loggedShare: null,
+      }),
+    );
+    expect(figure.note).toContain("Put an estimate on the deliverables");
   });
 });
