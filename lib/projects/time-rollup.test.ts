@@ -6,6 +6,7 @@ import {
   describeNotChargeable,
   describeShare,
   describeVariance,
+  loggedFigure,
   rollupRow,
   DONE_WITH_NOTHING_LOGGED,
   NO_ESTIMATE_TO_COMPARE,
@@ -13,7 +14,7 @@ import {
   ON_THE_ESTIMATE_LABEL,
 } from "./time-rollup";
 
-import type { DeliverableRollup } from "@/lib/time/rollup";
+import type { DeliverableRollup, ProjectRollup } from "@/lib/time/rollup";
 
 function rolled(fields: Partial<DeliverableRollup> = {}): DeliverableRollup {
   return {
@@ -37,6 +38,21 @@ function compared(fields: {
   loggedShare: number | null;
 }) {
   return fields;
+}
+
+function project(fields: Partial<ProjectRollup> = {}): ProjectRollup {
+  return {
+    lines: [],
+    unattributed: { entryCount: 0, loggedMinutes: 0, billableMinutes: 0 },
+    unmatchedMinutes: 0,
+    entryCount: 3,
+    loggedMinutes: 435,
+    billableMinutes: 435,
+    estimatedMinutes: 360,
+    varianceMinutes: 75,
+    loggedShare: 435 / 360,
+    ...fields,
+  };
 }
 
 describe("a logged total as its cell reads", () => {
@@ -319,5 +335,35 @@ describe("a rolled-up deliverable as the table draws it", () => {
       }),
     );
     expect(row.against).toBe("1h under · 75% of it");
+  });
+});
+
+describe("what the project has logged, as a line of the panel", () => {
+  it("shows the total and says how many entries built it", () => {
+    expect(loggedFigure(project())).toEqual({
+      label: "Logged",
+      value: "7h 15m",
+      note: "Across 3 entries.",
+    });
+  });
+
+  it("agrees with the noun when there is only one entry", () => {
+    const figure = loggedFigure(
+      project({ entryCount: 1, loggedMinutes: 45, billableMinutes: 45 }),
+    );
+    expect(figure.note).toBe("Across 1 entry.");
+  });
+
+  it("adds the part that will not be invoiced", () => {
+    const figure = loggedFigure(project({ billableMinutes: 375 }));
+    expect(figure.note).toBe("Across 3 entries. 1h not chargeable.");
+  });
+
+  it("says plainly that nothing has been logged rather than counting nought", () => {
+    const figure = loggedFigure(
+      project({ entryCount: 0, loggedMinutes: 0, billableMinutes: 0 }),
+    );
+    expect(figure.value).toBe(NOTHING_LOGGED_LABEL);
+    expect(figure.note).toBe("No time has been logged against this project yet.");
   });
 });
