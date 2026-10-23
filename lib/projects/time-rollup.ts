@@ -550,3 +550,32 @@ export function describeRollupTable(rollup: ProjectRollup): string {
         : `${over} have gone past their estimates.`;
   return `${having} ${past}`;
 }
+
+/**
+ * What the panel says instead of a table when there is time but no scope.
+ *
+ * It names where the fix is. The hours are real and the panel can show them;
+ * what is missing is the other half of every comparison, and that half is
+ * written on a different tab — a reader told only that there is nothing to
+ * compare would be left with a true sentence and no next move.
+ */
+export const NO_SCOPE_TO_ROLL_UP =
+  "This project has no deliverables, so there is nothing for these hours to be set against. Agree the scope on the Scope tab and each line gets a row here.";
+
+/**
+ * What the whole panel is and is not, said once underneath it.
+ *
+ * Two things a reader could otherwise take from it. The first is that an
+ * estimate is a guess somebody made before the work started, so a line over
+ * it is a thing to go and look at rather than a thing that is wrong —
+ * treating the column as a scorecard is how a team learns to pad estimates.
+ * The second is that none of this is money: whether an overrun matters
+ * depends on what the project was agreed for, which these figures do not
+ * read.
+ *
+ * One sentence under the figures rather than a caveat on each, the same
+ * arrangement the scope summary keeps: the rows carry what is specific to
+ * them and this is true of all of them.
+ */
+export const ROLLUP_IS_HOURS_ONLY =
+  "These are hours against hours. An estimate is a guess made before the work started, so a line past it is somewhere to look rather than something to answer for — and what an overrun costs depends on what the project was agreed for, which these figures do not read.";
