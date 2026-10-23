@@ -11,7 +11,9 @@ import {
   describeVariance,
   estimatedFigure,
   loggedFigure,
+  describeNegativeEstimates,
   rollupFigures,
+  rollupProblems,
   rollupRow,
   unattributedFigure,
   DONE_WITH_NOTHING_LOGGED,
@@ -611,5 +613,46 @@ describe("the line above the rollup table", () => {
     expect(describeRollupTable(project({ lines: [unsized] }))).toBe(
       "1 deliverable, with time logged against it. It has not gone past its estimate.",
     );
+  });
+});
+
+describe("what is wrong with a rollup, if anything", () => {
+  const bad = rolled({ deliverableId: "dlv_x", estimatedMinutes: -120 });
+
+  it("has nothing to say about the ordinary project", () => {
+    expect(describeNegativeEstimates(project({ lines: [rolled()] }))).toBeNull();
+    expect(rollupProblems(project({ lines: [rolled()] }))).toEqual([]);
+  });
+
+  it("names a single negative estimate in the singular", () => {
+    const note = describeNegativeEstimates(project({ lines: [bad] }));
+    expect(note).toContain("One deliverable has a negative estimate");
+  });
+
+  it("counts several of them", () => {
+    const other = rolled({ deliverableId: "dlv_y", estimatedMinutes: -30 });
+    expect(describeNegativeEstimates(project({ lines: [bad, other] }))).toContain(
+      "2 deliverables have a negative estimate",
+    );
+  });
+
+  it("finds a negative line whose estimate another line cancels out", () => {
+    // Plus two hours and minus two hours leave the project reading nought,
+    // and the figures alone would call a sized project unestimated.
+    const cancels = rolled({ deliverableId: "dlv_z", estimatedMinutes: 120 });
+    expect(
+      describeNegativeEstimates(
+        project({ lines: [bad, cancels], estimatedMinutes: 0 }),
+      ),
+    ).not.toBeNull();
+  });
+
+  it("puts the false cells before the column that will not add up", () => {
+    const problems = rollupProblems(
+      project({ lines: [bad], unmatchedMinutes: 25 }),
+    );
+    expect(problems).toHaveLength(2);
+    expect(problems[0]).toContain("negative estimate");
+    expect(problems[1]).toContain("25m");
   });
 });

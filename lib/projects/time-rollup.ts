@@ -581,6 +581,25 @@ export function describeNegativeEstimates(
 }
 
 /**
+ * Everything wrong with this rollup that a reader needs told, in the order
+ * they would meet it.
+ *
+ * The negative estimate first, because it makes individual cells say false
+ * things; the unmatched minutes second, because they make the column fail to
+ * add up. Both are about the figures rather than about the project, and both
+ * are almost always absent — an array, so the panel renders what there is
+ * without asking which.
+ *
+ * Gathered here rather than in the component because deciding what counts as
+ * a problem is a rule about the data, and the panel's job is to set the type.
+ */
+export function rollupProblems(rollup: ProjectRollup): string[] {
+  return [describeNegativeEstimates(rollup), describeUnmatchedTime(rollup)].filter(
+    (problem): problem is string => problem !== null,
+  );
+}
+
+/**
  * What the panel says instead of a table when there is time but no scope.
  *
  * It names where the fix is. The hours are real and the panel can show them;
