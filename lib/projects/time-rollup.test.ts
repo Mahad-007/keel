@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  againstEstimateFigure,
   describeAgainstEstimate,
   describeLogged,
   describeNotChargeable,
@@ -409,6 +410,43 @@ describe("the estimate the hours are judged against", () => {
     const figure = estimatedFigure(project({ lines: [], estimatedMinutes: 0 }));
     expect(figure.note).toBe(
       "No deliverables have been agreed, so there is nothing for these hours to be set against.",
+    );
+  });
+});
+
+describe("how the whole project stands against its scope list", () => {
+  it("names the figure after the column it belongs with", () => {
+    expect(againstEstimateFigure(project()).label).toBe(
+      "Against the estimate",
+    );
+  });
+
+  it("reads an overrun with the working written out", () => {
+    const figure = againstEstimateFigure(project());
+    expect(figure.value).toBe("1h 15m over · 121% of it");
+    expect(figure.note).toBe("6h estimated, 7h 15m logged.");
+  });
+
+  it("reads unspent estimate as budget left, never as coming in under", () => {
+    // A project is closed, not delivered. "Under" would be a judgement.
+    const figure = againstEstimateFigure(
+      project({
+        loggedMinutes: 180,
+        billableMinutes: 180,
+        varianceMinutes: -180,
+        loggedShare: 0.5,
+      }),
+    );
+    expect(figure.value).toBe("3h left · 50% of it");
+  });
+
+  it("says what would turn the figure on when nothing is estimated", () => {
+    const figure = againstEstimateFigure(
+      project({ estimatedMinutes: 0, varianceMinutes: null, loggedShare: null }),
+    );
+    expect(figure.value).toBe(NO_ESTIMATE_TO_COMPARE);
+    expect(figure.note).toBe(
+      "Put an estimate on the deliverables and this figure starts saying whether the project is running over.",
     );
   });
 });
