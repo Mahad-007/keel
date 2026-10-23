@@ -6,11 +6,29 @@ import {
   describeNotChargeable,
   describeShare,
   describeVariance,
+  rollupRow,
   DONE_WITH_NOTHING_LOGGED,
   NO_ESTIMATE_TO_COMPARE,
   NOTHING_LOGGED_LABEL,
   ON_THE_ESTIMATE_LABEL,
 } from "./time-rollup";
+
+import type { DeliverableRollup } from "@/lib/time/rollup";
+
+function rolled(fields: Partial<DeliverableRollup> = {}): DeliverableRollup {
+  return {
+    deliverableId: "dlv_a",
+    title: "Homepage build",
+    delivered: false,
+    entryCount: 2,
+    loggedMinutes: 360,
+    billableMinutes: 360,
+    estimatedMinutes: 240,
+    varianceMinutes: 120,
+    loggedShare: 1.5,
+    ...fields,
+  };
+}
 
 function compared(fields: {
   loggedMinutes: number;
@@ -241,5 +259,65 @@ describe("the part of a row's time that will not be invoiced", () => {
         billableMinutes: 0,
       }),
     ).toBe("1h 30m not chargeable");
+  });
+});
+
+describe("a rolled-up deliverable as the table draws it", () => {
+  it("fills the four cells from the line", () => {
+    expect(rollupRow(rolled())).toEqual({
+      deliverableId: "dlv_a",
+      title: "Homepage build",
+      estimated: "4h",
+      logged: "6h",
+      notChargeable: null,
+      against: "2h over · 150% of it",
+    });
+  });
+
+  it("carries the id as the key, because two lines can share a title", () => {
+    expect(rollupRow(rolled({ deliverableId: "dlv_b" })).deliverableId).toBe(
+      "dlv_b",
+    );
+  });
+
+  it("calls an unsized line what the scope list calls it", () => {
+    const row = rollupRow(
+      rolled({ estimatedMinutes: 0, varianceMinutes: null, loggedShare: null }),
+    );
+    expect(row.estimated).toBe("Not estimated");
+    expect(row.against).toBe(NO_ESTIMATE_TO_COMPARE);
+  });
+
+  it("says nothing has been logged rather than showing a zero duration", () => {
+    const row = rollupRow(
+      rolled({
+        entryCount: 0,
+        loggedMinutes: 0,
+        billableMinutes: 0,
+        varianceMinutes: -240,
+        loggedShare: 0,
+      }),
+    );
+    expect(row.logged).toBe(NOTHING_LOGGED_LABEL);
+    expect(row.against).toBe("4h left");
+  });
+
+  it("qualifies a row whose hours will not all be invoiced", () => {
+    const row = rollupRow(rolled({ billableMinutes: 300 }));
+    expect(row.logged).toBe("6h");
+    expect(row.notChargeable).toBe("1h not chargeable");
+  });
+
+  it("reads a delivered line's unspent estimate as coming in under", () => {
+    const row = rollupRow(
+      rolled({
+        delivered: true,
+        loggedMinutes: 180,
+        billableMinutes: 180,
+        varianceMinutes: -60,
+        loggedShare: 0.75,
+      }),
+    );
+    expect(row.against).toBe("1h under · 75% of it");
   });
 });
