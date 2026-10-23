@@ -2,10 +2,10 @@ import { CaveatNote } from "@/components/form";
 
 import {
   describeRollupTable,
-  describeUnmatchedTime,
   NO_SCOPE_TO_ROLL_UP,
   ROLLUP_IS_HOURS_ONLY,
   rollupFigures,
+  rollupProblems,
   rollupRow,
 } from "@/lib/projects/time-rollup";
 import type { ProjectRollup } from "@/lib/time/rollup";
@@ -40,7 +40,7 @@ export function TimeRollupPanel({ rollup }: { rollup: ProjectRollup }) {
   */
   if (rollup.entryCount === 0) return null;
 
-  const unmatched = describeUnmatchedTime(rollup);
+  const problems = rollupProblems(rollup);
 
   return (
     <section className="mt-10 border-t border-zinc-200 pt-6 dark:border-zinc-800">
@@ -48,13 +48,18 @@ export function TimeRollupPanel({ rollup }: { rollup: ProjectRollup }) {
         Against the estimates
       </h3>
       {/*
-        Above the figures, because it says why the rows will not add up to the
-        total and a caveat found underneath them arrives too late — the same
-        place, and the same colour, the scope summary puts its own.
+        Above the figures, because they change how every number below them is
+        read and a caveat found underneath arrives too late — the same place,
+        and the same colour, the scope summary puts its own. Usually there are
+        none; when there are two they stack, because they are separate things
+        wrong and running them together would make one sentence of two
+        problems.
       */}
-      {unmatched === null ? null : (
-        <CaveatNote className="mt-2">{unmatched}</CaveatNote>
-      )}
+      {problems.map((problem) => (
+        <CaveatNote key={problem} className="mt-2">
+          {problem}
+        </CaveatNote>
+      ))}
       <dl className="mt-2 text-sm">
         {rollupFigures(rollup).map((figure) => (
           <SummaryFigure key={figure.label} {...figure} />
