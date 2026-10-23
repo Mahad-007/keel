@@ -5,9 +5,11 @@ import {
   entriesByDeliverable,
   loggedShare,
   loggedTotals,
+  rollUpDeliverable,
   unattributedEntries,
   varianceMinutes,
   type AttributedEntry,
+  type RolledUpDeliverable,
 } from "./rollup";
 
 function entry(fields: Partial<AttributedEntry> = {}): AttributedEntry {
@@ -17,6 +19,16 @@ function entry(fields: Partial<AttributedEntry> = {}): AttributedEntry {
     workedOn: "2026-10-17",
     billable: true,
     deliverableId: null,
+    ...fields,
+  };
+}
+
+function line(fields: Partial<RolledUpDeliverable> = {}): RolledUpDeliverable {
+  return {
+    id: "dlv_a",
+    title: "Homepage build",
+    estimatedMinutes: 240,
+    status: "pending",
     ...fields,
   };
 }
@@ -210,5 +222,62 @@ describe("the entries that went against no line", () => {
     expect(unattributedEntries([entry({ deliverableId: "dlv_a" })])).toEqual(
       [],
     );
+  });
+});
+
+describe("rolling one deliverable up against its estimate", () => {
+  it("names the line and sets its logged time against its estimate", () => {
+    const rolled = rollUpDeliverable(line(), [
+      entry({ minutes: 200, deliverableId: "dlv_a" }),
+      entry({ minutes: 160, deliverableId: "dlv_a" }),
+    ]);
+    expect(rolled.deliverableId).toBe("dlv_a");
+    expect(rolled.title).toBe("Homepage build");
+    expect(rolled.loggedMinutes).toBe(360);
+    expect(rolled.estimatedMinutes).toBe(240);
+    expect(rolled.varianceMinutes).toBe(120);
+    expect(rolled.loggedShare).toBe(1.5);
+  });
+
+  it("rolls a line nothing has been logged against up to nothing used", () => {
+    const rolled = rollUpDeliverable(line(), []);
+    expect(rolled.entryCount).toBe(0);
+    expect(rolled.loggedMinutes).toBe(0);
+    expect(rolled.varianceMinutes).toBe(-240);
+    expect(rolled.loggedShare).toBe(0);
+  });
+
+  it("carries the chargeable figure separately from the logged one", () => {
+    const rolled = rollUpDeliverable(line(), [
+      entry({ minutes: 120, deliverableId: "dlv_a" }),
+      entry({ minutes: 60, deliverableId: "dlv_a", billable: false }),
+    ]);
+    expect(rolled.loggedMinutes).toBe(180);
+    expect(rolled.billableMinutes).toBe(120);
+    // The variance is against everything logged. Absorbing an hour does not
+    // mean the hour did not happen.
+    expect(rolled.varianceMinutes).toBe(-60);
+  });
+
+  it("calls a line done when the scope list calls it done", () => {
+    expect(rollUpDeliverable(line({ status: "done" }), []).delivered).toBe(
+      true,
+    );
+  });
+
+  it("calls a started line not done, the way the scope summary does", () => {
+    // Half credit for a started line is a number nobody supplied.
+    expect(
+      rollUpDeliverable(line({ status: "started" }), []).delivered,
+    ).toBe(false);
+  });
+
+  it("refuses to compare an unsized line however much went into it", () => {
+    const rolled = rollUpDeliverable(line({ estimatedMinutes: 0 }), [
+      entry({ minutes: 480, deliverableId: "dlv_a" }),
+    ]);
+    expect(rolled.loggedMinutes).toBe(480);
+    expect(rolled.varianceMinutes).toBeNull();
+    expect(rolled.loggedShare).toBeNull();
   });
 });
