@@ -253,3 +253,49 @@ export function compareToEstimate(
     loggedShare: loggedShare(loggedMinutes, estimatedMinutes),
   };
 }
+
+/**
+ * The entries filed under the line each went against, in the order they
+ * arrived in.
+ *
+ * A map built in one pass rather than a filter per deliverable, so a project
+ * with thirty lines and two years of entries does not read the whole list
+ * thirty times to draw one table.
+ *
+ * Only attributed entries are in it. Time logged against the project itself is
+ * not missing from this map, it is not a member of it — the key would have to
+ * be null, and a bucket keyed on the absence of a line is the one bucket a
+ * caller would forget to exclude when summing the lines up.
+ *
+ * The order inside each bucket is the caller's, which is the data layer's:
+ * newest work first. Nothing here sorts, for the reason `groupTimeByDay` gives
+ * — a list that re-sorted its input would quietly disagree with whatever the
+ * query asked for.
+ */
+export function entriesByDeliverable<T extends AttributedEntry>(
+  entries: readonly T[],
+): Map<string, T[]> {
+  const byDeliverable = new Map<string, T[]>();
+  for (const entry of entries) {
+    if (entry.deliverableId === null) continue;
+    const bucket = byDeliverable.get(entry.deliverableId);
+    if (bucket === undefined) byDeliverable.set(entry.deliverableId, [entry]);
+    else bucket.push(entry);
+  }
+  return byDeliverable;
+}
+
+/**
+ * The entries that went against no line of scope.
+ *
+ * Its own function rather than a null key in the map above, because this is
+ * an answer and not a gap — the call, the invoicing, the afternoon of email —
+ * and the rollup reports it as a row of its own with no estimate beside it.
+ * Nothing is wrong with a project whose unattributed figure is large; what
+ * would be wrong is folding those minutes into a line that did not take them.
+ */
+export function unattributedEntries<T extends AttributedEntry>(
+  entries: readonly T[],
+): T[] {
+  return entries.filter((entry) => entry.deliverableId === null);
+}
