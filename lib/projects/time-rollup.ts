@@ -4,7 +4,10 @@ import type {
   DeliverableRollup,
   EstimateComparison,
   LoggedTotals,
+  ProjectRollup,
 } from "@/lib/time/rollup";
+
+import type { PanelFigure } from "./figure";
 
 import { formatSharePercent } from "./scope-summary";
 
@@ -260,5 +263,51 @@ export function rollupRow(line: DeliverableRollup): RollupRow {
     logged: describeLogged(line.loggedMinutes),
     notChargeable: describeNotChargeable(line),
     against: describeAgainstEstimate(line, line.delivered),
+  };
+}
+
+/**
+ * How many stretches of work a figure was built from, with the word for them.
+ *
+ * It is on the project's total and not on every row because that is where it
+ * is worth reading: twelve hours over an estimate is one piece of news if it
+ * came from one entry somebody mistyped and another if it came from nineteen
+ * afternoons. A count beside every row would be a column of small numbers
+ * nobody scans.
+ */
+function entriesPhrase(count: number): string {
+  return `${count} ${count === 1 ? "entry" : "entries"}`;
+}
+
+/**
+ * What the project's logged total is built from: how many entries, and how
+ * much of it will not be invoiced.
+ *
+ * Nothing logged says so plainly rather than counting nought entries. It is
+ * the ordinary state of a project in its first week and the sentence should
+ * read like a fact rather than like a measurement of emptiness.
+ */
+export function describeLoggedTotal(rollup: ProjectRollup): string {
+  if (rollup.entryCount === 0) {
+    return "No time has been logged against this project yet.";
+  }
+  const counted = `Across ${entriesPhrase(rollup.entryCount)}.`;
+  const free = describeNotChargeable(rollup);
+  return free === null ? counted : `${counted} ${free}.`;
+}
+
+/**
+ * What the project has logged, as a line of the panel.
+ *
+ * First, because every figure under it is a part of it or a judgement on it.
+ * It is also the one figure here that is a plain fact — the hours happened,
+ * whatever anybody estimated — and a panel of comparisons should open with
+ * the thing being compared.
+ */
+export function loggedFigure(rollup: ProjectRollup): PanelFigure {
+  return {
+    label: "Logged",
+    value: describeLogged(rollup.loggedMinutes),
+    note: describeLoggedTotal(rollup),
   };
 }
