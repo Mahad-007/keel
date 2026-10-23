@@ -6,6 +6,7 @@ import {
   describeNotChargeable,
   describeShare,
   describeVariance,
+  estimatedFigure,
   loggedFigure,
   rollupRow,
   DONE_WITH_NOTHING_LOGGED,
@@ -365,5 +366,49 @@ describe("what the project has logged, as a line of the panel", () => {
     );
     expect(figure.value).toBe(NOTHING_LOGGED_LABEL);
     expect(figure.note).toBe("No time has been logged against this project yet.");
+  });
+});
+
+describe("the estimate the hours are judged against", () => {
+  const sized = [
+    rolled({ deliverableId: "dlv_a", estimatedMinutes: 240 }),
+    rolled({ deliverableId: "dlv_b", estimatedMinutes: 120 }),
+  ];
+
+  it("shows the scope list's total with no caveat when every line is sized", () => {
+    expect(estimatedFigure(project({ lines: sized }))).toEqual({
+      label: "Estimated",
+      value: "6h",
+      note: null,
+    });
+  });
+
+  it("warns that the total does not cover the whole list", () => {
+    const lines = [sized[0], rolled({ deliverableId: "dlv_b", estimatedMinutes: 0 })];
+    const figure = estimatedFigure(
+      project({ lines, estimatedMinutes: 240 }),
+    );
+    expect(figure.value).toBe("4h");
+    expect(figure.note).toBe(
+      "1 of 2 deliverables has no estimate, so this total does not cover the whole list.",
+    );
+  });
+
+  it("says a wholly unsized list has nothing to total", () => {
+    const lines = [rolled({ estimatedMinutes: 0 })];
+    const figure = estimatedFigure(project({ lines, estimatedMinutes: 0 }));
+    expect(figure.value).toBe("Not estimated");
+    expect(figure.note).toBe(
+      "No line on the list has an estimate on it, so there is nothing to total.",
+    );
+  });
+
+  it("says a project with no scope list has nothing to set hours against", () => {
+    // Not "no line has an estimate", which would send a reader looking for
+    // lines to fill in when the list itself is what is missing.
+    const figure = estimatedFigure(project({ lines: [], estimatedMinutes: 0 }));
+    expect(figure.note).toBe(
+      "No deliverables have been agreed, so there is nothing for these hours to be set against.",
+    );
   });
 });
