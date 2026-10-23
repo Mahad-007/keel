@@ -1,5 +1,5 @@
 import { isEstimated } from "@/lib/deliverables/list";
-import type { ScopeLine } from "@/lib/scope";
+import { isDelivered, type ScopeLine } from "@/lib/scope";
 
 import { billableMinutes, totalMinutes, type LoggedEntry } from "./days";
 
@@ -298,4 +298,31 @@ export function unattributedEntries<T extends AttributedEntry>(
   entries: readonly T[],
 ): T[] {
   return entries.filter((entry) => entry.deliverableId === null);
+}
+
+/**
+ * One line of the rollup: a deliverable and the time already filed under it.
+ *
+ * The entries are that line's, not the project's. Taking the bucket rather
+ * than the whole list and filtering again is what keeps `rollUpProject` to one
+ * pass over the time entries however many deliverables a project has — and the
+ * bucket is the one `entriesByDeliverable` built, so the filing rule lives in
+ * exactly one place.
+ *
+ * `delivered` is read through `isDelivered` rather than compared here, so a
+ * line this calls finished is a line the scope summary calls finished. The two
+ * sit on the same project page and would be read against each other.
+ */
+export function rollUpDeliverable(
+  deliverable: RolledUpDeliverable,
+  entries: readonly AttributedEntry[],
+): DeliverableRollup {
+  const totals = loggedTotals(entries);
+  return {
+    deliverableId: deliverable.id,
+    title: deliverable.title,
+    delivered: isDelivered(deliverable),
+    ...totals,
+    ...compareToEstimate(totals.loggedMinutes, deliverable.estimatedMinutes),
+  };
 }
