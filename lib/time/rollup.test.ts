@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  loggedShare,
   loggedTotals,
   varianceMinutes,
   type AttributedEntry,
@@ -84,5 +85,38 @@ describe("how far logged time has run past its estimate", () => {
     // Only a hand-edited row gets here. The figure is odd and visible, which
     // is the point — a line missing from the column is harder to find.
     expect(varianceMinutes(60, -120)).toBe(180);
+  });
+});
+
+describe("how much of an estimate the logged time has used", () => {
+  it("reads half an estimate as half", () => {
+    expect(loggedShare(120, 240)).toBe(0.5);
+  });
+
+  it("reads a line logged to its estimate as all of it", () => {
+    expect(loggedShare(240, 240)).toBe(1);
+  });
+
+  it("leaves a runaway line above one rather than capping it", () => {
+    // 240% is the most useful figure this file produces. Clamping it would
+    // make a line that has taken two and a half times its estimate look done.
+    expect(loggedShare(600, 240)).toBe(2.5);
+  });
+
+  it("reads an estimated line nobody has logged against as nothing used", () => {
+    expect(loggedShare(0, 240)).toBe(0);
+  });
+
+  it("has no share to take of a line nobody estimated", () => {
+    expect(loggedShare(360, 0)).toBeNull();
+  });
+
+  it("has no share to take of a negative estimate", () => {
+    // Dividing by it would flip the sign and report the line as healthy.
+    expect(loggedShare(360, -240)).toBeNull();
+  });
+
+  it("does not round, leaving that to whatever prints it", () => {
+    expect(loggedShare(100, 300)).toBeCloseTo(1 / 3, 12);
   });
 });
