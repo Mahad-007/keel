@@ -359,3 +359,54 @@ export function unmatchedMinutes(
     ),
   );
 }
+
+/**
+ * The whole rollup for one project: every line of scope with its time against
+ * its estimate, the time that went against no line, and the project's own
+ * totals.
+ *
+ * The two arguments come from different tables, which is exactly why the
+ * comparison is never made: the estimates are on the scope list and the hours
+ * are on the time list, and nothing until now has divided one by the other.
+ * One call, one read of each, and every figure on the table is consistent with
+ * every other by construction.
+ *
+ * Every deliverable gets a row, including the ones nothing has been logged
+ * against. A rollup that only listed the lines with time on them would be a
+ * list of the work that is happening, and the interesting row is often the
+ * eight-hour line three weeks in that nobody has started.
+ *
+ * The project's totals are taken over all the entries rather than summed from
+ * the rows. That is the figure to trust: it is true whether or not anybody
+ * attributes their time, where a sum of the rows silently drops the
+ * unattributed and the unmatched. The parts are reported beside it so a reader
+ * can see where the difference went.
+ *
+ * The project's estimate is `totalEstimatedMinutes` of the same lines — the
+ * Day 015 figure, from the Day 015 function, so the total at the bottom of
+ * this table is the one the scope summary shows on the tab next door.
+ */
+export function rollUpProject(
+  deliverables: readonly RolledUpDeliverable[],
+  entries: readonly AttributedEntry[],
+): ProjectRollup {
+  const byDeliverable = entriesByDeliverable(entries);
+  const lines = deliverables.map((deliverable) =>
+    rollUpDeliverable(deliverable, byDeliverable.get(deliverable.id) ?? []),
+  );
+
+  const totals = loggedTotals(entries);
+  return {
+    lines,
+    unattributed: loggedTotals(unattributedEntries(entries)),
+    unmatchedMinutes: unmatchedMinutes(
+      entries,
+      new Set(deliverables.map((deliverable) => deliverable.id)),
+    ),
+    ...totals,
+    ...compareToEstimate(
+      totals.loggedMinutes,
+      totalEstimatedMinutes(deliverables),
+    ),
+  };
+}
