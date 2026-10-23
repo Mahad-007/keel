@@ -1,6 +1,6 @@
 import { describeEstimate } from "@/lib/deliverables/list";
 import { formatMinutes } from "@/lib/minutes";
-import { unestimatedCount } from "@/lib/scope";
+import { negativeEstimateCount, unestimatedCount } from "@/lib/scope";
 import type {
   DeliverableRollup,
   EstimateComparison,
@@ -549,6 +549,35 @@ export function describeRollupTable(rollup: ProjectRollup): string {
         ? "One has gone past its estimate."
         : `${over} have gone past their estimates.`;
   return `${having} ${past}`;
+}
+
+/**
+ * Why a row says a line nobody has touched is already over, when it does.
+ *
+ * A negative estimate. Nothing in the app writes one — the estimate field
+ * refuses it — so the row was written straight to the database, and the
+ * arithmetic here does not repair it: a line estimated at minus two hours
+ * with nothing logged against it comes out as two hours over, which is the
+ * single most confusing cell this table can produce.
+ *
+ * Counted off the lines rather than inferred from the figures, the same way
+ * `describeEstimateProblem` does it for the scope summary, because the
+ * figures are exactly what a cancelling pair of lines hides: plus two hours
+ * and minus two hours leave the project's estimate reading nought, and the
+ * panel would then say the project is unestimated while two of its lines are
+ * sized.
+ *
+ * It points at the scope list rather than explaining the arithmetic, because
+ * that is where the bad row is visible and where it can be fixed.
+ */
+export function describeNegativeEstimates(
+  rollup: ProjectRollup,
+): string | null {
+  const bad = negativeEstimateCount(rollup.lines);
+  if (bad === 0) return null;
+  const subject =
+    bad === 1 ? "One deliverable has" : `${deliverablesPhrase(bad)} have`;
+  return `${subject} a negative estimate, so the comparisons here do not mean what they say — a line sized below zero reads as over before anything is logged against it. The form will not accept one, so the row was written straight to the database; the scope list shows which.`;
 }
 
 /**
