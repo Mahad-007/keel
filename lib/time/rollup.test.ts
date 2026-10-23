@@ -7,6 +7,7 @@ import {
   loggedTotals,
   rollUpDeliverable,
   unattributedEntries,
+  unmatchedMinutes,
   varianceMinutes,
   type AttributedEntry,
   type RolledUpDeliverable,
@@ -279,5 +280,37 @@ describe("rolling one deliverable up against its estimate", () => {
     expect(rolled.loggedMinutes).toBe(480);
     expect(rolled.varianceMinutes).toBeNull();
     expect(rolled.loggedShare).toBeNull();
+  });
+});
+
+describe("time attributed to a line the rollup was not given", () => {
+  const known = new Set(["dlv_a"]);
+
+  it("comes to nothing when every attribution is one of the lines", () => {
+    expect(
+      unmatchedMinutes([entry({ deliverableId: "dlv_a" })], known),
+    ).toBe(0);
+  });
+
+  it("counts the minutes pointing at a line that is not there", () => {
+    expect(
+      unmatchedMinutes(
+        [
+          entry({ minutes: 90, deliverableId: "dlv_a" }),
+          entry({ minutes: 45, deliverableId: "dlv_gone" }),
+        ],
+        known,
+      ),
+    ).toBe(45);
+  });
+
+  it("does not count unattributed time, which is an answer and not a gap", () => {
+    expect(unmatchedMinutes([entry({ deliverableId: null })], known)).toBe(0);
+  });
+
+  it("counts everything when the rollup was given no lines at all", () => {
+    expect(
+      unmatchedMinutes([entry({ minutes: 60, deliverableId: "dlv_a" })], new Set()),
+    ).toBe(60);
   });
 });
