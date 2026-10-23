@@ -399,3 +399,46 @@ describe("rolling a whole project up against its scope list", () => {
     expect(rolled.loggedShare).toBe(0);
   });
 });
+
+describe("the project total against the parts it is made of", () => {
+  const scope = [
+    line({ id: "dlv_a", estimatedMinutes: 240 }),
+    line({ id: "dlv_b", estimatedMinutes: 120 }),
+  ];
+
+  function parts(rolled: ReturnType<typeof rollUpProject>): number {
+    const onLines = rolled.lines.reduce(
+      (sum, one) => sum + one.loggedMinutes,
+      0,
+    );
+    return onLines + rolled.unattributed.loggedMinutes + rolled.unmatchedMinutes;
+  }
+
+  it("adds up when every entry is attributed to a line", () => {
+    const rolled = rollUpProject(scope, [
+      entry({ minutes: 90, deliverableId: "dlv_a" }),
+      entry({ minutes: 45, deliverableId: "dlv_b" }),
+    ]);
+    expect(parts(rolled)).toBe(rolled.loggedMinutes);
+  });
+
+  it("adds up with loose time in the list", () => {
+    const rolled = rollUpProject(scope, [
+      entry({ minutes: 90, deliverableId: "dlv_a" }),
+      entry({ minutes: 45, deliverableId: null }),
+    ]);
+    expect(parts(rolled)).toBe(rolled.loggedMinutes);
+  });
+
+  it("adds up with an entry pointing at a line the rollup does not hold", () => {
+    // The stale-page case. The unmatched figure is what keeps the table's
+    // column equal to the total under it.
+    const rolled = rollUpProject(scope, [
+      entry({ minutes: 90, deliverableId: "dlv_a" }),
+      entry({ minutes: 25, deliverableId: "dlv_gone" }),
+    ]);
+    expect(rolled.unmatchedMinutes).toBe(25);
+    expect(rolled.loggedMinutes).toBe(115);
+    expect(parts(rolled)).toBe(rolled.loggedMinutes);
+  });
+});
