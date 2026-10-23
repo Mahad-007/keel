@@ -1,4 +1,5 @@
 import { formatMinutes } from "@/lib/minutes";
+import type { EstimateComparison } from "@/lib/time/rollup";
 
 import { formatSharePercent } from "./scope-summary";
 
@@ -107,4 +108,64 @@ export function describeVariance(
 export function describeShare(share: number | null): string | null {
   if (share === null || share === 0 || share === 1) return null;
   return `${formatSharePercent(share)} of it`;
+}
+
+/**
+ * What the comparison cell reads on a line nobody sized.
+ *
+ * It says there is no estimate rather than printing a dash, because a dash in
+ * a column of judgements reads as a figure that failed to load. And it says
+ * *compare* rather than "none", because the line is not missing data a reader
+ * should go and type in — it is missing the one number this column divides
+ * by, and the hours beside it are still perfectly real.
+ */
+export const NO_ESTIMATE_TO_COMPARE = "No estimate to compare";
+
+/**
+ * What the comparison cell reads on a finished line with no time against it.
+ *
+ * The arithmetic would say the line came in under by its whole estimate,
+ * which is the most flattering sentence this table could produce and almost
+ * never the true one. Work that was handed over took time; what has happened
+ * is that the time was logged against the project, or against another line,
+ * or not at all. Saying the estimate was beaten would turn a gap in the
+ * record into a win.
+ *
+ * It is also the row that makes every other figure on the table suspect, so
+ * it is worth naming rather than folding into "4h under" where a reader
+ * scanning the column would never stop on it.
+ */
+export const DONE_WITH_NOTHING_LOGGED = "Marked done with nothing logged";
+
+/**
+ * What a line, or a whole project, has done to its estimate: the difference
+ * and — where it adds anything — the share.
+ *
+ * Both in one cell rather than two columns, because they are one judgement
+ * read at two scales and splitting them would put a mostly-empty column on
+ * the table. A middle dot between them, the same separator a day heading uses
+ * for its qualifying figures.
+ *
+ * The two refusals come first and in this order. No estimate means there is
+ * nothing to say at all. A delivered line with no hours against it has
+ * arithmetic that would say the wrong thing, so it is answered before the
+ * arithmetic runs.
+ *
+ * `delivered` is a separate argument rather than a field, because a project
+ * has no such thing — a project is never handed over, it is closed — and
+ * inventing a field for it would invite a caller to ask whether this one is
+ * done.
+ */
+export function describeAgainstEstimate(
+  compared: EstimateComparison & { readonly loggedMinutes: number },
+  delivered: boolean,
+): string {
+  if (compared.varianceMinutes === null) return NO_ESTIMATE_TO_COMPARE;
+  if (delivered && compared.loggedMinutes === 0) {
+    return DONE_WITH_NOTHING_LOGGED;
+  }
+
+  const variance = describeVariance(compared.varianceMinutes, delivered);
+  const share = describeShare(compared.loggedShare);
+  return share === null ? variance : `${variance} · ${share}`;
 }
