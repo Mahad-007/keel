@@ -6,6 +6,7 @@ import {
   describeLogged,
   describeNotChargeable,
   describeShare,
+  describeRollupTable,
   describeUnmatchedTime,
   describeVariance,
   estimatedFigure,
@@ -537,6 +538,78 @@ describe("why the rows might not add up to the total", () => {
   it("tells the reader the move that fixes it", () => {
     expect(describeUnmatchedTime(project({ unmatchedMinutes: 25 }))).toContain(
       "reloading",
+    );
+  });
+});
+
+describe("the line above the rollup table", () => {
+  const over = rolled({ deliverableId: "dlv_a", varianceMinutes: 120 });
+  const under = rolled({
+    deliverableId: "dlv_b",
+    loggedMinutes: 60,
+    billableMinutes: 60,
+    varianceMinutes: -180,
+    loggedShare: 0.25,
+  });
+  const untouched = rolled({
+    deliverableId: "dlv_c",
+    loggedMinutes: 0,
+    billableMinutes: 0,
+    entryCount: 0,
+    varianceMinutes: -240,
+    loggedShare: 0,
+  });
+
+  it("says when the one line has no time against it", () => {
+    expect(describeRollupTable(project({ lines: [untouched] }))).toBe(
+      "1 deliverable, with no time logged against it yet.",
+    );
+  });
+
+  it("says when none of several lines has any time against it", () => {
+    const second = rolled({ ...untouched, deliverableId: "dlv_d" });
+    expect(
+      describeRollupTable(project({ lines: [untouched, second] })),
+    ).toBe("2 deliverables, with no time logged against any of them yet.");
+  });
+
+  it("counts the lines with time and says none has run over", () => {
+    expect(describeRollupTable(project({ lines: [under, untouched] }))).toBe(
+      "2 deliverables, 1 of them with time logged. None has gone past its estimate.",
+    );
+  });
+
+  it("names a single overrun in the singular", () => {
+    expect(describeRollupTable(project({ lines: [over, under] }))).toBe(
+      "2 deliverables, 2 of them with time logged. One has gone past its estimate.",
+    );
+  });
+
+  it("counts several overruns", () => {
+    const another = rolled({ deliverableId: "dlv_d", varianceMinutes: 30 });
+    expect(
+      describeRollupTable(project({ lines: [over, another, under] })),
+    ).toBe(
+      "3 deliverables, 3 of them with time logged. 2 have gone past their estimates.",
+    );
+  });
+
+  it("speaks of a lone line as itself", () => {
+    expect(describeRollupTable(project({ lines: [over] }))).toBe(
+      "1 deliverable, with time logged against it. It has gone past its estimate.",
+    );
+  });
+
+  it("does not count an unsized line as having run over", () => {
+    // It has no estimate to be past, however many hours went into it.
+    const unsized = rolled({
+      deliverableId: "dlv_e",
+      estimatedMinutes: 0,
+      varianceMinutes: null,
+      loggedShare: null,
+    });
+    expect(describeRollupTable(project({ lines: [unsized] }))).toBe(
+      "1 deliverable, with time logged against it. It has not gone past its estimate.",
     );
   });
 });

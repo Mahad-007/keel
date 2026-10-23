@@ -523,22 +523,30 @@ export function describeUnmatchedTime(rollup: ProjectRollup): string | null {
  * about bookkeeping rather than about the work.
  */
 export function describeRollupTable(rollup: ProjectRollup): string {
-  const counted = deliverablesPhrase(rollup.lines.length);
-  const worked = rollup.lines.filter(
-    (line) => line.loggedMinutes > 0,
-  ).length;
+  const { lines } = rollup;
+  const alone = lines.length === 1;
+  const counted = deliverablesPhrase(lines.length);
+  const worked = lines.filter((line) => line.loggedMinutes > 0).length;
   if (worked === 0) {
-    return `${counted}, none of them with any time logged against it yet.`;
+    return `${counted}, with no time logged against ${
+      alone ? "it" : "any of them"
+    } yet.`;
   }
 
-  const over = rollup.lines.filter(
+  const over = lines.filter(
     (line) => line.varianceMinutes !== null && line.varianceMinutes > 0,
   ).length;
-  const past =
-    over === 0
+  const having = alone
+    ? `${counted}, with time logged against it.`
+    : `${counted}, ${worked} of them with time logged.`;
+  const past = alone
+    ? over === 1
+      ? "It has gone past its estimate."
+      : "It has not gone past its estimate."
+    : over === 0
       ? "None has gone past its estimate."
       : over === 1
         ? "One has gone past its estimate."
         : `${over} have gone past their estimates.`;
-  return `${counted}, ${worked} of them with time logged. ${past}`;
+  return `${having} ${past}`;
 }
