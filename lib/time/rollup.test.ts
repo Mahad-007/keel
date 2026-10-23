@@ -6,6 +6,7 @@ import {
   loggedShare,
   loggedTotals,
   rollUpDeliverable,
+  rollUpProject,
   unattributedEntries,
   unmatchedMinutes,
   varianceMinutes,
@@ -312,5 +313,89 @@ describe("time attributed to a line the rollup was not given", () => {
     expect(
       unmatchedMinutes([entry({ minutes: 60, deliverableId: "dlv_a" })], new Set()),
     ).toBe(60);
+  });
+});
+
+describe("rolling a whole project up against its scope list", () => {
+  const scope = [
+    line({ id: "dlv_a", title: "Homepage build", estimatedMinutes: 240 }),
+    line({ id: "dlv_b", title: "Revision round", estimatedMinutes: 120 }),
+  ];
+
+  it("gives every line a row, in the order the scope list was agreed in", () => {
+    const rolled = rollUpProject(scope, []);
+    expect(rolled.lines.map((one) => one.title)).toEqual([
+      "Homepage build",
+      "Revision round",
+    ]);
+  });
+
+  it("sends each entry to the line it was attributed to", () => {
+    const rolled = rollUpProject(scope, [
+      entry({ minutes: 300, deliverableId: "dlv_a" }),
+      entry({ minutes: 30, deliverableId: "dlv_b" }),
+    ]);
+    expect(rolled.lines[0].loggedMinutes).toBe(300);
+    expect(rolled.lines[0].varianceMinutes).toBe(60);
+    expect(rolled.lines[1].loggedMinutes).toBe(30);
+    expect(rolled.lines[1].varianceMinutes).toBe(-90);
+  });
+
+  it("keeps a row for a line nothing has been logged against", () => {
+    // The eight-hour line three weeks in that nobody has started is the row
+    // worth looking at, and a table of only the busy lines would drop it.
+    const rolled = rollUpProject(scope, [
+      entry({ minutes: 60, deliverableId: "dlv_a" }),
+    ]);
+    expect(rolled.lines).toHaveLength(2);
+    expect(rolled.lines[1].loggedMinutes).toBe(0);
+  });
+
+  it("totals the project's estimate as the scope summary does", () => {
+    expect(rollUpProject(scope, []).estimatedMinutes).toBe(360);
+  });
+
+  it("sets the project's logged time against that estimate", () => {
+    const rolled = rollUpProject(scope, [
+      entry({ minutes: 300, deliverableId: "dlv_a" }),
+      entry({ minutes: 180, deliverableId: "dlv_b" }),
+    ]);
+    expect(rolled.loggedMinutes).toBe(480);
+    expect(rolled.varianceMinutes).toBe(120);
+    expect(rolled.loggedShare).toBe(480 / 360);
+  });
+
+  it("reports the time that went against no line on its own", () => {
+    const rolled = rollUpProject(scope, [
+      entry({ minutes: 45, deliverableId: null }),
+      entry({ minutes: 60, deliverableId: "dlv_a" }),
+    ]);
+    expect(rolled.unattributed.loggedMinutes).toBe(45);
+    expect(rolled.unattributed.entryCount).toBe(1);
+    expect(rolled.lines[0].loggedMinutes).toBe(60);
+  });
+
+  it("counts unattributed time in the project total all the same", () => {
+    // It happened, and the project paid for it. Only the rows leave it out.
+    const rolled = rollUpProject(scope, [entry({ minutes: 45 })]);
+    expect(rolled.loggedMinutes).toBe(45);
+    expect(rolled.entryCount).toBe(1);
+  });
+
+  it("rolls a project with no scope list up to a total and no rows", () => {
+    const rolled = rollUpProject([], [entry({ minutes: 45 })]);
+    expect(rolled.lines).toEqual([]);
+    expect(rolled.loggedMinutes).toBe(45);
+    expect(rolled.estimatedMinutes).toBe(0);
+    expect(rolled.varianceMinutes).toBeNull();
+  });
+
+  it("rolls a project nobody has logged against up to zeroes", () => {
+    const rolled = rollUpProject(scope, []);
+    expect(rolled.loggedMinutes).toBe(0);
+    expect(rolled.entryCount).toBe(0);
+    expect(rolled.unattributed.loggedMinutes).toBe(0);
+    expect(rolled.unmatchedMinutes).toBe(0);
+    expect(rolled.loggedShare).toBe(0);
   });
 });
