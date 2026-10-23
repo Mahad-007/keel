@@ -519,6 +519,16 @@ describe("the hours that went against no line of scope", () => {
     expect(figure.note).not.toContain("most of the time logged");
   });
 
+  it("does not contradict the caveat about time it cannot place", () => {
+    // Nothing went against the project itself, but minutes point at a line
+    // this page does not have. Claiming every entry is attributed would
+    // disagree with the caveat printed directly above the figures.
+    const figure = unattributedFigure(
+      project({ lines: [rolled()], unmatchedMinutes: 25 }),
+    );
+    expect(figure.note).toBeNull();
+  });
+
   it("has no opinion on a project with nothing logged at all", () => {
     const figure = unattributedFigure(
       project({ entryCount: 0, loggedMinutes: 0, billableMinutes: 0 }),

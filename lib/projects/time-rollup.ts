@@ -465,6 +465,15 @@ export function describeUnattributed(rollup: ProjectRollup): string | null {
 
   const loose = rollup.unattributed;
   if (loose.loggedMinutes === 0) {
+    /*
+      Nothing went against the project itself — but with minutes pointing at a
+      line this page does not have, "every entry is attributed to a line of
+      the scope list" would contradict the caveat printed directly above it.
+      Both would be about the same stale read, and the reader would have to
+      decide which of the two to believe. The caveat is the one with the
+      explanation in it, so this says nothing.
+    */
+    if (rollup.unmatchedMinutes > 0) return null;
     return "Every entry on this project is attributed to a line of the scope list.";
   }
 
