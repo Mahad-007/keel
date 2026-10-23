@@ -343,3 +343,46 @@ export function estimatedFigure(rollup: ProjectRollup): PanelFigure {
           ),
   };
 }
+
+/**
+ * The working behind the project's comparison, or what to do when there is
+ * none.
+ *
+ * The division written out — "6h estimated, 7h 15m logged" — because a
+ * derived figure with no working beside it is one a reader either trusts
+ * blindly or ignores, and this one is consequential enough that neither is
+ * acceptable. The same reasoning the implied rate's note follows, and the
+ * same two numbers are already on the panel above, so the sentence is a
+ * reconciliation rather than new information.
+ *
+ * With nothing estimated the sentence says what would make the figure work
+ * rather than restating the absence. The estimate figure above has already
+ * said the list is unsized; what a reader needs here is that sizing it is
+ * what turns this panel on.
+ */
+export function describeProjectComparison(rollup: ProjectRollup): string {
+  if (rollup.varianceMinutes === null) {
+    return "Put an estimate on the deliverables and this figure starts saying whether the project is running over.";
+  }
+  return `${formatMinutes(rollup.estimatedMinutes)} estimated, ${formatMinutes(
+    rollup.loggedMinutes,
+  )} logged.`;
+}
+
+/**
+ * How the project as a whole stands against its scope list, as a line of the
+ * panel.
+ *
+ * `delivered` is false, always. A project is never handed over — it is
+ * closed, which is a different act with its own status column — so the
+ * unspent half of an estimate is budget left rather than budget that was
+ * never needed. Reading a closed project's remaining estimate as "came in
+ * under" would be a judgement this panel has no business making.
+ */
+export function againstEstimateFigure(rollup: ProjectRollup): PanelFigure {
+  return {
+    label: ROLLUP_COLUMNS.against,
+    value: describeAgainstEstimate(rollup, false),
+    note: describeProjectComparison(rollup),
+  };
+}
