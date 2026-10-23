@@ -1,5 +1,10 @@
+import { describeEstimate } from "@/lib/deliverables/list";
 import { formatMinutes } from "@/lib/minutes";
-import type { EstimateComparison, LoggedTotals } from "@/lib/time/rollup";
+import type {
+  DeliverableRollup,
+  EstimateComparison,
+  LoggedTotals,
+} from "@/lib/time/rollup";
 
 import { formatSharePercent } from "./scope-summary";
 
@@ -214,3 +219,46 @@ export const ROLLUP_COLUMNS = {
   logged: "Logged",
   against: "Against the estimate",
 } as const;
+
+/**
+ * One row of the rollup table, already in words.
+ *
+ * Every cell is a string by the time it reaches the markup, because three of
+ * the four are sometimes a sentence rather than a figure — "Not estimated",
+ * "None yet", "No estimate to compare" — and a component deciding that per
+ * cell would be making the same judgement in four places with no test over
+ * any of them.
+ *
+ * The id travels with the row as its key. Two deliverables can share a title
+ * — "Revision round" twice is ordinary — so keying on the title would make
+ * React reuse the wrong row the moment one of them moved.
+ */
+export type RollupRow = {
+  readonly deliverableId: string;
+  readonly title: string;
+  readonly estimated: string;
+  readonly logged: string;
+  /** The part of the logged time that will not be invoiced, or null. */
+  readonly notChargeable: string | null;
+  readonly against: string;
+};
+
+/**
+ * One rolled-up deliverable as the table shows it.
+ *
+ * The estimate goes through `describeEstimate`, the same function the scope
+ * list calls on each of its lines, so a deliverable this table calls "Not
+ * estimated" is one the scope tab calls "Not estimated" too. Writing the zero
+ * check out again here is how two pages end up disagreeing about what a
+ * missing estimate is.
+ */
+export function rollupRow(line: DeliverableRollup): RollupRow {
+  return {
+    deliverableId: line.deliverableId,
+    title: line.title,
+    estimated: describeEstimate(line.estimatedMinutes),
+    logged: describeLogged(line.loggedMinutes),
+    notChargeable: describeNotChargeable(line),
+    against: describeAgainstEstimate(line, line.delivered),
+  };
+}
