@@ -1,5 +1,7 @@
 import { formatMinutes } from "@/lib/minutes";
 
+import { formatSharePercent } from "./scope-summary";
+
 /**
  * The words a time rollup is read in.
  *
@@ -80,4 +82,29 @@ export function describeVariance(
   if (varianceMinutes === 0) return ON_THE_ESTIMATE_LABEL;
   const unspent = formatMinutes(-varianceMinutes);
   return delivered ? `${unspent} under` : `${unspent} left`;
+}
+
+/**
+ * How much of the estimate has gone, as a percentage — or nothing at all,
+ * when the percentage would only repeat the figure beside it.
+ *
+ * Three shares say nothing new. No share at all means there was no estimate
+ * to take one of, which the cell has already said in words. Nought percent is
+ * a line with nothing logged, which the logged column has already said.
+ * Exactly one is a line on its estimate, which is what "On the estimate"
+ * means. Printing those would put a number in every row and teach a reader to
+ * stop looking at the column.
+ *
+ * Everywhere else it earns its place, because the difference alone cannot
+ * scale: twenty minutes over is nothing on a forty-hour line and half as much
+ * work again on a half-hour one, and 101% against 167% is the only part of
+ * the row that says which.
+ *
+ * `formatSharePercent` rather than a second rounding written here, so the two
+ * shares on a project page — the scope summary's delivered share and this one
+ * — round the same way and treat the same near-misses the same.
+ */
+export function describeShare(share: number | null): string | null {
+  if (share === null || share === 0 || share === 1) return null;
+  return `${formatSharePercent(share)} of it`;
 }

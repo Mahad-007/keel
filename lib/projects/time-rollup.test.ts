@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   describeLogged,
+  describeShare,
   describeVariance,
   NOTHING_LOGGED_LABEL,
   ON_THE_ESTIMATE_LABEL,
@@ -48,5 +49,40 @@ describe("the words for a difference against an estimate", () => {
 
   it("takes the sign off, because the direction is in the word", () => {
     expect(describeVariance(-90, false)).not.toContain("-");
+  });
+});
+
+describe("the share of an estimate that has gone", () => {
+  it("says how much of the estimate a line has used", () => {
+    expect(describeShare(1.5)).toBe("150% of it");
+  });
+
+  it("rounds the way the scope summary's share rounds", () => {
+    expect(describeShare(0.254)).toBe("25% of it");
+  });
+
+  it("keeps a runaway line's share rather than capping it", () => {
+    expect(describeShare(4)).toBe("400% of it");
+  });
+
+  it("says nothing when there was no estimate to take a share of", () => {
+    expect(describeShare(null)).toBeNull();
+  });
+
+  it("says nothing at nought, which the logged column has already said", () => {
+    expect(describeShare(0)).toBeNull();
+  });
+
+  it("says nothing at exactly one, which is what on-the-estimate means", () => {
+    expect(describeShare(1)).toBeNull();
+  });
+
+  it("does not round a line barely started up to nothing", () => {
+    // A half-day against a three-month estimate really is less than 1%.
+    expect(describeShare(0.001)).toBe("less than 1% of it");
+  });
+
+  it("does not round a line short of its estimate up to all of it", () => {
+    expect(describeShare(0.999)).toBe("more than 99% of it");
   });
 });
