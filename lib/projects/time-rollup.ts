@@ -642,7 +642,7 @@ export function describeRollupTable(rollup: ProjectRollup): string {
   const having = alone
     ? `${counted}, with time logged against it.`
     : `${counted}, ${worked} of them with time logged.`;
-  return `${having} ${describePastEstimate(lines, alone)}`;
+  return `${having} ${describePastEstimate(lines)}`;
 }
 
 /**
@@ -670,11 +670,15 @@ export function describeRollupTable(rollup: ProjectRollup): string {
  * Only the reassurance is qualified. "One has gone past its estimate" claims
  * nothing about the lines it leaves out, so a reader cannot take comfort from
  * it that the unsized rows do not support.
+ *
+ * The lone-line wordings are picked off `lines` rather than from a flag the
+ * caller works out and passes in. Two arguments where one decides the other
+ * can be handed a contradictory pair, and the singular branches rely on that
+ * invariant: `over === 1` below is really `over > 0`, safe only on a list of
+ * one.
  */
-function describePastEstimate(
-  lines: readonly DeliverableRollup[],
-  alone: boolean,
-): string {
+function describePastEstimate(lines: readonly DeliverableRollup[]): string {
+  const alone = lines.length === 1;
   const comparable = lines.filter(
     (line) => line.varianceMinutes !== null,
   ).length;
