@@ -328,7 +328,7 @@ function entriesPhrase(count: number): string {
  * the ordinary state of a project in its first week and the sentence should
  * read like a fact rather than like a measurement of emptiness.
  */
-export function describeLoggedTotal(rollup: ProjectRollup): string {
+function describeLoggedTotal(rollup: ProjectRollup): string {
   if (!hasTimeToRollUp(rollup)) {
     return "No time has been logged against this project yet.";
   }
@@ -414,7 +414,7 @@ export function estimatedFigure(rollup: ProjectRollup): PanelFigure {
  * than rows filling in, and the caveat above the panel says which. Only the
  * ordinary unsized list is asked to be sized.
  */
-export function describeProjectComparison(rollup: ProjectRollup): string {
+function describeProjectComparison(rollup: ProjectRollup): string {
   if (rollup.varianceMinutes !== null) {
     return `${formatMinutes(rollup.estimatedMinutes)} estimated, ${formatMinutes(
       rollup.loggedMinutes,
@@ -482,7 +482,7 @@ const MOSTLY_UNATTRIBUTED = 0.5;
  * Nothing at all when nothing has been logged. There is then no attribution
  * to have an opinion about, and the logged figure above has already said so.
  */
-export function describeUnattributed(rollup: ProjectRollup): string | null {
+function describeUnattributed(rollup: ProjectRollup): string | null {
   if (!hasTimeToRollUp(rollup)) return null;
 
   const loose = rollup.unattributed;
