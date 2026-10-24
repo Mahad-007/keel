@@ -53,6 +53,7 @@ function project(fields: Partial<ProjectRollup> = {}): ProjectRollup {
     lines: [],
     unattributed: { entryCount: 0, loggedMinutes: 0, billableMinutes: 0 },
     unmatchedMinutes: 0,
+    scopeDelivered: false,
     entryCount: 3,
     loggedMinutes: 435,
     billableMinutes: 435,
@@ -453,14 +454,18 @@ describe("how the whole project stands against its scope list", () => {
     // Nothing is left for the remaining estimate to be spent on, so "3h
     // left" would invite hours against a finished agreement.
     const figure = againstEstimateFigure(
-      project({ ...unspent, lines: [rolled({ delivered: true })] }),
+      project({
+        ...unspent,
+        lines: [rolled({ delivered: true })],
+        scopeDelivered: true,
+      }),
     );
     expect(figure.value).toBe("3h under · 50% of it");
   });
 
   it("does not call an overrun under, whatever the scope list says", () => {
     const figure = againstEstimateFigure(
-      project({ lines: [rolled({ delivered: true })] }),
+      project({ lines: [rolled({ delivered: true })], scopeDelivered: true }),
     );
     expect(figure.value).toBe("1h 15m over · 121% of it");
   });

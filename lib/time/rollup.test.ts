@@ -7,7 +7,6 @@ import {
   loggedTotals,
   rollUpDeliverable,
   rollUpProject,
-  scopeDelivered,
   unattributedEntries,
   unmatchedMinutes,
   varianceMinutes,
@@ -445,12 +444,12 @@ describe("the project total against the parts it is made of", () => {
 });
 
 describe("whether the whole scope list is done", () => {
-  it("calls a list whose every line is delivered done", () => {
+  it("carries a list whose every line is delivered as done", () => {
     const rollup = rollUpProject(
       [line({ status: "done" }), line({ id: "dlv_b", status: "done" })],
       [],
     );
-    expect(scopeDelivered(rollup)).toBe(true);
+    expect(rollup.scopeDelivered).toBe(true);
   });
 
   it("is not done while one line is still open", () => {
@@ -458,17 +457,11 @@ describe("whether the whole scope list is done", () => {
       [line({ status: "done" }), line({ id: "dlv_b", status: "pending" })],
       [],
     );
-    expect(scopeDelivered(rollup)).toBe(false);
-  });
-
-  it("is not done while a line is started, as the scope summary has it", () => {
-    const rollup = rollUpProject([line({ status: "started" })], []);
-    expect(scopeDelivered(rollup)).toBe(false);
+    expect(rollup.scopeDelivered).toBe(false);
   });
 
   it("refuses to call a project with no scope list done", () => {
-    // There is no agreement to have finished, and calling one complete would
-    // read every project nobody has scoped as a success.
-    expect(scopeDelivered(rollUpProject([], []))).toBe(false);
+    // `allDelivered` decides this; the rollup only carries the answer.
+    expect(rollUpProject([], []).scopeDelivered).toBe(false);
   });
 });

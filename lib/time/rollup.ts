@@ -1,5 +1,6 @@
 import { isEstimated } from "@/lib/deliverables/list";
 import {
+  allDelivered,
   isDelivered,
   totalEstimatedMinutes,
   type ScopeLine,
@@ -148,6 +149,18 @@ export type ProjectRollup = LoggedTotals &
     readonly unattributed: LoggedTotals;
     /** Minutes attributed to a line that is not in this rollup. */
     readonly unmatchedMinutes: number;
+    /**
+     * Whether every line of the scope list is marked done, which is the one
+     * thing that tells unspent estimate from a job finished cheaply.
+     *
+     * Carried rather than left to a reader to work out from `lines`, for the
+     * reason `ScopeSummary` carries `deliveredCount`: the rule about the
+     * empty list is a decision, and a second caller deciding it again is how
+     * two panels come to disagree about one project. Answered by
+     * `lib/scope.ts` over the real scope lines, where the status column still
+     * is.
+     */
+    readonly scopeDelivered: boolean;
   };
 
 /**
@@ -403,34 +416,11 @@ export function rollUpProject(
       entries,
       new Set(deliverables.map((deliverable) => deliverable.id)),
     ),
+    scopeDelivered: allDelivered(deliverables),
     ...totals,
     ...compareToEstimate(
       totals.loggedMinutes,
       totalEstimatedMinutes(deliverables),
     ),
   };
-}
-
-/**
- * Whether the whole agreed scope list is marked done.
- *
- * The one question that tells unspent budget from a job finished cheaply.
- * Minus three hours against a line still open is three hours left to spend;
- * minus three hours against a line marked done is three hours that were never
- * needed. A project has no "done" of its own — `closed` is a status somebody
- * set, not a statement about the work — so the scope list answers for it, and
- * a list whose every line is delivered is the best evidence there is that
- * there is nothing left for the remaining estimate to be spent on.
- *
- * A project with no lines is not delivered. There is no scope list to have
- * finished, and calling an empty agreement complete would read every unlogged
- * project as a success.
- *
- * `delivered` per line rather than the status, so this agrees with the column
- * the table draws and with `isDelivered` above it: a line in progress is not
- * done here either.
- */
-export function scopeDelivered(rollup: ProjectRollup): boolean {
-  if (rollup.lines.length === 0) return false;
-  return rollup.lines.every((line) => line.delivered);
 }

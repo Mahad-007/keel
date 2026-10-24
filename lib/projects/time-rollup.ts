@@ -1,12 +1,11 @@
 import { describeEstimate, UNESTIMATED_LABEL } from "@/lib/deliverables/list";
 import { formatMinutes } from "@/lib/minutes";
 import { negativeEstimateCount, unestimatedCount } from "@/lib/scope";
-import {
-  scopeDelivered,
-  type DeliverableRollup,
-  type EstimateComparison,
-  type LoggedTotals,
-  type ProjectRollup,
+import type {
+  DeliverableRollup,
+  EstimateComparison,
+  LoggedTotals,
+  ProjectRollup,
 } from "@/lib/time/rollup";
 
 import type { PanelFigure } from "./figure";
@@ -421,13 +420,13 @@ export function describeProjectComparison(rollup: ProjectRollup): string {
  * that was never needed. The one exception is the scope list saying so: with
  * every line marked done there is no work left for the remaining estimate to
  * be spent on, and "3h left" would be inviting a reader to spend hours
- * against an agreement that is finished. That is `scopeDelivered`, read off
- * the same `delivered` flags the table's own rows are drawn from.
+ * against an agreement that is finished. That is `scopeDelivered`, which the
+ * rollup carries so this does not decide it a second time.
  */
 export function againstEstimateFigure(rollup: ProjectRollup): PanelFigure {
   return {
     label: ROLLUP_COLUMNS.against,
-    value: describeAgainstEstimate(rollup, scopeDelivered(rollup)),
+    value: describeAgainstEstimate(rollup, rollup.scopeDelivered),
     note: describeProjectComparison(rollup),
   };
 }
