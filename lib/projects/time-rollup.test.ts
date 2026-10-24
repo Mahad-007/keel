@@ -24,19 +24,33 @@ import {
   ON_THE_ESTIMATE_LABEL,
 } from "./time-rollup";
 
-import type { DeliverableRollup, ProjectRollup } from "@/lib/time/rollup";
+import {
+  compareToEstimate,
+  type DeliverableRollup,
+  type ProjectRollup,
+} from "@/lib/time/rollup";
 
+/**
+ * A rolled-up line, with its comparison derived rather than typed in.
+ *
+ * `varianceMinutes` and `loggedShare` are what `compareToEstimate` makes of
+ * the two minute figures, so overriding an estimate here cannot leave behind
+ * a line sized at nothing that is also two hours over it — a state
+ * `rollUpProject` could never hand this module, and one a sentence would then
+ * be pinned against. An explicit override still wins, for the test that wants
+ * to poke at one reading on its own.
+ */
 function rolled(fields: Partial<DeliverableRollup> = {}): DeliverableRollup {
+  const loggedMinutes = fields.loggedMinutes ?? 360;
+  const estimatedMinutes = fields.estimatedMinutes ?? 240;
   return {
     deliverableId: "dlv_a",
     title: "Homepage build",
     delivered: false,
     entryCount: 2,
-    loggedMinutes: 360,
-    billableMinutes: 360,
-    estimatedMinutes: 240,
-    varianceMinutes: 120,
-    loggedShare: 1.5,
+    loggedMinutes,
+    billableMinutes: loggedMinutes,
+    ...compareToEstimate(loggedMinutes, estimatedMinutes),
     ...fields,
   };
 }
@@ -50,18 +64,29 @@ function compared(fields: {
   return fields;
 }
 
+/**
+ * A whole project's rollup, with everything derivable derived.
+ *
+ * The comparison comes from `compareToEstimate` and the delivered flag from
+ * the lines, the two things `rollUpProject` works out for itself. A fixture
+ * that let them be set independently could pin a sentence against a project
+ * whose figures contradict its own rows — overriding the estimate while the
+ * variance stayed behind was the way in. Explicit overrides still win.
+ */
 function project(fields: Partial<ProjectRollup> = {}): ProjectRollup {
+  const lines = fields.lines ?? [];
+  const loggedMinutes = fields.loggedMinutes ?? 435;
+  const estimatedMinutes = fields.estimatedMinutes ?? 360;
   return {
-    lines: [],
+    lines,
     unattributed: { entryCount: 0, loggedMinutes: 0, billableMinutes: 0 },
     unmatchedMinutes: 0,
-    scopeDelivered: false,
+    scopeDelivered:
+      lines.length > 0 && lines.every((line) => line.delivered),
     entryCount: 3,
-    loggedMinutes: 435,
-    billableMinutes: 435,
-    estimatedMinutes: 360,
-    varianceMinutes: 75,
-    loggedShare: 435 / 360,
+    loggedMinutes,
+    billableMinutes: loggedMinutes,
+    ...compareToEstimate(loggedMinutes, estimatedMinutes),
     ...fields,
   };
 }
@@ -478,18 +503,14 @@ describe("how the whole project stands against its scope list", () => {
     // Nothing is left for the remaining estimate to be spent on, so "3h
     // left" would invite hours against a finished agreement.
     const figure = againstEstimateFigure(
-      project({
-        ...unspent,
-        lines: [rolled({ delivered: true })],
-        scopeDelivered: true,
-      }),
+      project({ ...unspent, lines: [rolled({ delivered: true })] }),
     );
     expect(figure.value).toBe("3h under · 50% of it");
   });
 
   it("does not call an overrun under, whatever the scope list says", () => {
     const figure = againstEstimateFigure(
-      project({ lines: [rolled({ delivered: true })], scopeDelivered: true }),
+      project({ lines: [rolled({ delivered: true })] }),
     );
     expect(figure.value).toBe("1h 15m over · 121% of it");
   });
