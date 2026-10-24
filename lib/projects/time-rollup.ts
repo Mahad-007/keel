@@ -2,11 +2,12 @@ import { describeEstimate } from "@/lib/deliverables/list";
 import { formatMinutes } from "@/lib/minutes";
 import { negativeEstimateCount, unestimatedCount } from "@/lib/scope";
 import { notChargeablePhrase } from "@/lib/time/days";
-import type {
-  DeliverableRollup,
-  EstimateComparison,
-  LoggedTotals,
-  ProjectRollup,
+import {
+  loggedShare,
+  type DeliverableRollup,
+  type EstimateComparison,
+  type LoggedTotals,
+  type ProjectRollup,
 } from "@/lib/time/rollup";
 
 import type { PanelFigure } from "./figure";
@@ -475,7 +476,15 @@ export function describeUnattributed(rollup: ProjectRollup): string | null {
   }
 
   const counted = `${across} Counted in the total above and in none of the rows below — there is no line of scope for it to be set against.`;
-  if (loose.loggedMinutes > rollup.loggedMinutes * MOSTLY_UNATTRIBUTED) {
+  /*
+    Through `loggedShare` rather than a multiplication written out here. It is
+    the one division this panel needs that the arithmetic layer did not
+    already hand over, and the layer that divides is the layer with the tests
+    for dividing — including the nought denominator this branch is only safe
+    from by having returned above.
+  */
+  const share = loggedShare(loose.loggedMinutes, rollup.loggedMinutes);
+  if (share !== null && share > MOSTLY_UNATTRIBUTED) {
     return `${counted} That is most of the time logged on this project, so the rows below account for the smaller part of it.`;
   }
   return counted;
