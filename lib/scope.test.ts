@@ -8,6 +8,7 @@ import {
 import { costOfMinutes, formatCents } from "@/lib/money";
 
 import {
+  allDelivered,
   deliveredCount,
   negativeEstimateCount,
   deliveredEstimatedMinutes,
@@ -531,6 +532,26 @@ describe("deliveredCount", () => {
     ];
     expect(deliveredCount(lines)).toBe(4);
     expect(deliveredShare(lines)).toBeCloseTo(0.25, 10);
+  });
+});
+
+describe("allDelivered", () => {
+  it("is true when every line is marked done", () => {
+    expect(allDelivered([line(60, "done"), line(0, "done")])).toBe(true);
+  });
+
+  it("is false while one line is still pending", () => {
+    expect(allDelivered([line(60, "done"), line(60, "pending")])).toBe(false);
+  });
+
+  it("is false while a line is started, which is not done", () => {
+    expect(allDelivered([line(60, "started")])).toBe(false);
+  });
+
+  it("refuses to call an empty scope list delivered", () => {
+    // There is no agreement to have finished, and saying otherwise would read
+    // every project nobody has scoped as a success.
+    expect(allDelivered([])).toBe(false);
   });
 });
 

@@ -264,6 +264,25 @@ export function deliveredCount(lines: readonly ScopeLine[]): number {
 }
 
 /**
+ * Whether the whole agreed list is done.
+ *
+ * The question that tells unspent estimate from a job finished cheaply. Two
+ * hours left on a line still open is two hours there is work to spend; two
+ * hours left on a line marked done is two hours that were never needed, and
+ * nothing else on a project answers it — `closed` is a status somebody set,
+ * not a statement about the work.
+ *
+ * An empty list is not delivered. There is no agreement to have finished, and
+ * calling one complete would read every unscoped project as a success — which
+ * is the case a second caller would be most likely to decide differently, and
+ * the reason this is a function rather than a comparison written out twice.
+ */
+export function allDelivered(lines: readonly ScopeLine[]): boolean {
+  if (lines.length === 0) return false;
+  return deliveredCount(lines) === lines.length;
+}
+
+/**
  * How much of the estimate has been delivered, as a fraction of one.
  *
  * Measured in estimated minutes rather than in lines, because the lines are
