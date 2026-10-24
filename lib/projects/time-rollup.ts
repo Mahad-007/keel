@@ -1,11 +1,12 @@
 import { describeEstimate, UNESTIMATED_LABEL } from "@/lib/deliverables/list";
 import { formatMinutes } from "@/lib/minutes";
 import { negativeEstimateCount, unestimatedCount } from "@/lib/scope";
-import type {
-  DeliverableRollup,
-  EstimateComparison,
-  LoggedTotals,
-  ProjectRollup,
+import {
+  scopeDelivered,
+  type DeliverableRollup,
+  type EstimateComparison,
+  type LoggedTotals,
+  type ProjectRollup,
 } from "@/lib/time/rollup";
 
 import type { PanelFigure } from "./figure";
@@ -414,16 +415,19 @@ export function describeProjectComparison(rollup: ProjectRollup): string {
  * How the project as a whole stands against its scope list, as a line of the
  * panel.
  *
- * `delivered` is false, always. A project is never handed over — it is
- * closed, which is a different act with its own status column — so the
- * unspent half of an estimate is budget left rather than budget that was
- * never needed. Reading a closed project's remaining estimate as "came in
- * under" would be a judgement this panel has no business making.
+ * A project is never handed over — it is closed, which is a different act
+ * with its own status column — so it has no `delivered` of its own and the
+ * unspent half of an estimate is ordinarily budget left rather than budget
+ * that was never needed. The one exception is the scope list saying so: with
+ * every line marked done there is no work left for the remaining estimate to
+ * be spent on, and "3h left" would be inviting a reader to spend hours
+ * against an agreement that is finished. That is `scopeDelivered`, read off
+ * the same `delivered` flags the table's own rows are drawn from.
  */
 export function againstEstimateFigure(rollup: ProjectRollup): PanelFigure {
   return {
     label: ROLLUP_COLUMNS.against,
-    value: describeAgainstEstimate(rollup, false),
+    value: describeAgainstEstimate(rollup, scopeDelivered(rollup)),
     note: describeProjectComparison(rollup),
   };
 }

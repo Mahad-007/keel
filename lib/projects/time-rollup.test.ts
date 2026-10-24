@@ -433,17 +433,36 @@ describe("how the whole project stands against its scope list", () => {
     expect(figure.note).toBe("6h estimated, 7h 15m logged.");
   });
 
-  it("reads unspent estimate as budget left, never as coming in under", () => {
-    // A project is closed, not delivered. "Under" would be a judgement.
+  const unspent = {
+    loggedMinutes: 180,
+    billableMinutes: 180,
+    varianceMinutes: -180,
+    loggedShare: 0.5,
+  };
+
+  it("reads unspent estimate as budget left while a line is still open", () => {
+    // A project is closed, not delivered, so "under" would be a judgement
+    // while there is work the estimate could still be spent on.
     const figure = againstEstimateFigure(
-      project({
-        loggedMinutes: 180,
-        billableMinutes: 180,
-        varianceMinutes: -180,
-        loggedShare: 0.5,
-      }),
+      project({ ...unspent, lines: [rolled({ delivered: false })] }),
     );
     expect(figure.value).toBe("3h left · 50% of it");
+  });
+
+  it("reads it as coming in under once every line is marked done", () => {
+    // Nothing is left for the remaining estimate to be spent on, so "3h
+    // left" would invite hours against a finished agreement.
+    const figure = againstEstimateFigure(
+      project({ ...unspent, lines: [rolled({ delivered: true })] }),
+    );
+    expect(figure.value).toBe("3h under · 50% of it");
+  });
+
+  it("does not call an overrun under, whatever the scope list says", () => {
+    const figure = againstEstimateFigure(
+      project({ lines: [rolled({ delivered: true })] }),
+    );
+    expect(figure.value).toBe("1h 15m over · 121% of it");
   });
 
   it("says what would turn the figure on when nothing is estimated", () => {
