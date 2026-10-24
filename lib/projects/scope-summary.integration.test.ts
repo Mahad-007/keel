@@ -11,7 +11,8 @@ import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 import { summariseScope } from "@/lib/scope";
 
-import { scopeSummaryFigures, type ScopeFigure } from "./scope-summary";
+import type { PanelFigure } from "./figure";
+import { scopeSummaryFigures } from "./scope-summary";
 
 /**
  * The sentences, over rows a database actually holds.
@@ -44,7 +45,7 @@ beforeEach(async () => {
 });
 
 /** The figures as the panel would receive them, from two reads. */
-async function figures(): Promise<ScopeFigure[]> {
+async function figures(): Promise<PanelFigure[]> {
   const [lines, project] = await Promise.all([
     listDeliverables(projectId, db),
     getProject(projectId, db),
@@ -55,7 +56,7 @@ async function figures(): Promise<ScopeFigure[]> {
 }
 
 /** One figure by the label a reader would look for it under. */
-function figure(all: readonly ScopeFigure[], label: string): ScopeFigure {
+function figure(all: readonly PanelFigure[], label: string): PanelFigure {
   const found = all.find((one) => one.label === label);
   if (found === undefined) throw new Error(`no figure labelled ${label}`);
   return found;

@@ -25,15 +25,6 @@ import type { PanelFigure } from "./figure";
  */
 
 /**
- * One line of the scope summary, which is one line of a figures panel.
- *
- * Re-exported rather than redeclared so the panel and its rows can go on
- * importing it from here, and so a figure built by the time rollup is the same
- * shape as a figure built by this.
- */
-export type ScopeFigure = PanelFigure;
-
-/**
  * An hours figure as it reads inside a sentence.
  *
  * Hours rather than `1h 30m` here, because this is the unit the estimate was
@@ -186,7 +177,7 @@ function hasNegativeLine(summary: ScopeSummary): boolean {
  * lie, and importing the words rather than retyping them is what stops the
  * summary and the list disagreeing about what a missing estimate is called.
  */
-export function estimatedFigure(summary: ScopeSummary): ScopeFigure {
+export function estimatedFigure(summary: ScopeSummary): PanelFigure {
   return {
     label: "Estimated work",
     value: estimatedTotalValue(
@@ -292,7 +283,7 @@ export function describeDelivered(summary: ScopeSummary): string {
  * counts deliverables, which keeps the figure attached to the list it came
  * from.
  */
-export function deliveredFigure(summary: ScopeSummary): ScopeFigure {
+export function deliveredFigure(summary: ScopeSummary): PanelFigure {
   return {
     label: "Delivered",
     value: deliveredValue(summary),
@@ -344,7 +335,7 @@ export const REMAINING_INCLUDES_STARTED =
  * It does not: this is the estimate of the lines nobody has ticked, and it
  * moves when a status changes rather than when the clock runs.
  */
-export function remainingFigure(summary: ScopeSummary): ScopeFigure {
+export function remainingFigure(summary: ScopeSummary): PanelFigure {
   return {
     label: "Still to do",
     value: remainingValue(summary),
@@ -498,7 +489,7 @@ function hasContractValue(summary: ScopeSummary): boolean {
  * the only place that says what is missing — an estimate, or a price — and a
  * row that vanished would take the explanation with it.
  */
-export function impliedRateFigure(summary: ScopeSummary): ScopeFigure {
+export function impliedRateFigure(summary: ScopeSummary): PanelFigure {
   return {
     label: "Implied hourly rate",
     value: impliedRateValue(summary),
@@ -535,7 +526,7 @@ function impliedRateValue(summary: ScopeSummary): string {
  * made once, in the place that explains it, and a figure added later cannot
  * land in a different position on a different screen.
  */
-export function scopeSummaryFigures(summary: ScopeSummary): ScopeFigure[] {
+export function scopeSummaryFigures(summary: ScopeSummary): PanelFigure[] {
   return [
     estimatedFigure(summary),
     deliveredFigure(summary),
