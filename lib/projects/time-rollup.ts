@@ -628,6 +628,18 @@ export function describeRollupTable(rollup: ProjectRollup): string {
  * being non-null rather than a second zero check written out here — so a line
  * this sentence passes over is exactly a line the table's last column refuses
  * to judge.
+ *
+ * Which means the reassurance has to say how much of the list it covers, not
+ * just withhold itself when it covers none. One sized line under its estimate
+ * beside eighteen unsized ones is not a project where "None has gone past its
+ * estimate" is a fair reading — it is true of every line and heard as being
+ * about the list. So an unqualified "None" is kept for the list where every
+ * line could be judged, and anything short of that names the count it speaks
+ * for.
+ *
+ * Only the reassurance is qualified. "One has gone past its estimate" claims
+ * nothing about the lines it leaves out, so a reader cannot take comfort from
+ * it that the unsized rows do not support.
  */
 function describePastEstimate(
   lines: readonly DeliverableRollup[],
@@ -650,7 +662,13 @@ function describePastEstimate(
       ? "It has gone past its estimate."
       : "It has not gone past its estimate.";
   }
-  if (over === 0) return "None has gone past its estimate.";
+  if (over === 0) {
+    if (comparable === lines.length) return "None has gone past its estimate.";
+    if (comparable === 1) {
+      return "The one line with an estimate on it has not gone past it.";
+    }
+    return `None of the ${comparable} with an estimate has gone past it.`;
+  }
   if (over === 1) return "One has gone past its estimate.";
   return `${over} have gone past their estimates.`;
 }

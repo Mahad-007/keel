@@ -679,9 +679,38 @@ describe("the line above the rollup table", () => {
 
   it("does not count an unsized line among the overruns", () => {
     // It has no estimate to be past, however many hours went into it, but
-    // the sized line beside it is still worth reassuring about.
+    // the sized line beside it is still worth reassuring about — and the
+    // reassurance says it is about that one line and not about the list.
     expect(describeRollupTable(project({ lines: [under, unsized] }))).toBe(
+      "2 deliverables, 2 of them with time logged. The one line with an estimate on it has not gone past it.",
+    );
+  });
+
+  it("says how many lines a reassurance covers when it is not all of them", () => {
+    // "None has gone past its estimate" above two rows reading "No estimate
+    // to compare" is heard as being about the list, not about the half of it
+    // that could be judged.
+    const second = rolled({ ...under, deliverableId: "dlv_g" });
+    const other = rolled({ ...unsized, deliverableId: "dlv_h" });
+    expect(
+      describeRollupTable(
+        project({ lines: [under, second, unsized, other] }),
+      ),
+    ).toBe(
+      "4 deliverables, 4 of them with time logged. None of the 2 with an estimate has gone past it.",
+    );
+  });
+
+  it("leaves an unqualified reassurance for the list that is all sized", () => {
+    const second = rolled({ ...under, deliverableId: "dlv_g" });
+    expect(describeRollupTable(project({ lines: [under, second] }))).toBe(
       "2 deliverables, 2 of them with time logged. None has gone past its estimate.",
+    );
+  });
+
+  it("does not qualify the count of overruns, which reassures nobody", () => {
+    expect(describeRollupTable(project({ lines: [over, unsized] }))).toBe(
+      "2 deliverables, 2 of them with time logged. One has gone past its estimate.",
     );
   });
 });
