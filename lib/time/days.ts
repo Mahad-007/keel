@@ -283,6 +283,31 @@ export function describeTimeList(
 }
 
 /**
+ * The part of a stretch of work that will not be invoiced, in words — or
+ * nothing at all when all of it will.
+ *
+ * Said as what is *not* chargeable rather than what is, for the reason
+ * `describeDayTotal` gives: the total is already on screen and the gap
+ * between it and the invoice is the figure somebody is checking. And omitted
+ * when there is no gap, which is almost always — a clause that is always true
+ * is one nobody reads, and the one row it mattered on would look like the
+ * rest.
+ *
+ * Two numbers rather than a day or a rollup, because three readers want this
+ * phrase over three different shapes: a day's heading, a rollup row, and the
+ * rollup's project total. It is the same subtraction, the same guard and the
+ * same words in all three, and the one place that must not drift is the one
+ * that reaches an invoice.
+ */
+export function notChargeablePhrase(
+  loggedMinutes: number,
+  billableMinutes: number,
+): string | null {
+  if (billableMinutes === loggedMinutes) return null;
+  return `${formatMinutes(loggedMinutes - billableMinutes)} not chargeable`;
+}
+
+/**
  * The figures that qualify a day's total, as the heading shows them: how much
  * of the day is not chargeable, and where the engagement stands.
  *
@@ -298,10 +323,8 @@ export function describeTimeList(
  */
 export function dayQualifiers(day: TimeDay): string[] {
   const qualifiers: string[] = [];
-  if (day.billableMinutes !== day.minutes) {
-    const free = day.minutes - day.billableMinutes;
-    qualifiers.push(`${formatMinutes(free)} not chargeable`);
-  }
+  const free = notChargeablePhrase(day.minutes, day.billableMinutes);
+  if (free !== null) qualifiers.push(free);
   if (showsRunningTotal(day)) {
     qualifiers.push(
       `${formatMinutes(day.runningMinutes)} ${RUNNING_TOTAL_LABEL}`,

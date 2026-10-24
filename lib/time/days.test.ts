@@ -7,6 +7,7 @@ import {
   describeDayTotal,
   describeTimeList,
   groupTimeByDay,
+  notChargeablePhrase,
   showsRunningTotal,
   totalMinutes,
   type LoggedEntry,
@@ -199,6 +200,24 @@ describe("what a day's heading says about the day", () => {
     expect(describeDayTotal(day({ billableMinutes: 0 }))).toBe(
       "4h 30m logged, 4h 30m of it not chargeable",
     );
+  });
+});
+
+describe("the part of a stretch of work that will not be invoiced", () => {
+  it("names the gap between the hours and the invoice", () => {
+    expect(notChargeablePhrase(180, 120)).toBe("1h not chargeable");
+  });
+
+  it("says nothing when all of it will be charged for", () => {
+    expect(notChargeablePhrase(180, 180)).toBeNull();
+  });
+
+  it("says nothing about a stretch of no time at all", () => {
+    expect(notChargeablePhrase(0, 0)).toBeNull();
+  });
+
+  it("names the whole of it when none of it is chargeable", () => {
+    expect(notChargeablePhrase(90, 0)).toBe("1h 30m not chargeable");
   });
 });
 

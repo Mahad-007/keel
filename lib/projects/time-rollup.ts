@@ -1,6 +1,7 @@
 import { describeEstimate } from "@/lib/deliverables/list";
 import { formatMinutes } from "@/lib/minutes";
 import { negativeEstimateCount, unestimatedCount } from "@/lib/scope";
+import { notChargeablePhrase } from "@/lib/time/days";
 import type {
   DeliverableRollup,
   EstimateComparison,
@@ -189,23 +190,19 @@ export function describeAgainstEstimate(
  * How much of a row's logged time will not reach an invoice, or nothing at
  * all when all of it will.
  *
- * Said only where the two figures differ, which is almost never — time logged
- * against a client engagement is chargeable unless somebody says otherwise.
- * Printing "6h, 6h of it chargeable" on every row would be a clause that is
- * always true and therefore never read, and the one row where it mattered
- * would look like the rest. The same rule a day heading follows, for the same
- * reason.
+ * `notChargeablePhrase` over the two figures a rollup already carries. The
+ * day heading beside it says exactly this about exactly this subtraction, and
+ * a rollup row disagreeing with the day that produced it — about the one
+ * figure on the panel that reaches an invoice — is the kind of inconsistency
+ * nobody can debug from the screen.
  *
- * Said as what is *not* chargeable rather than what is, because the total is
- * already in the cell above it and the interesting figure is the gap between
- * the hours and the invoice. On a rollup that gap has a particular meaning:
- * it is the part of an overrun somebody has already decided to absorb, which
- * is a different conversation from the part they have not.
+ * On a rollup the gap has a particular meaning the day heading's does not: it
+ * is the part of an overrun somebody has already decided to absorb, which is
+ * a different conversation from the part they have not. Same words, because a
+ * reader should not have to learn two.
  */
 export function describeNotChargeable(totals: LoggedTotals): string | null {
-  if (totals.billableMinutes === totals.loggedMinutes) return null;
-  const free = totals.loggedMinutes - totals.billableMinutes;
-  return `${formatMinutes(free)} not chargeable`;
+  return notChargeablePhrase(totals.loggedMinutes, totals.billableMinutes);
 }
 
 /**
