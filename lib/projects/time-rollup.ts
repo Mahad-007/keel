@@ -563,12 +563,24 @@ export function rollupFigures(rollup: ProjectRollup): PanelFigure[] {
  * Null the rest of the time, which is always. This is a sentence that appears
  * when something has genuinely gone out of step, not a disclaimer under every
  * project.
+ *
+ * Two wordings, because a stale read can leave the page with no rows at all:
+ * when the scope list came back empty the panel draws `NO_SCOPE_TO_ROLL_UP`
+ * instead of a table, and pointing at "the rows below" would be pointing at
+ * nothing. `describeUnattributed` draws the same distinction for the same
+ * reason.
  */
 export function describeUnmatchedTime(rollup: ProjectRollup): string | null {
   if (rollup.unmatchedMinutes === 0) return null;
-  return `${formatMinutes(
+  const stray = `${formatMinutes(
     rollup.unmatchedMinutes,
-  )} is attributed to a deliverable this page does not have, so it is in the total above and in none of the rows below. The scope list and the time list were read a moment apart; reloading should settle it.`;
+  )} is attributed to a deliverable this page does not have`;
+  const reload =
+    "The scope list and the time list were read a moment apart; reloading should settle it.";
+  if (rollup.lines.length === 0) {
+    return `${stray}, so it is in the total above and there is no row for it — the scope list came back empty while the time list still points at a line. ${reload}`;
+  }
+  return `${stray}, so it is in the total above and in none of the rows below. ${reload}`;
 }
 
 /**

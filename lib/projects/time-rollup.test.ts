@@ -575,9 +575,19 @@ describe("why the rows might not add up to the total", () => {
   });
 
   it("names the minutes that are in the total and in no row", () => {
-    const note = describeUnmatchedTime(project({ unmatchedMinutes: 25 }));
+    const note = describeUnmatchedTime(
+      project({ lines: [rolled()], unmatchedMinutes: 25 }),
+    );
     expect(note).toContain("25m");
     expect(note).toContain("in none of the rows below");
+  });
+
+  it("does not point at rows when the stale read left none", () => {
+    // No lines means the panel draws the no-scope sentence rather than a
+    // table, so "in none of the rows below" would point at nothing.
+    const note = describeUnmatchedTime(project({ unmatchedMinutes: 25 }));
+    expect(note).toContain("there is no row for it");
+    expect(note).not.toContain("the rows below");
   });
 
   it("tells the reader the move that fixes it", () => {
