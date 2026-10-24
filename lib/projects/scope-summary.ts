@@ -569,14 +569,18 @@ export function describeEstimateProblem(summary: ScopeSummary): string | null {
  * What the whole panel is and is not, said once underneath it.
  *
  * Every figure in it comes off the estimates on the scope list. None of it
- * knows how long the work has actually taken, because nothing in Keel records
- * that yet — and a panel of hours against a contract value looks exactly like
- * a panel that does. A reader who takes "Still to do: 28h" for a measurement
- * is being misled by a figure that is only ever a restatement of what was
- * agreed.
+ * knows how long the work has actually taken — and a panel of hours against a
+ * contract value looks exactly like a panel that does. A reader who takes
+ * "Still to do: 28h" for a measurement is being misled by a figure that is
+ * only ever a restatement of what was agreed.
+ *
+ * Keel does record the hours now, which is why the sentence ends by saying
+ * where: the time tab sets each line's logged time against the estimate this
+ * panel totals, and a reader who has just been told these are guesses should
+ * be told in the same breath which tab has the measurements.
  *
  * One sentence under the figures rather than a caveat on each: the rows carry
  * the caveats that are specific to them, and this one is true of all four.
  */
 export const SCOPE_FROM_ESTIMATES =
-  "These are the estimates on the list, not time spent — a line counts as delivered when somebody marks it done, not when the hours run out.";
+  "These are the estimates on the list, not time spent — a line counts as delivered when somebody marks it done, not when the hours run out. The Time tab sets the hours actually logged against them.";
