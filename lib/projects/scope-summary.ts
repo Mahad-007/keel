@@ -170,7 +170,11 @@ function hasNegativeLine(summary: ScopeSummary): boolean {
 export function estimatedFigure(summary: ScopeSummary): ScopeFigure {
   return {
     label: "Estimated work",
-    value: estimatedValue(summary),
+    value: estimatedTotalValue(
+      summary.lineCount,
+      summary.unestimatedCount,
+      summary.estimatedMinutes,
+    ),
     note: describeUnestimated(summary.lineCount, summary.unestimatedCount),
   };
 }
@@ -189,10 +193,20 @@ export function estimatedFigure(summary: ScopeSummary): ScopeFigure {
  * total and the label says so; one line sized means there is a figure, whatever
  * it comes to — including a zero that two lines cancelled out to, which is then
  * printed as the arithmetic it is.
+ *
+ * The two counts rather than a whole summary, so the time rollup's own
+ * estimate figure can ask it of a `ProjectRollup` — the same arrangement
+ * `describeUnestimated` has, and for the same reason: the value and the
+ * caveat beside it must not be able to disagree about whether anything on the
+ * list is sized.
  */
-function estimatedValue(summary: ScopeSummary): string {
-  if (summary.unestimatedCount >= summary.lineCount) return UNESTIMATED_LABEL;
-  return formatMinutes(summary.estimatedMinutes);
+export function estimatedTotalValue(
+  lineCount: number,
+  unestimated: number,
+  estimatedMinutes: number,
+): string {
+  if (unestimated >= lineCount) return UNESTIMATED_LABEL;
+  return formatMinutes(estimatedMinutes);
 }
 
 /**

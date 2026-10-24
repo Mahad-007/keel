@@ -14,6 +14,7 @@ import {
   remainingFigure,
   describeDelivered,
   estimatedFigure,
+  estimatedTotalValue,
   deliverablesInWords,
   deliverablesPhrase,
   describeUnestimated,
@@ -160,6 +161,26 @@ describe("describeUnestimated", () => {
     expect(describeUnestimated(1, 1)).toBe(
       "No line on the list has an estimate on it, so there is nothing to total.",
     );
+  });
+});
+
+describe("estimatedTotalValue", () => {
+  it("prints the total when at least one line is sized", () => {
+    expect(estimatedTotalValue(3, 2, 60)).toBe("1h");
+  });
+
+  it("says not estimated when every line is unsized", () => {
+    expect(estimatedTotalValue(2, 2, 0)).toBe(UNESTIMATED_LABEL);
+  });
+
+  it("says not estimated for a list with no lines on it at all", () => {
+    // Nothing is sized, because there is nothing — and "0m" would be a claim
+    // that the work takes no time.
+    expect(estimatedTotalValue(0, 0, 0)).toBe(UNESTIMATED_LABEL);
+  });
+
+  it("prints a zero two sized lines cancelled out to", () => {
+    expect(estimatedTotalValue(2, 0, 0)).toBe("0m");
   });
 });
 
