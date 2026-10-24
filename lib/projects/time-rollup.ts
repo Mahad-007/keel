@@ -329,7 +329,7 @@ function entriesPhrase(count: number): string {
  * read like a fact rather than like a measurement of emptiness.
  */
 export function describeLoggedTotal(rollup: ProjectRollup): string {
-  if (rollup.entryCount === 0) {
+  if (!hasTimeToRollUp(rollup)) {
     return "No time has been logged against this project yet.";
   }
   const counted = `Across ${entriesPhrase(rollup.entryCount)}.`;
@@ -384,10 +384,9 @@ export function estimatedFigure(rollup: ProjectRollup): PanelFigure {
       unestimated,
       rollup.estimatedMinutes,
     ),
-    note:
-      rollup.lines.length === 0
-        ? "No deliverables have been agreed, so there is nothing for these hours to be set against."
-        : describeUnestimated(rollup.lines.length, unestimated),
+    note: hasScopeToRollUp(rollup)
+      ? describeUnestimated(rollup.lines.length, unestimated)
+      : "No deliverables have been agreed, so there is nothing for these hours to be set against.",
   };
 }
 
@@ -421,7 +420,7 @@ export function describeProjectComparison(rollup: ProjectRollup): string {
       rollup.loggedMinutes,
     )} logged.`;
   }
-  if (rollup.lines.length === 0) {
+  if (!hasScopeToRollUp(rollup)) {
     return "There are no deliverables to estimate, so the hours have nothing to be set against.";
   }
   if (negativeEstimateCount(rollup.lines) > 0) {
@@ -484,7 +483,7 @@ const MOSTLY_UNATTRIBUTED = 0.5;
  * to have an opinion about, and the logged figure above has already said so.
  */
 export function describeUnattributed(rollup: ProjectRollup): string | null {
-  if (rollup.entryCount === 0) return null;
+  if (!hasTimeToRollUp(rollup)) return null;
 
   const loose = rollup.unattributed;
   if (loose.loggedMinutes === 0) {
@@ -507,7 +506,7 @@ export function describeUnattributed(rollup: ProjectRollup): string | null {
     the figures says where a scope list gets written.
   */
   const across = `Across ${entriesPhrase(loose.entryCount)}.`;
-  if (rollup.lines.length === 0) {
+  if (!hasScopeToRollUp(rollup)) {
     return `${across} There are no deliverables on this project, so there is no line of scope for any of it to be set against.`;
   }
 
@@ -566,7 +565,7 @@ export function rollupFigures(rollup: ProjectRollup): PanelFigure[] {
     times — the panel's own sentence says it a fifth, and that one says what
     to do about it. So only the fact survives: the hours, which are real.
   */
-  if (rollup.lines.length === 0) return [loggedFigure(rollup)];
+  if (!hasScopeToRollUp(rollup)) return [loggedFigure(rollup)];
 
   return [
     loggedFigure(rollup),
@@ -608,7 +607,7 @@ export function describeUnmatchedTime(rollup: ProjectRollup): string | null {
   )} is attributed to a deliverable this page does not have`;
   const reload =
     "The scope list and the time list were read a moment apart; reloading should settle it.";
-  if (rollup.lines.length === 0) {
+  if (!hasScopeToRollUp(rollup)) {
     return `${stray}, so it is in the total above and there is no row for it — the scope list came back empty while the time list still points at a line. ${reload}`;
   }
   return `${stray}, so it is in the total above and in none of the rows below. ${reload}`;
