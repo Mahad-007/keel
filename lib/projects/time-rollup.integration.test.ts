@@ -117,6 +117,33 @@ describe("the rollup panel over rows the database holds", () => {
     expect(rows[0].against).toBe("1h under · 75% of it");
   });
 
+  it("keeps the project figure on budget-left while a line is open", async () => {
+    const build = await deliverable("Homepage build", 240);
+    const revisions = await deliverable("Revision round", 120);
+    await setDeliverableStatus(build.id, "pending", "done", db);
+    await log(120, build.id);
+    await log(60, revisions.id);
+
+    const { figures } = await panel();
+    expect(figure(figures, "Against the estimate").value).toBe(
+      "3h left · 50% of it",
+    );
+  });
+
+  it("turns the project figure to under once the list is all done", async () => {
+    const build = await deliverable("Homepage build", 240);
+    const revisions = await deliverable("Revision round", 120);
+    await setDeliverableStatus(build.id, "pending", "done", db);
+    await setDeliverableStatus(revisions.id, "pending", "done", db);
+    await log(120, build.id);
+    await log(60, revisions.id);
+
+    const { figures } = await panel();
+    expect(figure(figures, "Against the estimate").value).toBe(
+      "3h under · 50% of it",
+    );
+  });
+
   it("carries a non-chargeable entry through to the row", async () => {
     const build = await deliverable("Homepage build", 240);
     await log(120, build.id);
