@@ -1,4 +1,4 @@
-import { describeEstimate, UNESTIMATED_LABEL } from "@/lib/deliverables/list";
+import { describeEstimate } from "@/lib/deliverables/list";
 import { formatMinutes } from "@/lib/minutes";
 import { negativeEstimateCount, unestimatedCount } from "@/lib/scope";
 import type {
@@ -13,6 +13,7 @@ import type { PanelFigure } from "./figure";
 import {
   deliverablesPhrase,
   describeUnestimated,
+  estimatedTotalValue,
   formatSharePercent,
 } from "./scope-summary";
 
@@ -333,42 +334,26 @@ export function loggedFigure(rollup: ProjectRollup): PanelFigure {
  * A project with no deliverables gets its own sentence rather than that
  * caveat. "No line has an estimate" would send a reader looking for lines to
  * fill in, and there are none — what is missing is the scope list itself.
+ *
+ * The unsized count is taken once and handed to both halves. The value and
+ * the caveat are two readings of the same number, and counting twice is how a
+ * figure reading "Not estimated" comes to sit above a note saying three of
+ * five lines are sized.
  */
 export function estimatedFigure(rollup: ProjectRollup): PanelFigure {
+  const unestimated = unestimatedCount(rollup.lines);
   return {
     label: "Estimated",
-    value: estimatedValue(rollup),
+    value: estimatedTotalValue(
+      rollup.lines.length,
+      unestimated,
+      rollup.estimatedMinutes,
+    ),
     note:
       rollup.lines.length === 0
         ? "No deliverables have been agreed, so there is nothing for these hours to be set against."
-        : describeUnestimated(
-            rollup.lines.length,
-            unestimatedCount(rollup.lines),
-          ),
+        : describeUnestimated(rollup.lines.length, unestimated),
   };
-}
-
-/**
- * Whether there is a total to show, asked of the lines rather than of the
- * total.
- *
- * `describeEstimate` is a question about one row — has anything been typed
- * into its estimate column — and a sum of rows is not a row. Asked of the sum,
- * it calls a project unestimated whenever its lines happen to cancel out:
- * plus two hours against minus two hours reads as nought, and this tab would
- * say "Not estimated" while the scope tab, which counts the lines, says "0m".
- *
- * The count answers it directly, through the same function and the same rule
- * `estimatedValue` uses on the scope summary. Every line unsized means there
- * is nothing to total; one line sized means there is a figure, whatever it
- * comes to — including a zero two lines cancelled out to, which is then
- * printed as the arithmetic it is.
- */
-function estimatedValue(rollup: ProjectRollup): string {
-  if (unestimatedCount(rollup.lines) >= rollup.lines.length) {
-    return UNESTIMATED_LABEL;
-  }
-  return formatMinutes(rollup.estimatedMinutes);
 }
 
 /**
