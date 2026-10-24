@@ -40,6 +40,42 @@ import {
  */
 
 /**
+ * Whether there is anything to roll up yet.
+ *
+ * A project nobody has logged against has no rollup: four figures reading
+ * "None yet" above a table of rows reading "None yet" answers a question
+ * nobody asked, and the list underneath already says that nothing has been
+ * logged. The panel appears with the first entry.
+ *
+ * Here rather than in the panel, for the reason the sentences are: it is a
+ * rule about the rollup rather than about one tab, every page that grows a
+ * rollup later should make the same call, and the panel's most consequential
+ * decision — render nothing at all — is testable where JSX is not.
+ */
+export function hasTimeToRollUp(rollup: ProjectRollup): boolean {
+  return rollup.entryCount > 0;
+}
+
+/**
+ * Whether there is a scope list for the hours to be set against.
+ *
+ * The one notion behind every other answer this panel gives about an empty
+ * agreement: which figures are worth printing, whether the table is drawn or
+ * a sentence stands in for it, and whether a caveat may point at "the rows
+ * below". Six places used to ask `lines.length === 0` for themselves, which
+ * is six chances to disagree about what a missing scope list is — and they
+ * did, until a reader was told four times over that a project had none.
+ *
+ * Asked of the lines rather than of the estimate total, because a list of
+ * unsized lines is still a list. "Nothing is estimated" and "nothing is
+ * agreed" are different states with different sentences, and this is the
+ * second one.
+ */
+export function hasScopeToRollUp(rollup: ProjectRollup): boolean {
+  return rollup.lines.length > 0;
+}
+
+/**
  * What the logged column says on a line nobody has put time against.
  *
  * "None yet" rather than `0m`, the same two words the scope summary puts on

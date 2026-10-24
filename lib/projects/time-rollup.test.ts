@@ -9,6 +9,8 @@ import {
   describeRollupTable,
   describeUnmatchedTime,
   describeVariance,
+  hasScopeToRollUp,
+  hasTimeToRollUp,
   estimatedFigure,
   loggedFigure,
   describeNegativeEstimates,
@@ -63,6 +65,28 @@ function project(fields: Partial<ProjectRollup> = {}): ProjectRollup {
     ...fields,
   };
 }
+
+describe("whether there is anything to roll up", () => {
+  it("has nothing to roll up before the first entry", () => {
+    expect(hasTimeToRollUp(project({ entryCount: 0 }))).toBe(false);
+  });
+
+  it("has something to roll up from the first entry on", () => {
+    expect(hasTimeToRollUp(project({ entryCount: 1 }))).toBe(true);
+  });
+
+  it("has no scope to roll up against with no lines", () => {
+    expect(hasScopeToRollUp(project({ lines: [] }))).toBe(false);
+  });
+
+  it("counts an unsized line as a scope list all the same", () => {
+    // Nothing estimated and nothing agreed are different states; this is the
+    // second one, so a list of unsized lines is still a list.
+    expect(
+      hasScopeToRollUp(project({ lines: [rolled({ estimatedMinutes: 0 })] })),
+    ).toBe(true);
+  });
+});
 
 describe("a logged total as its cell reads", () => {
   it("reads a duration as hours and minutes", () => {
