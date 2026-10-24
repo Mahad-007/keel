@@ -67,6 +67,25 @@ export function deliverablesPhrase(count: number): string {
 }
 
 /**
+ * The same count as the subject of a sentence about what those lines have.
+ *
+ * "One deliverable has a negative estimate" rather than "1 deliverable has":
+ * the count is the whole subject here rather than a figure in a column, and a
+ * lone digit opening a sentence reads as a quantity being quoted. Above one
+ * the digits win, as they do in `deliverablesPhrase`, and the verb has to
+ * move with them.
+ *
+ * Shared because two panels now carry a caveat of this shape — the scope
+ * summary's and the time rollup's, over the same bad row — and a reader who
+ * sees both should not find them disagreeing about how to count. Each
+ * supplies its own tail.
+ */
+export function deliverablesHave(count: number): string {
+  if (count === 1) return "One deliverable has";
+  return `${deliverablesPhrase(count)} have`;
+}
+
+/**
  * The same count inside a sentence somebody is told, where one is a word.
  *
  * "Recorded a snapshot of one deliverable" rather than "of 1 deliverable",
@@ -551,9 +570,7 @@ export function scopeSummaryFigures(summary: ScopeSummary): ScopeFigure[] {
  */
 export function describeEstimateProblem(summary: ScopeSummary): string | null {
   if (!hasNegativeLine(summary)) return null;
-  const bad = summary.negativeEstimateCount;
-  const subject =
-    bad === 1 ? "One deliverable has" : `${deliverablesPhrase(bad)} have`;
+  const subject = deliverablesHave(summary.negativeEstimateCount);
   return `${subject} a negative estimate, so the figures here do not add up the way they should. The form will not accept one, so the line was written straight to the database — it shows a negative figure in the list below.`;
 }
 

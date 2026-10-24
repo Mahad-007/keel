@@ -13,6 +13,7 @@ import {
   REMAINING_INCLUDES_STARTED,
   remainingFigure,
   describeDelivered,
+  deliverablesHave,
   estimatedFigure,
   estimatedTotalValue,
   deliverablesInWords,
@@ -161,6 +162,16 @@ describe("describeUnestimated", () => {
     expect(describeUnestimated(1, 1)).toBe(
       "No line on the list has an estimate on it, so there is nothing to total.",
     );
+  });
+});
+
+describe("deliverablesHave", () => {
+  it("opens a sentence about one line with the word, not the digit", () => {
+    expect(deliverablesHave(1)).toBe("One deliverable has");
+  });
+
+  it("moves the verb with the count above one", () => {
+    expect(deliverablesHave(2)).toBe("2 deliverables have");
   });
 });
 

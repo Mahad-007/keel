@@ -11,6 +11,7 @@ import type {
 import type { PanelFigure } from "./figure";
 
 import {
+  deliverablesHave,
   deliverablesPhrase,
   describeUnestimated,
   estimatedTotalValue,
@@ -685,9 +686,7 @@ export function describeNegativeEstimates(
 ): string | null {
   const bad = negativeEstimateCount(rollup.lines);
   if (bad === 0) return null;
-  const subject =
-    bad === 1 ? "One deliverable has" : `${deliverablesPhrase(bad)} have`;
-  return `${subject} a negative estimate, so the comparisons here do not mean what they say — a line sized below zero reads as over before anything is logged against it. The form will not accept one, so the row was written straight to the database; the scope list shows which.`;
+  return `${deliverablesHave(bad)} a negative estimate, so the comparisons here do not mean what they say — a line sized below zero reads as over before anything is logged against it. The form will not accept one, so the row was written straight to the database; the scope list shows which.`;
 }
 
 /**
