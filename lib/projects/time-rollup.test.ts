@@ -466,13 +466,14 @@ describe("the estimate the hours are judged against", () => {
     );
   });
 
-  it("says a project with no scope list has nothing to set hours against", () => {
-    // Not "no line has an estimate", which would send a reader looking for
-    // lines to fill in when the list itself is what is missing.
-    const figure = estimatedFigure(project({ lines: [], estimatedMinutes: 0 }));
-    expect(figure.note).toBe(
-      "No deliverables have been agreed, so there is nothing for these hours to be set against.",
-    );
+  it("is not drawn at all for a project with no scope list", () => {
+    // The figure's own empty-list wording would be unreachable copy:
+    // `rollupFigures` keeps only the hours when there is nothing agreed.
+    expect(
+      rollupFigures(project({ lines: [], estimatedMinutes: 0 })).map(
+        (one) => one.label,
+      ),
+    ).not.toContain("Estimated");
   });
 });
 

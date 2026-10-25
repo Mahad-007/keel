@@ -366,9 +366,11 @@ export function loggedFigure(rollup: ProjectRollup): PanelFigure {
  * it is there, and more so: on this panel it is the denominator of a
  * percentage somebody might repeat out loud.
  *
- * A project with no deliverables gets its own sentence rather than that
- * caveat. "No line has an estimate" would send a reader looking for lines to
- * fill in, and there are none — what is missing is the scope list itself.
+ * A project with no deliverables never gets this figure at all: there is no
+ * total to show and nothing for an estimate caveat to be about, so
+ * `rollupFigures` drops it and the panel's own sentence says where a scope
+ * list gets written. Which is why there is no empty-list wording here — it
+ * would be a sentence no reader could reach.
  *
  * The unsized count is taken once and handed to both halves. The value and
  * the caveat are two readings of the same number, and counting twice is how a
@@ -384,9 +386,7 @@ export function estimatedFigure(rollup: ProjectRollup): PanelFigure {
       unestimated,
       rollup.estimatedMinutes,
     ),
-    note: hasScopeToRollUp(rollup)
-      ? describeUnestimated(rollup.lines.length, unestimated)
-      : "No deliverables have been agreed, so there is nothing for these hours to be set against.",
+    note: describeUnestimated(rollup.lines.length, unestimated),
   };
 }
 
