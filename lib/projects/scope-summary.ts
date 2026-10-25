@@ -116,11 +116,20 @@ export function deliverablesInWords(count: number): string {
  * 99%", which is the same rule at the other end and the more consequential
  * one: "100% of the estimated work" says the project is finished, and the
  * reader stops looking for the deliverable that is still open.
+ *
+ * A share past the whole that rounds back down onto it is written as "more
+ * than 100%", for the same reason read from the other side. The time rollup
+ * is where it bites: 361 minutes logged against a 360-minute estimate is a
+ * line that has gone over, and "100% of it" beside "1m over" is a cell
+ * contradicting itself — one half saying the estimate is spent exactly and
+ * the other saying it is not. The bound is the honest part of the figure, so
+ * that is what gets printed.
  */
 export function formatSharePercent(share: number): string {
   const percent = Math.round(share * 100);
   if (percent === 0 && share > 0) return "less than 1%";
   if (percent === 100 && share < 1) return "more than 99%";
+  if (percent === 100 && share > 1) return "more than 100%";
   return `${percent}%`;
 }
 
