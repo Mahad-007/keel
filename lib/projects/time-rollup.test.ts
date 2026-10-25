@@ -654,7 +654,18 @@ describe("why the rows might not add up to the total", () => {
       project({ lines: [rolled()], unmatchedMinutes: 25 }),
     );
     expect(note).toContain("25m");
+    expect(note).toContain("in the project's total");
     expect(note).toContain("in none of the rows below");
+  });
+
+  it("does not place the total it names above itself", () => {
+    // The panel prints this caveat above the figures, because a caveat found
+    // underneath them arrives too late. So the total it refers to is below
+    // it, and "the total above" would point at the heading.
+    const note = describeUnmatchedTime(
+      project({ lines: [rolled()], unmatchedMinutes: 25 }),
+    );
+    expect(note).not.toContain("above");
   });
 
   it("does not point at rows when the stale read left none", () => {

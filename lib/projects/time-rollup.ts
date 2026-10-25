@@ -599,6 +599,12 @@ export function rollupFigures(rollup: ProjectRollup): PanelFigure[] {
  * instead of a table, and pointing at "the rows below" would be pointing at
  * nothing. `describeUnattributed` draws the same distinction for the same
  * reason.
+ *
+ * It names the project's total rather than placing it. This is a caveat, so
+ * the panel prints it above the figures — where "the total above" would point
+ * a reader at the heading. The rows really are below it, and those it points
+ * at; `describeUnattributed` sits under the fourth figure and can say "above"
+ * about the first, which is why only one of the two is positional.
  */
 export function describeUnmatchedTime(rollup: ProjectRollup): string | null {
   if (rollup.unmatchedMinutes === 0) return null;
@@ -608,9 +614,9 @@ export function describeUnmatchedTime(rollup: ProjectRollup): string | null {
   const reload =
     "The scope list and the time list were read a moment apart; reloading should settle it.";
   if (!hasScopeToRollUp(rollup)) {
-    return `${stray}, so it is in the total above and there is no row for it — the scope list came back empty while the time list still points at a line. ${reload}`;
+    return `${stray}, so it is in the project's total and there is no row for it — the scope list came back empty while the time list still points at a line. ${reload}`;
   }
-  return `${stray}, so it is in the total above and in none of the rows below. ${reload}`;
+  return `${stray}, so it is in the project's total and in none of the rows below. ${reload}`;
 }
 
 /**
