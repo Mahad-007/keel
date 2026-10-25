@@ -40,7 +40,7 @@ as an atomic commit and what does not.
 - [x] **Day 021** — `time_entries` table and data layer: projectId, deliverableId, minutes, note, workedOn, billable, billedInvoiceId. Full CRUD with tests.
 - [x] **Day 022** — Log-time form on the project page, optionally attributed to a deliverable, accepting `1h30m` and `90` alike via a tested duration parser.
 - [x] **Day 023** — Time entry list with edit and delete, grouped by day, with running daily totals.
-- [ ] **Day 024** — Time rollups per deliverable and per project, shown against the Day 015 estimates.
+- [x] **Day 024** — Time rollups per deliverable and per project, shown against the Day 015 estimates.
 - [ ] **Day 025** — A running timer: start, stop, and a persisted active-timer row so a reload does not lose it.
 - [ ] **Day 026** — Weekly timesheet view at `/time`, a seven-column grid by project, with keyboard-navigable cells.
 - [ ] **Day 027** — Bulk time entry from the timesheet grid, writing many entries in one transaction.
