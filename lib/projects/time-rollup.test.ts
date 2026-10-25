@@ -543,7 +543,18 @@ describe("the hours that went against no line of scope", () => {
   }
 
   it("reassures a project whose every entry is attributed", () => {
-    const figure = unattributedFigure(project());
+    // The line accounts for the whole of the project's time, which is what
+    // "every entry is attributed" means. A project with no lines at all
+    // cannot reach this sentence: `rollupFigures` drops the figure, and the
+    // hours would all be unattributed anyway.
+    const figure = unattributedFigure(
+      project({
+        lines: [rolled()],
+        entryCount: 2,
+        loggedMinutes: 360,
+        estimatedMinutes: 240,
+      }),
+    );
     expect(figure.label).toBe("Against no deliverable");
     expect(figure.value).toBe(NOTHING_LOGGED_LABEL);
     expect(figure.note).toBe(
