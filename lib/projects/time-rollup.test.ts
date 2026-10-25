@@ -190,6 +190,12 @@ describe("the share of an estimate that has gone", () => {
   it("does not round a line short of its estimate up to all of it", () => {
     expect(describeShare(0.999)).toBe("more than 99% of it");
   });
+
+  it("does not let a hair of an overrun read as the whole estimate", () => {
+    // Paired with "1m over" in the same cell, a flat "100% of it" would
+    // disagree with the figure beside it.
+    expect(describeShare(361 / 360)).toBe("more than 100% of it");
+  });
 });
 
 describe("a line's whole comparison in one cell", () => {

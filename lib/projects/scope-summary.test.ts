@@ -126,6 +126,13 @@ describe("formatSharePercent", () => {
     expect(formatSharePercent(1)).toBe("100%");
   });
 
+  it("says more than 100 percent rather than rounding an overrun away", () => {
+    // A line a minute over a six-hour estimate. "100%" beside "1m over"
+    // would have the cell contradict itself.
+    expect(formatSharePercent(361 / 360)).toBe("more than 100%");
+    expect(formatSharePercent(1.004)).toBe("more than 100%");
+  });
+
   it("does not clamp a share a bad estimate pushed over one", () => {
     expect(formatSharePercent(1.5)).toBe("150%");
   });
