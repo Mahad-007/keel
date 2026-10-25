@@ -406,22 +406,21 @@ export function estimatedFigure(rollup: ProjectRollup): PanelFigure {
  * said the list is unsized; what a reader needs here is that sizing it is
  * what turns this panel on.
  *
- * Three ways to have no estimate, and they want three different things done
- * about them — the same split `describeImpliedRate` makes, for the same
- * reason. A project with no scope list needs a scope list, and telling
- * somebody to estimate deliverables they do not have would send them looking
- * for a field. Estimates that cancel out to nothing need a row fixing rather
- * than rows filling in, and the caveat above the panel says which. Only the
- * ordinary unsized list is asked to be sized.
+ * Two ways to have no estimate, and they want different things done about
+ * them — the same split `describeImpliedRate` makes, for the same reason.
+ * Estimates that cancel out to nothing need a row fixing rather than rows
+ * filling in, and the caveat above the panel says which. Only the ordinary
+ * unsized list is asked to be sized.
+ *
+ * The third way — no deliverables at all — is not worded here, because this
+ * figure is not drawn for such a project: `rollupFigures` keeps only the
+ * hours, and the panel's own sentence says where a scope list gets written.
  */
 function describeProjectComparison(rollup: ProjectRollup): string {
   if (rollup.varianceMinutes !== null) {
     return `${formatMinutes(rollup.estimatedMinutes)} estimated, ${formatMinutes(
       rollup.loggedMinutes,
     )} logged.`;
-  }
-  if (!hasScopeToRollUp(rollup)) {
-    return "There are no deliverables to estimate, so the hours have nothing to be set against.";
   }
   if (negativeEstimateCount(rollup.lines) > 0) {
     return "The estimates on this list cancel out to no hours at all, so there is nothing for the logged time to be set against.";

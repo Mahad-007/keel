@@ -876,20 +876,6 @@ describe("an estimate total its own lines cancelled out", () => {
 });
 
 describe("the working behind the project comparison when there is none", () => {
-  it("asks for a scope list when there are no deliverables", () => {
-    const figure = againstEstimateFigure(
-      project({
-        lines: [],
-        estimatedMinutes: 0,
-        varianceMinutes: null,
-        loggedShare: null,
-      }),
-    );
-    expect(figure.note).toBe(
-      "There are no deliverables to estimate, so the hours have nothing to be set against.",
-    );
-  });
-
   it("says the estimates cancelled out rather than asking for estimates", () => {
     // Both lines are sized. Asking for an estimate would send a reader to
     // fill in fields that are already full.
