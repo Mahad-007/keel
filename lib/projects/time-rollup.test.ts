@@ -648,7 +648,11 @@ describe("the project's half of the rollup, in reading order", () => {
   });
 
   it("builds each row from the same rollup", () => {
-    const figures = rollupFigures(project({ lines: [rolled()] }));
+    // The line is sized at the project's whole estimate, so the figure row
+    // and the table under it are reading one scope list rather than two.
+    const figures = rollupFigures(
+      project({ lines: [rolled({ estimatedMinutes: 360 })] }),
+    );
     expect(figures[0].value).toBe("7h 15m");
     expect(figures[1].value).toBe("6h");
     expect(figures[2].value).toBe("1h 15m over · 121% of it");
