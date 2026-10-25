@@ -582,15 +582,15 @@ describe("the hours that went against no line of scope", () => {
     expect(figure.note).toContain("most of the time logged on this project");
   });
 
-  it("does not point at rows that are not on the page", () => {
-    // With no scope list the panel renders a sentence instead of a table, so
-    // "in none of the rows below" would promise rows nobody can see.
-    const figure = unattributedFigure(
-      project({ lines: [], unattributed: loose(2, 90) }),
-    );
-    expect(figure.note).toBe(
-      "Across 2 entries. There are no deliverables on this project, so there is no line of scope for any of it to be set against.",
-    );
+  it("is not drawn at all when there are no rows to point at", () => {
+    // Its sentence says the loose time is in none of the rows below, which
+    // is only ever true because `rollupFigures` drops this figure when there
+    // is no table under it.
+    expect(
+      rollupFigures(project({ lines: [], unattributed: loose(2, 90) })).map(
+        (one) => one.label,
+      ),
+    ).not.toContain("Against no deliverable");
   });
 
   it("does not flag loose time that is exactly half the total", () => {

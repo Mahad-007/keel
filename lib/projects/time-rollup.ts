@@ -499,16 +499,12 @@ function describeUnattributed(rollup: ProjectRollup): string | null {
   }
 
   /*
-    With no scope list there is no table under this figure, so the sentence
-    cannot point at rows. It says what is true instead — there is no line for
-    any of this time to be set against — and the panel's own sentence under
-    the figures says where a scope list gets written.
+    "The rows below" is safe to say because this figure is only ever drawn
+    beside a table: with no scope list `rollupFigures` keeps the hours and
+    drops this, the panel renders its own sentence instead, and all of the
+    time being against no line is a thing it says there.
   */
   const across = `Across ${entriesPhrase(loose.entryCount)}.`;
-  if (!hasScopeToRollUp(rollup)) {
-    return `${across} There are no deliverables on this project, so there is no line of scope for any of it to be set against.`;
-  }
-
   const counted = `${across} Counted in the total above and in none of the rows below — there is no line of scope for it to be set against.`;
   /*
     Through `loggedShare` rather than a multiplication written out here. It is
