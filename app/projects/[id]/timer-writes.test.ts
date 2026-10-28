@@ -202,6 +202,18 @@ describe("writeTimerStart", () => {
     expect(project).toHaveBeenCalledTimes(1);
   });
 
+  it("revalidates when a clock was already running, because the page is wrong", async () => {
+    start.mockResolvedValue({
+      ok: false,
+      refusal: "already-running",
+      running: TIMER,
+    });
+
+    await press();
+
+    expect(revalidatePath).toHaveBeenCalledWith(projectPath("prj_engine"));
+  });
+
   it("explains a dropped line rather than telling the reader to retry", async () => {
     start.mockRejectedValue(new Error("no deliverable with id dlv_build"));
     deliverable.mockResolvedValue(null);

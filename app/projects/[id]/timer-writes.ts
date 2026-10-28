@@ -171,6 +171,16 @@ export async function writeTimerStart(
       started.running.projectId === projectId
         ? project
         : await getProject(started.running.projectId);
+
+    /*
+      Nothing was written and the page is still revalidated, which is the one
+      refusal here that needs it. A clock was already running when this page
+      rendered a Start form, so the page is showing the wrong thing: either the
+      panel for a clock on this project, or the sentence pointing at the one
+      elsewhere. Both of those explain themselves once drawn, which is why the
+      message below can be allowed to go with the form it was attached to.
+    */
+    revalidatePath(projectPath(projectId));
     return failedStartTimerState(
       fields,
       timerAlreadyRunning(elsewhere?.name ?? "another project"),
