@@ -43,3 +43,39 @@ export type RunningTimer = {
   /** The calendar date the entry will be filed under: `YYYY-MM-DD`. */
   readonly startedOn: string;
 };
+
+/** One minute, in the units `Date.getTime` counts. */
+const MS_PER_MINUTE = 60_000;
+
+/**
+ * How many whole minutes a timer has been running, given the clock.
+ *
+ * Floored, not rounded, and that is the decision in this function. A clock
+ * that reads a minute at thirty-one seconds would let ten short timers in a
+ * day bill ten minutes that nobody worked, and the figure this produces goes
+ * on an invoice. Flooring gives up at most fifty-nine seconds per timer and
+ * can never charge for a second that did not pass.
+ *
+ * Whole minutes because that is the repo's unit of time: the entry this
+ * becomes is stored in minutes, so a clock that counted anything finer would
+ * only be rounding later, somewhere less visible.
+ *
+ * Zero for a start in the future, rather than a negative. The usual cause is a
+ * machine whose clock has been corrected since the timer started, and the
+ * honest reading of "the clock says this has not begun yet" is that no time
+ * has passed — a negative would propagate into an entry the column refuses and
+ * a sentence saying the work took minus four minutes.
+ *
+ * Zero, too, for a `startedAt` that is not a timestamp. Nothing this app
+ * writes produces one, so it means a hand-edited row; the alternative is `NaN`
+ * travelling into every figure on the page, and a timer that reads nothing is
+ * a timer somebody can see is wrong.
+ */
+export function elapsedMinutes(startedAt: string, now: Date): number {
+  const started = new Date(startedAt).getTime();
+  if (Number.isNaN(started)) return 0;
+
+  const elapsed = now.getTime() - started;
+  if (!Number.isFinite(elapsed) || elapsed <= 0) return 0;
+  return Math.floor(elapsed / MS_PER_MINUTE);
+}
