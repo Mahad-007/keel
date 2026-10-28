@@ -9,6 +9,8 @@
  * whatever the machine running the tests thinks the time is.
  */
 
+import { formatMinutes } from "@/lib/minutes";
+
 import { MAX_ENTRY_MINUTES } from "./form";
 
 /**
@@ -122,4 +124,22 @@ export function timerStopObstacle(minutes: number): TimerStopObstacle | null {
   if (minutes < MINIMUM_TIMER_MINUTES) return "too-short";
   if (minutes > MAX_ENTRY_MINUTES) return "too-long";
   return null;
+}
+
+/**
+ * What the elapsed figure reads as on screen.
+ *
+ * The first minute says so in words rather than showing `0m`. A clock reading
+ * zero is what a stopped clock reads, and it is the first thing a reader sees
+ * after pressing Start — the one moment they are looking for confirmation that
+ * the press landed. "Less than a minute" is that confirmation; `0m` is the
+ * opposite of it.
+ *
+ * After that it is `formatMinutes`, the same spelling every other duration in
+ * the app is written in, so an hour and a half on the running clock reads as
+ * the `1h 30m` it will appear as in the list once it is stopped.
+ */
+export function elapsedLabel(minutes: number): string {
+  if (minutes < MINIMUM_TIMER_MINUTES) return "Less than a minute";
+  return formatMinutes(minutes);
 }

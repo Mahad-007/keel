@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { MAX_ENTRY_MINUTES } from "./form";
 import {
+  elapsedLabel,
   elapsedMinutes,
   MINIMUM_TIMER_MINUTES,
   timerStopObstacle,
@@ -93,5 +94,23 @@ describe("timerStopObstacle", () => {
   /** `elapsedMinutes` cannot produce one, and a hand-edited row can. */
   it("treats a negative figure as too short rather than acceptable", () => {
     expect(timerStopObstacle(-30)).toBe("too-short");
+  });
+});
+
+describe("elapsedLabel", () => {
+  it("says the first minute in words rather than showing 0m", () => {
+    expect(elapsedLabel(0)).toBe("Less than a minute");
+  });
+
+  it("switches to a duration once there is one", () => {
+    expect(elapsedLabel(1)).toBe("1m");
+  });
+
+  it("spells an hour and a half the way the time list does", () => {
+    expect(elapsedLabel(90)).toBe("1h 30m");
+  });
+
+  it("does not show a negative figure as a duration", () => {
+    expect(elapsedLabel(-5)).toBe("Less than a minute");
   });
 });
