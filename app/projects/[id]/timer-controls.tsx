@@ -175,6 +175,21 @@ export function TimerControls({
   const minutes = useElapsedMinutes(running?.startedAt ?? null, initialMinutes);
 
   /*
+    The discard step is about one particular clock, so it closes whenever that
+    clock changes — stopped, discarded, or replaced by the next one started
+    from this same mount.
+
+    Here rather than in each handler, because the handlers are not the only way
+    the clock can change: it can be stopped on a phone, and the revalidated
+    page arrives with a different row. Left open, the step would re-render
+    itself unasked above the next clock, take the cursor with `autoFocus`, and
+    offer to discard a figure that clock never counted.
+  */
+  useEffect(() => {
+    setConfirming(false);
+  }, [running?.id]);
+
+  /*
     A clock that started gets its sentence from the form's own state, because
     that is where the answer arrives. It is routed into the one announcement
     the presses also use, so the region has a single source: otherwise a stop's
@@ -233,7 +248,6 @@ export function TimerControls({
         setProblem(result.problem);
         return;
       }
-      setConfirming(false);
       moveFocus.current = true;
       setSaid({
         key: `discarded-${running.id}`,
