@@ -1,5 +1,11 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 import {
   DEFAULT_DELIVERABLE_STATUS,
@@ -9,6 +15,7 @@ import {
   DEFAULT_PROJECT_STATUS,
   PROJECT_STATUSES,
 } from "@/lib/projects/status";
+import { RUNNING_TIMER_SLOT } from "@/lib/time/timer";
 
 /**
  * Schema grows one table at a time as the roadmap advances. Two conventions
@@ -492,3 +499,78 @@ export const timeEntries = sqliteTable(
 
 export type TimeEntry = typeof timeEntries.$inferSelect;
 export type NewTimeEntry = typeof timeEntries.$inferInsert;
+
+/**
+ * The timer that is running right now, if one is.
+ *
+ * A stretch of work can be written down after the fact — that is what
+ * `time_entries` and the log form are for — but most of it is not. Somebody
+ * sits down to a thing, does it, and gets up again, and the honest record of
+ * how long that took is a clock that was started and stopped rather than a
+ * figure recalled an hour later. Recalled figures round to the half hour and
+ * they round downwards, which is the quiet way an engagement comes to look
+ * cheaper than it was.
+ *
+ * It is a table rather than something held in the page because a clock that
+ * forgets is worse than no clock. A timer in component state dies on a
+ * reload, a crash, a closed laptop and a deploy, and it dies without saying
+ * so — the reader comes back to a page with no timer on it and no way to tell
+ * whether the morning was recorded. A row survives all five, which is the
+ * whole of this milestone.
+ *
+ * `startedAt` is a moment, not a day: it is the instant the clock started, and
+ * the elapsed figure is arithmetic on it. `startedOn` is the calendar date the
+ * entry will be filed under, copied from the clock of whoever pressed Start,
+ * because that is the only clock that knows which day they mean — the same
+ * reason `time_entries.workedOn` is never defaulted on the server. Keeping
+ * both means a timer started at 23:50 and stopped at 00:20 lands on the day
+ * the work began rather than on whichever day UTC had reached.
+ *
+ * There is no `minutes` column, and that is the point of the table: a running
+ * timer has no duration yet. The duration is what stopping it works out, and
+ * the row it writes is a `time_entries` row — so every figure in the app comes
+ * from one table and a running timer counts towards nothing until it stops.
+ *
+ * `slot` is how "at most one" is spelled. Nobody works on two things at once,
+ * and two timers running would make every elapsed figure a question about
+ * which one the reader meant; the unique index refuses the second rather than
+ * leaving the page to decide. The column holds one value today because there
+ * is one person using the app — Phase 8 replaces it with the owner's id, after
+ * which the same index means "one timer each", which is the constraint that
+ * was always intended.
+ *
+ * Rows cascade with the project, like deliverables and time entries: a running
+ * clock is part of an engagement, and once the engagement is gone there is
+ * nothing for it to be stopped into.
+ */
+export const activeTimers = sqliteTable(
+  "active_timers",
+  {
+    id: text("id").primaryKey(),
+    /** Always `RUNNING_TIMER_SLOT`. The unique index on it is the constraint. */
+    slot: text("slot").notNull().default(RUNNING_TIMER_SLOT),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    /** The line of scope the work is going against. NULL for the project. */
+    deliverableId: text("deliverable_id").references(() => deliverables.id, {
+      onDelete: "set null",
+    }),
+    /** What is being done, in a person's words. NULL when they did not say. */
+    note: text("note"),
+    /** Whether the time this becomes is meant to be charged for. */
+    billable: integer("billable", { mode: "boolean" }).notNull().default(true),
+    /** The instant the clock started: a full ISO timestamp, not a day. */
+    startedAt: text("started_at").notNull(),
+    /** The calendar date the entry will be filed under: `YYYY-MM-DD`. */
+    startedOn: text("started_on").notNull(),
+  },
+  /**
+   * One index, and it is the constraint rather than an optimisation: the table
+   * holds at most one row, so nothing here needs help being found.
+   */
+  (table) => [uniqueIndex("active_timers_slot_idx").on(table.slot)],
+);
+
+export type ActiveTimer = typeof activeTimers.$inferSelect;
+export type NewActiveTimer = typeof activeTimers.$inferInsert;

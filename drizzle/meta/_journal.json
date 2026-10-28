@@ -71,6 +71,13 @@
       "when": 1792112690483,
       "tag": "0009_loose_beyonder",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1793153193923,
+      "tag": "0010_chief_paladin",
+      "breakpoints": true
     }
   ]
 }
