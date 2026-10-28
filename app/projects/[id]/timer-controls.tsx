@@ -164,12 +164,20 @@ export function TimerControls({
     move to is the one rendered *instead*, and it is not in the document until
     React has caught up. So the handler leaves a note here and the effect acts
     on it.
+
+    The note is held until the button exists, which is the part that is easy
+    to get wrong. The write answers before the revalidated page arrives, so
+    the render straight after it is still the panel: an effect that cleared
+    the note then would look for a button that is one round trip away and
+    silently give up, leaving the focus on the body after every press.
   */
   const moveFocus = useRef(false);
   useEffect(() => {
     if (!moveFocus.current) return;
+    const button = document.getElementById(START_TIMER_BUTTON_ID);
+    if (button === null) return;
     moveFocus.current = false;
-    document.getElementById(START_TIMER_BUTTON_ID)?.focus();
+    button.focus();
   });
 
   const minutes = useElapsedMinutes(running?.startedAt ?? null, initialMinutes);
