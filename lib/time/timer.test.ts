@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { MAX_ENTRY_MINUTES } from "./form";
+import type { RunningTimer } from "./timer";
 import {
   elapsedLabel,
   elapsedMinutes,
   MINIMUM_TIMER_MINUTES,
+  stoppedTimerEntry,
   timerStopObstacle,
 } from "./timer";
 
@@ -112,5 +114,46 @@ describe("elapsedLabel", () => {
 
   it("does not show a negative figure as a duration", () => {
     expect(elapsedLabel(-5)).toBe("Less than a minute");
+  });
+});
+
+/** A clock started on the evening of the 27th, against one line of scope. */
+const RUNNING: RunningTimer = {
+  id: "tmr_one",
+  projectId: "prj_one",
+  deliverableId: "dlv_build",
+  note: "Pairing on the importer",
+  billable: true,
+  startedAt: "2026-10-27T23:50:00.000Z",
+  startedOn: "2026-10-27",
+};
+
+describe("stoppedTimerEntry", () => {
+  it("carries the elapsed minutes it is given", () => {
+    expect(stoppedTimerEntry(RUNNING, 30).minutes).toBe(30);
+  });
+
+  it("files the entry under the day the clock started", () => {
+    expect(stoppedTimerEntry(RUNNING, 30).workedOn).toBe("2026-10-27");
+  });
+
+  it("keeps the attribution and the note given at Start", () => {
+    expect(stoppedTimerEntry(RUNNING, 30)).toMatchObject({
+      deliverableId: "dlv_build",
+      note: "Pairing on the importer",
+    });
+  });
+
+  it("keeps a timer marked not chargeable out of the chargeable column", () => {
+    const free = { ...RUNNING, billable: false };
+    expect(stoppedTimerEntry(free, 30).billable).toBe(false);
+  });
+
+  it("writes an unattributed timer as project-level work", () => {
+    const loose = { ...RUNNING, deliverableId: null, note: null };
+    expect(stoppedTimerEntry(loose, 12)).toMatchObject({
+      deliverableId: null,
+      note: null,
+    });
   });
 });
