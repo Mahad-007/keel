@@ -1,0 +1,70 @@
+import { eq } from "drizzle-orm";
+
+import { db, type Database } from "@/lib/db";
+import { activeTimers, type ActiveTimer } from "@/lib/db/schema";
+import { RUNNING_TIMER_SLOT } from "@/lib/time/timer";
+
+/**
+ * Data access for the `active_timers` table: the clock that is running right
+ * now, if one is.
+ *
+ * Plain async functions with one optional database handle each, like every
+ * other module here. What makes this one different is that the table holds at
+ * most one row, so nothing takes a filter: there is no "list the timers" and
+ * no "this project's timer". A reader either has a clock running or does not,
+ * and the project is a fact about the row rather than a way of finding it.
+ *
+ * Three doors out of a running timer, and they are not variations on one.
+ * Stopping it writes a time entry and removes the row — the ordinary end of a
+ * stretch of work. Discarding it removes the row and writes nothing, which is
+ * the way out of a mis-press. And a deleted project takes the row with it
+ * through the cascade, writing nothing either, because there is no longer an
+ * engagement for the minutes to count against.
+ */
+
+/**
+ * What starting a clock needs: the project, and the day the entry it becomes
+ * will be filed under.
+ *
+ * `startedOn` is required and has no default, for the reason
+ * `NewTimeEntryInput.workedOn` has none: it is a calendar date, the server may
+ * be most of a day away from the person pressing Start, and the only clock
+ * that knows which day they mean is theirs. `startedAt` is the opposite — a
+ * moment rather than a day, so the server's clock is the right one and it is
+ * not an input at all.
+ */
+export type NewActiveTimerInput = {
+  /** The engagement the work is being done for. Must already exist. */
+  projectId: string;
+  /**
+   * The line of scope it is going against, if any. Must belong to the same
+   * project. Absent and null both mean project-level work, which is a real
+   * answer rather than a missing one.
+   */
+  deliverableId?: string | null;
+  /** What is being done, in a person's words. Blank and absent store NULL. */
+  note?: string | null;
+  /** Defaults to true: time against a client engagement is chargeable. */
+  billable?: boolean;
+  /** The calendar date the entry will be filed under: `YYYY-MM-DD`. */
+  startedOn: string;
+};
+
+/**
+ * The timer that is running, or null if none is.
+ *
+ * Found by its slot rather than by reading the first row of the table, which
+ * is the same question asked in a way that cannot be wrong: the slot is what
+ * the unique index is on, so this is a lookup rather than a scan that trusts
+ * the table to hold what it should.
+ */
+export async function getActiveTimer(
+  database: Database = db,
+): Promise<ActiveTimer | null> {
+  const [row] = await database
+    .select()
+    .from(activeTimers)
+    .where(eq(activeTimers.slot, RUNNING_TIMER_SLOT))
+    .limit(1);
+  return row ?? null;
+}
