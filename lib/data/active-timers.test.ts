@@ -11,8 +11,8 @@ import {
   stopActiveTimer,
 } from "./active-timers";
 import { createClient } from "./clients";
-import { createDeliverable } from "./deliverables";
-import { createProject } from "./projects";
+import { createDeliverable, deleteDeliverable } from "./deliverables";
+import { createProject, deleteProject } from "./projects";
 import { listTimeEntries } from "./time-entries";
 
 let db: Database;
@@ -536,5 +536,64 @@ describe("stopActiveTimer when it will not stop", () => {
 
     expect(again.ok).toBe(false);
     expect(await listTimeEntries(projectId, db)).toHaveLength(1);
+  });
+});
+
+/**
+ * What happens to a running clock when the thing it is running against goes.
+ * Both are the schema's doing rather than this module's, which is why they are
+ * worth a test: a cascade nobody asserts is a cascade that can be dropped by
+ * the next migration without anything noticing.
+ */
+describe("a running timer whose project or line of scope is deleted", () => {
+  it("goes with the project, because there is nothing left to bill", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+
+    await deleteProject(projectId, db);
+
+    expect(await getActiveTimer(db)).toBeNull();
+  });
+
+  it("keeps running when its deliverable is deleted, now unattributed", async () => {
+    const deliverable = await createDeliverable(
+      { projectId, title: "Importer", estimatedMinutes: 240 },
+      db,
+    );
+    const started = await startActiveTimer(
+      { projectId, startedOn: TODAY, deliverableId: deliverable.id },
+      db,
+    );
+    if (!started.ok) throw new Error("the timer should have started");
+
+    await deleteDeliverable(deliverable.id, db);
+
+    expect(await getActiveTimer(db)).toMatchObject({
+      id: started.timer.id,
+      deliverableId: null,
+    });
+  });
+
+  it("still stops into an entry after its line of scope is dropped", async () => {
+    const deliverable = await createDeliverable(
+      { projectId, title: "Importer", estimatedMinutes: 240 },
+      db,
+    );
+    const started = await startActiveTimer(
+      { projectId, startedOn: TODAY, deliverableId: deliverable.id },
+      db,
+    );
+    if (!started.ok) throw new Error("the timer should have started");
+    await deleteDeliverable(deliverable.id, db);
+
+    const stopped = await stopActiveTimer(
+      started.timer.id,
+      minutesLater(started.timer.startedAt, 20),
+      db,
+    );
+
+    expect(stopped.ok).toBe(true);
+    if (!stopped.ok) return;
+    expect(stopped.entry).toMatchObject({ minutes: 20, deliverableId: null });
   });
 });
