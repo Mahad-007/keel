@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
+import { getRunningTimer } from "@/lib/data/active-timers";
 import { listDeliverableTemplates } from "@/lib/data/deliverable-templates";
 import { countDeliverables, listDeliverables } from "@/lib/data/deliverables";
 import { listProjectStatusEvents } from "@/lib/data/project-status-events";
@@ -67,6 +68,13 @@ export default async function ProjectPage({
   const tab = parseProjectTabParam(search);
 
   /*
+    One reading of the clock for the whole render, so the elapsed figure the
+    timer opens on and anything else derived from "now" cannot disagree by the
+    length of a query.
+  */
+  const now = new Date();
+
+  /*
     Only the overview reads the status trail and the size of the scope list, so
     only the overview pays for them: the other four tabs render a sentence
     apiece and have no business running two more queries to do it.
@@ -96,24 +104,29 @@ export default async function ProjectPage({
     and awaiting them in sequence would make the tab wait for the sum of two
     round trips to show one page.
   */
-  const [deliverables, templates, snapshots, timeEntries] =
+  const [deliverables, templates, snapshots, timeEntries, runningTimer] =
     tab === "scope"
       ? await Promise.all([
           listDeliverables(project.id),
           listDeliverableTemplates(),
           listScopeSnapshots(project.id),
           [],
+          null,
         ])
       : /*
-          The time tab needs two: its entries, and the scope list — which the
+          The time tab needs three: its entries, the scope list — which the
           attribution picker is built from and every row's attribution is named
-          from. Two rather than the scope tab's three, and together rather than
-          one after the other, so the tab waits for one round trip instead of
-          the sum of two.
+          from — and the clock, if one is running. Together rather than one
+          after the other, so the tab waits for one round trip instead of the
+          sum of three.
 
           The scope list is the same read as above, so the lines are offered in
           the order they were agreed and the write checks a submission against
           the list this page rendered.
+
+          The clock is not scoped to this project, because only one runs at a
+          time: one on another engagement is why this tab cannot start its own,
+          and it is named rather than merely refused.
         */
         tab === "time"
         ? await Promise.all([
@@ -121,8 +134,9 @@ export default async function ProjectPage({
             [],
             [],
             listTimeEntries(project.id),
+            getRunningTimer(),
           ])
-        : [[], [], [], []];
+        : [[], [], [], [], null];
 
   /*
     Which snapshot the comparison is against: the one the URL named, else the
@@ -179,6 +193,8 @@ export default async function ProjectPage({
             projectId={project.id}
             deliverables={deliverables}
             entries={timeEntries}
+            runningTimer={runningTimer}
+            now={now}
           />
         ) : (
           <UnbuiltTabPanel tab={tab} />
