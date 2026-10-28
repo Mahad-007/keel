@@ -33,10 +33,7 @@ const TODAY = "2026-10-28";
 
 describe("startActiveTimer", () => {
   it("writes a running timer against the project", async () => {
-    const started = await startActiveTimer(
-      { projectId, startedOn: TODAY },
-      db,
-    );
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
 
     expect(started.ok).toBe(true);
     if (!started.ok) return;
@@ -49,30 +46,21 @@ describe("startActiveTimer", () => {
   });
 
   it("is found by the read afterwards, which is the point of the row", async () => {
-    const started = await startActiveTimer(
-      { projectId, startedOn: TODAY },
-      db,
-    );
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
     if (!started.ok) throw new Error("the first timer should have started");
 
     expect(await getActiveTimer(db)).toMatchObject({ id: started.timer.id });
   });
 
   it("stamps the instant it started, not just the day", async () => {
-    const started = await startActiveTimer(
-      { projectId, startedOn: TODAY },
-      db,
-    );
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
     if (!started.ok) throw new Error("the timer should have started");
 
     expect(Number.isNaN(Date.parse(started.timer.startedAt))).toBe(false);
   });
 
   it("treats time against a client engagement as chargeable", async () => {
-    const started = await startActiveTimer(
-      { projectId, startedOn: TODAY },
-      db,
-    );
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
     if (!started.ok) throw new Error("the timer should have started");
 
     expect(started.timer.billable).toBe(true);
@@ -128,5 +116,66 @@ describe("startActiveTimer", () => {
     if (!started.ok) throw new Error("the timer should have started");
 
     expect(started.timer.deliverableId).toBeNull();
+  });
+});
+
+/**
+ * The one refusal a reader can act on, and the reason the table has a unique
+ * index rather than a convention.
+ */
+describe("startActiveTimer against a clock already running", () => {
+  it("refuses the second press", async () => {
+    await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    const second = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+
+    expect(second.ok).toBe(false);
+    if (second.ok) return;
+    expect(second.refusal).toBe("already-running");
+  });
+
+  it("hands back the clock that was already going", async () => {
+    const first = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!first.ok) throw new Error("the first timer should have started");
+
+    const second = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (second.ok) throw new Error("the second timer should have been refused");
+
+    expect(second.running).toMatchObject({ id: first.timer.id });
+  });
+
+  it("refuses a clock on another project, not only on this one", async () => {
+    const other = await createProject(
+      {
+        clientId: (await createClient({ name: "Second Co" }, db)).id,
+        name: "Brand refresh",
+      },
+      db,
+    );
+    const first = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!first.ok) throw new Error("the first timer should have started");
+
+    const second = await startActiveTimer(
+      { projectId: other.id, startedOn: TODAY },
+      db,
+    );
+    if (second.ok) throw new Error("the second timer should have been refused");
+
+    expect(second.running.projectId).toBe(projectId);
+  });
+
+  it("leaves the running clock untouched", async () => {
+    const first = await startActiveTimer(
+      { projectId, startedOn: TODAY, note: "Discovery call" },
+      db,
+    );
+    if (!first.ok) throw new Error("the first timer should have started");
+
+    await startActiveTimer({ projectId, startedOn: TODAY, note: "Build" }, db);
+
+    expect(await getActiveTimer(db)).toMatchObject({
+      id: first.timer.id,
+      note: "Discovery call",
+      startedAt: first.timer.startedAt,
+    });
   });
 });
