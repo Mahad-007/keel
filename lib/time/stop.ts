@@ -16,6 +16,7 @@ import { formatDate } from "@/lib/dates";
 import { formatMinutes } from "@/lib/minutes";
 
 import { MAX_ENTRY_MINUTES } from "./form";
+import { timeWriteProblem, type TimeWriteResult } from "./remove";
 import { MINIMUM_TIMER_MINUTES } from "./timer";
 
 /**
@@ -137,4 +138,114 @@ export function stoppedTimerAnnouncement(stopped: StoppedTimer): string {
       : `“${stopped.deliverableTitle}”`;
   const charge = stopped.billable ? "" : " Marked as not chargeable.";
   return `Logged ${formatMinutes(stopped.minutes)} against ${against} on ${formatDate(stopped.workedOn)}.${charge}`;
+}
+
+/**
+ * The step in front of discarding a clock, and the labels around it.
+ *
+ * Discarding is the one press on this panel that cannot be undone and leaves
+ * nothing behind: a stopped clock is a row in the time list, which can be
+ * edited or deleted afterwards, and a discarded one is gone with the minutes
+ * it held. So the press is asked for twice, and the step that asks is a
+ * sentence and two buttons rather than a `window.confirm` — for the reasons
+ * written out in `lib/deliverables/remove.ts`, and one more that is specific
+ * to this panel: the sentence has to name how long the clock has been running,
+ * and a browser dialogue cannot be told.
+ */
+
+/** The control in the panel that opens the step. */
+export const DISCARD_TIMER_LABEL = "Discard";
+
+/**
+ * What the step says, which is the whole reason it is not `window.confirm`.
+ *
+ * It names the elapsed figure, because that is what is about to be thrown
+ * away and the reader may not have looked at the clock since they started it.
+ * And it offers the thing they probably meant: by far the most common reason
+ * to discard is that the clock was started on the wrong project or left
+ * running by mistake, and if the work was real then stopping it keeps the
+ * record and the entry can be corrected afterwards.
+ *
+ * The offer is left out below a minute, because then there is nothing to keep
+ * and Stop would refuse anyway — suggesting it would send a reader to a button
+ * that will not work.
+ */
+export function describeTimerDiscard(minutes: number): string {
+  if (minutes < MINIMUM_TIMER_MINUTES) {
+    return "Discard this clock? It has not been running long enough to log anything, so nothing is lost.";
+  }
+  return `Discard this clock? The ${formatMinutes(minutes)} it has counted is not logged anywhere and cannot be recovered. If the work was real, stop the clock instead — the entry can be corrected afterwards.`;
+}
+
+/** The confirming control, named so it cannot be mistaken for the opener. */
+export const CONFIRM_DISCARD_TIMER_LABEL =
+  "Discard this clock without logging the time";
+
+/** The way out, named as what it does rather than as "cancel". */
+export const KEEP_TIMER_LABEL = "Keep the clock running";
+
+/** The ids the step and the button that opens it are known by. */
+export const TIMER_DISCARD_PROMPT_ID = "timer-discard-prompt";
+
+/** The button inside the step, which the cursor moves to when it opens. */
+export const CONFIRM_DISCARD_TIMER_ID = "timer-discard-confirm";
+
+/** The button in the panel that opens the step, and takes the cursor back. */
+export const DISCARD_TIMER_BUTTON_ID = "timer-discard";
+
+/**
+ * What discarding hands back: nothing to say, or the one sentence worth saying
+ * about why the clock is still running.
+ *
+ * `TimeWriteResult` rather than a type of its own, which is the deletion
+ * press's result from next door. It is the right shape for the same reason: a
+ * press with nothing to report on success, because what it produced is an
+ * absence, and the panel on screen has already shown it. The sentence a reader
+ * hears is built in the browser from the figure it was already displaying.
+ */
+export type DiscardTimerResult = TimeWriteResult;
+
+/**
+ * The sentences a refused discard comes back with.
+ *
+ * Two, because there are only two ways it can fail: the clock has gone since
+ * the page was drawn, or the write did not land. There is no equivalent of the
+ * stop refusals — no elapsed figure is too short or too long to throw away.
+ */
+export const DISCARD_TIMER_PROBLEMS = {
+  missing:
+    "That clock is not running any more, so there was nothing to discard. Reload to see what this project has.",
+  failed: "Could not discard the clock. Nothing was written — try again.",
+} as const;
+
+/**
+ * What to say once a clock has been discarded.
+ *
+ * It says the minutes went, naming them, because a reader who confirmed this
+ * by keyboard has had the step vanish and the Start form appear in its place
+ * with nothing announced. Naming the figure is also the honest end of the
+ * exchange: the step warned that this much time would be lost, and this
+ * confirms that is what happened.
+ */
+export function discardedTimerAnnouncement(minutes: number): string {
+  if (minutes < MINIMUM_TIMER_MINUTES) {
+    return "Discarded the clock. Nothing was logged.";
+  }
+  return `Discarded the clock. The ${formatMinutes(minutes)} it had counted was not logged.`;
+}
+
+/**
+ * What to say when a discard never got an answer.
+ *
+ * It does not claim either way, like every other no-answer sentence here. The
+ * instruction is to reload rather than to press again, because a second press
+ * on a clock that is already gone reports the missing refusal — which reads as
+ * a failure when in fact the first press worked.
+ */
+export const DISCARD_TIMER_NO_ANSWER =
+  "Could not tell whether the clock was discarded — the answer never arrived. Reload to see whether it is still running.";
+
+/** A refused discard, in the shape the panel reads. */
+export function discardTimerProblem(problem: string): DiscardTimerResult {
+  return timeWriteProblem(problem);
 }
