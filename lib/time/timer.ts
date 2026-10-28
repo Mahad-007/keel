@@ -11,7 +11,7 @@
 
 import { formatMinutes } from "@/lib/minutes";
 
-import { MAX_ENTRY_MINUTES } from "./form";
+import { MAX_ENTRY_MINUTES, type LogTimeFormValue } from "./form";
 
 /**
  * The value the `slot` column always holds, and the reason the table can hold
@@ -142,4 +142,39 @@ export function timerStopObstacle(minutes: number): TimerStopObstacle | null {
 export function elapsedLabel(minutes: number): string {
   if (minutes < MINIMUM_TIMER_MINUTES) return "Less than a minute";
   return formatMinutes(minutes);
+}
+
+/**
+ * The entry a stopped timer becomes: the same five things the log form
+ * produces, so stopping a clock and typing a duration write the same row.
+ *
+ * `LogTimeFormValue` rather than a type of its own, which is the point worth
+ * making: a timer is not a second kind of time. It is a different way of
+ * arriving at a duration, and everything downstream — the rollups, the burn
+ * figures, the invoice — reads one table and cannot tell which way an entry
+ * got there.
+ *
+ * The day is the day the clock *started* on, not the day it stopped. A stretch
+ * begun at 23:50 and stopped at 00:20 is half an hour of last night's work,
+ * and filing it under the new day would move an evening's work onto a morning
+ * nobody worked — the day somebody sat down is the day they will look for it
+ * under. It also means the day never depends on where the server is standing,
+ * because `startedOn` was written from the clock of whoever pressed Start.
+ *
+ * The note and the attribution are carried across as they were given at Start.
+ * A reader who wants to say more about the work edits the entry afterwards,
+ * which is a form that already exists — asking for a note at Stop would put a
+ * form in front of the one press that has to be instant.
+ */
+export function stoppedTimerEntry(
+  timer: RunningTimer,
+  minutes: number,
+): LogTimeFormValue {
+  return {
+    minutes,
+    workedOn: timer.startedOn,
+    deliverableId: timer.deliverableId,
+    note: timer.note,
+    billable: timer.billable,
+  };
 }
