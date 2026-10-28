@@ -30,6 +30,16 @@ export type SubmitButtonVariant = keyof typeof VARIANTS;
 
 export type SubmitButtonProps = {
   children: string;
+  /**
+   * For a button the page has to move the cursor to.
+   *
+   * A press that replaces one control with another leaves the focus on a node
+   * the browser has just removed, and the browser's answer to that is to drop
+   * it to the document — so the next Tab starts from the top of the page. The
+   * control to move to is not in the document when the press is made, which is
+   * why it has to be findable by id rather than by a ref.
+   */
+  id?: string;
   /** What the button says once it has been pressed: "Saving…". */
   pendingLabel: string;
   variant?: SubmitButtonVariant;
@@ -55,6 +65,7 @@ export type SubmitButtonProps = {
 
 export function SubmitButton({
   children,
+  id,
   pendingLabel,
   variant = "primary",
   subject,
@@ -67,6 +78,7 @@ export function SubmitButton({
   return (
     <button
       type="submit"
+      id={id}
       name={name}
       value={value}
       disabled={pending}
