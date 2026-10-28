@@ -2,7 +2,11 @@ import { eq } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import { activeTimers, type ActiveTimer } from "@/lib/db/schema";
+import { newId } from "@/lib/id";
 import { RUNNING_TIMER_SLOT } from "@/lib/time/timer";
+
+import { requireProject, requireProjectDeliverable } from "./belonging";
+import { calendarDate, optionalText } from "./fields";
 
 /**
  * Data access for the `active_timers` table: the clock that is running right
@@ -104,3 +108,66 @@ export type ActiveTimerStart =
       readonly refusal: ActiveTimerRefusal;
       readonly running: ActiveTimer;
     };
+
+/**
+ * Starts the clock and hands back the row, or the timer that was already
+ * running.
+ *
+ * The read and the insert are one immediate transaction. A deferred one takes
+ * no write lock until the insert, so two presses arriving together would both
+ * find no timer and the second would be refused by the unique index — a thrown
+ * constraint error where there is a perfectly good answer to give. Immediate
+ * serialises them, so the second press sees the first press's row and comes
+ * back as the refusal it is.
+ *
+ * The index is still the thing that makes "at most one" true, rather than this
+ * function being careful. Anything that writes the table without going through
+ * here — a migration, a hand-run statement, a second process — is refused by
+ * the database rather than by a convention.
+ *
+ * Everything that can be checked without a query is checked first, so a
+ * malformed day costs no round trip.
+ */
+export async function startActiveTimer(
+  input: NewActiveTimerInput,
+  database: Database = db,
+): Promise<ActiveTimerStart> {
+  const startedOn = calendarDate(input.startedOn, "timer started on");
+  const note = optionalText(input.note);
+  const deliverableId = optionalText(input.deliverableId);
+  const billable = input.billable ?? true;
+
+  const projectId = await requireProject(
+    input.projectId,
+    database,
+    "timer project",
+  );
+  if (deliverableId !== null) {
+    await requireProjectDeliverable(deliverableId, projectId, database);
+  }
+
+  return database.transaction(
+    async (tx) => {
+      const running = await getActiveTimer(tx);
+      if (running !== null) {
+        return { ok: false, refusal: "already-running", running };
+      }
+
+      const [row] = await tx
+        .insert(activeTimers)
+        .values({
+          id: newId("tmr"),
+          slot: RUNNING_TIMER_SLOT,
+          projectId,
+          deliverableId,
+          note,
+          billable,
+          startedAt: new Date().toISOString(),
+          startedOn,
+        })
+        .returning();
+      return { ok: true, timer: row };
+    },
+    { behavior: "immediate" },
+  );
+}
