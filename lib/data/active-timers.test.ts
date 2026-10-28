@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
+import { MAX_ENTRY_MINUTES } from "@/lib/time/form";
 
 import {
   discardActiveTimer,
@@ -13,8 +14,6 @@ import { createClient } from "./clients";
 import { createDeliverable } from "./deliverables";
 import { createProject } from "./projects";
 import { listTimeEntries } from "./time-entries";
-
-import { MAX_ENTRY_MINUTES } from "@/lib/time/form";
 
 let db: Database;
 /** Every timer hangs off a project, which hangs off a client. */
