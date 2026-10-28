@@ -7,6 +7,7 @@ import { MAX_ENTRY_MINUTES } from "@/lib/time/form";
 import {
   discardActiveTimer,
   getActiveTimer,
+  getRunningTimer,
   startActiveTimer,
   stopActiveTimer,
 } from "./active-timers";
@@ -595,5 +596,48 @@ describe("a running timer whose project or line of scope is deleted", () => {
     expect(stopped.ok).toBe(true);
     if (!stopped.ok) return;
     expect(stopped.entry).toMatchObject({ minutes: 20, deliverableId: null });
+  });
+});
+
+describe("getRunningTimer", () => {
+  it("is null when no clock is running", async () => {
+    expect(await getRunningTimer(db)).toBeNull();
+  });
+
+  it("names the project the clock is on", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+
+    expect(await getRunningTimer(db)).toMatchObject({
+      id: started.timer.id,
+      projectName: "Site rebuild",
+    });
+  });
+
+  it("carries every column the timer row has", async () => {
+    const started = await startActiveTimer(
+      { projectId, startedOn: TODAY, note: "Discovery call", billable: false },
+      db,
+    );
+    if (!started.ok) throw new Error("the timer should have started");
+
+    expect(await getRunningTimer(db)).toMatchObject({
+      note: "Discovery call",
+      billable: false,
+      startedOn: TODAY,
+      startedAt: started.timer.startedAt,
+    });
+  });
+
+  it("is null again once the clock is stopped", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+    await stopActiveTimer(
+      started.timer.id,
+      minutesLater(started.timer.startedAt, 10),
+      db,
+    );
+
+    expect(await getRunningTimer(db)).toBeNull();
   });
 });
