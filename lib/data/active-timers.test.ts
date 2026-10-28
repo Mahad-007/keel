@@ -7,6 +7,7 @@ import {
   discardActiveTimer,
   getActiveTimer,
   startActiveTimer,
+  stopActiveTimer,
 } from "./active-timers";
 import { createClient } from "./clients";
 import { createDeliverable } from "./deliverables";
@@ -35,6 +36,17 @@ describe("getActiveTimer", () => {
 
 /** The day the reader's own clock says it is, as the browser would send it. */
 const TODAY = "2026-10-28";
+
+/**
+ * A clock reading a given number of minutes after the timer started.
+ *
+ * `stopActiveTimer` takes `now` rather than reading the wall clock, so a
+ * stretch of any length can be stopped without waiting for it — which is the
+ * reason the parameter is there.
+ */
+function minutesLater(startedAt: string, minutes: number): Date {
+  return new Date(Date.parse(startedAt) + minutes * 60_000);
+}
 
 describe("startActiveTimer", () => {
   it("writes a running timer against the project", async () => {
@@ -296,5 +308,117 @@ describe("discardActiveTimer", () => {
 
   it("is null when nothing is running at all", async () => {
     expect(await discardActiveTimer("tmr_gone", db)).toBeNull();
+  });
+});
+
+describe("stopActiveTimer", () => {
+  it("writes the elapsed minutes as a time entry", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+
+    const stopped = await stopActiveTimer(
+      started.timer.id,
+      minutesLater(started.timer.startedAt, 25),
+      db,
+    );
+
+    expect(stopped.ok).toBe(true);
+    if (!stopped.ok) return;
+    expect(stopped.entry).toMatchObject({
+      projectId,
+      minutes: 25,
+      workedOn: TODAY,
+    });
+    expect(stopped.minutes).toBe(25);
+  });
+
+  it("leaves the entry where every other figure reads it from", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+
+    await stopActiveTimer(
+      started.timer.id,
+      minutesLater(started.timer.startedAt, 45),
+      db,
+    );
+
+    const entries = await listTimeEntries(projectId, db);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].minutes).toBe(45);
+  });
+
+  it("removes the clock, so the slot is free again", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+
+    await stopActiveTimer(
+      started.timer.id,
+      minutesLater(started.timer.startedAt, 5),
+      db,
+    );
+
+    expect(await getActiveTimer(db)).toBeNull();
+    expect(
+      (await startActiveTimer({ projectId, startedOn: TODAY }, db)).ok,
+    ).toBe(true);
+  });
+
+  it("hands back the timer it stopped, for the sentence afterwards", async () => {
+    const deliverable = await createDeliverable(
+      { projectId, title: "Importer", estimatedMinutes: 240 },
+      db,
+    );
+    const started = await startActiveTimer(
+      { projectId, startedOn: TODAY, deliverableId: deliverable.id },
+      db,
+    );
+    if (!started.ok) throw new Error("the timer should have started");
+
+    const stopped = await stopActiveTimer(
+      started.timer.id,
+      minutesLater(started.timer.startedAt, 30),
+      db,
+    );
+    if (!stopped.ok) throw new Error("the timer should have stopped");
+
+    expect(stopped.stopped).toMatchObject({ id: started.timer.id });
+    expect(stopped.entry.deliverableId).toBe(deliverable.id);
+  });
+
+  it("carries a non-chargeable clock through to a non-chargeable entry", async () => {
+    const started = await startActiveTimer(
+      { projectId, startedOn: TODAY, billable: false, note: "Our own bug" },
+      db,
+    );
+    if (!started.ok) throw new Error("the timer should have started");
+
+    const stopped = await stopActiveTimer(
+      started.timer.id,
+      minutesLater(started.timer.startedAt, 15),
+      db,
+    );
+    if (!stopped.ok) throw new Error("the timer should have stopped");
+
+    expect(stopped.entry).toMatchObject({
+      billable: false,
+      note: "Our own bug",
+    });
+  });
+
+  it("files the entry under the day the clock started, not the day it ended", async () => {
+    const started = await startActiveTimer(
+      { projectId, startedOn: "2026-10-27" },
+      db,
+    );
+    if (!started.ok) throw new Error("the timer should have started");
+
+    const stopped = await stopActiveTimer(
+      started.timer.id,
+      minutesLater(started.timer.startedAt, 30),
+      db,
+    );
+    if (!stopped.ok) throw new Error("the timer should have stopped");
+
+    expect(stopped.entry.workedOn).toBe("2026-10-27");
   });
 });
