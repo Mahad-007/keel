@@ -179,3 +179,66 @@ describe("startActiveTimer against a clock already running", () => {
     });
   });
 });
+
+/**
+ * The two calls no page this app renders can make, which is why they throw
+ * rather than coming back as refusals.
+ */
+describe("startActiveTimer on a project it cannot have", () => {
+  it("refuses a project that does not exist, naming the id", async () => {
+    await expect(
+      startActiveTimer({ projectId: "prj_missing", startedOn: TODAY }, db),
+    ).rejects.toThrow("no project with id prj_missing");
+  });
+
+  it("refuses a blank project", async () => {
+    await expect(
+      startActiveTimer({ projectId: "  ", startedOn: TODAY }, db),
+    ).rejects.toThrow("timer project is required");
+  });
+
+  it("refuses a deliverable that does not exist", async () => {
+    await expect(
+      startActiveTimer(
+        { projectId, startedOn: TODAY, deliverableId: "dlv_missing" },
+        db,
+      ),
+    ).rejects.toThrow("no deliverable with id dlv_missing");
+  });
+
+  it("refuses another project's line of scope", async () => {
+    const client = await createClient({ name: "Second Co" }, db);
+    const other = await createProject(
+      { clientId: client.id, name: "Brand refresh" },
+      db,
+    );
+    const theirs = await createDeliverable(
+      { projectId: other.id, title: "Logo" },
+      db,
+    );
+
+    await expect(
+      startActiveTimer(
+        { projectId, startedOn: TODAY, deliverableId: theirs.id },
+        db,
+      ),
+    ).rejects.toThrow(`does not belong to project ${projectId}`);
+  });
+
+  it("refuses a day with a time of day on it", async () => {
+    await expect(
+      startActiveTimer(
+        { projectId, startedOn: "2026-10-28T09:00:00.000Z" },
+        db,
+      ),
+    ).rejects.toThrow("timer started on must be a calendar date");
+  });
+
+  it("writes nothing when it refuses", async () => {
+    await expect(
+      startActiveTimer({ projectId: "prj_missing", startedOn: TODAY }, db),
+    ).rejects.toThrow();
+
+    expect(await getActiveTimer(db)).toBeNull();
+  });
+});
