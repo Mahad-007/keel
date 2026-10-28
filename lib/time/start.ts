@@ -310,3 +310,29 @@ export function timerAlreadyRunning(projectName: string): string {
  */
 export const START_TIMER_NO_ANSWER =
   "Could not tell whether the clock started — the answer never arrived. Reload to see whether it is running before pressing Start again.";
+
+/**
+ * What to say once a clock is running, or null when there is nothing to say.
+ *
+ * The press does not navigate, and what it changes is that the form is
+ * replaced by a panel with a clock in it. On screen that is unmissable; to
+ * anybody working from a screen reader it is silence. This is the sentence
+ * that goes in a live region.
+ *
+ * It says the clock is running before it says anything else, because that is
+ * the fact being confirmed. The line follows, since the picker it was chosen
+ * from has gone, and a non-chargeable clock says so — the one thing on this
+ * form a reader will not otherwise discover until the invoice.
+ *
+ * Nothing about the elapsed time, which is nought: the panel shows that, and
+ * it changes every minute.
+ */
+export function startedTimerNotice(state: StartTimerState): string | null {
+  if (state.started === null) return null;
+
+  const { deliverableTitle, billable } = state.started;
+  const against =
+    deliverableTitle === null ? "the project itself" : `“${deliverableTitle}”`;
+  const charge = billable ? "" : " Marked as not chargeable.";
+  return `The clock is running against ${against}.${charge}`;
+}
