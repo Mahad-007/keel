@@ -2,13 +2,20 @@ import { describe, expect, it } from "vitest";
 
 import {
   EMPTY_START_TIMER_FIELDS,
+  failedStartTimerState,
+  INITIAL_START_TIMER_STATE,
   parseStartTimerForm,
   readStartTimerDay,
   readStartTimerFields,
   START_TIMER_FIELD_LIMITS,
   START_TIMER_NO_DAY,
+  START_TIMER_PROBLEMS,
   START_TIMER_UNKNOWN_DELIVERABLE,
   STARTED_ON_FIELD,
+  startedTimerNotice,
+  startedTimerState,
+  rejectedStartTimerState,
+  timerAlreadyRunning,
   type StartTimerFormFields,
 } from "./start";
 
@@ -180,5 +187,107 @@ describe("parseStartTimerForm", () => {
     const parsed = parseStartTimerForm(fields(), TODAY, []);
 
     expect(parsed.ok).toBe(true);
+  });
+});
+
+describe("INITIAL_START_TIMER_STATE", () => {
+  it("starts with the chargeable box ticked", () => {
+    expect(INITIAL_START_TIMER_STATE.fields.billable).toBe(BILLABLE_VALUE);
+  });
+
+  it("has nothing running and nothing wrong", () => {
+    expect(INITIAL_START_TIMER_STATE.started).toBeNull();
+    expect(INITIAL_START_TIMER_STATE.formError).toBeNull();
+    expect(INITIAL_START_TIMER_STATE.errors).toEqual({});
+  });
+});
+
+describe("startedTimerState", () => {
+  it("carries what was started and clears the form behind it", () => {
+    const state = startedTimerState({
+      id: "tmr_one",
+      deliverableTitle: "Importer",
+      billable: true,
+    });
+
+    expect(state.started).toMatchObject({ id: "tmr_one" });
+    expect(state.fields).toEqual(INITIAL_START_TIMER_STATE.fields);
+  });
+});
+
+describe("rejectedStartTimerState", () => {
+  it("echoes what was submitted and reports no clock", () => {
+    const state = rejectedStartTimerState(fields({ note: "Pairing" }), {
+      deliverable: START_TIMER_UNKNOWN_DELIVERABLE,
+    });
+
+    expect(state.fields.note).toBe("Pairing");
+    expect(state.errors.deliverable).toBe(START_TIMER_UNKNOWN_DELIVERABLE);
+    expect(state.started).toBeNull();
+  });
+});
+
+describe("failedStartTimerState", () => {
+  it("puts the sentence on the form rather than on a field", () => {
+    const state = failedStartTimerState(
+      fields(),
+      START_TIMER_PROBLEMS.missingProject,
+    );
+
+    expect(state.formError).toBe(START_TIMER_PROBLEMS.missingProject);
+    expect(state.errors).toEqual({});
+    expect(state.started).toBeNull();
+  });
+});
+
+describe("timerAlreadyRunning", () => {
+  it("names the project the clock is on", () => {
+    expect(timerAlreadyRunning("Brand refresh")).toContain("Brand refresh");
+  });
+
+  it("says to stop that one rather than offering to do it", () => {
+    expect(timerAlreadyRunning("Brand refresh")).toContain("Stop that one");
+  });
+});
+
+describe("startedTimerNotice", () => {
+  it("says nothing when no clock has been started", () => {
+    expect(startedTimerNotice(INITIAL_START_TIMER_STATE)).toBeNull();
+  });
+
+  it("names the line the clock is running against", () => {
+    const notice = startedTimerNotice(
+      startedTimerState({
+        id: "tmr_one",
+        deliverableTitle: "Importer",
+        billable: true,
+      }),
+    );
+
+    expect(notice).toBe("The clock is running against “Importer”.");
+  });
+
+  it("calls unattributed work the project itself", () => {
+    const notice = startedTimerNotice(
+      startedTimerState({
+        id: "tmr_one",
+        deliverableTitle: null,
+        billable: true,
+      }),
+    );
+
+    expect(notice).toBe("The clock is running against the project itself.");
+  });
+
+  it("says so when the clock will not be charged for", () => {
+    const notice = startedTimerNotice(
+      startedTimerState({
+        id: "tmr_one",
+        deliverableTitle: "Importer",
+        billable: false,
+      }),
+    );
+
+    expect(notice).toContain("Marked as not chargeable.");
   });
 });
