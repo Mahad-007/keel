@@ -1,8 +1,9 @@
-import { eq } from "drizzle-orm";
+import { eq, getTableColumns } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import {
   activeTimers,
+  projects,
   type ActiveTimer,
   type TimeEntry,
 } from "@/lib/db/schema";
@@ -318,4 +319,42 @@ export async function stopActiveTimer(
     },
     { behavior: "immediate" },
   );
+}
+
+/**
+ * A running timer with the name of the project it is on.
+ *
+ * The name is here because the page that most needs it is a page about a
+ * different project. A clock running somewhere else is the reason Start is
+ * refused, and "a timer is already running" without saying where is a sentence
+ * that sends somebody through their project list looking for it.
+ */
+export type RunningTimerWithProject = ActiveTimer & {
+  projectName: string;
+};
+
+/**
+ * The timer that is running, with its project's name, or null if none is.
+ *
+ * Its own query rather than `getActiveTimer` followed by `getProject`: the
+ * page cannot say anything useful without both, so two sequential round trips
+ * would be two waits for one sentence.
+ *
+ * The join is inner, like the project list's: the foreign key guarantees the
+ * project row exists, so a left join would add a null case that cannot happen
+ * and that the page would then have to render something for.
+ */
+export async function getRunningTimer(
+  database: Database = db,
+): Promise<RunningTimerWithProject | null> {
+  const [row] = await database
+    .select({
+      ...getTableColumns(activeTimers),
+      projectName: projects.name,
+    })
+    .from(activeTimers)
+    .innerJoin(projects, eq(projects.id, activeTimers.projectId))
+    .where(eq(activeTimers.slot, RUNNING_TIMER_SLOT))
+    .limit(1);
+  return row ?? null;
 }
