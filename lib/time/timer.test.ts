@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { elapsedMinutes } from "./timer";
+import { MAX_ENTRY_MINUTES } from "./form";
+import {
+  elapsedMinutes,
+  MINIMUM_TIMER_MINUTES,
+  timerStopObstacle,
+} from "./timer";
 
 /** A fixed start, so every case below is arithmetic rather than a race. */
 const STARTED = "2026-10-28T09:00:00.000Z";
@@ -57,5 +62,36 @@ describe("elapsedMinutes on a clock that cannot be believed", () => {
 
   it("reads zero when the clock itself is not a moment", () => {
     expect(elapsedMinutes(STARTED, new Date(Number.NaN))).toBe(0);
+  });
+});
+
+describe("timerStopObstacle", () => {
+  it("refuses a timer that has not reached a minute", () => {
+    expect(timerStopObstacle(0)).toBe("too-short");
+  });
+
+  it("accepts the first whole minute", () => {
+    expect(timerStopObstacle(MINIMUM_TIMER_MINUTES)).toBeNull();
+  });
+
+  it("accepts an ordinary afternoon", () => {
+    expect(timerStopObstacle(195)).toBeNull();
+  });
+
+  it("accepts a stretch of exactly a day", () => {
+    expect(timerStopObstacle(MAX_ENTRY_MINUTES)).toBeNull();
+  });
+
+  it("refuses a clock left running past a day", () => {
+    expect(timerStopObstacle(MAX_ENTRY_MINUTES + 1)).toBe("too-long");
+  });
+
+  it("refuses a weekend of elapsed time", () => {
+    expect(timerStopObstacle(3 * MAX_ENTRY_MINUTES)).toBe("too-long");
+  });
+
+  /** `elapsedMinutes` cannot produce one, and a hand-edited row can. */
+  it("treats a negative figure as too short rather than acceptable", () => {
+    expect(timerStopObstacle(-30)).toBe("too-short");
   });
 });
