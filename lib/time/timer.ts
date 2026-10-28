@@ -9,6 +9,8 @@
  * whatever the machine running the tests thinks the time is.
  */
 
+import { MAX_ENTRY_MINUTES } from "./form";
+
 /**
  * The value the `slot` column always holds, and the reason the table can hold
  * at most one row: a unique index on a column with one possible value.
@@ -78,4 +80,46 @@ export function elapsedMinutes(startedAt: string, now: Date): number {
   const elapsed = now.getTime() - started;
   if (!Number.isFinite(elapsed) || elapsed <= 0) return 0;
   return Math.floor(elapsed / MS_PER_MINUTE);
+}
+
+/**
+ * The shortest stretch a timer can be stopped into.
+ *
+ * A minute, because that is the unit: an entry of zero minutes is refused by
+ * the column, and rightly — it records nothing that happened and every total
+ * has to skip it. So a timer started and stopped inside the same minute has
+ * nothing to write, and saying so is better than storing a minute nobody
+ * worked or silently throwing the press away.
+ */
+export const MINIMUM_TIMER_MINUTES = 1;
+
+/**
+ * Why stopping this timer would not produce an entry worth keeping.
+ *
+ * Two of them, at the two ends. `too-short` is the mis-press: Start, then the
+ * realisation that it is the wrong project, then Stop — and the way out is to
+ * discard it. `too-long` is the clock left running overnight or over a
+ * weekend, where the elapsed figure is real arithmetic and a lie about the
+ * work: an entry is a stretch on one calendar day, and a stretch longer than
+ * the day it is filed under did not happen on that day.
+ *
+ * Both are the timer's version of what `loggedMinutes` refuses on the log
+ * form, through the same ceiling, so a duration the form will not accept
+ * typed cannot arrive by holding a button down instead.
+ */
+export type TimerStopObstacle = "too-short" | "too-long";
+
+/**
+ * What stands in the way of stopping a timer at this elapsed figure, or null
+ * when nothing does.
+ *
+ * Null rather than a boolean, because the two obstacles are different news and
+ * only one of them has a way out that keeps the time: a short timer is
+ * discarded, and a long one is discarded and then logged by hand against the
+ * days it actually spanned.
+ */
+export function timerStopObstacle(minutes: number): TimerStopObstacle | null {
+  if (minutes < MINIMUM_TIMER_MINUTES) return "too-short";
+  if (minutes > MAX_ENTRY_MINUTES) return "too-long";
+  return null;
 }
