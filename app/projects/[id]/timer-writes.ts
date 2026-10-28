@@ -18,11 +18,22 @@
 
 import { revalidatePath } from "next/cache";
 
-import { startActiveTimer } from "@/lib/data/active-timers";
+import {
+  getActiveTimer,
+  startActiveTimer,
+  stopActiveTimer,
+} from "@/lib/data/active-timers";
 import { getDeliverable } from "@/lib/data/deliverables";
 import { getProject } from "@/lib/data/projects";
+import type { ActiveTimer } from "@/lib/db/schema";
 import { projectPath } from "@/lib/projects/detail";
 import type { AttributableDeliverable } from "@/lib/time/attribution";
+import {
+  STOP_TIMER_PROBLEMS,
+  stopTimerProblem,
+  timerRunningTooLong,
+  type StopTimerResult,
+} from "@/lib/time/stop";
 import {
   failedStartTimerState,
   parseStartTimerForm,
@@ -170,4 +181,95 @@ export async function writeTimerStart(
     deliverableTitle: titleOf(started.timer.deliverableId, offered),
     billable: started.timer.billable,
   });
+}
+
+/**
+ * The running clock, if it is the one that press was aimed at and it belongs
+ * to this project.
+ *
+ * The check is the whole point, and it is three checks in one read. The
+ * project comes from the page's encrypted closure and the id comes from the
+ * press, so comparing them is what stops a POST naming any timer in the
+ * database and having it stopped into an entry on a project the caller chose.
+ * The id has to match as well as the project, because a clock stopped and
+ * another started since the page was drawn is a different stretch of work —
+ * one somebody is in the middle of.
+ *
+ * Null for an id that is blank, stale, or on another engagement, because from
+ * the reader's side those are one answer: the clock on the page in front of
+ * them is not the clock that is running. Telling them which would be telling a
+ * caller whether an id they guessed exists.
+ */
+async function projectTimer(
+  projectId: string,
+  id: string,
+): Promise<ActiveTimer | null> {
+  if (id === "") return null;
+
+  const timer = await getActiveTimer();
+  if (timer === null) return null;
+  if (timer.id !== id || timer.projectId !== projectId) return null;
+  return timer;
+}
+
+/**
+ * Stopping the clock, which writes the stretch of work it measured.
+ *
+ * `new Date()` is read here, once, and handed to the write — which is what
+ * makes the elapsed figure in the entry the figure this press decided on
+ * rather than one the data layer worked out a moment later.
+ *
+ * `offered` is the scope list the page rendered, used only to name the line in
+ * the sentence afterwards. The attribution itself is the timer's and is not
+ * re-decided here: the clock was started against that line, and a press of
+ * Stop is not an opportunity to change its mind.
+ */
+export async function writeTimerStop(
+  projectId: string,
+  offered: readonly AttributableDeliverable[],
+  id: string,
+): Promise<StopTimerResult> {
+  const timer = await projectTimer(projectId, id);
+  if (timer === null) return stopTimerProblem(STOP_TIMER_PROBLEMS.missing);
+
+  let result;
+  try {
+    result = await stopActiveTimer(timer.id, new Date());
+  } catch (error) {
+    // The reader cannot act on a driver error, but the logs should keep it.
+    console.error("writeTimerStop: failed to stop the clock", error);
+    return stopTimerProblem(STOP_TIMER_PROBLEMS.failed);
+  }
+
+  if (!result.ok) {
+    if (result.refusal === "too-short") {
+      return stopTimerProblem(STOP_TIMER_PROBLEMS.tooShort);
+    }
+    if (result.refusal === "too-long") {
+      return stopTimerProblem(timerRunningTooLong(result.minutes));
+    }
+    /*
+      `no-such-timer`: the clock went between the read above and the write —
+      another tab, or a second press of the same button. The page is still
+      revalidated, because the page is the thing that is out of date, but the
+      reader is told, because unlike a deletion what they asked for did not
+      happen: no entry was written and the minutes are gone.
+    */
+    revalidatePath(projectPath(projectId));
+    return stopTimerProblem(STOP_TIMER_PROBLEMS.missing);
+  }
+
+  // The entry and the absent clock are both read off the page.
+  revalidatePath(projectPath(projectId));
+
+  return {
+    ok: true,
+    stopped: {
+      id: result.entry.id,
+      minutes: result.entry.minutes,
+      workedOn: result.entry.workedOn,
+      deliverableTitle: titleOf(result.entry.deliverableId, offered),
+      billable: result.entry.billable,
+    },
+  };
 }
