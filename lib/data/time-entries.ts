@@ -1,15 +1,16 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
-import {
-  deliverables,
-  projects,
-  timeEntries,
-  type TimeEntry,
-} from "@/lib/db/schema";
+import { timeEntries, type TimeEntry } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
 import { editRefusedByInvoice, isBilled } from "@/lib/time/billing";
 
+import {
+  deliverableProject,
+  foreignDeliverable,
+  requireProject,
+  requireProjectDeliverable,
+} from "./belonging";
 import {
   calendarDate,
   optionalText,
@@ -67,76 +68,6 @@ export type NewTimeEntryInput = {
 };
 
 /**
- * Time logged against no project is not logged against anything, and the
- * foreign key would stop it anyway — but it would stop it with a constraint
- * error naming a column. Checking here means the caller gets a message naming
- * the id it passed, which is the one thing that says what went wrong.
- */
-async function requireProject(
-  id: string,
-  database: Database,
-): Promise<string> {
-  const projectId = requiredText(id, "time entry project");
-  const [row] = await database
-    .select({ id: projects.id })
-    .from(projects)
-    .where(eq(projects.id, projectId))
-    .limit(1);
-  if (!row) throw new Error(`no project with id ${projectId}`);
-  return row.id;
-}
-
-/**
- * Which project a deliverable belongs to, or null if there is no deliverable
- * with that id.
- *
- * One query, and the project is compared by the callers rather than put in the
- * WHERE clause, because the two failures are not the same kind of thing: a
- * deliverable that was deleted while a form sat open is news for whoever is
- * looking at the form, and one belonging to another engagement is a submission
- * nobody could have made from a page this app rendered.
- */
-async function deliverableProject(
-  id: string,
-  database: Database,
-): Promise<string | null> {
-  const [row] = await database
-    .select({ projectId: deliverables.projectId })
-    .from(deliverables)
-    .where(eq(deliverables.id, id))
-    .limit(1);
-  return row?.projectId ?? null;
-}
-
-/**
- * Time attributed to another project's line would be counted against an
- * estimate on an engagement it was not worked for, so the rollup would be
- * wrong on both projects at once. The foreign key only promises the
- * deliverable exists somewhere, which is why this is checked here.
- *
- * One sentence in one place, because both the write that creates an entry and
- * the one that re-attributes it refuse the same thing.
- */
-function foreignDeliverable(id: string, projectId: string): Error {
-  return new Error(`deliverable ${id} does not belong to project ${projectId}`);
-}
-
-/**
- * The deliverable's id if it is one of that project's, or a thrown error
- * saying which of the two things was wrong.
- */
-async function requireDeliverable(
-  id: string,
-  projectId: string,
-  database: Database,
-): Promise<string> {
-  const owner = await deliverableProject(id, database);
-  if (owner === null) throw new Error(`no deliverable with id ${id}`);
-  if (owner !== projectId) throw foreignDeliverable(id, projectId);
-  return id;
-}
-
-/**
  * Writes one time entry and hands back the saved row.
  *
  * Everything that can be checked without a query is checked first, so the
@@ -165,9 +96,13 @@ export async function createTimeEntry(
   const deliverableId = optionalText(input.deliverableId);
   const billable = input.billable ?? true;
 
-  const projectId = await requireProject(input.projectId, database);
+  const projectId = await requireProject(
+    input.projectId,
+    database,
+    "time entry project",
+  );
   if (deliverableId !== null) {
-    await requireDeliverable(deliverableId, projectId, database);
+    await requireProjectDeliverable(deliverableId, projectId, database);
   }
 
   const [row] = await database
