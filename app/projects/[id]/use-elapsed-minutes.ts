@@ -34,14 +34,19 @@ import { elapsedMinutes } from "@/lib/time/timer";
 const TICK_MS = 15_000;
 
 export function useElapsedMinutes(
-  /** The instant the clock started, as the row holds it. */
-  startedAt: string,
+  /** The instant the clock started, or null when no clock is running. */
+  startedAt: string | null,
   /** The figure the server computed, so the first render agrees with it. */
   initialMinutes: number,
 ): number {
   const [minutes, setMinutes] = useState(initialMinutes);
 
   useEffect(() => {
+    // Nothing is running, so there is nothing to count and no interval worth
+    // leaving behind on a tab somebody has left open.
+    if (startedAt === null) return;
+    const started = startedAt;
+
     /*
       Recomputed from `startedAt` rather than incremented, so a tab that was
       suspended for an hour comes back with the right figure instead of one
@@ -49,7 +54,7 @@ export function useElapsedMinutes(
       its own elapsed time: the row is the clock, and this only reads it.
     */
     function read() {
-      setMinutes(elapsedMinutes(startedAt, new Date()));
+      setMinutes(elapsedMinutes(started, new Date()));
     }
 
     read();
