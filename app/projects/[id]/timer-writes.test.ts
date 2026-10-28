@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  discardActiveTimer,
   getActiveTimer,
   startActiveTimer,
   stopActiveTimer,
@@ -19,9 +20,17 @@ import {
   STARTED_ON_FIELD,
 } from "@/lib/time/start";
 
-import { STOP_TIMER_PROBLEMS, timerRunningTooLong } from "@/lib/time/stop";
+import {
+  DISCARD_TIMER_PROBLEMS,
+  STOP_TIMER_PROBLEMS,
+  timerRunningTooLong,
+} from "@/lib/time/stop";
 
-import { writeTimerStart, writeTimerStop } from "./timer-writes";
+import {
+  writeTimerDiscard,
+  writeTimerStart,
+  writeTimerStop,
+} from "./timer-writes";
 
 /**
  * Mocked collaborators rather than a database: this function's own job is the
@@ -43,6 +52,7 @@ const start = vi.mocked(startActiveTimer);
 const deliverable = vi.mocked(getDeliverable);
 const running = vi.mocked(getActiveTimer);
 const stop = vi.mocked(stopActiveTimer);
+const discard = vi.mocked(discardActiveTimer);
 
 const OFFERED: AttributableDeliverable[] = [
   { id: "dlv_wireframes", title: "Wireframes", estimatedMinutes: 360 },
@@ -341,5 +351,65 @@ describe("writeTimerStop", () => {
       ok: false,
       problem: STOP_TIMER_PROBLEMS.failed,
     });
+  });
+});
+
+describe("writeTimerDiscard", () => {
+  beforeEach(() => {
+    running.mockResolvedValue(TIMER);
+    discard.mockResolvedValue(TIMER);
+  });
+
+  it("discards the clock the page was showing", async () => {
+    const result = await writeTimerDiscard("prj_engine", "tmr_1");
+
+    expect(discard).toHaveBeenCalledWith("tmr_1");
+    expect(result).toEqual({ ok: true });
+  });
+
+  it("revalidates the project, because the panel is read off the page", async () => {
+    await writeTimerDiscard("prj_engine", "tmr_1");
+
+    expect(revalidatePath).toHaveBeenCalledWith(projectPath("prj_engine"));
+  });
+
+  it("refuses a press naming a timer that is not the running one", async () => {
+    const result = await writeTimerDiscard("prj_engine", "tmr_stale");
+
+    expect(discard).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      ok: false,
+      problem: DISCARD_TIMER_PROBLEMS.missing,
+    });
+  });
+
+  it("refuses a press naming another project's clock", async () => {
+    running.mockResolvedValue({ ...TIMER, projectId: "prj_brand" });
+
+    const result = await writeTimerDiscard("prj_engine", "tmr_1");
+
+    expect(discard).not.toHaveBeenCalled();
+    expect(result.ok).toBe(false);
+  });
+
+  it("says nothing when the clock went between the read and the delete", async () => {
+    discard.mockResolvedValue(null);
+
+    const result = await writeTimerDiscard("prj_engine", "tmr_1");
+
+    expect(result).toEqual({ ok: true });
+    expect(revalidatePath).toHaveBeenCalledWith(projectPath("prj_engine"));
+  });
+
+  it("reports a failed write rather than claiming the clock is gone", async () => {
+    discard.mockRejectedValue(new Error("database is locked"));
+
+    const result = await writeTimerDiscard("prj_engine", "tmr_1");
+
+    expect(result).toEqual({
+      ok: false,
+      problem: DISCARD_TIMER_PROBLEMS.failed,
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 });

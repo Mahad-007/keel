@@ -287,11 +287,16 @@ export async function writeTimerStop(
  * would be a second thing to get past rather than a second thing to think
  * about — the press that arrives here has already been made twice.
  *
- * A clock that has gone since the page was drawn is not reported. Unlike a
- * refused stop, what the reader asked for is true: the timer is not running
- * and nothing was logged, which is exactly the state they pressed for. The
- * page is still revalidated, because the page is the thing that is out of
- * date.
+ * A clock that goes between the read and the delete — another tab, a second
+ * press of the same button — is not reported. What the reader asked for is
+ * true: no timer is running and nothing was logged, which is exactly the state
+ * they pressed for, so there is nothing to explain. The page is still
+ * revalidated, because the page is the thing that is out of date.
+ *
+ * A press naming a timer that was *already* not the running one is reported,
+ * because that reader is looking at a panel showing a clock which is not
+ * there. The sentence tells them to reload, which is the only thing that will
+ * make the page agree with the database.
  */
 export async function writeTimerDiscard(
   projectId: string,
