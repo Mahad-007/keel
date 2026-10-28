@@ -68,3 +68,39 @@ export async function getActiveTimer(
     .limit(1);
   return row ?? null;
 }
+
+/**
+ * Why a clock was not started.
+ *
+ * One refusal today, and a union rather than a boolean because it is the one
+ * refusal a reader can act on: a timer is already running, so the way forward
+ * is to stop that one. A code rather than a sentence, like every other refusal
+ * in `lib/data/` — the words belong with the form that shows them, which is
+ * the only place that knows whether the running clock is on this project or
+ * another one.
+ *
+ * What is *not* here is a project that does not exist, or a deliverable
+ * belonging to another engagement. Both throw: no page this app renders offers
+ * either, so a call carrying one is a caller that built the form wrong, and a
+ * refusal code exists to be turned into a sentence for somebody who did
+ * nothing.
+ */
+export type ActiveTimerRefusal = "already-running";
+
+/**
+ * The outcome of pressing Start: the clock that is now running, or the one
+ * that already was.
+ *
+ * The refusal carries the running timer rather than only the code, because
+ * that row is the whole of what the reader needs to be told: which project the
+ * clock they have forgotten about is on, and how long it has been going. A
+ * caller that had to go and read it again could get a different answer from
+ * the one this refusal was decided on.
+ */
+export type ActiveTimerStart =
+  | { readonly ok: true; readonly timer: ActiveTimer }
+  | {
+      readonly ok: false;
+      readonly refusal: ActiveTimerRefusal;
+      readonly running: ActiveTimer;
+    };
