@@ -1,9 +1,13 @@
 import { eq } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
-import { activeTimers, type ActiveTimer } from "@/lib/db/schema";
+import {
+  activeTimers,
+  type ActiveTimer,
+  type TimeEntry,
+} from "@/lib/db/schema";
 import { newId } from "@/lib/id";
-import { RUNNING_TIMER_SLOT } from "@/lib/time/timer";
+import { RUNNING_TIMER_SLOT, type TimerStopObstacle } from "@/lib/time/timer";
 
 import { requireProject, requireProjectDeliverable } from "./belonging";
 import { calendarDate, optionalText } from "./fields";
@@ -203,3 +207,46 @@ export async function discardActiveTimer(
     .returning();
   return row ?? null;
 }
+
+/**
+ * Why a clock was not stopped.
+ *
+ * `no-such-timer` is a stale page: the clock the press was aimed at has been
+ * stopped or discarded since the page was drawn. The other two come from
+ * `timerStopObstacle` and are about the elapsed figure rather than the row —
+ * under a minute there is nothing worth writing, and past a day the figure is
+ * a lie about which day the work happened on.
+ *
+ * Reusing the obstacle's own names rather than restating them, so a third
+ * obstacle added to the arithmetic cannot be silently absent here.
+ */
+export type ActiveTimerStopRefusal = "no-such-timer" | TimerStopObstacle;
+
+/**
+ * The outcome of pressing Stop: the entry the clock became, or why it is
+ * still running.
+ *
+ * The success carries all three things, which are three different facts that
+ * the caller cannot work out from each other. The entry is the row that was
+ * written, the timer is what it was written from — the attribution and the
+ * note, for the sentence afterwards — and the minutes are the figure the two
+ * agreed on.
+ *
+ * Both obstacle refusals carry the elapsed figure, because that figure is the
+ * explanation: "this has been running for two days" is what makes the refusal
+ * make sense, and a caller recomputing it a moment later would print a
+ * different number from the one the refusal was decided on.
+ */
+export type ActiveTimerStop =
+  | {
+      readonly ok: true;
+      readonly entry: TimeEntry;
+      readonly stopped: ActiveTimer;
+      readonly minutes: number;
+    }
+  | { readonly ok: false; readonly refusal: "no-such-timer" }
+  | {
+      readonly ok: false;
+      readonly refusal: TimerStopObstacle;
+      readonly minutes: number;
+    };
