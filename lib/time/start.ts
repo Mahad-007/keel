@@ -260,3 +260,53 @@ export function failedStartTimerState(
 ): StartTimerState {
   return { ...failedFormState(fields, formError), started: null };
 }
+
+/**
+ * The things that can stop a clock being started that the form itself cannot
+ * see.
+ *
+ * Each is reachable from a page that was right when it rendered — the project
+ * deleted in another tab, the line of scope dropped while the form sat open, a
+ * clock started on a phone a minute ago — so each says what to do rather than
+ * only what went wrong.
+ *
+ * `alreadyRunning` is not here because it needs a project's name, which is a
+ * sentence rather than a constant. See `timerAlreadyRunning`.
+ */
+export const START_TIMER_PROBLEMS = {
+  missingProject:
+    "That project no longer exists, so there is nothing to start a clock on.",
+  missingDeliverable:
+    "That deliverable was deleted a moment ago. No clock was started — reload the page and pick again, or start it against the project itself.",
+  failed: "Could not start the clock. Nothing was written — try again.",
+} as const;
+
+/**
+ * What to say when a clock is already running somewhere.
+ *
+ * It names the project, which is the whole of what the reader needs: the clock
+ * they have forgotten about is almost always on the engagement they were doing
+ * before this one, and a refusal that does not say where sends somebody
+ * through their project list looking for it.
+ *
+ * The instruction is to stop that one rather than offering to do it from here.
+ * Stopping a clock writes a stretch of work against a project, and doing that
+ * as a side effect of starting a different one is the one press on this page
+ * that must not be implicit.
+ */
+export function timerAlreadyRunning(projectName: string): string {
+  return `A clock is already running on ${projectName}, and only one can run at a time. Stop that one first — nobody works on two things at once, and two clocks would make every figure a question about which was meant.`;
+}
+
+/**
+ * What to say when the press never got an answer — the connection dropped, the
+ * tab was suspended mid-request, the request was aborted.
+ *
+ * It does not claim nothing was started, because from the client there is no
+ * way to know: the request may have been lost on the way out, or the answer
+ * lost on the way back with the clock already running. Nor does it say "try
+ * again", which on this press is the instruction that produces the refusal
+ * above and leaves a reader thinking they have two clocks.
+ */
+export const START_TIMER_NO_ANSWER =
+  "Could not tell whether the clock started — the answer never arrived. Reload to see whether it is running before pressing Start again.";
