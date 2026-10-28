@@ -1,7 +1,12 @@
+import type { NewActiveTimerInput } from "@/lib/data/active-timers";
+import { isCalendarDate } from "@/lib/dates";
+import { optionalChoice } from "@/lib/forms/choice";
 import { readField, readFields } from "@/lib/forms/form-data";
+import { collect, type FieldErrors } from "@/lib/forms/result";
 import { type FormState } from "@/lib/forms/state";
+import { optionalText } from "@/lib/forms/text";
 
-import { LOG_TIME_FIELD_LIMITS } from "./form";
+import { LOG_TIME_FIELD_LIMITS, readsAsBillable } from "./form";
 
 /**
  * The form that starts a clock, from submitted strings to something the data
@@ -67,13 +72,123 @@ export const EMPTY_START_TIMER_FIELDS: StartTimerFormFields = {
 
 export type StartTimerFormState = FormState<StartTimerFieldName>;
 
-export function readStartTimerFields(
-  formData: FormData,
-): StartTimerFormFields {
+export function readStartTimerFields(formData: FormData): StartTimerFormFields {
   return readFields(formData, START_TIMER_FIELD_NAMES);
 }
 
 /** The day the browser says it is, as the hidden field carries it. */
 export function readStartTimerDay(formData: FormData): string {
   return readField(formData, STARTED_ON_FIELD);
+}
+
+/**
+ * What checking a Start submission comes to.
+ *
+ * Three outcomes rather than two, because this form has a problem that belongs
+ * to no field: the hidden date. A `ParseResult` can only report per-field
+ * messages, and there is no field for a reader to look at — so the third case
+ * carries one sentence for the form itself.
+ */
+export type StartTimerParseResult =
+  | { readonly ok: true; readonly value: StartTimerFormValue }
+  | {
+      readonly ok: false;
+      /** One message per bad field, keyed by the field's form name. */
+      readonly errors: FieldErrors<StartTimerFieldName>;
+      /** The sentence for the form as a whole, or null when every
+       * problem belongs to a field. */
+      readonly problem: string | null;
+    };
+
+/**
+ * What the form yields once every field is good: the four columns a running
+ * timer is made of that a person decides.
+ *
+ * `projectId` is not among them, for the reason it is absent from
+ * `LogTimeFormValue`: the project comes from the page the form was served
+ * for — captured by a server closure, encrypted — so no field of the
+ * submission names the engagement a clock is started against.
+ */
+export type StartTimerFormValue = Pick<
+  NewActiveTimerInput,
+  "deliverableId" | "note" | "billable" | "startedOn"
+>;
+
+/**
+ * What the picker says when a submission names a line the project does not
+ * have, on the form that starts a clock.
+ *
+ * The instruction is the half that belongs to this form rather than to the log
+ * line's: nothing has been timed yet, so the way past the refusal is to start
+ * the clock against the project instead and attribute the entry afterwards.
+ */
+export const START_TIMER_UNKNOWN_DELIVERABLE =
+  "That deliverable is no longer on this project. Reload the page and pick again, or start the clock against the project itself.";
+
+/**
+ * What to say when the hidden date did not arrive, or did not arrive as a
+ * date.
+ *
+ * It is a form-level problem rather than a field error because the reader did
+ * not type it: the field is filled in from the browser's clock after the page
+ * mounts, so an empty one means the script did not run and a malformed one
+ * means the submission did not come from this page. Either way there is no box
+ * to put a message beside.
+ *
+ * It says to reload rather than to try again, because pressing the same button
+ * on the same page would send the same empty field.
+ */
+export const START_TIMER_NO_DAY =
+  "Could not tell what day it is where you are, so no clock was started. Reload the page and press Start again.";
+
+/**
+ * The submitted form, checked against the deliverables that were on offer.
+ *
+ * The attribution goes through `optionalChoice` for the reason the log form's
+ * does: a form is a POST endpoint, and the id in it can name a line deleted
+ * while the page sat open or one belonging to another project entirely. The
+ * data layer throws on the second outright — it is not a mistake a reader can
+ * make — and checking here means the first comes back as a sentence beside the
+ * field instead of as a failed write.
+ *
+ * The day is collected with the fields even though it is not one of them, so a
+ * submission missing it is refused before anything is written. Its message
+ * lands on the form rather than on a field, which `parseStartTimerForm`
+ * reports by returning it separately.
+ *
+ * The checkbox is not collected, because it cannot fail: a checkbox submits
+ * one of two things and both are answers. It would only occupy a slot in the
+ * error map that nothing could ever fill.
+ */
+export function parseStartTimerForm(
+  fields: StartTimerFormFields,
+  day: string,
+  offeredDeliverableIds: readonly string[],
+): StartTimerParseResult {
+  const started = day.trim();
+  if (!isCalendarDate(started)) {
+    return { ok: false, errors: {}, problem: START_TIMER_NO_DAY };
+  }
+
+  const parsed = collect({
+    deliverable: optionalChoice(fields.deliverable, offeredDeliverableIds, {
+      label: "Deliverable",
+      unknown: START_TIMER_UNKNOWN_DELIVERABLE,
+    }),
+    note: optionalText(fields.note, {
+      label: "Note",
+      max: START_TIMER_FIELD_LIMITS.note,
+    }),
+  });
+  if (!parsed.ok) return { ...parsed, problem: null };
+
+  return {
+    ok: true,
+    value: {
+      deliverableId: parsed.value.deliverable,
+      note: parsed.value.note,
+      billable: readsAsBillable(fields.billable),
+      startedOn: started,
+    },
+  };
 }
