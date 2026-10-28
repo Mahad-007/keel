@@ -3,10 +3,15 @@ import { isCalendarDate } from "@/lib/dates";
 import { optionalChoice } from "@/lib/forms/choice";
 import { readField, readFields } from "@/lib/forms/form-data";
 import { collect, type FieldErrors } from "@/lib/forms/result";
-import { type FormState } from "@/lib/forms/state";
+import {
+  failedFormState,
+  initialFormState,
+  rejectedFormState,
+  type FormState,
+} from "@/lib/forms/state";
 import { optionalText } from "@/lib/forms/text";
 
-import { LOG_TIME_FIELD_LIMITS, readsAsBillable } from "./form";
+import { BILLABLE_VALUE, LOG_TIME_FIELD_LIMITS, readsAsBillable } from "./form";
 
 /**
  * The form that starts a clock, from submitted strings to something the data
@@ -191,4 +196,67 @@ export function parseStartTimerForm(
       startedOn: started,
     },
   };
+}
+
+/**
+ * What a started clock is, for the sentence said out loud afterwards.
+ *
+ * The id is here because a live region needs its text to change for a screen
+ * reader to notice it: two clocks started against the same line in a sitting
+ * would otherwise render the same words twice, and the second would be
+ * announced to nobody.
+ *
+ * The rest is what was decided by the press and is now out of sight. The line
+ * is named because the picker is gone once the clock is running, and the
+ * chargeable flag because an unticked box is the easiest thing on this form to
+ * get wrong — and the most expensive to discover a month later.
+ */
+export type StartedTimer = {
+  readonly id: string;
+  /** The line it is running against, or null for the project itself. */
+  readonly deliverableTitle: string | null;
+  readonly billable: boolean;
+};
+
+export type StartTimerState = StartTimerFormState & {
+  readonly started: StartedTimer | null;
+};
+
+/**
+ * What the form starts from: no line picked, no note, and the box ticked.
+ *
+ * The tick is a decision rather than an absence. Time against a client
+ * engagement is chargeable until somebody says otherwise, which is also what
+ * the column defaults to.
+ */
+export const INITIAL_START_TIMER_STATE: StartTimerState = {
+  ...initialFormState({
+    ...EMPTY_START_TIMER_FIELDS,
+    billable: BILLABLE_VALUE,
+  }),
+  started: null,
+};
+
+/**
+ * A clock is running. The form goes back to its defaults underneath, because
+ * what comes next is the panel for the running timer rather than the form.
+ */
+export function startedTimerState(started: StartedTimer): StartTimerState {
+  return { ...INITIAL_START_TIMER_STATE, started };
+}
+
+/** Validation refused the press. No clock was started. */
+export function rejectedStartTimerState(
+  fields: StartTimerFormFields,
+  errors: FieldErrors<StartTimerFieldName>,
+): StartTimerState {
+  return { ...rejectedFormState(fields, errors), started: null };
+}
+
+/** The press was good and no clock was started anyway. */
+export function failedStartTimerState(
+  fields: StartTimerFormFields,
+  formError: string,
+): StartTimerState {
+  return { ...failedFormState(fields, formError), started: null };
 }
