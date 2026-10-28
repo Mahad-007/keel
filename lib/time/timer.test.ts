@@ -35,3 +35,27 @@ describe("elapsedMinutes", () => {
     expect(elapsedMinutes(STARTED, after(26 * 60 * 60))).toBe(26 * 60);
   });
 });
+
+/**
+ * The cases where the clock and the row disagree. None of them should happen,
+ * and each has one reading that keeps a page renderable: a timer that says no
+ * time has passed is visibly wrong, where `NaN` or a negative travels into
+ * every figure derived from it.
+ */
+describe("elapsedMinutes on a clock that cannot be believed", () => {
+  it("reads zero when the start is in the future", () => {
+    expect(elapsedMinutes(STARTED, after(-600))).toBe(0);
+  });
+
+  it("reads zero rather than NaN for a start that is not a timestamp", () => {
+    expect(elapsedMinutes("whenever", after(3_600))).toBe(0);
+  });
+
+  it("reads zero for a blank start", () => {
+    expect(elapsedMinutes("", after(3_600))).toBe(0);
+  });
+
+  it("reads zero when the clock itself is not a moment", () => {
+    expect(elapsedMinutes(STARTED, new Date(Number.NaN))).toBe(0);
+  });
+});
