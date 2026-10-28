@@ -57,6 +57,11 @@ export type StartTimerFormFields = Record<StartTimerFieldName, string>;
  * Its own constant rather than a member of the field list above, because it is
  * not a field in the sense the others are: nothing labels it, nothing can
  * focus it, and nothing renders a message beside it.
+ *
+ * It is written onto the submission at the moment of the press rather than
+ * into a hidden input when the page renders. A page left open across midnight
+ * would otherwise start a clock under yesterday's date — and the day the press
+ * means is the day it is now, on the clock in front of whoever made it.
  */
 export const STARTED_ON_FIELD = "startedOn";
 
@@ -81,7 +86,7 @@ export function readStartTimerFields(formData: FormData): StartTimerFormFields {
   return readFields(formData, START_TIMER_FIELD_NAMES);
 }
 
-/** The day the browser says it is, as the hidden field carries it. */
+/** The day the browser said it was when the press was made. */
 export function readStartTimerDay(formData: FormData): string {
   return readField(formData, STARTED_ON_FIELD);
 }
@@ -135,13 +140,13 @@ export const START_TIMER_UNKNOWN_DELIVERABLE =
  * date.
  *
  * It is a form-level problem rather than a field error because the reader did
- * not type it: the field is filled in from the browser's clock after the page
- * mounts, so an empty one means the script did not run and a malformed one
- * means the submission did not come from this page. Either way there is no box
- * to put a message beside.
+ * not type it: the press puts it there from the browser's own clock, so an
+ * empty one means the script never ran and a malformed one means the
+ * submission did not come from this page at all. Either way there is no box to
+ * put a message beside.
  *
- * It says to reload rather than to try again, because pressing the same button
- * on the same page would send the same empty field.
+ * It says to reload rather than to try again, because a form submitted without
+ * the script that fills this in will submit without it again.
  */
 export const START_TIMER_NO_DAY =
   "Could not tell what day it is where you are, so no clock was started. Reload the page and press Start again.";
