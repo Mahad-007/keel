@@ -14,6 +14,8 @@ import { createDeliverable } from "./deliverables";
 import { createProject } from "./projects";
 import { listTimeEntries } from "./time-entries";
 
+import { MAX_ENTRY_MINUTES } from "@/lib/time/form";
+
 let db: Database;
 /** Every timer hangs off a project, which hangs off a client. */
 let projectId: string;
@@ -420,5 +422,120 @@ describe("stopActiveTimer", () => {
     if (!stopped.ok) throw new Error("the timer should have stopped");
 
     expect(stopped.entry.workedOn).toBe("2026-10-27");
+  });
+});
+
+/**
+ * The refusals, which all leave the clock running. A reader who pressed Stop
+ * has not asked to throw the work away — that is what discarding is for.
+ */
+describe("stopActiveTimer when it will not stop", () => {
+  it("refuses a clock that has not reached a minute", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+
+    const stopped = await stopActiveTimer(
+      started.timer.id,
+      minutesLater(started.timer.startedAt, 0),
+      db,
+    );
+
+    expect(stopped.ok).toBe(false);
+    if (stopped.ok) return;
+    expect(stopped.refusal).toBe("too-short");
+  });
+
+  it("writes nothing and keeps the clock running when it is too short", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+
+    await stopActiveTimer(
+      started.timer.id,
+      new Date(started.timer.startedAt),
+      db,
+    );
+
+    expect(await listTimeEntries(projectId, db)).toEqual([]);
+    expect(await getActiveTimer(db)).toMatchObject({ id: started.timer.id });
+  });
+
+  it("refuses a clock left running past a day, with the figure", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+
+    const stopped = await stopActiveTimer(
+      started.timer.id,
+      minutesLater(started.timer.startedAt, MAX_ENTRY_MINUTES + 60),
+      db,
+    );
+
+    expect(stopped.ok).toBe(false);
+    if (stopped.ok) return;
+    expect(stopped.refusal).toBe("too-long");
+    if (stopped.refusal === "no-such-timer") return;
+    expect(stopped.minutes).toBe(MAX_ENTRY_MINUTES + 60);
+  });
+
+  it("writes nothing and keeps the clock running when it is too long", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+
+    await stopActiveTimer(
+      started.timer.id,
+      minutesLater(started.timer.startedAt, 3 * MAX_ENTRY_MINUTES),
+      db,
+    );
+
+    expect(await listTimeEntries(projectId, db)).toEqual([]);
+    expect(await getActiveTimer(db)).toMatchObject({ id: started.timer.id });
+  });
+
+  it("stops a clock that has run for exactly a day", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+
+    const stopped = await stopActiveTimer(
+      started.timer.id,
+      minutesLater(started.timer.startedAt, MAX_ENTRY_MINUTES),
+      db,
+    );
+
+    expect(stopped.ok).toBe(true);
+  });
+
+  it("refuses an id that is not the running clock", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+
+    const stopped = await stopActiveTimer(
+      "tmr_stale",
+      minutesLater(started.timer.startedAt, 30),
+      db,
+    );
+
+    expect(stopped.ok).toBe(false);
+    if (stopped.ok) return;
+    expect(stopped.refusal).toBe("no-such-timer");
+    expect(await getActiveTimer(db)).toMatchObject({ id: started.timer.id });
+  });
+
+  it("refuses when nothing is running at all", async () => {
+    const stopped = await stopActiveTimer("tmr_gone", new Date(), db);
+
+    expect(stopped.ok).toBe(false);
+    if (stopped.ok) return;
+    expect(stopped.refusal).toBe("no-such-timer");
+  });
+
+  it("cannot be stopped twice into two entries", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+    const at = minutesLater(started.timer.startedAt, 20);
+
+    await stopActiveTimer(started.timer.id, at, db);
+    const again = await stopActiveTimer(started.timer.id, at, db);
+
+    expect(again.ok).toBe(false);
+    expect(await listTimeEntries(projectId, db)).toHaveLength(1);
   });
 });
