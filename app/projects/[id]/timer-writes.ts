@@ -19,6 +19,7 @@
 import { revalidatePath } from "next/cache";
 
 import {
+  discardActiveTimer,
   getActiveTimer,
   startActiveTimer,
   stopActiveTimer,
@@ -28,10 +29,14 @@ import { getProject } from "@/lib/data/projects";
 import type { ActiveTimer } from "@/lib/db/schema";
 import { projectPath } from "@/lib/projects/detail";
 import type { AttributableDeliverable } from "@/lib/time/attribution";
+import { TIME_WRITE_DONE } from "@/lib/time/remove";
 import {
+  DISCARD_TIMER_PROBLEMS,
+  discardTimerProblem,
   STOP_TIMER_PROBLEMS,
   stopTimerProblem,
   timerRunningTooLong,
+  type DiscardTimerResult,
   type StopTimerResult,
 } from "@/lib/time/stop";
 import {
@@ -272,4 +277,39 @@ export async function writeTimerStop(
       billable: result.entry.billable,
     },
   };
+}
+
+/**
+ * Throwing the clock away without logging anything.
+ *
+ * The confirmation is not here, and it is worth saying why: it is a step in
+ * the page, taken before this is ever called. A second check in the write
+ * would be a second thing to get past rather than a second thing to think
+ * about — the press that arrives here has already been made twice.
+ *
+ * A clock that has gone since the page was drawn is not reported. Unlike a
+ * refused stop, what the reader asked for is true: the timer is not running
+ * and nothing was logged, which is exactly the state they pressed for. The
+ * page is still revalidated, because the page is the thing that is out of
+ * date.
+ */
+export async function writeTimerDiscard(
+  projectId: string,
+  id: string,
+): Promise<DiscardTimerResult> {
+  const timer = await projectTimer(projectId, id);
+  if (timer === null) {
+    return discardTimerProblem(DISCARD_TIMER_PROBLEMS.missing);
+  }
+
+  try {
+    await discardActiveTimer(timer.id);
+  } catch (error) {
+    // The reader cannot act on a driver error, but the logs should keep it.
+    console.error("writeTimerDiscard: failed to discard the clock", error);
+    return discardTimerProblem(DISCARD_TIMER_PROBLEMS.failed);
+  }
+
+  revalidatePath(projectPath(projectId));
+  return TIME_WRITE_DONE;
 }
