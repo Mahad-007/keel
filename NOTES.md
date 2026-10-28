@@ -386,3 +386,32 @@ tests in `lib/data/time-entries.test.ts` so neither is a surprise later.
 Neither cascade bumps `updatedAt` on the rows it touches, which SQLite cannot
 do. An entry whose attribution was cleared this way looks untouched since the
 day it was logged.
+
+## The encrypted-capture counts, corrected at Day 025
+
+The check in "How the project id stopped being forgeable" was last written down
+with **ten** captures and **eleven** references. Both were stale before this
+day started. Days 022 and 023 added three closures to the time tab — the log
+line, and the editor and deletion inside the rows — without touching the
+sentence that says the counts are only useful if they move with the writes.
+
+Day 025 adds three more: `start`, `stop` and `discard`, declared in
+`timer-section.tsx`. Measured against a fresh build:
+
+```
+rm -rf .next && npm run build
+grep -rho 'encryptActionBoundArgs)("[0-9a-f]*"' .next/server/chunks/ssr/*.js | wc -l   # 16
+python3 -c "import json;m=json.load(open('.next/server/server-reference-manifest.json'));print(len([k for k,v in m['node'].items() if 'app/projects/[id]/page' in v['workers']]))"   # 17
+```
+
+Sixteen captures and seventeen references — the sixteen closures plus Day 010's
+`transitionProjectAction`, which is still a bare export. The gap between the
+two numbers is the thing to watch rather than either number on its own: it is
+one, and a second bare export would make it two.
+
+`timer-writes.ts` has no `"use server"` of its own, for the reason
+`scope-writes.ts` and `time-writes.ts` do not. It still establishes which page
+made the call and not who was holding it: a running timer is global today,
+because there is one person using the app, and Phase 8 has to scope it by owner
+at the same time as it scopes everything else. The `slot` column is where that
+goes — one timer per user, by the index that today enforces one in total.
