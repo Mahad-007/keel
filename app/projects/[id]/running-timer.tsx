@@ -28,26 +28,26 @@ import { TimerElapsed } from "./timer-elapsed";
  *
  * The presses are `children` rather than props. This component is the shell —
  * what the clock is and how long it has been going — and which buttons belong
- * beside it is the business of whatever owns the state behind them.
+ * beside it is the business of whatever owns the state behind them. The
+ * elapsed figure arrives the same way, as a number: the counting belongs with
+ * that same owner, because the sentences its buttons produce are built from
+ * it.
  */
 export function RunningTimerPanel({
   timer,
-  initialMinutes,
+  minutes,
   deliverables,
-  onMinutes,
   children,
 }: {
   timer: RunningTimerRow;
-  /** The figure the server computed, so the first render agrees with it. */
-  initialMinutes: number;
+  /** How long it has been running, counted by whoever owns the panel. */
+  minutes: number;
   /**
    * This project's scope list, which the attribution is named from. The same
    * list the picker was built from, so the line named here is the line that
    * was chosen — rather than a second read that could disagree.
    */
   deliverables: readonly NamedDeliverable[];
-  /** Told the elapsed figure as it ticks, for the sentences that need it. */
-  onMinutes?: (minutes: number) => void;
   /** Stop, Discard, and whatever step either of them opens. */
   children: ReactNode;
 }) {
@@ -57,11 +57,7 @@ export function RunningTimerPanel({
   return (
     <div className="mt-4 rounded border border-zinc-300 bg-zinc-50 px-4 py-3.5 dark:border-zinc-700 dark:bg-zinc-900">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <TimerElapsed
-          startedAt={timer.startedAt}
-          initialMinutes={initialMinutes}
-          onMinutes={onMinutes}
-        />
+        <TimerElapsed minutes={minutes} />
         {/*
           "so far" rather than "elapsed": the figure is still moving, and a
           reader who looks away and back should not have to wonder whether
@@ -95,9 +91,7 @@ export function RunningTimerPanel({
         {timer.billable ? null : (
           <>
             <dt className="text-zinc-500 dark:text-zinc-500">Charge</dt>
-            <dd className="text-zinc-900 dark:text-zinc-100">
-              Not chargeable
-            </dd>
+            <dd className="text-zinc-900 dark:text-zinc-100">Not chargeable</dd>
           </>
         )}
       </dl>
