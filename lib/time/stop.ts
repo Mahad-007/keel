@@ -113,3 +113,28 @@ export function timerRunningTooLong(minutes: number): string {
  */
 export const STOP_TIMER_NO_ANSWER =
   "Could not tell whether the clock was stopped — the answer never arrived. Reload to see what this project has logged before pressing Stop again.";
+
+/**
+ * What to say once a clock has been stopped.
+ *
+ * The panel with the clock in it is replaced by the Start form and a row
+ * appears in the list below, neither of which a screen reader is told about.
+ * This is the sentence that goes in a live region.
+ *
+ * Four things, in the order a reader would check them. The duration first,
+ * because it is what was measured and the only figure nobody typed. The line
+ * next, since it was chosen before the work rather than after it and is the
+ * easiest thing to have left on the wrong one. The day because it is the day
+ * the clock *started*, which is the one surprise a timer can hold — a stretch
+ * begun before midnight is filed under the evening it began. And a
+ * non-chargeable entry says so, for the same reason the log form's sentence
+ * does.
+ */
+export function stoppedTimerAnnouncement(stopped: StoppedTimer): string {
+  const against =
+    stopped.deliverableTitle === null
+      ? "the project itself"
+      : `“${stopped.deliverableTitle}”`;
+  const charge = stopped.billable ? "" : " Marked as not chargeable.";
+  return `Logged ${formatMinutes(stopped.minutes)} against ${against} on ${formatDate(stopped.workedOn)}.${charge}`;
+}
