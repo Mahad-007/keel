@@ -5,6 +5,7 @@ import type { RunningTimer } from "./timer";
 import {
   elapsedLabel,
   elapsedMinutes,
+  hasCountedMinute,
   MINIMUM_TIMER_MINUTES,
   stoppedTimerEntry,
   timerStopObstacle,
@@ -155,5 +156,27 @@ describe("stoppedTimerEntry", () => {
       deliverableId: null,
       note: null,
     });
+  });
+});
+
+describe("hasCountedMinute", () => {
+  it("is false for a clock that has just been started", () => {
+    expect(hasCountedMinute(0)).toBe(false);
+  });
+
+  it("is true from the first whole minute", () => {
+    expect(hasCountedMinute(MINIMUM_TIMER_MINUTES)).toBe(true);
+  });
+
+  it("is false for a figure below zero, which no clock produces", () => {
+    expect(hasCountedMinute(-1)).toBe(false);
+  });
+
+  it("agrees with the refusal to stop a clock with nothing to log", () => {
+    for (const minutes of [0, 1, 2, 90]) {
+      expect(hasCountedMinute(minutes)).toBe(
+        timerStopObstacle(minutes) !== "too-short",
+      );
+    }
   });
 });

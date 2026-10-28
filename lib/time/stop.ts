@@ -17,7 +17,7 @@ import { formatMinutes } from "@/lib/minutes";
 
 import { MAX_ENTRY_MINUTES } from "./form";
 import { timeWriteProblem, type TimeWriteResult } from "./remove";
-import { MINIMUM_TIMER_MINUTES } from "./timer";
+import { hasCountedMinute, MINIMUM_TIMER_MINUTES } from "./timer";
 
 /**
  * What a stopped clock became, for the sentence said out loud afterwards.
@@ -171,7 +171,7 @@ export const DISCARD_TIMER_LABEL = "Discard";
  * that will not work.
  */
 export function describeTimerDiscard(minutes: number): string {
-  if (minutes < MINIMUM_TIMER_MINUTES) {
+  if (!hasCountedMinute(minutes)) {
     return "Discard this clock? It has not been running long enough to log anything, so nothing is lost.";
   }
   return `Discard this clock? The ${formatMinutes(minutes)} it has counted is not logged anywhere and cannot be recovered. If the work was real, stop the clock instead — the entry can be corrected afterwards.`;
@@ -237,7 +237,7 @@ export const DISCARD_TIMER_PROBLEMS = {
  * confirms that is what happened.
  */
 export function discardedTimerAnnouncement(minutes: number): string {
-  if (minutes < MINIMUM_TIMER_MINUTES) {
+  if (!hasCountedMinute(minutes)) {
     return "Discarded the clock. Nothing was logged.";
   }
   return `Discarded the clock. The ${formatMinutes(minutes)} it had counted was not logged.`;

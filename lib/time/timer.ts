@@ -96,6 +96,19 @@ export function elapsedMinutes(startedAt: string, now: Date): number {
 export const MINIMUM_TIMER_MINUTES = 1;
 
 /**
+ * Whether a clock has been running long enough to read as a duration.
+ *
+ * One question asked in three places — the refusal to stop a clock with
+ * nothing to log, the figure on screen, and the step in front of a discard —
+ * and they have to agree. A panel reading "less than a minute" above a Stop
+ * button that works would be the app contradicting itself in two inches of
+ * page.
+ */
+export function hasCountedMinute(minutes: number): boolean {
+  return minutes >= MINIMUM_TIMER_MINUTES;
+}
+
+/**
  * Why stopping this timer would not produce an entry worth keeping.
  *
  * Two of them, at the two ends. `too-short` is the mis-press: Start, then the
@@ -121,7 +134,7 @@ export type TimerStopObstacle = "too-short" | "too-long";
  * days it actually spanned.
  */
 export function timerStopObstacle(minutes: number): TimerStopObstacle | null {
-  if (minutes < MINIMUM_TIMER_MINUTES) return "too-short";
+  if (!hasCountedMinute(minutes)) return "too-short";
   if (minutes > MAX_ENTRY_MINUTES) return "too-long";
   return null;
 }
@@ -140,7 +153,7 @@ export function timerStopObstacle(minutes: number): TimerStopObstacle | null {
  * the `1h 30m` it will appear as in the list once it is stopped.
  */
 export function elapsedLabel(minutes: number): string {
-  if (minutes < MINIMUM_TIMER_MINUTES) return "Less than a minute";
+  if (!hasCountedMinute(minutes)) return "Less than a minute";
   return formatMinutes(minutes);
 }
 
