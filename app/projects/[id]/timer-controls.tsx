@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import {
   AlertNote,
@@ -26,6 +26,7 @@ import {
   DISCARD_TIMER_LABEL,
   DISCARD_TIMER_NO_ANSWER,
   discardedTimerAnnouncement,
+  START_TIMER_BUTTON_ID,
   STOP_TIMER_NO_ANSWER,
   stoppedTimerAnnouncement,
   type DiscardTimerResult,
@@ -147,6 +148,24 @@ export function TimerControls({
 
   useFirstErrorFocus(state, START_TIMER_FIELD_NAMES);
 
+  /*
+    Where the cursor goes once the panel has been replaced by the form.
+
+    A press that stops or discards takes the button the reader was using with
+    it, and the browser answers that by dropping focus to the document — so
+    the next Tab starts at the top of the page rather than at the clock they
+    were just working with. It cannot be done in the handler: the control to
+    move to is the one rendered *instead*, and it is not in the document until
+    React has caught up. So the handler leaves a note here and the effect acts
+    on it.
+  */
+  const moveFocus = useRef(false);
+  useEffect(() => {
+    if (!moveFocus.current) return;
+    moveFocus.current = false;
+    document.getElementById(START_TIMER_BUTTON_ID)?.focus();
+  });
+
   const minutes = useElapsedMinutes(running?.startedAt ?? null, initialMinutes);
 
   /*
@@ -179,6 +198,7 @@ export function TimerControls({
         setProblem(result.problem);
         return;
       }
+      moveFocus.current = true;
       setSaid({
         key: result.stopped.id,
         text: stoppedTimerAnnouncement(result.stopped),
@@ -208,6 +228,7 @@ export function TimerControls({
         return;
       }
       setConfirming(false);
+      moveFocus.current = true;
       setSaid({
         key: `discarded-${running.id}`,
         text: discardedTimerAnnouncement(lost),
@@ -234,7 +255,9 @@ export function TimerControls({
           <FormSummary state={state} />
           <StartTimerFields state={state} options={options} />
           <div>
-            <SubmitButton pendingLabel="Starting…">Start a clock</SubmitButton>
+            <SubmitButton id={START_TIMER_BUTTON_ID} pendingLabel="Starting…">
+              Start a clock
+            </SubmitButton>
           </div>
         </form>
       ) : (

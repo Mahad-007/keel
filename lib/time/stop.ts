@@ -194,6 +194,15 @@ export const CONFIRM_DISCARD_TIMER_ID = "timer-discard-confirm";
 export const DISCARD_TIMER_BUTTON_ID = "timer-discard";
 
 /**
+ * The button that starts a clock, which is what the panel is replaced by.
+ *
+ * Named here rather than in `start.ts` because the presses that need it are
+ * the ones in this module: stopping and discarding both take the panel away,
+ * and the cursor has to land somewhere that is in the document afterwards.
+ */
+export const START_TIMER_BUTTON_ID = "timer-start";
+
+/**
  * What discarding hands back: nothing to say, or the one sentence worth saying
  * about why the clock is still running.
  *
