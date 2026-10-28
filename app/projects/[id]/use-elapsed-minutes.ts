@@ -33,13 +33,41 @@ import { elapsedMinutes } from "@/lib/time/timer";
  */
 const TICK_MS = 15_000;
 
+/** What has been counted, and which clock it was counted for. */
+type Reading = {
+  readonly startedAt: string | null;
+  readonly minutes: number;
+};
+
 export function useElapsedMinutes(
   /** The instant the clock started, or null when no clock is running. */
   startedAt: string | null,
   /** The figure the server computed, so the first render agrees with it. */
   initialMinutes: number,
 ): number {
-  const [minutes, setMinutes] = useState(initialMinutes);
+  const [reading, setReading] = useState<Reading>({
+    startedAt,
+    minutes: initialMinutes,
+  });
+
+  /*
+    A new clock starts from the server's figure rather than from the last
+    one's.
+
+    The panel is not remounted between two clocks — it is the same component,
+    told about a different row — so state alone would hold the figure the
+    previous clock had reached. The effect below corrects it, but only after
+    the browser has painted, so a clock started where one had been running for
+    three hours shows 3h for a frame, and the discard step built from the same
+    number would name it.
+
+    Adjusted during the render instead, which React answers by re-rendering
+    before anything reaches the screen. Keyed on the clock the reading was
+    taken for, so it happens exactly once per clock.
+  */
+  if (reading.startedAt !== startedAt) {
+    setReading({ startedAt, minutes: initialMinutes });
+  }
 
   useEffect(() => {
     // Nothing is running, so there is nothing to count and no interval worth
@@ -54,7 +82,10 @@ export function useElapsedMinutes(
       its own elapsed time: the row is the clock, and this only reads it.
     */
     function read() {
-      setMinutes(elapsedMinutes(started, new Date()));
+      setReading({
+        startedAt: started,
+        minutes: elapsedMinutes(started, new Date()),
+      });
     }
 
     read();
@@ -62,5 +93,5 @@ export function useElapsedMinutes(
     return () => clearInterval(timer);
   }, [startedAt]);
 
-  return minutes;
+  return reading.minutes;
 }
