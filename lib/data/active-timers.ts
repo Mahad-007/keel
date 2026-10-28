@@ -7,10 +7,17 @@ import {
   type TimeEntry,
 } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
-import { RUNNING_TIMER_SLOT, type TimerStopObstacle } from "@/lib/time/timer";
+import {
+  elapsedMinutes,
+  RUNNING_TIMER_SLOT,
+  stoppedTimerEntry,
+  timerStopObstacle,
+  type TimerStopObstacle,
+} from "@/lib/time/timer";
 
 import { requireProject, requireProjectDeliverable } from "./belonging";
 import { calendarDate, optionalText } from "./fields";
+import { createTimeEntry } from "./time-entries";
 
 /**
  * Data access for the `active_timers` table: the clock that is running right
@@ -250,3 +257,65 @@ export type ActiveTimerStop =
       readonly refusal: TimerStopObstacle;
       readonly minutes: number;
     };
+
+/**
+ * Stops the clock, writes the stretch of work it measured, and hands back
+ * both — or says why the timer is still running.
+ *
+ * `now` is a parameter rather than read off the wall clock, which is what
+ * makes the elapsed figure the same figure the caller has already shown. A
+ * page that said "running for 25m" and an entry of 26 minutes would be two
+ * answers to one question, and whichever a reader quoted at a client would be
+ * the one that was wrong. It is also the only way to test this without
+ * sleeping.
+ *
+ * The read, the insert and the delete are one immediate transaction. If they
+ * were not, two presses of Stop would both find the timer and both write an
+ * entry — the same stretch of work logged twice, which is the one duplicate on
+ * this page that reaches an invoice. Immediate, so the lock is taken at BEGIN
+ * rather than at the first write, and the loser of a race sees no timer rather
+ * than a row it is about to delete twice.
+ *
+ * A refused figure leaves the clock running. That is the whole reason the
+ * obstacles are checked here rather than being allowed to fail at the column:
+ * a reader who presses Stop on a timer that has run for forty seconds has not
+ * asked to throw the work away, and `discardActiveTimer` is the press that
+ * says they have.
+ *
+ * The entry goes through `createTimeEntry` rather than being inserted here,
+ * because there is one way to write a stretch of work and this is not a second
+ * one. Every guard that function applies — the duration, the day, the
+ * attribution belonging to the project — applies to a stopped clock too, and
+ * the transaction is handed down so the entry and the removal are still one
+ * write.
+ */
+export async function stopActiveTimer(
+  id: string,
+  now: Date,
+  database: Database = db,
+): Promise<ActiveTimerStop> {
+  return database.transaction(
+    async (tx) => {
+      const [timer] = await tx
+        .select()
+        .from(activeTimers)
+        .where(eq(activeTimers.id, id))
+        .limit(1);
+      if (!timer) return { ok: false, refusal: "no-such-timer" };
+
+      const minutes = elapsedMinutes(timer.startedAt, now);
+      const obstacle = timerStopObstacle(minutes);
+      if (obstacle !== null) {
+        return { ok: false, refusal: obstacle, minutes };
+      }
+
+      const entry = await createTimeEntry(
+        { projectId: timer.projectId, ...stoppedTimerEntry(timer, minutes) },
+        tx,
+      );
+      await tx.delete(activeTimers).where(eq(activeTimers.id, id));
+      return { ok: true, entry, stopped: timer, minutes };
+    },
+    { behavior: "immediate" },
+  );
+}
