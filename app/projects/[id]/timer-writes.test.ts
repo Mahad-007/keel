@@ -1,7 +1,11 @@
 import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { startActiveTimer } from "@/lib/data/active-timers";
+import {
+  getActiveTimer,
+  startActiveTimer,
+  stopActiveTimer,
+} from "@/lib/data/active-timers";
 import { getDeliverable } from "@/lib/data/deliverables";
 import { getProject } from "@/lib/data/projects";
 import { projectPath } from "@/lib/projects/detail";
@@ -15,7 +19,9 @@ import {
   STARTED_ON_FIELD,
 } from "@/lib/time/start";
 
-import { writeTimerStart } from "./timer-writes";
+import { STOP_TIMER_PROBLEMS, timerRunningTooLong } from "@/lib/time/stop";
+
+import { writeTimerStart, writeTimerStop } from "./timer-writes";
 
 /**
  * Mocked collaborators rather than a database: this function's own job is the
@@ -35,11 +41,26 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 const project = vi.mocked(getProject);
 const start = vi.mocked(startActiveTimer);
 const deliverable = vi.mocked(getDeliverable);
+const running = vi.mocked(getActiveTimer);
+const stop = vi.mocked(stopActiveTimer);
 
 const OFFERED: AttributableDeliverable[] = [
   { id: "dlv_wireframes", title: "Wireframes", estimatedMinutes: 360 },
   { id: "dlv_build", title: "Build", estimatedMinutes: 0 },
 ];
+
+const ENTRY = {
+  id: "tme_1",
+  projectId: "prj_engine",
+  deliverableId: null,
+  minutes: 95,
+  note: null,
+  workedOn: "2026-10-28",
+  billable: true,
+  billedInvoiceId: null,
+  createdAt: "2026-10-28T10:35:00.000Z",
+  updatedAt: "2026-10-28T10:35:00.000Z",
+};
 
 const TIMER = {
   id: "tmr_1",
@@ -196,5 +217,129 @@ describe("writeTimerStart", () => {
 
     expect(revalidatePath).not.toHaveBeenCalled();
     expect(state.started).toBeNull();
+  });
+});
+
+describe("writeTimerStop", () => {
+  beforeEach(() => {
+    running.mockResolvedValue(TIMER);
+    stop.mockResolvedValue({
+      ok: true,
+      entry: ENTRY,
+      stopped: TIMER,
+      minutes: 95,
+    });
+  });
+
+  it("stops the clock the page was showing", async () => {
+    await writeTimerStop("prj_engine", OFFERED, "tmr_1");
+
+    expect(stop).toHaveBeenCalledWith("tmr_1", expect.any(Date));
+  });
+
+  it("reports the entry it wrote, naming the line it went against", async () => {
+    stop.mockResolvedValue({
+      ok: true,
+      entry: { ...ENTRY, deliverableId: "dlv_build" },
+      stopped: TIMER,
+      minutes: 95,
+    });
+
+    const result = await writeTimerStop("prj_engine", OFFERED, "tmr_1");
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.stopped).toEqual({
+      id: "tme_1",
+      minutes: 95,
+      workedOn: "2026-10-28",
+      deliverableTitle: "Build",
+      billable: true,
+    });
+  });
+
+  it("revalidates the project, because the entry is read off the page", async () => {
+    await writeTimerStop("prj_engine", OFFERED, "tmr_1");
+
+    expect(revalidatePath).toHaveBeenCalledWith(projectPath("prj_engine"));
+  });
+
+  it("refuses a press naming a timer that is not the running one", async () => {
+    const result = await writeTimerStop("prj_engine", OFFERED, "tmr_stale");
+
+    expect(stop).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      ok: false,
+      problem: STOP_TIMER_PROBLEMS.missing,
+    });
+  });
+
+  it("refuses a press naming another project's clock", async () => {
+    running.mockResolvedValue({ ...TIMER, projectId: "prj_brand" });
+
+    const result = await writeTimerStop("prj_engine", OFFERED, "tmr_1");
+
+    expect(stop).not.toHaveBeenCalled();
+    expect(result.ok).toBe(false);
+  });
+
+  it("refuses a press with no id at all without reading anything", async () => {
+    const result = await writeTimerStop("prj_engine", OFFERED, "");
+
+    expect(running).not.toHaveBeenCalled();
+    expect(result.ok).toBe(false);
+  });
+
+  it("tells a reader to leave a clock under a minute running", async () => {
+    stop.mockResolvedValue({ ok: false, refusal: "too-short", minutes: 0 });
+
+    const result = await writeTimerStop("prj_engine", OFFERED, "tmr_1");
+
+    expect(result).toEqual({
+      ok: false,
+      problem: STOP_TIMER_PROBLEMS.tooShort,
+    });
+  });
+
+  it("names the figure when a clock has run past a day", async () => {
+    stop.mockResolvedValue({ ok: false, refusal: "too-long", minutes: 4_320 });
+
+    const result = await writeTimerStop("prj_engine", OFFERED, "tmr_1");
+
+    expect(result).toEqual({
+      ok: false,
+      problem: timerRunningTooLong(4_320),
+    });
+  });
+
+  it("does not revalidate a page when the clock is still running", async () => {
+    stop.mockResolvedValue({ ok: false, refusal: "too-short", minutes: 0 });
+
+    await writeTimerStop("prj_engine", OFFERED, "tmr_1");
+
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("revalidates and reports when the clock went between read and write", async () => {
+    stop.mockResolvedValue({ ok: false, refusal: "no-such-timer" });
+
+    const result = await writeTimerStop("prj_engine", OFFERED, "tmr_1");
+
+    expect(revalidatePath).toHaveBeenCalledWith(projectPath("prj_engine"));
+    expect(result).toEqual({
+      ok: false,
+      problem: STOP_TIMER_PROBLEMS.missing,
+    });
+  });
+
+  it("reports a failed write without claiming the clock is gone", async () => {
+    stop.mockRejectedValue(new Error("database is locked"));
+
+    const result = await writeTimerStop("prj_engine", OFFERED, "tmr_1");
+
+    expect(result).toEqual({
+      ok: false,
+      problem: STOP_TIMER_PROBLEMS.failed,
+    });
   });
 });
