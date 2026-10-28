@@ -36,7 +36,7 @@ import type { RunningTimer } from "@/lib/time/timer";
 
 import { DiscardTimerPrompt } from "./discard-timer-prompt";
 import { RunningTimerPanel } from "./running-timer";
-import { StartTimerFields } from "./start-timer-fields";
+import { StartTimerFields, START_TIMER_SCOPE } from "./start-timer-fields";
 import { useElapsedMinutes } from "./use-elapsed-minutes";
 
 /**
@@ -146,7 +146,13 @@ export function TimerControls({
   const [confirming, setConfirming] = useState(false);
   const [acting, setActing] = useState<Acting>(null);
 
-  useFirstErrorFocus(state, START_TIMER_FIELD_NAMES);
+  /*
+    The scope matters here and is easy to leave off. Both forms on this tab ask
+    for `deliverable`, `note` and `billable`, so without it the cursor after a
+    refused Start would land in the log line at the bottom of the page, under a
+    message about a form an inch from the top.
+  */
+  useFirstErrorFocus(state, START_TIMER_FIELD_NAMES, START_TIMER_SCOPE);
 
   /*
     Where the cursor goes once the panel has been replaced by the form.
