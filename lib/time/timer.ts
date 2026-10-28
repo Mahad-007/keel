@@ -20,3 +20,26 @@
  * user" and this constant goes away.
  */
 export const RUNNING_TIMER_SLOT = "only";
+
+/**
+ * What a running timer is, as everything outside the data layer sees it.
+ *
+ * A structural type rather than the schema's `ActiveTimer`, for the reason
+ * `ListedTimeEntry` is one: these functions are arithmetic and sentences, and
+ * a module that imported the table would make every test of them need a
+ * database. `slot` is not here, because it is a constraint rather than a fact
+ * about the work — nothing a reader is shown depends on it.
+ */
+export type RunningTimer = {
+  readonly id: string;
+  readonly projectId: string;
+  /** The line of scope the work is going against, or null for the project. */
+  readonly deliverableId: string | null;
+  /** What is being done, in a person's words, or null when they did not say. */
+  readonly note: string | null;
+  readonly billable: boolean;
+  /** The instant the clock started, as a full ISO timestamp. */
+  readonly startedAt: string;
+  /** The calendar date the entry will be filed under: `YYYY-MM-DD`. */
+  readonly startedOn: string;
+};
