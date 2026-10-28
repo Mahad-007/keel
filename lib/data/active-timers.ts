@@ -171,3 +171,35 @@ export async function startActiveTimer(
     { behavior: "immediate" },
   );
 }
+
+/**
+ * Throws the clock away and hands back the row it removed, or null if that
+ * timer was not there.
+ *
+ * The way out of a mis-press, and it has to exist: Start, then the realisation
+ * that it is the wrong project, and the alternative without this is to stop
+ * the clock into an entry of a minute and then delete the entry. That leaves
+ * two writes and a row in a list for whoever is reading it in the meantime.
+ *
+ * It writes nothing. A discarded timer leaves no trace, which is the one
+ * decision here worth defending: the minutes it held are not a record of work,
+ * they are a record of a button. The stretches of work that happened are in
+ * `time_entries`, and a table of abandoned clocks would be a second place to
+ * look for them with nothing in it worth finding.
+ *
+ * The id has to match, rather than this clearing whichever timer is running.
+ * The press comes from a page that may have been open for an hour: the clock
+ * it was looking at could have been stopped and another one started since, and
+ * a discard that took "the running one" would throw away a stretch of work
+ * somebody is in the middle of. Null is what says the page was stale.
+ */
+export async function discardActiveTimer(
+  id: string,
+  database: Database = db,
+): Promise<ActiveTimer | null> {
+  const [row] = await database
+    .delete(activeTimers)
+    .where(eq(activeTimers.id, id))
+    .returning();
+  return row ?? null;
+}
