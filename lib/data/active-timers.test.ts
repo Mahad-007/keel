@@ -3,10 +3,15 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 
-import { getActiveTimer, startActiveTimer } from "./active-timers";
+import {
+  discardActiveTimer,
+  getActiveTimer,
+  startActiveTimer,
+} from "./active-timers";
 import { createClient } from "./clients";
 import { createDeliverable } from "./deliverables";
 import { createProject } from "./projects";
+import { listTimeEntries } from "./time-entries";
 
 let db: Database;
 /** Every timer hangs off a project, which hangs off a client. */
@@ -240,5 +245,56 @@ describe("startActiveTimer on a project it cannot have", () => {
     ).rejects.toThrow();
 
     expect(await getActiveTimer(db)).toBeNull();
+  });
+});
+
+describe("discardActiveTimer", () => {
+  it("removes the clock and hands back the row it removed", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+
+    const discarded = await discardActiveTimer(started.timer.id, db);
+
+    expect(discarded).toMatchObject({ id: started.timer.id });
+    expect(await getActiveTimer(db)).toBeNull();
+  });
+
+  it("writes no time entry, because a discarded clock is not work", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+
+    await discardActiveTimer(started.timer.id, db);
+
+    expect(await listTimeEntries(projectId, db)).toEqual([]);
+  });
+
+  it("frees the slot, so a clock can be started again", async () => {
+    const first = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!first.ok) throw new Error("the first timer should have started");
+    await discardActiveTimer(first.timer.id, db);
+
+    const second = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+
+    expect(second.ok).toBe(true);
+  });
+
+  it("is null for an id that is not the running clock", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+
+    expect(await discardActiveTimer("tmr_stale", db)).toBeNull();
+  });
+
+  it("leaves the running clock alone when the id does not match", async () => {
+    const started = await startActiveTimer({ projectId, startedOn: TODAY }, db);
+    if (!started.ok) throw new Error("the timer should have started");
+
+    await discardActiveTimer("tmr_stale", db);
+
+    expect(await getActiveTimer(db)).toMatchObject({ id: started.timer.id });
+  });
+
+  it("is null when nothing is running at all", async () => {
+    expect(await discardActiveTimer("tmr_gone", db)).toBeNull();
   });
 });
