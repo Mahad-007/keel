@@ -263,12 +263,18 @@ export type ActiveTimerStop =
  * Stops the clock, writes the stretch of work it measured, and hands back
  * both — or says why the timer is still running.
  *
- * `now` is a parameter rather than read off the wall clock, which is what
- * makes the elapsed figure the same figure the caller has already shown. A
- * page that said "running for 25m" and an entry of 26 minutes would be two
- * answers to one question, and whichever a reader quoted at a client would be
- * the one that was wrong. It is also the only way to test this without
+ * `now` is a parameter rather than read off the wall clock, so one instant
+ * decides the whole press: the figure the obstacles are checked against is the
+ * figure the entry is written with, and the refusal a reader is given names
+ * the figure it was decided on. It is also the only way to test this without
  * sleeping.
+ *
+ * It is the server's instant, because the caller is the action and that is the
+ * clock it reads. The panel counts on the browser's, so a machine whose clock
+ * is a minute out will have shown a minute more or less than the entry ends up
+ * holding — and the figure on the invoice should not be the one a laptop was
+ * set to. The sentence afterwards says what was written rather than what was
+ * on screen, so the two are never claimed to be the same number.
  *
  * The read, the insert and the delete are one immediate transaction. If they
  * were not, two presses of Stop would both find the timer and both write an
