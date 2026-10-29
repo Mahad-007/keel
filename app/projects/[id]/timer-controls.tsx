@@ -18,6 +18,7 @@ import {
   START_TIMER_FIELD_NAMES,
   START_TIMER_NO_ANSWER,
   STARTED_ON_FIELD,
+  startReplacedForm,
   startedTimerNotice,
   type StartTimerState,
 } from "@/lib/time/start";
@@ -204,18 +205,24 @@ export function TimerControls({
     }
     announceStart(next);
     /*
+      A refusal about somebody else's clock is shown where the clock is, not
+      on the form: the form is about to be replaced by the panel, and a
+      sentence left on it would be read next when it came back — which is
+      after the reader has stopped the clock it names. Here it sits above the
+      panel until the next press clears it.
+    */
+    if (next.refusal !== null) setProblem(next.refusal);
+    /*
       The panel takes the Start button with it, so the cursor is sent to the
       press the reader will make next — whenever this answer is one of the two
-      that replace the form. A clock that started is the obvious one; the
-      refusal that says a clock was already running is the other, because it
-      revalidates and what arrives is that clock's panel.
+      that replace the form.
 
       Only those two, which is why the answer has to say. A note left by a
       press that the form survives is a note with nothing to redeem it: the
       Stop button turns up the next time any clock does, minutes later, and
       pulls the cursor out of whatever the reader has moved on to.
     */
-    if (next.replacesForm) sendCursorTo(STOP_TIMER_BUTTON_ID);
+    if (startReplacedForm(next)) sendCursorTo(STOP_TIMER_BUTTON_ID);
     return next;
   }
 

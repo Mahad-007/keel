@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   alreadyRunningState,
+  startReplacedForm,
   EMPTY_START_TIMER_FIELDS,
   failedStartTimerState,
   INITIAL_START_TIMER_STATE,
@@ -222,7 +223,8 @@ describe("startedTimerState", () => {
       billable: true,
     });
 
-    expect(state.replacesForm).toBe(true);
+    expect(startReplacedForm(state)).toBe(true);
+    expect(state.refusal).toBeNull();
   });
 });
 
@@ -242,7 +244,7 @@ describe("rejectedStartTimerState", () => {
       deliverable: START_TIMER_UNKNOWN_DELIVERABLE,
     });
 
-    expect(state.replacesForm).toBe(false);
+    expect(startReplacedForm(state)).toBe(false);
   });
 });
 
@@ -261,7 +263,8 @@ describe("failedStartTimerState", () => {
   it("leaves the form up, so the sentence has somewhere to sit", () => {
     const state = failedStartTimerState(fields(), START_TIMER_PROBLEMS.failed);
 
-    expect(state.replacesForm).toBe(false);
+    expect(startReplacedForm(state)).toBe(false);
+    expect(state.refusal).toBeNull();
   });
 });
 
@@ -311,8 +314,15 @@ describe("alreadyRunningState", () => {
   it("names the project the clock is running on", () => {
     const state = alreadyRunningState(fields(), "Brand refresh");
 
-    expect(state.formError).toBe(timerAlreadyRunning("Brand refresh"));
+    expect(state.refusal).toBe(timerAlreadyRunning("Brand refresh"));
     expect(state.started).toBeNull();
+  });
+
+  it("keeps the sentence off the form, which is about to be replaced", () => {
+    const state = alreadyRunningState(fields(), "Brand refresh");
+
+    expect(state.formError).toBeNull();
+    expect(state.errors).toEqual({});
   });
 
   it("echoes what was submitted, since the press changed nothing", () => {
@@ -322,9 +332,11 @@ describe("alreadyRunningState", () => {
   });
 
   it("takes the form off the page, unlike every other refusal", () => {
-    expect(alreadyRunningState(fields(), "Keel").replacesForm).toBe(true);
+    expect(startReplacedForm(alreadyRunningState(fields(), "Keel"))).toBe(true);
     expect(
-      failedStartTimerState(fields(), START_TIMER_PROBLEMS.failed).replacesForm,
+      startReplacedForm(
+        failedStartTimerState(fields(), START_TIMER_PROBLEMS.failed),
+      ),
     ).toBe(false);
   });
 });

@@ -184,7 +184,7 @@ describe("writeTimerStart", () => {
 
     const state = await press();
 
-    expect(state.formError).toContain("Brand refresh");
+    expect(state.refusal).toContain("Brand refresh");
     expect(state.started).toBeNull();
   });
 
@@ -197,12 +197,12 @@ describe("writeTimerStart", () => {
 
     const state = await press();
 
-    expect(state.formError).toContain("Engine rewrite");
+    expect(state.refusal).toContain("Engine rewrite");
     // The project it already has is reused rather than read a second time.
     expect(project).toHaveBeenCalledTimes(1);
   });
 
-  it("says that refusal replaces the form, unlike the others", async () => {
+  it("keeps that refusal off the form, which is about to be replaced", async () => {
     start.mockResolvedValue({
       ok: false,
       refusal: "already-running",
@@ -211,9 +211,10 @@ describe("writeTimerStart", () => {
 
     const state = await press();
 
-    // The page it revalidates draws the panel over the form, so the cursor
-    // has to go with it rather than stay on a button about to be unmounted.
-    expect(state.replacesForm).toBe(true);
+    // The page it revalidates draws the panel over the form, so the sentence
+    // is carried where the panel can be read with it.
+    expect(state.refusal).toContain("already running");
+    expect(state.formError).toBeNull();
   });
 
   it("revalidates when a clock was already running, because the page is wrong", async () => {
