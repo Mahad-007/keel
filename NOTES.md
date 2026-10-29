@@ -415,3 +415,74 @@ made the call and not who was holding it: a running timer is global today,
 because there is one person using the app, and Phase 8 has to scope it by owner
 at the same time as it scopes everything else. The `slot` column is where that
 goes — one timer per user, by the index that today enforces one in total.
+
+## Day 025 ran twice, for the reason Days 013 and 020 did
+
+Day 025 — the running clock: the `active_timers` row, the three presses, and
+the panel on the time tab — was built on 2026-10-28 in 67 commits
+(`e03027d..772731d`), and pushed: `origin/main` was already at `772731d` when
+2026-10-29 started. The box in `ROADMAP.md` was never ticked, so the workflow
+picked Day 025 again.
+
+So 2026-10-29 audited what was there rather than rebuilding it or padding the
+history. `npm run verify` was green on arrival — 119 files, 2854 tests — and the
+milestone was complete: the table and its migration, the data layer, the pure
+arithmetic, the three writes, and a panel that survives a reload because the
+clock is a row. `/security-review` over the same range found nothing: the
+project id is captured encrypted, `projectTimer` requires the press to name
+both the clock and the project, and `slot` is not reachable from any caller.
+
+## What the Day 025 audit changed
+
+Every finding was about what happens *after* a press, which is the part of this
+panel that nothing renders: where the cursor goes, and which sentence is on
+screen.
+
+- **Keeping a clock dropped the cursor to the document.** "Keep it running"
+  called `.focus()` on the Discard button, which is disabled while the step it
+  opens is open — so the press did nothing and the browser dropped the focus
+  when the step unmounted. It goes through the note the effect reads, which is
+  acted on in the render that enables the button again.
+- **Starting a clock dropped it too.** The panel replaces the form and takes
+  the Start button with it, which is the mirror of what stopping does, and that
+  direction was simply not handled. The refusal that says a clock is *already*
+  running does the same thing — it revalidates, so the form goes — and that is
+  why `startReplacedForm` is asked rather than `started !== null`.
+- **"A clock is already running on X" came back after the clock was stopped.**
+  It was a `formError`, so it belonged to the form, and the form is gone until
+  the reader stops the clock the sentence is about — at which point it returned,
+  `role="alert"` and all, saying a clock was running moments after they had
+  stopped it. It is a `refusal` now: carried beside the panel, where it can be
+  read with the clock it is about, and cleared by the next press like every
+  other complaint on this panel.
+- **A focus note had no expiry.** It was held until its control appeared, with
+  nothing to say it never would: a clock stopped here while another was started
+  on a phone left the note for the Start button unredeemed until that clock
+  stopped too, pulling the cursor out of whatever had been typed since. A note
+  now carries the clock it was left under and is dropped once that has moved on.
+- **Two effects set state on render.** They were the two pieces of state that
+  were really derivations — whether the discard step is open, and what the live
+  region says about a started clock. The step holds the clock id it is asking
+  about, and the start says its own sentence from the press that got the answer,
+  like the stop and the discard beside it.
+- `stopActiveTimer`'s doc claimed its `now` parameter made the stored figure the
+  figure the reader had been shown. It does not: the action reads the server's
+  clock and the panel counts on the browser's, so a skewed machine differs by a
+  minute. What the parameter buys is one instant per press.
+
+### `npm run lint` is not in `verify`, and it matters
+
+The two set-state-in-effect errors were `react-hooks` **errors**, not warnings,
+and they shipped because `npm run verify` is `build && test` — eslint runs in
+neither. `npm run lint` cannot simply be added: `scripts/*.js` have had
+`@typescript-eslint/no-require-imports` errors since before this phase, so the
+command exits non-zero on a clean tree and would fail every day.
+
+Until those are fixed, a day that writes a client component should run
+
+```
+npx eslint app components lib
+```
+
+which is clean as of today apart from three unused-variable warnings in test
+files. It is the only check that sees a React rule being broken.
