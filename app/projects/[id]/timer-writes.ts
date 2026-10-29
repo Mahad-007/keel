@@ -40,6 +40,7 @@ import {
   type StopTimerResult,
 } from "@/lib/time/stop";
 import {
+  alreadyRunningState,
   failedStartTimerState,
   parseStartTimerForm,
   readStartTimerDay,
@@ -47,7 +48,6 @@ import {
   rejectedStartTimerState,
   START_TIMER_PROBLEMS,
   startedTimerState,
-  timerAlreadyRunning,
   type StartTimerState,
 } from "@/lib/time/start";
 
@@ -181,10 +181,7 @@ export async function writeTimerStart(
       message below can be allowed to go with the form it was attached to.
     */
     revalidatePath(projectPath(projectId));
-    return failedStartTimerState(
-      fields,
-      timerAlreadyRunning(elsewhere?.name ?? "another project"),
-    );
+    return alreadyRunningState(fields, elsewhere?.name ?? "another project");
   }
 
   // The clock is read off the page, so nothing shows it until the page is
