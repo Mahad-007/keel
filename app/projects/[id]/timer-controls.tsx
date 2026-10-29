@@ -205,12 +205,21 @@ export function TimerControls({
     announceStart(next);
     /*
       The panel takes the Start button with it, so the cursor is sent to the
-      press the reader will make next. Only when a clock actually started: a
-      refused press leaves the form on screen with a message on it, and
-      `useFirstErrorFocus` is already sending the cursor to the field that has
-      to change.
+      press the reader will make next — on every start press, not only the one
+      that worked.
+
+      A clock that started replaces the form with the panel, and so does the
+      refusal that says one was already running: that refusal revalidates,
+      because a page offering a Start form while a clock runs is showing the
+      wrong thing. Either way the button this press was made from is gone, and
+      the reader cannot be told from here which of the two happened.
+
+      A press refused on its fields leaves the form up, so the note is never
+      redeemed — `useFirstErrorFocus` has the cursor on the field that has to
+      change, and the note is dropped as soon as a clock arrives from anywhere
+      and the form goes.
     */
-    if (next.started !== null) sendCursorTo(STOP_TIMER_BUTTON_ID);
+    sendCursorTo(STOP_TIMER_BUTTON_ID);
     return next;
   }
 
