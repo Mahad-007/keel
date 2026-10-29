@@ -202,6 +202,20 @@ describe("writeTimerStart", () => {
     expect(project).toHaveBeenCalledTimes(1);
   });
 
+  it("says that refusal replaces the form, unlike the others", async () => {
+    start.mockResolvedValue({
+      ok: false,
+      refusal: "already-running",
+      running: TIMER,
+    });
+
+    const state = await press();
+
+    // The page it revalidates draws the panel over the form, so the cursor
+    // has to go with it rather than stay on a button about to be unmounted.
+    expect(state.replacesForm).toBe(true);
+  });
+
   it("revalidates when a clock was already running, because the page is wrong", async () => {
     start.mockResolvedValue({
       ok: false,
