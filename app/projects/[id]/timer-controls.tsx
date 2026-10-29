@@ -190,29 +190,35 @@ export function TimerControls({
   useFirstErrorFocus(state, START_TIMER_FIELD_NAMES, START_TIMER_SCOPE);
 
   /*
-    Where the cursor goes once the panel has been replaced by the form.
+    Where the cursor goes once the control it was on has been replaced.
 
-    A press that stops or discards takes the button the reader was using with
-    it, and the browser answers that by dropping focus to the document — so
-    the next Tab starts at the top of the page rather than at the clock they
-    were just working with. It cannot be done in the handler: the control to
-    move to is the one rendered *instead*, and it is not in the document until
-    React has caught up. So the handler leaves a note here and the effect acts
-    on it.
+    Every press on this panel destroys the button that made it: Start becomes
+    the panel, Stop and Discard become the form again, and keeping the clock
+    closes the step the cursor is standing in. The browser answers a removed
+    focus by dropping it to the document, so the next Tab starts at the top of
+    the page rather than at the clock somebody was just working with. It
+    cannot be done in the handler: the control to move to is the one rendered
+    *instead*, and it is not in the document until React has caught up. So the
+    handler leaves the id here and the effect acts on it.
 
-    The note is held until the button exists, which is the part that is easy
-    to get wrong. The write answers before the revalidated page arrives, so
-    the render straight after it is still the panel: an effect that cleared
-    the note then would look for a button that is one round trip away and
-    silently give up, leaving the focus on the body after every press.
+    An id rather than a flag, because the four presses land in three different
+    places, and the same reason `time-rows.tsx` holds one.
+
+    The note is held until the control exists, which is the part that is easy
+    to get wrong and the one thing this does differently from that list. A
+    write answers before the revalidated page arrives, so the render straight
+    after it still shows what was there before: an effect that cleared the
+    note then would look for a button that is one round trip away and silently
+    give up, leaving the focus on the body after every press.
   */
-  const moveFocus = useRef(false);
+  const moveFocusTo = useRef<string | null>(null);
   useEffect(() => {
-    if (!moveFocus.current) return;
-    const button = document.getElementById(START_TIMER_BUTTON_ID);
-    if (button === null) return;
-    moveFocus.current = false;
-    button.focus();
+    const id = moveFocusTo.current;
+    if (id === null) return;
+    const control = document.getElementById(id);
+    if (control === null) return;
+    moveFocusTo.current = null;
+    control.focus();
   });
 
   const minutes = useElapsedMinutes(running?.startedAt ?? null, initialMinutes);
@@ -233,7 +239,7 @@ export function TimerControls({
         setProblem(result.problem);
         return;
       }
-      moveFocus.current = true;
+      moveFocusTo.current = START_TIMER_BUTTON_ID;
       setSaid({
         key: result.stopped.id,
         text: stoppedTimerAnnouncement(result.stopped),
@@ -262,7 +268,7 @@ export function TimerControls({
         setProblem(result.problem);
         return;
       }
-      moveFocus.current = true;
+      moveFocusTo.current = START_TIMER_BUTTON_ID;
       setSaid({
         key: `discarded-${running.id}`,
         text: discardedTimerAnnouncement(lost),
