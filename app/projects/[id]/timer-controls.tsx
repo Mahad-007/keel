@@ -217,6 +217,14 @@ export function TimerControls({
     previous: StartTimerState,
     formData: FormData,
   ): Promise<StartTimerState> {
+    /*
+      A new press clears the last complaint first of all, the same as the two
+      on the panel. The refusal this press can leave is about a clock that was
+      running when it was made, and that clock may have been stopped from
+      somewhere else since — leaving a box saying one is running above a form
+      offering to start one.
+    */
+    setProblem(null);
     formData.set(STARTED_ON_FIELD, localCalendarDate(new Date()));
     let next: StartTimerState;
     try {
