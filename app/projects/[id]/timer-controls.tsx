@@ -335,9 +335,17 @@ export function TimerControls({
             <DiscardTimerPrompt
               minutes={minutes}
               onDiscard={pressDiscard}
+              /*
+                Back to the button that opened the step, through the note the
+                effect reads rather than directly: the Discard button is
+                disabled while the step is open, and focusing a disabled
+                button does nothing — so the cursor fell to the document every
+                time a reader decided to keep their clock. It is enabled again
+                by the render the note is acted on in.
+              */
               onKeep={() => {
                 setConfirmingFor(null);
-                document.getElementById(DISCARD_TIMER_BUTTON_ID)?.focus();
+                moveFocusTo.current = DISCARD_TIMER_BUTTON_ID;
               }}
               pending={acting !== null}
             />
