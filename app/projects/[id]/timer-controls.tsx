@@ -171,6 +171,27 @@ export function TimerControls({
   }
 
   /*
+    What the presses have to say, and what they are holding. Declared above the
+    presses that set them, rather than beside the form state they end up
+    rendered next to: a handler reaching back up the file for a setter is a
+    handler that cannot be read in order.
+  */
+  const [said, setSaid] = useState<Announcement | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+  /*
+    Which clock the reader has pressed Discard on, rather than whether the step
+    is open. The step is about one particular clock and the clock can change
+    under it — stopped on a phone, discarded in another tab, replaced by the
+    next one started from this same mount — so what is open is worked out from
+    the row on every render by `discardStepOpen`. Left as a flag and put back
+    by an effect, the step would re-render itself unasked above the next clock,
+    take the cursor with `autoFocus`, and offer to discard a figure that clock
+    never counted.
+  */
+  const [confirmingFor, setConfirmingFor] = useState<string | null>(null);
+  const [acting, setActing] = useState<Acting>(null);
+
+  /*
     The write has to come back with a state even when the call itself fails.
 
     `useActionState` has no answer for a rejected action: the rejection escapes
@@ -252,20 +273,6 @@ export function TimerControls({
     attempt,
     INITIAL_START_TIMER_STATE,
   );
-  const [said, setSaid] = useState<Announcement | null>(null);
-  const [problem, setProblem] = useState<string | null>(null);
-  /*
-    Which clock the reader has pressed Discard on, rather than whether the step
-    is open. The step is about one particular clock and the clock can change
-    under it — stopped on a phone, discarded in another tab, replaced by the
-    next one started from this same mount — so what is open is worked out from
-    the row on every render by `discardStepOpen`. Left as a flag and put back
-    by an effect, the step would re-render itself unasked above the next clock,
-    take the cursor with `autoFocus`, and offer to discard a figure that clock
-    never counted.
-  */
-  const [confirmingFor, setConfirmingFor] = useState<string | null>(null);
-  const [acting, setActing] = useState<Acting>(null);
 
   /*
     The scope matters here and is easy to leave off. Both forms on this tab ask
