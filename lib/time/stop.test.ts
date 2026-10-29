@@ -4,6 +4,7 @@ import { MAX_ENTRY_MINUTES } from "./form";
 import {
   describeTimerDiscard,
   discardedTimerAnnouncement,
+  discardStepOpen,
   discardTimerProblem,
   stopTimerProblem,
   STOP_TIMER_PROBLEMS,
@@ -105,5 +106,27 @@ describe("discardTimerProblem", () => {
     const result = discardTimerProblem("gone");
 
     expect(result).toEqual({ ok: false, problem: "gone" });
+  });
+});
+
+describe("discardStepOpen", () => {
+  it("is open while the clock it was opened about is the one running", () => {
+    expect(discardStepOpen("tmr_one", "tmr_one")).toBe(true);
+  });
+
+  it("is closed when nobody has pressed Discard", () => {
+    expect(discardStepOpen(null, "tmr_one")).toBe(false);
+  });
+
+  it("closes when the clock is stopped under it", () => {
+    expect(discardStepOpen("tmr_one", null)).toBe(false);
+  });
+
+  it("closes rather than following the next clock started", () => {
+    expect(discardStepOpen("tmr_one", "tmr_two")).toBe(false);
+  });
+
+  it("is closed with no clock and no press, not open about nothing", () => {
+    expect(discardStepOpen(null, null)).toBe(false);
   });
 });
