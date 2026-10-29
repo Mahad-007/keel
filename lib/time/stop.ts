@@ -203,6 +203,31 @@ export const DISCARD_TIMER_BUTTON_ID = "timer-discard";
 export const START_TIMER_BUTTON_ID = "timer-start";
 
 /**
+ * Whether the discard step is open, given the clock it was opened about and
+ * the clock that is running now.
+ *
+ * The step is held as the id it is asking about rather than as a flag, so this
+ * can be asked on every render instead of being put back by an effect when the
+ * clock changes. It is the same answer `openRowStillThere` gives a list of
+ * rows, for the same reason: a second copy of the truth is a copy that is
+ * briefly wrong, and "briefly wrong" here is a frame in which a step offers to
+ * discard a figure the clock in front of it never counted.
+ *
+ * A clock can change under the step without anybody pressing anything on this
+ * page — stopped on a phone, discarded in another tab — and the revalidated
+ * page arrives with a different row. Both nulls are closed rather than open:
+ * no clock is running, so there is nothing to be asked about.
+ */
+export function discardStepOpen(
+  /** The clock the reader pressed Discard on, or null if they have not. */
+  openedFor: string | null,
+  /** The clock running on this project now, or null if none is. */
+  runningId: string | null,
+): boolean {
+  return openedFor !== null && openedFor === runningId;
+}
+
+/**
  * What discarding hands back: nothing to say, or the one sentence worth saying
  * about why the clock is still running.
  *
