@@ -125,8 +125,9 @@ export function TimerControls({
     formData: FormData,
   ): Promise<StartTimerState> {
     formData.set(STARTED_ON_FIELD, localCalendarDate(new Date()));
+    let next: StartTimerState;
     try {
-      return await start(previous, formData);
+      next = await start(previous, formData);
     } catch (error) {
       // Nothing a reader can act on beyond reloading, but worth a line in the
       // console for whoever is looking into why clocks are not starting.
@@ -136,6 +137,29 @@ export function TimerControls({
         START_TIMER_NO_ANSWER,
       );
     }
+    announceStart(next);
+    return next;
+  }
+
+  /**
+   * What a clock that has just started says out loud.
+   *
+   * Said from the press that got the answer, like the stop and the discard
+   * sentences beside it, rather than from an effect watching the form's state.
+   * All three go through the one announcement, so the live region has a single
+   * source: two sentences live at once and whichever rendered last would win
+   * silently.
+   *
+   * It clears the last complaint, because a clock is now running and a red box
+   * above the panel showing it would read as being about the press that
+   * started it.
+   */
+  function announceStart(next: StartTimerState) {
+    if (next.started === null) return;
+    const notice = startedTimerNotice(next);
+    if (notice === null) return;
+    setSaid({ key: next.started.id, text: notice });
+    setProblem(null);
   }
 
   const [state, formAction] = useActionState(
@@ -193,21 +217,6 @@ export function TimerControls({
 
   const minutes = useElapsedMinutes(running?.startedAt ?? null, initialMinutes);
   const confirming = discardStepOpen(confirmingFor, running?.id ?? null);
-
-  /*
-    A clock that started gets its sentence from the form's own state, because
-    that is where the answer arrives. It is routed into the one announcement
-    the presses also use, so the region has a single source: otherwise a stop's
-    sentence and a start's would both be live at once, and whichever rendered
-    last would win silently.
-  */
-  useEffect(() => {
-    if (state.started === null) return;
-    const notice = startedTimerNotice(state);
-    if (notice === null) return;
-    setSaid({ key: state.started.id, text: notice });
-    setProblem(null);
-  }, [state]);
 
   async function pressStop() {
     if (running === null || acting !== null) return;
