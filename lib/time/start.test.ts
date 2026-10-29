@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  alreadyRunningState,
   EMPTY_START_TIMER_FIELDS,
   failedStartTimerState,
   INITIAL_START_TIMER_STATE,
@@ -213,6 +214,16 @@ describe("startedTimerState", () => {
     expect(state.started).toMatchObject({ id: "tmr_one" });
     expect(state.fields).toEqual(INITIAL_START_TIMER_STATE.fields);
   });
+
+  it("takes the form off the page, since the panel replaces it", () => {
+    const state = startedTimerState({
+      id: "tmr_one",
+      deliverableTitle: null,
+      billable: true,
+    });
+
+    expect(state.replacesForm).toBe(true);
+  });
 });
 
 describe("rejectedStartTimerState", () => {
@@ -224,6 +235,14 @@ describe("rejectedStartTimerState", () => {
     expect(state.fields.note).toBe("Pairing");
     expect(state.errors.deliverable).toBe(START_TIMER_UNKNOWN_DELIVERABLE);
     expect(state.started).toBeNull();
+  });
+
+  it("leaves the form up, because the reader has to correct it", () => {
+    const state = rejectedStartTimerState(fields(), {
+      deliverable: START_TIMER_UNKNOWN_DELIVERABLE,
+    });
+
+    expect(state.replacesForm).toBe(false);
   });
 });
 
@@ -237,6 +256,12 @@ describe("failedStartTimerState", () => {
     expect(state.formError).toBe(START_TIMER_PROBLEMS.missingProject);
     expect(state.errors).toEqual({});
     expect(state.started).toBeNull();
+  });
+
+  it("leaves the form up, so the sentence has somewhere to sit", () => {
+    const state = failedStartTimerState(fields(), START_TIMER_PROBLEMS.failed);
+
+    expect(state.replacesForm).toBe(false);
   });
 });
 
@@ -279,5 +304,27 @@ describe("startedTimerNotice", () => {
     });
 
     expect(notice).toContain("Marked as not chargeable.");
+  });
+});
+
+describe("alreadyRunningState", () => {
+  it("names the project the clock is running on", () => {
+    const state = alreadyRunningState(fields(), "Brand refresh");
+
+    expect(state.formError).toBe(timerAlreadyRunning("Brand refresh"));
+    expect(state.started).toBeNull();
+  });
+
+  it("echoes what was submitted, since the press changed nothing", () => {
+    const state = alreadyRunningState(fields({ note: "Pairing" }), "Keel");
+
+    expect(state.fields.note).toBe("Pairing");
+  });
+
+  it("takes the form off the page, unlike every other refusal", () => {
+    expect(alreadyRunningState(fields(), "Keel").replacesForm).toBe(true);
+    expect(
+      failedStartTimerState(fields(), START_TIMER_PROBLEMS.failed).replacesForm,
+    ).toBe(false);
   });
 });
