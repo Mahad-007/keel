@@ -74,6 +74,21 @@ type Announcement = {
 /** Which press is in flight, for the labels and for refusing a second one. */
 type Acting = "stop" | "discard" | null;
 
+/**
+ * Where the cursor is going after a press, and the clock it was going there
+ * under.
+ *
+ * The clock is what gives the note an end. The control it names does not exist
+ * yet — that is the whole reason the note exists — so the only way to tell
+ * "not drawn yet" from "never going to be drawn" is to ask whether the page
+ * the press was waiting for has arrived, and the clock on it is what says so.
+ */
+type FocusNote = {
+  readonly id: string;
+  /** The clock running when the press was made, or null if none was. */
+  readonly clock: string | null;
+};
+
 export function TimerControls({
   running,
   initialMinutes,
@@ -126,16 +141,33 @@ export function TimerControls({
     after it still shows what was there before: an effect that cleared the
     note then would look for a button that is one round trip away and silently
     give up, leaving the focus on the body after every press.
+
+    So it is held, but not indefinitely — it is held until the page the press
+    was waiting for arrives. A note carries the clock that was running when it
+    was left, and the revalidation that brings a different one has brought
+    whatever this page shows now: the control is not coming, and a note kept
+    past that point fires minutes later into whatever the reader has moved on
+    to. A clock stopped here and another started on a phone is exactly that
+    case.
   */
-  const moveFocusTo = useRef<string | null>(null);
+  const moveFocusTo = useRef<FocusNote | null>(null);
   useEffect(() => {
-    const id = moveFocusTo.current;
-    if (id === null) return;
-    const control = document.getElementById(id);
-    if (control === null) return;
-    moveFocusTo.current = null;
-    control.focus();
+    const note = moveFocusTo.current;
+    if (note === null) return;
+
+    const control = document.getElementById(note.id);
+    if (control !== null) {
+      moveFocusTo.current = null;
+      control.focus();
+      return;
+    }
+    if (note.clock !== (running?.id ?? null)) moveFocusTo.current = null;
   });
+
+  /** Where the cursor is going once the control that replaces this exists. */
+  function sendCursorTo(id: string) {
+    moveFocusTo.current = { id, clock: running?.id ?? null };
+  }
 
   /*
     The write has to come back with a state even when the call itself fails.
@@ -178,7 +210,7 @@ export function TimerControls({
       `useFirstErrorFocus` is already sending the cursor to the field that has
       to change.
     */
-    if (next.started !== null) moveFocusTo.current = STOP_TIMER_BUTTON_ID;
+    if (next.started !== null) sendCursorTo(STOP_TIMER_BUTTON_ID);
     return next;
   }
 
@@ -249,7 +281,7 @@ export function TimerControls({
         setProblem(result.problem);
         return;
       }
-      moveFocusTo.current = START_TIMER_BUTTON_ID;
+      sendCursorTo(START_TIMER_BUTTON_ID);
       setSaid({
         key: result.stopped.id,
         text: stoppedTimerAnnouncement(result.stopped),
@@ -278,7 +310,7 @@ export function TimerControls({
         setProblem(result.problem);
         return;
       }
-      moveFocusTo.current = START_TIMER_BUTTON_ID;
+      sendCursorTo(START_TIMER_BUTTON_ID);
       setSaid({
         key: `discarded-${running.id}`,
         text: discardedTimerAnnouncement(lost),
@@ -356,7 +388,7 @@ export function TimerControls({
               */
               onKeep={() => {
                 setConfirmingFor(null);
-                moveFocusTo.current = DISCARD_TIMER_BUTTON_ID;
+                sendCursorTo(DISCARD_TIMER_BUTTON_ID);
               }}
               pending={acting !== null}
             />
