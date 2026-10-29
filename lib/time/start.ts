@@ -231,9 +231,10 @@ export type StartTimerState = StartTimerFormState & {
    * There is one: a clock was already running. It is not a `formError`,
    * because by the time a reader could read it the form is gone — the write
    * revalidates, since a page offering a Start form while a clock runs is
-   * showing the wrong thing, and what arrives in its place is that clock's
-   * panel. A sentence left on the form would come back with the form, which
-   * is after the reader has stopped the clock it is about.
+   * showing the wrong thing. What arrives in its place is that clock's panel,
+   * or, when the clock is on another project, the sentence pointing there. A
+   * sentence left on the form would come back with the form, which is after
+   * the reader has stopped the clock it is about.
    *
    * So it is carried separately and shown beside the clock instead, where it
    * outlives the swap and is cleared by the next press. Its other job is the
@@ -338,6 +339,11 @@ export function timerAlreadyRunning(projectName: string): string {
  * for the running clock replaces the form, and a sentence attached to the form
  * would be seen next when the form came back — after the reader had stopped
  * the clock it names.
+ *
+ * A clock on another project replaces more than the form: that page renders
+ * the pointer to it instead of these controls at all, so the sentence goes
+ * with them. It says less than the pointer does, which names the project and
+ * links to its clock.
  *
  * The fields are echoed even so. The form is replaced rather than destroyed,
  * and it comes back the moment that clock stops: the note somebody typed

@@ -145,11 +145,17 @@ export function TimerControls({
 
     So it is held, but not indefinitely — it is held until the page the press
     was waiting for arrives. A note carries the clock that was running when it
-    was left, and the revalidation that brings a different one has brought
+    was left, and a revalidation that brings a different one has brought
     whatever this page shows now: the control is not coming, and a note kept
     past that point fires minutes later into whatever the reader has moved on
-    to. A clock stopped here and another started on a phone is exactly that
-    case.
+    to. A clock stopped here while another was started on a phone is exactly
+    that case.
+
+    A note left while no clock was running — a start press — is never dropped
+    that way, because the thing that would drop it is the panel arriving, and
+    the panel is what the note is waiting for. If that clock is stopped from
+    somewhere else before the page carrying it arrives, the note waits for the
+    next panel instead, which is still the only control it could land on.
   */
   const moveFocusTo = useRef<FocusNote | null>(null);
   useEffect(() => {
