@@ -29,6 +29,7 @@ import {
   discardStepOpen,
   START_TIMER_BUTTON_ID,
   STOP_TIMER_NO_ANSWER,
+  STOP_TIMER_BUTTON_ID,
   stoppedTimerAnnouncement,
   type DiscardTimerResult,
   type StopTimerResult,
@@ -105,6 +106,38 @@ export function TimerControls({
   discard: (id: string) => Promise<DiscardTimerResult>;
 }) {
   /*
+    Where the cursor goes once the control it was on has been replaced.
+
+    Every press on this panel destroys the button that made it: Start becomes
+    the panel, Stop and Discard become the form again, and keeping the clock
+    closes the step the cursor is standing in. The browser answers a removed
+    focus by dropping it to the document, so the next Tab starts at the top of
+    the page rather than at the clock somebody was just working with. It
+    cannot be done in the handler: the control to move to is the one rendered
+    *instead*, and it is not in the document until React has caught up. So the
+    handler leaves the id here and the effect acts on it.
+
+    An id rather than a flag, because the four presses land in three different
+    places, and the same reason `time-rows.tsx` holds one.
+
+    The note is held until the control exists, which is the part that is easy
+    to get wrong and the one thing this does differently from that list. A
+    write answers before the revalidated page arrives, so the render straight
+    after it still shows what was there before: an effect that cleared the
+    note then would look for a button that is one round trip away and silently
+    give up, leaving the focus on the body after every press.
+  */
+  const moveFocusTo = useRef<string | null>(null);
+  useEffect(() => {
+    const id = moveFocusTo.current;
+    if (id === null) return;
+    const control = document.getElementById(id);
+    if (control === null) return;
+    moveFocusTo.current = null;
+    control.focus();
+  });
+
+  /*
     The write has to come back with a state even when the call itself fails.
 
     `useActionState` has no answer for a rejected action: the rejection escapes
@@ -138,6 +171,14 @@ export function TimerControls({
       );
     }
     announceStart(next);
+    /*
+      The panel takes the Start button with it, so the cursor is sent to the
+      press the reader will make next. Only when a clock actually started: a
+      refused press leaves the form on screen with a message on it, and
+      `useFirstErrorFocus` is already sending the cursor to the field that has
+      to change.
+    */
+    if (next.started !== null) moveFocusTo.current = STOP_TIMER_BUTTON_ID;
     return next;
   }
 
@@ -188,38 +229,6 @@ export function TimerControls({
     message about a form an inch from the top.
   */
   useFirstErrorFocus(state, START_TIMER_FIELD_NAMES, START_TIMER_SCOPE);
-
-  /*
-    Where the cursor goes once the control it was on has been replaced.
-
-    Every press on this panel destroys the button that made it: Start becomes
-    the panel, Stop and Discard become the form again, and keeping the clock
-    closes the step the cursor is standing in. The browser answers a removed
-    focus by dropping it to the document, so the next Tab starts at the top of
-    the page rather than at the clock somebody was just working with. It
-    cannot be done in the handler: the control to move to is the one rendered
-    *instead*, and it is not in the document until React has caught up. So the
-    handler leaves the id here and the effect acts on it.
-
-    An id rather than a flag, because the four presses land in three different
-    places, and the same reason `time-rows.tsx` holds one.
-
-    The note is held until the control exists, which is the part that is easy
-    to get wrong and the one thing this does differently from that list. A
-    write answers before the revalidated page arrives, so the render straight
-    after it still shows what was there before: an effect that cleared the
-    note then would look for a button that is one round trip away and silently
-    give up, leaving the focus on the body after every press.
-  */
-  const moveFocusTo = useRef<string | null>(null);
-  useEffect(() => {
-    const id = moveFocusTo.current;
-    if (id === null) return;
-    const control = document.getElementById(id);
-    if (control === null) return;
-    moveFocusTo.current = null;
-    control.focus();
-  });
 
   const minutes = useElapsedMinutes(running?.startedAt ?? null, initialMinutes);
   const confirming = discardStepOpen(confirmingFor, running?.id ?? null);
@@ -309,6 +318,7 @@ export function TimerControls({
           >
             <button
               type="button"
+              id={STOP_TIMER_BUTTON_ID}
               onClick={pressStop}
               disabled={acting !== null}
               className="rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
