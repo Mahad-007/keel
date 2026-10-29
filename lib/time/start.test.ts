@@ -251,42 +251,32 @@ describe("timerAlreadyRunning", () => {
 });
 
 describe("startedTimerNotice", () => {
-  it("says nothing when no clock has been started", () => {
-    expect(startedTimerNotice(INITIAL_START_TIMER_STATE)).toBeNull();
-  });
-
   it("names the line the clock is running against", () => {
-    const notice = startedTimerNotice(
-      startedTimerState({
-        id: "tmr_one",
-        deliverableTitle: "Importer",
-        billable: true,
-      }),
-    );
+    const notice = startedTimerNotice({
+      id: "tmr_one",
+      deliverableTitle: "Importer",
+      billable: true,
+    });
 
     expect(notice).toBe("The clock is running against “Importer”.");
   });
 
   it("calls unattributed work the project itself", () => {
-    const notice = startedTimerNotice(
-      startedTimerState({
-        id: "tmr_one",
-        deliverableTitle: null,
-        billable: true,
-      }),
-    );
+    const notice = startedTimerNotice({
+      id: "tmr_one",
+      deliverableTitle: null,
+      billable: true,
+    });
 
     expect(notice).toBe("The clock is running against the project itself.");
   });
 
   it("says so when the clock will not be charged for", () => {
-    const notice = startedTimerNotice(
-      startedTimerState({
-        id: "tmr_one",
-        deliverableTitle: "Importer",
-        billable: false,
-      }),
-    );
+    const notice = startedTimerNotice({
+      id: "tmr_one",
+      deliverableTitle: "Importer",
+      billable: false,
+    });
 
     expect(notice).toContain("Marked as not chargeable.");
   });

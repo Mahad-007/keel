@@ -197,9 +197,10 @@ export function TimerControls({
    */
   function announceStart(next: StartTimerState) {
     if (next.started === null) return;
-    const notice = startedTimerNotice(next);
-    if (notice === null) return;
-    setSaid({ key: next.started.id, text: notice });
+    setSaid({
+      key: next.started.id,
+      text: startedTimerNotice(next.started),
+    });
     setProblem(null);
   }
 

@@ -317,7 +317,7 @@ export const START_TIMER_NO_ANSWER =
   "Could not tell whether the clock started — the answer never arrived. Reload to see whether it is running before pressing Start again.";
 
 /**
- * What to say once a clock is running, or null when there is nothing to say.
+ * What to say once a clock is running.
  *
  * The press does not navigate, and what it changes is that the form is
  * replaced by a panel with a clock in it. On screen that is unmissable; to
@@ -331,11 +331,15 @@ export const START_TIMER_NO_ANSWER =
  *
  * Nothing about the elapsed time, which is nought: the panel shows that, and
  * it changes every minute.
+ *
+ * It takes the clock rather than the state it arrived in, like
+ * `stoppedTimerAnnouncement` next door. A sentence about a started clock needs
+ * a started clock, and taking the whole state meant returning null for the
+ * state that has none — a second way of saying "no clock" for the caller that
+ * has already asked.
  */
-export function startedTimerNotice(state: StartTimerState): string | null {
-  if (state.started === null) return null;
-
-  const { deliverableTitle, billable } = state.started;
+export function startedTimerNotice(started: StartedTimer): string {
+  const { deliverableTitle, billable } = started;
   const against =
     deliverableTitle === null ? "the project itself" : `“${deliverableTitle}”`;
   const charge = billable ? "" : " Marked as not chargeable.";
