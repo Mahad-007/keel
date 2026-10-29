@@ -225,6 +225,21 @@ export type StartedTimer = {
 
 export type StartTimerState = StartTimerFormState & {
   readonly started: StartedTimer | null;
+  /**
+   * Whether this answer takes the form off the page.
+   *
+   * Two of them do: a clock that started, and the refusal that says one was
+   * already running — that refusal revalidates, because a page offering a
+   * Start form while a clock runs is showing the wrong thing, so what arrives
+   * in the form's place is the panel for that clock or the sentence pointing
+   * at the project it is on.
+   *
+   * It is here because the browser cannot work it out. A refusal is a sentence
+   * and a set of fields, and from those two the form cannot tell whether it is
+   * about to be replaced or is staying to be corrected — which is exactly what
+   * decides where the cursor goes after the press. See `timer-controls.tsx`.
+   */
+  readonly replacesForm: boolean;
 };
 
 /**
@@ -240,6 +255,7 @@ export const INITIAL_START_TIMER_STATE: StartTimerState = {
     billable: BILLABLE_VALUE,
   }),
   started: null,
+  replacesForm: false,
 };
 
 /**
@@ -247,7 +263,7 @@ export const INITIAL_START_TIMER_STATE: StartTimerState = {
  * what comes next is the panel for the running timer rather than the form.
  */
 export function startedTimerState(started: StartedTimer): StartTimerState {
-  return { ...INITIAL_START_TIMER_STATE, started };
+  return { ...INITIAL_START_TIMER_STATE, started, replacesForm: true };
 }
 
 /** Validation refused the press. No clock was started. */
@@ -255,15 +271,29 @@ export function rejectedStartTimerState(
   fields: StartTimerFormFields,
   errors: FieldErrors<StartTimerFieldName>,
 ): StartTimerState {
-  return { ...rejectedFormState(fields, errors), started: null };
+  return {
+    ...rejectedFormState(fields, errors),
+    started: null,
+    replacesForm: false,
+  };
 }
 
-/** The press was good and no clock was started anyway. */
+/**
+ * The press was good and no clock was started anyway.
+ *
+ * The form stays, with the sentence above it, because every problem it carries
+ * is one the reader may be able to do something about from where they are
+ * standing. The exception has its own constructor: see `alreadyRunningState`.
+ */
 export function failedStartTimerState(
   fields: StartTimerFormFields,
   formError: string,
 ): StartTimerState {
-  return { ...failedFormState(fields, formError), started: null };
+  return {
+    ...failedFormState(fields, formError),
+    started: null,
+    replacesForm: false,
+  };
 }
 
 /**
@@ -301,6 +331,32 @@ export const START_TIMER_PROBLEMS = {
  */
 export function timerAlreadyRunning(projectName: string): string {
   return `A clock is already running on ${projectName}, and only one can run at a time. Stop that one first — nobody works on two things at once, and two clocks would make every figure a question about which was meant.`;
+}
+
+/**
+ * A clock was already running, so this press started nothing.
+ *
+ * The one refused press that takes the form with it. The write revalidates the
+ * page — a page offering a Start form while a clock runs is showing the wrong
+ * thing — so the sentence goes with the form it was attached to, and what the
+ * reader gets instead is the panel for that clock or the pointer to the
+ * project it is on. Both say more than the sentence could.
+ *
+ * It is still carried, because the form can outlive the press by a beat on a
+ * slow revalidation, and because `replacesForm` is the part the browser cannot
+ * work out for itself: it is what sends the cursor to the panel's Stop button
+ * instead of leaving it on a form that is about to be unmounted.
+ */
+export function alreadyRunningState(
+  fields: StartTimerFormFields,
+  /** The project the clock is running on, which may be this one. */
+  projectName: string,
+): StartTimerState {
+  return {
+    ...failedFormState(fields, timerAlreadyRunning(projectName)),
+    started: null,
+    replacesForm: true,
+  };
 }
 
 /**
