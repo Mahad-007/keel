@@ -194,6 +194,18 @@ export const CONFIRM_DISCARD_TIMER_ID = "timer-discard-confirm";
 export const DISCARD_TIMER_BUTTON_ID = "timer-discard";
 
 /**
+ * The button that stops a clock, which the cursor moves to once a clock has
+ * started.
+ *
+ * The panel replaces the form, taking the Start button the press was made
+ * from with it — the mirror of what stopping does — so the press that starts
+ * a clock needs somewhere to leave the cursor as much as the ones that end it.
+ * Stop rather than Discard, because it is the press that reader is going to
+ * make next, an hour or so from now.
+ */
+export const STOP_TIMER_BUTTON_ID = "timer-stop";
+
+/**
  * The button that starts a clock, which is what the panel is replaced by.
  *
  * Named here rather than in `start.ts` because the presses that need it are
