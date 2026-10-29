@@ -26,6 +26,7 @@ import {
   DISCARD_TIMER_LABEL,
   DISCARD_TIMER_NO_ANSWER,
   discardedTimerAnnouncement,
+  discardStepOpen,
   START_TIMER_BUTTON_ID,
   STOP_TIMER_NO_ANSWER,
   stoppedTimerAnnouncement,
@@ -143,7 +144,17 @@ export function TimerControls({
   );
   const [said, setSaid] = useState<Announcement | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState(false);
+  /*
+    Which clock the reader has pressed Discard on, rather than whether the step
+    is open. The step is about one particular clock and the clock can change
+    under it — stopped on a phone, discarded in another tab, replaced by the
+    next one started from this same mount — so what is open is worked out from
+    the row on every render by `discardStepOpen`. Left as a flag and put back
+    by an effect, the step would re-render itself unasked above the next clock,
+    take the cursor with `autoFocus`, and offer to discard a figure that clock
+    never counted.
+  */
+  const [confirmingFor, setConfirmingFor] = useState<string | null>(null);
   const [acting, setActing] = useState<Acting>(null);
 
   /*
@@ -181,21 +192,7 @@ export function TimerControls({
   });
 
   const minutes = useElapsedMinutes(running?.startedAt ?? null, initialMinutes);
-
-  /*
-    The discard step is about one particular clock, so it closes whenever that
-    clock changes — stopped, discarded, or replaced by the next one started
-    from this same mount.
-
-    Here rather than in each handler, because the handlers are not the only way
-    the clock can change: it can be stopped on a phone, and the revalidated
-    page arrives with a different row. Left open, the step would re-render
-    itself unasked above the next clock, take the cursor with `autoFocus`, and
-    offer to discard a figure that clock never counted.
-  */
-  useEffect(() => {
-    setConfirming(false);
-  }, [running?.id]);
+  const confirming = discardStepOpen(confirmingFor, running?.id ?? null);
 
   /*
     A clock that started gets its sentence from the form's own state, because
@@ -312,7 +309,7 @@ export function TimerControls({
             <button
               type="button"
               id={DISCARD_TIMER_BUTTON_ID}
-              onClick={() => setConfirming(true)}
+              onClick={() => setConfirmingFor(running.id)}
               disabled={acting !== null || confirming}
               className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-60 dark:text-zinc-400 dark:hover:text-zinc-100"
             >
@@ -324,7 +321,7 @@ export function TimerControls({
               minutes={minutes}
               onDiscard={pressDiscard}
               onKeep={() => {
-                setConfirming(false);
+                setConfirmingFor(null);
                 document.getElementById(DISCARD_TIMER_BUTTON_ID)?.focus();
               }}
               pending={acting !== null}
