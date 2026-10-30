@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { isWorked, timesheetCell, type TimesheetEntry } from "./timesheet";
+import {
+  isWorked,
+  timesheetCell,
+  weekCells,
+  type TimesheetEntry,
+} from "./timesheet";
+import { DAYS_PER_WEEK, weekOf } from "./week";
 
 /** A week's worth of fixtures: one project, named once. */
 const PROJECT_ID = "prj_site";
@@ -68,5 +74,62 @@ describe("isWorked", () => {
 
   it("is false for a cell with nothing in it", () => {
     expect(isWorked(timesheetCell("2026-10-27", []))).toBe(false);
+  });
+});
+
+describe("weekCells", () => {
+  const week = weekOf("2026-10-29");
+
+  it("holds one cell per day, in the week's order", () => {
+    const cells = weekCells(week, []);
+    expect(cells).toHaveLength(DAYS_PER_WEEK);
+    expect(cells.map((cell) => cell.workedOn)).toEqual(week.days);
+  });
+
+  it("files an entry under the day it was worked", () => {
+    const cells = weekCells(week, [logged("2026-10-28", 120)]);
+    expect(cells.map((cell) => cell.minutes)).toEqual([0, 0, 120, 0, 0, 0, 0]);
+  });
+
+  it("gathers several entries on one day into one cell", () => {
+    const cells = weekCells(week, [
+      logged("2026-10-28", 90),
+      logged("2026-10-28", 30),
+    ]);
+    expect(cells[2].minutes).toBe(120);
+    expect(cells[2].entryCount).toBe(2);
+  });
+
+  it("gathers entries on a day even when they are not next to each other", () => {
+    const cells = weekCells(week, [
+      logged("2026-10-28", 90),
+      logged("2026-10-30", 60),
+      logged("2026-10-28", 30),
+    ]);
+    expect(cells[2].entryCount).toBe(2);
+    expect(cells[2].minutes).toBe(120);
+  });
+
+  it("fills the weekend columns like any other day", () => {
+    const cells = weekCells(week, [logged("2026-11-01", 45)]);
+    expect(cells[6].minutes).toBe(45);
+  });
+
+  it("drops entries from outside the week", () => {
+    const cells = weekCells(week, [
+      logged("2026-10-25", 600),
+      logged("2026-10-28", 60),
+      logged("2026-11-02", 600),
+    ]);
+    expect(cells.reduce((sum, cell) => sum + cell.minutes, 0)).toBe(60);
+  });
+
+  it("keeps the cells' total equal to the entries it kept", () => {
+    const cells = weekCells(week, [
+      logged("2026-10-26", 30),
+      logged("2026-10-29", 45),
+      logged("2026-11-01", 15),
+    ]);
+    expect(cells.reduce((sum, cell) => sum + cell.minutes, 0)).toBe(90);
   });
 });
