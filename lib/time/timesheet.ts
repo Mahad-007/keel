@@ -476,3 +476,54 @@ export function sheetSize(sheet: Timesheet): GridSize {
 export function isSheetEmpty(sheet: Timesheet): boolean {
   return sheet.rows.length === 0;
 }
+
+/**
+ * A row's week as one sentence: which project, and what it came to.
+ *
+ * The total at the end of a row is a number in a column of numbers, and which
+ * row it belongs to is a fact about the screen rather than about the figure.
+ * Read aloud it needs the project back, which is what this is for.
+ */
+export function describeRowTotal(row: TimesheetRow): string {
+  const where = `${row.project.name}, ${row.project.clientName}`;
+  if (row.entryCount === 0) return `${where} — nothing logged this week`;
+
+  const parts = [`${formatMinutes(row.minutes)} this week`];
+  const free = notChargeablePhrase(row.minutes, row.billableMinutes);
+  if (free !== null) parts.push(free);
+  return `${where} — ${parts.join(", ")}`;
+}
+
+/**
+ * A column's total as one sentence: which day, and what every project came to
+ * on it.
+ *
+ * "Every project" rather than nothing, because the figure sits under a column
+ * of cells that each belonged to one — the thing that makes this number
+ * different is exactly that it does not.
+ */
+export function describeColumnTotal(cell: TimesheetCell): string {
+  const where = `${weekdayHeading(cell.workedOn)}, every project`;
+  if (!isWorked(cell)) return `${where} — nothing logged`;
+
+  const parts = [formatMinutes(cell.minutes)];
+  const free = notChargeablePhrase(cell.minutes, cell.billableMinutes);
+  if (free !== null) parts.push(free);
+  return `${where} — ${parts.join(", ")}`;
+}
+
+/**
+ * The figure in the corner as one sentence: the week, and what all of it came
+ * to.
+ *
+ * The one number on the sheet that is both a row total and a column total, and
+ * the only one whose position says nothing about what it means.
+ */
+export function describeSheetTotal(sheet: Timesheet): string {
+  if (sheet.entryCount === 0) return "Nothing logged this week";
+
+  const parts = [`${formatMinutes(sheet.minutes)} this week, every project`];
+  const free = notChargeablePhrase(sheet.minutes, sheet.billableMinutes);
+  if (free !== null) parts.push(free);
+  return parts.join(", ");
+}
