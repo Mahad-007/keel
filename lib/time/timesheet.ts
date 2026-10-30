@@ -167,3 +167,44 @@ export function weekCells(
 
   return week.days.map((day) => timesheetCell(day, byDay.get(day) ?? []));
 }
+
+/**
+ * What a set of cells comes to, which is the three figures a cell holds minus
+ * the day it was on.
+ *
+ * One function for both directions of the grid: a row's total is the sum of
+ * its seven cells, a column's is the sum of one cell from every row, and the
+ * corner is the sum of the columns. Totalling each of those separately would
+ * be three chances for the sheet to disagree with itself about the same
+ * minutes — and the corner figure has to equal both the row totals and the
+ * column totals or the grid is not a grid.
+ */
+export function sumCells(cells: readonly TimesheetCell[]): {
+  minutes: number;
+  billableMinutes: number;
+  entryCount: number;
+} {
+  return {
+    minutes: cells.reduce((sum, cell) => sum + cell.minutes, 0),
+    billableMinutes: cells.reduce((sum, cell) => sum + cell.billableMinutes, 0),
+    entryCount: cells.reduce((sum, cell) => sum + cell.entryCount, 0),
+  };
+}
+
+/**
+ * One row of the sheet: a project, its seven cells, and its week's totals.
+ *
+ * The totals are summed from the cells rather than from the entries, so the
+ * figure at the end of the row is literally the sum of what is printed along
+ * it. Summing the entries instead would be the same number almost always, and
+ * on the exception — an entry outside the week that `weekCells` dropped — the
+ * row would end in a total a reader cannot find on screen.
+ */
+export function timesheetRow(
+  project: TimesheetProject,
+  week: Week,
+  entries: readonly TimesheetEntry[],
+): TimesheetRow {
+  const cells = weekCells(week, entries);
+  return { project, cells, ...sumCells(cells) };
+}
