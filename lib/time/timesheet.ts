@@ -7,7 +7,12 @@ import {
   notChargeablePhrase,
   totalMinutes,
 } from "./days";
-import { isInWeek, weekdayHeading, type Week } from "./week";
+import {
+  describeWeek,
+  isInWeek,
+  weekdayHeading,
+  type Week,
+} from "./week";
 
 /**
  * A week of the studio's time, as a grid: a row per project, a column per day.
@@ -598,4 +603,18 @@ export function startingCursor(
 ): GridPosition {
   const column = sheet.week.days.indexOf(today);
   return { row: 0, column: column === -1 ? 0 : column };
+}
+
+/**
+ * What the table is called: the week it covers and the two directions it runs
+ * in.
+ *
+ * A table's caption is its name, and a name is what somebody choosing between
+ * the regions of a page hears. "Timesheet" would be the page's name rather
+ * than this table's — the week is the thing that distinguishes one sheet from
+ * another, and the two axes are what tell a reader how to read it before they
+ * are inside it.
+ */
+export function sheetCaption(sheet: Timesheet): string {
+  return `Time logged in ${describeWeek(sheet.week)}, by project and day.`;
 }

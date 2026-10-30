@@ -17,6 +17,7 @@ import {
   isWorked,
   minutesFigure,
   NOTHING_LOGGED,
+  sheetCaption,
   sheetSize,
   startingCursor,
   sumCells,
@@ -814,5 +815,20 @@ describe("startingCursor", () => {
   it("always starts on the first row", () => {
     const sheet = buildTimesheet(week, [SITE_REBUILD], []);
     expect(startingCursor(sheet, "2026-10-29").row).toBe(0);
+  });
+});
+
+describe("sheetCaption", () => {
+  it("names the week and both directions of the table", () => {
+    const sheet = buildTimesheet(weekOf("2026-10-29"), [SITE_REBUILD], []);
+    expect(sheetCaption(sheet)).toBe(
+      "Time logged in Oct 26 – Nov 1, 2026, by project and day.",
+    );
+  });
+
+  it("names a different week differently", () => {
+    const earlier = buildTimesheet(weekOf("2026-10-07"), [SITE_REBUILD], []);
+    const later = buildTimesheet(weekOf("2026-10-29"), [SITE_REBUILD], []);
+    expect(sheetCaption(earlier)).not.toBe(sheetCaption(later));
   });
 });
