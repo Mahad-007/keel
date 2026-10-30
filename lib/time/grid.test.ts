@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { gridMove } from "./grid";
+import { clampToGrid, gridMove } from "./grid";
 
 describe("gridMove", () => {
   it("reads the four arrows", () => {
@@ -39,5 +39,46 @@ describe("gridMove", () => {
     expect(gridMove({ key: " " })).toBeNull();
     expect(gridMove({ key: "a" })).toBeNull();
     expect(gridMove({ key: "PageDown" })).toBeNull();
+  });
+});
+
+describe("clampToGrid", () => {
+  const size = { rows: 4, columns: 7 };
+
+  it("leaves a position already inside alone", () => {
+    expect(clampToGrid({ row: 2, column: 3 }, size)).toEqual({
+      row: 2,
+      column: 3,
+    });
+  });
+
+  it("pulls a row past the end back to the last one", () => {
+    expect(clampToGrid({ row: 10, column: 3 }, size)).toEqual({
+      row: 3,
+      column: 3,
+    });
+  });
+
+  it("keeps the column when only the row has to move", () => {
+    expect(clampToGrid({ row: 10, column: 6 }, size).column).toBe(6);
+  });
+
+  it("pulls a negative position back to the corner", () => {
+    expect(clampToGrid({ row: -2, column: -1 }, size)).toEqual({
+      row: 0,
+      column: 0,
+    });
+  });
+
+  it("clamps an empty grid to the corner rather than past it", () => {
+    expect(clampToGrid({ row: 3, column: 3 }, { rows: 0, columns: 0 })).toEqual({
+      row: 0,
+      column: 0,
+    });
+  });
+
+  it("is idempotent", () => {
+    const once = clampToGrid({ row: 9, column: 9 }, size);
+    expect(clampToGrid(once, size)).toEqual(once);
   });
 });
