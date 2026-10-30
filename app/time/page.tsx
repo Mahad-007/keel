@@ -49,6 +49,13 @@ export default async function TimePage({ searchParams }: PageProps<"/time">) {
   ]);
 
   const sheet = buildTimesheet(week, projects, entries);
+  /*
+    The summary is left off when there is no grid, because the panel below
+    says the same thing with the reason attached: "No projects to show for
+    this week." above "No projects to put on a timesheet." is one sentence
+    twice, and the second is the one worth reading.
+  */
+  const empty = isSheetEmpty(sheet);
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 font-sans">
@@ -61,8 +68,7 @@ export default async function TimePage({ searchParams }: PageProps<"/time">) {
             <span className="font-medium text-zinc-900 dark:text-zinc-100">
               {describeWeek(week)}
             </span>
-            {" · "}
-            {describeTimesheet(sheet)}
+            {!empty && ` · ${describeTimesheet(sheet)}`}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-4">
@@ -85,7 +91,7 @@ export default async function TimePage({ searchParams }: PageProps<"/time">) {
         row count keeps the "what a timesheet is" explanation for the case
         that is actually that.
       */}
-      {!isSheetEmpty(sheet) ? (
+      {!empty ? (
         <TimesheetGrid sheet={sheet} today={today} />
       ) : projects.length === 0 ? (
         <NoProjectsToSheet />
