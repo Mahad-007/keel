@@ -3,21 +3,21 @@ import { describe, expect, it } from "vitest";
 import {
   belongsOnSheet,
   buildTimesheet,
+  cellAside,
   cellFigure,
   compareRows,
   daysWorked,
-  cellAside,
   describeCell,
   describeColumnTotal,
   describeRowTotal,
   describeSheetTotal,
   describeTimesheet,
-  minutesFigure,
+  expectsTime,
   isSheetEmpty,
+  isWorked,
+  minutesFigure,
   NOTHING_LOGGED,
   sheetSize,
-  expectsTime,
-  isWorked,
   sumCells,
   timesheetCell,
   timesheetRow,
@@ -756,5 +756,35 @@ describe("cellAside", () => {
         ]),
       ),
     ).toBe("2 entries, 30m not chargeable");
+  });
+});
+
+describe("the figure readers over any total", () => {
+  const week = weekOf("2026-10-29");
+
+  it("read a row's total the same way they read a cell", () => {
+    const row = timesheetRow(SITE_REBUILD, week, [
+      logged("2026-10-27", 90),
+      logged("2026-10-28", 30, { billable: false }),
+    ]);
+    expect(isWorked(row)).toBe(true);
+    expect(cellFigure(row)).toBe("2h");
+    expect(cellAside(row)).toBe("2 entries, 30m not chargeable");
+  });
+
+  it("read the whole sheet the same way", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD], [
+      logged("2026-10-27", 60),
+    ]);
+    expect(isWorked(sheet)).toBe(true);
+    expect(cellFigure(sheet)).toBe("1h");
+    expect(cellAside(sheet)).toBeNull();
+  });
+
+  it("read an untouched row as nothing rather than as a zero", () => {
+    const row = timesheetRow(SITE_REBUILD, week, []);
+    expect(isWorked(row)).toBe(false);
+    expect(cellFigure(row)).toBe(NOTHING_LOGGED);
+    expect(cellAside(row)).toBeNull();
   });
 });
