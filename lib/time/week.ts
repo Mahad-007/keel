@@ -1,4 +1,4 @@
-import { isCalendarDate } from "@/lib/dates";
+import { isCalendarDate, shiftCalendarDate } from "@/lib/dates";
 
 /**
  * The seven days a timesheet is read in, as arithmetic on calendar dates.
@@ -106,3 +106,17 @@ export type Week = {
   /** All seven days, earliest first. */
   readonly days: readonly string[];
 };
+
+/**
+ * The first day of the week a date falls in: any day of that week in, the
+ * start day out.
+ *
+ * This is what identifies a week everywhere else — the URL carries it, the
+ * range query starts at it, and two dates in the same week reduce to the same
+ * string. Idempotent, so calling it on a start day is a no-op rather than a
+ * jump back seven days, which is what lets a param holding either a Monday or
+ * the Thursday somebody was looking at resolve to the same sheet.
+ */
+export function startOfWeek(value: string): string {
+  return shiftCalendarDate(value, -weekdayIndex(value));
+}
