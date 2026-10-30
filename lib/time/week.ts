@@ -1,3 +1,5 @@
+import { isCalendarDate } from "@/lib/dates";
+
 /**
  * The seven days a timesheet is read in, as arithmetic on calendar dates.
  *
@@ -20,7 +22,22 @@
 export const DAYS_PER_WEEK = 7;
 
 /**
- * The day a week starts on, as an index into `WEEKDAY_NAMES`: Monday.
+ * The names of the days, in JavaScript's own order so `getUTCDay()` indexes
+ * them directly. Three letters, because they are column headings over a grid
+ * seven wide and the date is in the heading beside them.
+ */
+export const WEEKDAY_NAMES = [
+  "Sun",
+  "Mon",
+  "Tue",
+  "Wed",
+  "Thu",
+  "Fri",
+  "Sat",
+] as const;
+
+/**
+ * The day a week starts on, in the same numbering as `WEEKDAY_NAMES`: Monday.
  *
  * Monday rather than Sunday because the work week is the thing being reported
  * — a timesheet split across two columns at opposite ends of the grid is a
@@ -31,7 +48,40 @@ export const DAYS_PER_WEEK = 7;
  * it, and the thing that makes that change small is that every function here
  * reads the start from one place instead of each deciding for itself.
  */
-export const WEEK_STARTS_ON = 0;
+export const WEEK_STARTS_ON = 1;
+
+/**
+ * Which day of the week a date is, in `WEEKDAY_NAMES`' numbering.
+ *
+ * UTC, for the reason `shiftCalendarDate` gives: a bare date read in a local
+ * timezone is the day before for anyone west of Greenwich, and a grid whose
+ * columns were a day out from its headings would be wrong in a way nothing on
+ * screen could explain.
+ */
+function dayOfWeek(value: string): number {
+  if (!isCalendarDate(value)) {
+    throw new Error(`not a calendar date: ${value}`);
+  }
+  return new Date(`${value}T00:00:00.000Z`).getUTCDay();
+}
+
+/**
+ * How far into its week a date sits: 0 on the start day, 6 on the day before
+ * the next one.
+ *
+ * Relative to `WEEK_STARTS_ON` rather than to Sunday, because this is the
+ * column a date belongs in. Everything that lines a date up with a heading or
+ * walks back to the start of a week counts in these, so moving the week start
+ * moves the grid and the arithmetic together.
+ */
+export function weekdayIndex(value: string): number {
+  return (dayOfWeek(value) - WEEK_STARTS_ON + DAYS_PER_WEEK) % DAYS_PER_WEEK;
+}
+
+/** What a day of the week is called: `2026-10-26` is `Mon`. */
+export function weekdayName(value: string): string {
+  return WEEKDAY_NAMES[dayOfWeek(value)];
+}
 
 /**
  * Seven days with their ends named.
