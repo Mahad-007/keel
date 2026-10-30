@@ -7,7 +7,11 @@ import {
   compareRows,
   daysWorked,
   describeCell,
+  describeColumnTotal,
+  describeRowTotal,
+  describeSheetTotal,
   describeTimesheet,
+  minutesFigure,
   isSheetEmpty,
   NOTHING_LOGGED,
   sheetSize,
@@ -617,5 +621,97 @@ describe("isSheetEmpty", () => {
 
   it("is false for a week with rows but nothing logged", () => {
     expect(isSheetEmpty(buildTimesheet(week, [SITE_REBUILD], []))).toBe(false);
+  });
+});
+
+describe("minutesFigure", () => {
+  it("writes a duration that was logged", () => {
+    expect(minutesFigure(150, 1)).toBe("2h 30m");
+  });
+
+  it("writes a dash when nothing was logged", () => {
+    expect(minutesFigure(0, 0)).toBe(NOTHING_LOGGED);
+  });
+});
+
+describe("describeRowTotal", () => {
+  const week = weekOf("2026-10-29");
+
+  it("names the project and its week", () => {
+    const row = timesheetRow(SITE_REBUILD, week, [
+      logged("2026-10-27", 120),
+      logged("2026-10-29", 90),
+    ]);
+    expect(describeRowTotal(row)).toBe(
+      "Site rebuild, Harbour Co — 3h 30m this week",
+    );
+  });
+
+  it("says a row with nothing logged is empty", () => {
+    expect(describeRowTotal(timesheetRow(SITE_REBUILD, week, []))).toBe(
+      "Site rebuild, Harbour Co — nothing logged this week",
+    );
+  });
+
+  it("mentions the part that will not be charged for", () => {
+    const row = timesheetRow(SITE_REBUILD, week, [
+      logged("2026-10-27", 120),
+      logged("2026-10-29", 60, { billable: false }),
+    ]);
+    expect(describeRowTotal(row)).toBe(
+      "Site rebuild, Harbour Co — 3h this week, 1h not chargeable",
+    );
+  });
+});
+
+describe("describeColumnTotal", () => {
+  it("says the figure is every project's", () => {
+    const cell = timesheetCell("2026-10-27", [
+      logged("2026-10-27", 60),
+      logged("2026-10-27", 30, { projectId: "prj_other" }),
+    ]);
+    expect(describeColumnTotal(cell)).toBe("Tue 27, every project — 1h 30m");
+  });
+
+  it("says a day with nothing on it is empty", () => {
+    expect(describeColumnTotal(timesheetCell("2026-10-27", []))).toBe(
+      "Tue 27, every project — nothing logged",
+    );
+  });
+
+  it("mentions the part that will not be charged for", () => {
+    const cell = timesheetCell("2026-10-27", [
+      logged("2026-10-27", 60, { billable: false }),
+    ]);
+    expect(describeColumnTotal(cell)).toBe(
+      "Tue 27, every project — 1h, 1h not chargeable",
+    );
+  });
+});
+
+describe("describeSheetTotal", () => {
+  const week = weekOf("2026-10-29");
+
+  it("says what the whole week came to", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD], [
+      logged("2026-10-27", 120),
+    ]);
+    expect(describeSheetTotal(sheet)).toBe("2h this week, every project");
+  });
+
+  it("says a week with nothing in it is empty", () => {
+    expect(describeSheetTotal(buildTimesheet(week, [SITE_REBUILD], []))).toBe(
+      "Nothing logged this week",
+    );
+  });
+
+  it("mentions the part that will not be charged for", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD], [
+      logged("2026-10-27", 120),
+      logged("2026-10-28", 30, { billable: false }),
+    ]);
+    expect(describeSheetTotal(sheet)).toBe(
+      "2h 30m this week, every project, 30m not chargeable",
+    );
   });
 });
