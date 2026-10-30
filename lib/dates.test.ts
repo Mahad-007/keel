@@ -5,6 +5,7 @@ import {
   formatDate,
   isCalendarDate,
   localCalendarDate,
+  shiftCalendarDate,
 } from "./dates";
 
 describe("calendarDateParts", () => {
@@ -163,5 +164,56 @@ describe("localCalendarDate", () => {
   it("rolls over at midnight rather than at noon", () => {
     expect(localCalendarDate(new Date(2026, 11, 31, 23, 59))).toBe("2026-12-31");
     expect(localCalendarDate(new Date(2027, 0, 1, 0, 0))).toBe("2027-01-01");
+  });
+});
+
+describe("shiftCalendarDate", () => {
+  it("moves forward and back within a month", () => {
+    expect(shiftCalendarDate("2026-10-14", 1)).toBe("2026-10-15");
+    expect(shiftCalendarDate("2026-10-14", -1)).toBe("2026-10-13");
+  });
+
+  it("rolls over the end of a month", () => {
+    expect(shiftCalendarDate("2026-10-31", 1)).toBe("2026-11-01");
+    expect(shiftCalendarDate("2026-11-01", -1)).toBe("2026-10-31");
+  });
+
+  it("rolls over the end of a year", () => {
+    expect(shiftCalendarDate("2026-12-31", 1)).toBe("2027-01-01");
+    expect(shiftCalendarDate("2027-01-01", -7)).toBe("2026-12-25");
+  });
+
+  it("knows February's length in a leap year and out of one", () => {
+    expect(shiftCalendarDate("2024-02-28", 1)).toBe("2024-02-29");
+    expect(shiftCalendarDate("2026-02-28", 1)).toBe("2026-03-01");
+  });
+
+  it("stays on the same day for a shift of nothing", () => {
+    expect(shiftCalendarDate("2026-10-14", 0)).toBe("2026-10-14");
+  });
+
+  it("crosses a spring-forward boundary one day at a time", () => {
+    // The clocks go forward in most of Europe on 2026-03-29. A date has no
+    // hour to lose, so the day after it is simply the next one.
+    expect(shiftCalendarDate("2026-03-28", 1)).toBe("2026-03-29");
+    expect(shiftCalendarDate("2026-03-29", 1)).toBe("2026-03-30");
+  });
+
+  it("refuses a timestamp, which is a moment rather than a day", () => {
+    expect(() => shiftCalendarDate("2026-10-14T09:00:00.000Z", 1)).toThrow(
+      /not a calendar date/,
+    );
+  });
+
+  it("refuses a day that does not exist", () => {
+    expect(() => shiftCalendarDate("2026-02-30", 1)).toThrow(
+      /not a calendar date/,
+    );
+  });
+
+  it("refuses a fractional shift", () => {
+    expect(() => shiftCalendarDate("2026-10-14", 1.5)).toThrow(
+      /not a whole number of days/,
+    );
   });
 });
