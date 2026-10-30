@@ -1,7 +1,6 @@
-import { isCalendarDate } from "@/lib/dates";
 import { firstParam, type SearchParams } from "@/lib/projects/query";
 
-import { startOfWeek, weekOf, type Week } from "./week";
+import { hasWeek, startOfWeek, weekOf, type Week } from "./week";
 
 /**
  * Which week the timesheet is showing, read off the URL.
@@ -27,7 +26,10 @@ export const WEEK_PARAM = "week";
  * that day is in rather than nothing. `weekOf` does the reducing, so
  * `?week=2026-10-29` and `?week=2026-10-26` are the same sheet.
  *
- * Anything unusable falls back rather than failing. A mangled param is still a
+ * Anything unusable falls back rather than failing, and `hasWeek` rather than
+ * `isCalendarDate` is what decides that: a day at the very edge of the
+ * calendar is a date whose week cannot be written down, and it has to fall
+ * back here rather than throw out of `weekOf`. A mangled param is still a
  * request for the timesheet, and the week somebody is in is the one answer
  * that is never useless — the page it lands on then says which week it is
  * showing, which is how the reader finds out the link was wrong.
@@ -40,7 +42,7 @@ export function parseWeekParam(
   value: string | undefined,
   today: string,
 ): Week {
-  if (value !== undefined && isCalendarDate(value)) return weekOf(value);
+  if (value !== undefined && hasWeek(value)) return weekOf(value);
   return weekOf(today);
 }
 

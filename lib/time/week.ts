@@ -126,6 +126,36 @@ export function startOfWeek(value: string): string {
 }
 
 /**
+ * The earliest and latest day a week can be built around.
+ *
+ * A calendar date holds a four-digit year, so the week containing
+ * `0000-01-01` would start in a year that cannot be written down and the week
+ * containing `9999-12-31` would end in one. Rather than special-case the two
+ * of them, the first and last week of the range are simply out of bounds —
+ * nobody is filling in a timesheet for the year 0000, and a URL asking for one
+ * is a mangled URL rather than a request.
+ *
+ * Six days in from each end, because that is the furthest `startOfWeek` and
+ * the walk out to `end` can reach.
+ */
+export const FIRST_WEEK_DAY = "0000-01-07";
+export const LAST_WEEK_DAY = "9999-12-25";
+
+/**
+ * Whether a week can be built around a date.
+ *
+ * What a parser checks instead of `isCalendarDate`, so a value naming a day at
+ * the very edge of the calendar falls back to the week somebody is in rather
+ * than throwing out of `weekOf` — a mangled param is still a request for the
+ * timesheet, and a 500 is a worse answer to it than this week.
+ */
+export function hasWeek(value: string): boolean {
+  return (
+    isCalendarDate(value) && value >= FIRST_WEEK_DAY && value <= LAST_WEEK_DAY
+  );
+}
+
+/**
  * The week a date falls in, with its ends and its seven days.
  *
  * Any day of the week in, so a URL holding the Thursday somebody was looking
