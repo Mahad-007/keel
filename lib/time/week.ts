@@ -161,3 +161,17 @@ export function previousWeek(week: Week): Week {
 export function nextWeek(week: Week): Week {
   return shiftWeek(week, 1);
 }
+
+/**
+ * Whether a day falls inside a week, ends included.
+ *
+ * Compared as strings, which `YYYY-MM-DD` makes safe: the format sorts the
+ * same way the calendar does, so two dates compare without either being
+ * parsed. It also means a value that is not a calendar date simply falls
+ * outside every week rather than throwing — this is a filter over rows the
+ * query already restricted, and a single odd `worked_on` should leave one cell
+ * empty rather than take the page down.
+ */
+export function isInWeek(week: Week, value: string): boolean {
+  return value >= week.start && value <= week.end;
+}
