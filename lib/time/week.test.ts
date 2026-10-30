@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { startOfWeek, weekdayIndex, weekdayName } from "./week";
+import {
+  DAYS_PER_WEEK,
+  startOfWeek,
+  weekdayIndex,
+  weekdayName,
+  weekOf,
+} from "./week";
 
 describe("weekdayIndex", () => {
   it("puts the week's start day in the first column", () => {
@@ -88,5 +94,61 @@ describe("startOfWeek", () => {
 
   it("is idempotent", () => {
     expect(startOfWeek(startOfWeek("2026-10-29"))).toBe("2026-10-26");
+  });
+});
+
+describe("weekOf", () => {
+  it("holds seven days, earliest first", () => {
+    expect(weekOf("2026-10-29").days).toEqual([
+      "2026-10-26",
+      "2026-10-27",
+      "2026-10-28",
+      "2026-10-29",
+      "2026-10-30",
+      "2026-10-31",
+      "2026-11-01",
+    ]);
+  });
+
+  it("names its own ends", () => {
+    const week = weekOf("2026-10-29");
+    expect(week.start).toBe("2026-10-26");
+    expect(week.end).toBe("2026-11-01");
+  });
+
+  it("keeps the ends and the days in step", () => {
+    const week = weekOf("2026-10-29");
+    expect(week.days).toHaveLength(DAYS_PER_WEEK);
+    expect(week.days[0]).toBe(week.start);
+    expect(week.days[DAYS_PER_WEEK - 1]).toBe(week.end);
+  });
+
+  it("builds the same week from any day in it", () => {
+    const monday = weekOf("2026-10-26");
+    for (const day of monday.days) {
+      expect(weekOf(day)).toEqual(monday);
+    }
+  });
+
+  it("spans a month boundary without a gap", () => {
+    expect(weekOf("2026-03-31").days).toEqual([
+      "2026-03-30",
+      "2026-03-31",
+      "2026-04-01",
+      "2026-04-02",
+      "2026-04-03",
+      "2026-04-04",
+      "2026-04-05",
+    ]);
+  });
+
+  it("spans a year boundary without a gap", () => {
+    const week = weekOf("2026-12-31");
+    expect(week.start).toBe("2026-12-28");
+    expect(week.end).toBe("2027-01-03");
+  });
+
+  it("refuses a date it cannot place", () => {
+    expect(() => weekOf("next Tuesday")).toThrow(/not a calendar date/);
   });
 });
