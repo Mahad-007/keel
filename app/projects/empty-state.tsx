@@ -1,8 +1,7 @@
+import { EmptyPanel } from "@/components/empty-panel";
 import { describeNoMatches } from "@/lib/projects/filter";
 import { NEW_PROJECT_PATH } from "@/lib/projects/query";
 import { projectStatusLabel, type ProjectStatus } from "@/lib/projects/status";
-
-import { EmptyPanel } from "./empty-panel";
 
 /**
  * Nothing in the table because there is nothing in the database.

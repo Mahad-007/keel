@@ -1,4 +1,4 @@
-import { EmptyPanel } from "../empty-panel";
+import { EmptyPanel } from "@/components/empty-panel";
 
 /**
  * A project with no deliverables on it yet.

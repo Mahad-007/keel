@@ -1,10 +1,9 @@
+import { EmptyPanel } from "@/components/empty-panel";
 import {
   PROJECT_TAB_LABELS,
   PROJECT_TAB_SUMMARIES,
   type ProjectTab,
 } from "@/lib/projects/tabs";
-
-import { EmptyPanel } from "../empty-panel";
 
 /**
  * What a tab shows before the phase that builds it has landed.

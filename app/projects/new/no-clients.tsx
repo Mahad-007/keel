@@ -1,4 +1,4 @@
-import { EmptyPanel } from "../empty-panel";
+import { EmptyPanel } from "@/components/empty-panel";
 
 /**
  * There is nobody to file a project under.

@@ -9,6 +9,9 @@ import type { ReactNode } from "react";
  * there is one — a single way out. Shared so that the places a page can be
  * empty differ in what they say without also drifting in how they look; a page
  * whose empty panels are subtly different sizes reads as a mistake.
+ *
+ * In `components/` rather than beside the projects pages that first needed it,
+ * because the timesheet can be empty too and the sameness is the whole point.
  */
 export function EmptyPanel({
   heading,
