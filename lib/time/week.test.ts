@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { weekdayIndex, weekdayName } from "./week";
+import { startOfWeek, weekdayIndex, weekdayName } from "./week";
 
 describe("weekdayIndex", () => {
   it("puts the week's start day in the first column", () => {
@@ -48,5 +48,45 @@ describe("weekdayName", () => {
 
   it("refuses a day that does not exist", () => {
     expect(() => weekdayName("2026-02-30")).toThrow(/not a calendar date/);
+  });
+});
+
+describe("startOfWeek", () => {
+  it("walks back to the Monday of a midweek date", () => {
+    expect(startOfWeek("2026-10-29")).toBe("2026-10-26");
+  });
+
+  it("leaves a start day where it is", () => {
+    expect(startOfWeek("2026-10-26")).toBe("2026-10-26");
+  });
+
+  it("keeps the Sunday at the end of its week rather than the start of the next", () => {
+    expect(startOfWeek("2026-11-01")).toBe("2026-10-26");
+  });
+
+  it("agrees for every day of the same week", () => {
+    const week = [
+      "2026-10-26",
+      "2026-10-27",
+      "2026-10-28",
+      "2026-10-29",
+      "2026-10-30",
+      "2026-10-31",
+      "2026-11-01",
+    ];
+    expect(new Set(week.map(startOfWeek))).toEqual(new Set(["2026-10-26"]));
+  });
+
+  it("crosses back over the end of a month", () => {
+    expect(startOfWeek("2026-11-02")).toBe("2026-11-02");
+    expect(startOfWeek("2026-03-01")).toBe("2026-02-23");
+  });
+
+  it("crosses back over the end of a year", () => {
+    expect(startOfWeek("2027-01-01")).toBe("2026-12-28");
+  });
+
+  it("is idempotent", () => {
+    expect(startOfWeek(startOfWeek("2026-10-29"))).toBe("2026-10-26");
   });
 });
