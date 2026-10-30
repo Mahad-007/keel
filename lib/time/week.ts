@@ -120,3 +120,20 @@ export type Week = {
 export function startOfWeek(value: string): string {
   return shiftCalendarDate(value, -weekdayIndex(value));
 }
+
+/**
+ * The week a date falls in, with its ends and its seven days.
+ *
+ * Any day of the week in, so a URL holding the Thursday somebody was looking
+ * at and one holding that week's Monday build the same sheet. The days are
+ * walked out from the start rather than derived from the input, which is what
+ * makes `days[0]` always the start and `days[6]` always the end however the
+ * week was asked for.
+ */
+export function weekOf(value: string): Week {
+  const start = startOfWeek(value);
+  const days = Array.from({ length: DAYS_PER_WEEK }, (_, offset) =>
+    shiftCalendarDate(start, offset),
+  );
+  return { start, end: days[DAYS_PER_WEEK - 1], days };
+}
