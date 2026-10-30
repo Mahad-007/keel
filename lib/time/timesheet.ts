@@ -1,7 +1,7 @@
 import type { ProjectStatus } from "@/lib/projects/status";
 
 import { billableMinutes, totalMinutes } from "./days";
-import type { Week } from "./week";
+import { isInWeek, type Week } from "./week";
 
 /**
  * A week of the studio's time, as a grid: a row per project, a column per day.
@@ -134,4 +134,36 @@ export function timesheetCell(
 /** Whether a cell holds any work at all. What decides if it reads as a figure or a dash. */
 export function isWorked(cell: TimesheetCell): boolean {
   return cell.entryCount > 0;
+}
+
+/**
+ * A week's seven cells from a set of entries, in the week's own order.
+ *
+ * Always seven, whatever the entries hold. The grid's columns are the week's
+ * days, so a row has to answer for each of them — including the ones nobody
+ * worked, which is most of them on most rows.
+ *
+ * Entries outside the week are dropped rather than folded into the nearest
+ * cell. The query already restricts to the week, so this only ever matters
+ * when a caller hands over more than it asked for; dropping them keeps the row
+ * total equal to the sum of its cells, which is the one property a reader
+ * checks by eye.
+ *
+ * Grouped in one pass rather than filtered seven times, because a studio's
+ * busy week is the case this is read in and seven scans per row is the kind of
+ * arithmetic that gets slower exactly as the sheet gets interesting.
+ */
+export function weekCells(
+  week: Week,
+  entries: readonly TimesheetEntry[],
+): TimesheetCell[] {
+  const byDay = new Map<string, TimesheetEntry[]>();
+  for (const entry of entries) {
+    if (!isInWeek(week, entry.workedOn)) continue;
+    const day = byDay.get(entry.workedOn);
+    if (day === undefined) byDay.set(entry.workedOn, [entry]);
+    else day.push(entry);
+  }
+
+  return week.days.map((day) => timesheetCell(day, byDay.get(day) ?? []));
 }
