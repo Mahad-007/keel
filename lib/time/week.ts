@@ -1,4 +1,8 @@
-import { isCalendarDate, shiftCalendarDate } from "@/lib/dates";
+import {
+  calendarDateParts,
+  isCalendarDate,
+  shiftCalendarDate,
+} from "@/lib/dates";
 
 /**
  * The seven days a timesheet is read in, as arithmetic on calendar dates.
@@ -193,4 +197,35 @@ const WEEKEND_DAYS = [0, 6];
  */
 export function isWeekend(value: string): boolean {
   return WEEKEND_DAYS.includes(dayOfWeek(value));
+}
+
+/**
+ * A week as a heading: `Oct 26 – Nov 1, 2026`.
+ *
+ * Three shapes, because repeating what has not changed is what makes a date
+ * range hard to read. A week inside one month says the month once — `Oct 5 –
+ * 11, 2026` — and a week inside one year says the year once. Only a week that
+ * straddles New Year spells both out: `Dec 28, 2026 – Jan 3, 2027`, where
+ * dropping the first year would be wrong rather than merely repetitive.
+ *
+ * An en dash with spaces around it, not a hyphen. `Oct 26 - Nov 1` reads as
+ * subtraction at a glance, and the heading sits above a grid full of numbers.
+ *
+ * A week whose ends are not calendar dates — which `weekOf` cannot produce,
+ * but a hand-built literal can — falls back to the two strings. The heading
+ * then looks wrong, which is the point: a page that renders a surprising
+ * heading is easier to diagnose than one that will not render.
+ */
+export function describeWeek(week: Week): string {
+  const from = calendarDateParts(week.start);
+  const to = calendarDateParts(week.end);
+  if (from === null || to === null) return `${week.start} – ${week.end}`;
+
+  if (from.year !== to.year) {
+    return `${from.month} ${from.day}, ${from.year} – ${to.month} ${to.day}, ${to.year}`;
+  }
+  if (from.month === to.month) {
+    return `${from.month} ${from.day} – ${to.day}, ${to.year}`;
+  }
+  return `${from.month} ${from.day} – ${to.month} ${to.day}, ${to.year}`;
 }
