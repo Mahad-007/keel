@@ -547,3 +547,35 @@ export const SHEET_COLUMNS = {
 
 /** What the totals row is called in the leftmost column. */
 export const SHEET_TOTAL_ROW = "All projects";
+
+/** What the dash in an empty cell means, for a reader who would hear "dash". */
+export const NOTHING_LOGGED_LABEL = "nothing logged";
+
+/**
+ * The facts about a cell that its figure does not carry, or null when the
+ * figure already says everything.
+ *
+ * Two of them, and both are usually absent. A cell built from more than one
+ * entry is worth saying so — eight hours from one entry is a day's work and
+ * eight hours from five is a figure worth opening — and a cell holding time
+ * nobody will be charged for is worth saying so for the reason every other
+ * total in the app says it.
+ *
+ * Null for the ordinary cell, which is one entry that will be invoiced. That
+ * is what keeps the grid a grid: a note on every cell would be a second
+ * column of text in each of seven columns, and the figures would stop lining
+ * up.
+ *
+ * Nothing about an empty cell, because an empty cell has no facts. The dash
+ * and `NOTHING_LOGGED_LABEL` are the whole of what there is to say.
+ */
+export function cellAside(cell: TimesheetCell): string | null {
+  if (!isWorked(cell)) return null;
+
+  const parts: string[] = [];
+  if (cell.entryCount > 1) parts.push(`${cell.entryCount} entries`);
+  const free = notChargeablePhrase(cell.minutes, cell.billableMinutes);
+  if (free !== null) parts.push(free);
+
+  return parts.length === 0 ? null : parts.join(", ");
+}

@@ -6,6 +6,7 @@ import {
   cellFigure,
   compareRows,
   daysWorked,
+  cellAside,
   describeCell,
   describeColumnTotal,
   describeRowTotal,
@@ -713,5 +714,47 @@ describe("describeSheetTotal", () => {
     expect(describeSheetTotal(sheet)).toBe(
       "2h 30m this week, every project, 30m not chargeable",
     );
+  });
+});
+
+describe("cellAside", () => {
+  it("says nothing about a single chargeable entry", () => {
+    expect(
+      cellAside(timesheetCell("2026-10-27", [logged("2026-10-27", 90)])),
+    ).toBeNull();
+  });
+
+  it("says nothing about an empty cell", () => {
+    expect(cellAside(timesheetCell("2026-10-27", []))).toBeNull();
+  });
+
+  it("counts a cell built from several entries", () => {
+    expect(
+      cellAside(
+        timesheetCell("2026-10-27", [
+          logged("2026-10-27", 90),
+          logged("2026-10-27", 30),
+        ]),
+      ),
+    ).toBe("2 entries");
+  });
+
+  it("reports time that will not be charged for", () => {
+    expect(
+      cellAside(
+        timesheetCell("2026-10-27", [logged("2026-10-27", 45, { billable: false })]),
+      ),
+    ).toBe("45m not chargeable");
+  });
+
+  it("reports both when both apply", () => {
+    expect(
+      cellAside(
+        timesheetCell("2026-10-27", [
+          logged("2026-10-27", 90),
+          logged("2026-10-27", 30, { billable: false }),
+        ]),
+      ),
+    ).toBe("2 entries, 30m not chargeable");
   });
 });
