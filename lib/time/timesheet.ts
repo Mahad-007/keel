@@ -402,3 +402,39 @@ export function describeCell(
 
   return `${where} — ${parts.join(", ")}`;
 }
+
+/**
+ * How many days of the week hold work, across every row.
+ *
+ * A figure worth its own sentence, because the total alone does not say what
+ * kind of week it was: twenty hours over five days is a week of work and
+ * twenty hours over one is a day somebody is going to remember.
+ */
+export function daysWorked(sheet: Timesheet): number {
+  return sheet.dayTotals.filter(isWorked).length;
+}
+
+/**
+ * The line under the heading: how many projects the sheet holds, how much was
+ * logged, and over how many days.
+ *
+ * Three figures rather than one, the same three the time list's own summary
+ * gives and for the same reasons. The project count says how long the sheet
+ * is; the day count says how the week was shaped; the total is the figure the
+ * page is for.
+ *
+ * A week with nothing in it says so plainly instead of reading out a zero.
+ * That is the ordinary state of a Monday morning, and a sheet that opened with
+ * "0m logged over 0 days" would be three numbers saying what one clause says
+ * better.
+ */
+export function describeTimesheet(sheet: Timesheet): string {
+  const projects =
+    sheet.rows.length === 1 ? "One project" : `${sheet.rows.length} projects`;
+  if (sheet.rows.length === 0) return "No projects to show for this week.";
+  if (sheet.minutes === 0) return `${projects}, nothing logged this week.`;
+
+  const days = daysWorked(sheet);
+  const over = days === 1 ? "on one day" : `over ${days} days`;
+  return `${projects}, ${formatMinutes(sheet.minutes)} logged ${over}.`;
+}
