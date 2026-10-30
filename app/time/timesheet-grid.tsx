@@ -16,6 +16,7 @@ import {
   describeSheetTotal,
   SHEET_COLUMNS,
   SHEET_TOTAL_ROW,
+  sheetCaption,
   sheetSize,
   startingCursor,
   type Timesheet,
@@ -25,6 +26,9 @@ import { DayHeading } from "./day-heading";
 import { ProjectHeading } from "./project-heading";
 import { SheetCell } from "./sheet-cell";
 import { TotalCell } from "./total-cell";
+
+/** What the table points `aria-describedby` at. One grid to a page. */
+const KEYBOARD_HINT_ID = "timesheet-keys";
 
 /**
  * The week as a grid: a row per project, a column per day, totals down the
@@ -76,8 +80,8 @@ export function TimesheetGrid({
    *
    * `preventDefault` only for a press the grid claimed. An arrow that the edge
    * of the grid refuses still counts as claimed, so ArrowRight on Sunday stops
-   * at Sunday rather than scrolling the page sideways; Tab and everything else
-   * returns null above and goes to the browser untouched.
+   * at Sunday rather than scrolling the page sideways; Tab, a modified arrow
+   * and everything else returns null above and goes to the browser untouched.
    */
   function moveCursor(
     from: GridPosition,
@@ -94,79 +98,95 @@ export function TimesheetGrid({
   }
 
   return (
-    <table className="mt-4 w-full border-collapse text-sm">
-      <caption className="caption-bottom pt-3 text-left text-xs text-zinc-500 dark:text-zinc-400">
-        {GRID_KEYBOARD_HINT}
-      </caption>
-      <thead>
-        <tr className="border-b border-zinc-200 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-          <th scope="col" className="py-2 pr-6 font-medium">
-            {SHEET_COLUMNS.project}
-          </th>
-          {sheet.week.days.map((day) => (
-            <DayHeading key={day} day={day} today={today} />
+    <>
+      <table
+        aria-describedby={KEYBOARD_HINT_ID}
+        className="mt-4 w-full border-collapse text-sm"
+      >
+        {/*
+          The caption is the table's name, so it says which week this is and
+          which way it runs. The keys are a description rather than a name — a
+          table announced as "the arrow keys move between cells" is one whose
+          reader never finds out what is in it — so they sit in a paragraph of
+          their own underneath, pointed at from here.
+        */}
+        <caption className="sr-only">{sheetCaption(sheet)}</caption>
+        <thead>
+          <tr className="border-b border-zinc-200 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+            <th scope="col" className="py-2 pr-6 font-medium">
+              {SHEET_COLUMNS.project}
+            </th>
+            {sheet.week.days.map((day) => (
+              <DayHeading key={day} day={day} today={today} />
+            ))}
+            <th scope="col" className="py-2 text-right font-medium">
+              {SHEET_COLUMNS.week}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {sheet.rows.map((row, rowIndex) => (
+            <tr
+              key={row.project.id}
+              className="border-b border-zinc-100 align-top dark:border-zinc-900"
+            >
+              <ProjectHeading project={row.project} />
+              {row.cells.map((cell, column) => (
+                <SheetCell
+                  key={cell.workedOn}
+                  project={row.project}
+                  cell={cell}
+                  isCursor={isSameCell(at, { row: rowIndex, column })}
+                  onFocus={() => setCursor({ row: rowIndex, column })}
+                  onKeyDown={(event) =>
+                    moveCursor({ row: rowIndex, column }, event)
+                  }
+                />
+              ))}
+              <TotalCell
+                total={row}
+                label={describeRowTotal(row)}
+                className="pr-0 font-medium text-zinc-900 dark:text-zinc-100"
+              />
+            </tr>
           ))}
-          <th scope="col" className="py-2 text-right font-medium">
-            {SHEET_COLUMNS.week}
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {sheet.rows.map((row, rowIndex) => (
-          <tr
-            key={row.project.id}
-            className="border-b border-zinc-100 align-top dark:border-zinc-900"
-          >
-            <ProjectHeading project={row.project} />
-            {row.cells.map((cell, column) => (
-              <SheetCell
+        </tbody>
+        {/*
+          The column totals in a footer rather than a heading row, because they
+          are the sum of what is above them and reading them first would be
+          reading an answer before the working. It also keeps them where a
+          reader who has scrolled the rows expects to find them.
+        */}
+        <tfoot>
+          <tr className="border-t border-zinc-300 dark:border-zinc-700">
+            <th
+              scope="row"
+              className="py-2.5 pr-6 text-left font-medium text-zinc-900 dark:text-zinc-100"
+            >
+              {SHEET_TOTAL_ROW}
+            </th>
+            {sheet.dayTotals.map((cell) => (
+              <TotalCell
                 key={cell.workedOn}
-                project={row.project}
-                cell={cell}
-                isCursor={isSameCell(at, { row: rowIndex, column })}
-                onFocus={() => setCursor({ row: rowIndex, column })}
-                onKeyDown={(event) =>
-                  moveCursor({ row: rowIndex, column }, event)
-                }
+                total={cell}
+                label={describeColumnTotal(cell)}
+                className="font-medium text-zinc-900 dark:text-zinc-100"
               />
             ))}
             <TotalCell
-              total={row}
-              label={describeRowTotal(row)}
-              className="pr-0 font-medium text-zinc-900 dark:text-zinc-100"
+              total={sheet}
+              label={describeSheetTotal(sheet)}
+              className="pr-0 font-semibold text-zinc-900 dark:text-zinc-100"
             />
           </tr>
-        ))}
-      </tbody>
-      {/*
-        The column totals in a footer rather than a heading row, because they
-        are the sum of what is above them and reading them first would be
-        reading an answer before the working. It also keeps them where a reader
-        who has scrolled the rows expects to find them.
-      */}
-      <tfoot>
-        <tr className="border-t border-zinc-300 dark:border-zinc-700">
-          <th
-            scope="row"
-            className="py-2.5 pr-6 text-left font-medium text-zinc-900 dark:text-zinc-100"
-          >
-            {SHEET_TOTAL_ROW}
-          </th>
-          {sheet.dayTotals.map((cell) => (
-            <TotalCell
-              key={cell.workedOn}
-              total={cell}
-              label={describeColumnTotal(cell)}
-              className="font-medium text-zinc-900 dark:text-zinc-100"
-            />
-          ))}
-          <TotalCell
-            total={sheet}
-            label={describeSheetTotal(sheet)}
-            className="pr-0 font-semibold text-zinc-900 dark:text-zinc-100"
-          />
-        </tr>
-      </tfoot>
-    </table>
+        </tfoot>
+      </table>
+      <p
+        id={KEYBOARD_HINT_ID}
+        className="mt-3 text-xs text-zinc-500 dark:text-zinc-400"
+      >
+        {GRID_KEYBOARD_HINT}
+      </p>
+    </>
   );
 }
