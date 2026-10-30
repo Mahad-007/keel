@@ -1,6 +1,7 @@
 import { formatMinutes } from "@/lib/minutes";
 import type { ProjectStatus } from "@/lib/projects/status";
 
+import type { GridSize } from "./grid";
 import {
   billableMinutes,
   notChargeablePhrase,
@@ -437,4 +438,29 @@ export function describeTimesheet(sheet: Timesheet): string {
   const days = daysWorked(sheet);
   const over = days === 1 ? "on one day" : `over ${days} days`;
   return `${projects}, ${formatMinutes(sheet.minutes)} logged ${over}.`;
+}
+
+/**
+ * The sheet's shape, for the navigation arithmetic.
+ *
+ * The columns come from the week rather than from `dayTotals.length`, because
+ * the week is what the grid is: seven, always, however little was logged. A
+ * size read off whatever happened to be in the sheet would let a quiet week
+ * silently shrink the cursor's range.
+ */
+export function sheetSize(sheet: Timesheet): GridSize {
+  return { rows: sheet.rows.length, columns: sheet.week.days.length };
+}
+
+/**
+ * Whether the sheet has a grid to draw at all.
+ *
+ * No rows is not the same as no time: a week with four active projects and
+ * nothing logged still has a grid, and it is the grid somebody is about to
+ * fill in. This is the other case — nothing to show, because the studio has no
+ * project the week expects anything from and none was worked. The page shows
+ * an explanation instead, and the cursor has nowhere to be.
+ */
+export function isSheetEmpty(sheet: Timesheet): boolean {
+  return sheet.rows.length === 0;
 }
