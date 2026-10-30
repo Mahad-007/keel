@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   DAYS_PER_WEEK,
+  describeWeek,
   isInWeek,
   isWeekend,
   nextWeek,
@@ -238,5 +239,31 @@ describe("isWeekend", () => {
       "2026-10-31",
       "2026-11-01",
     ]);
+  });
+});
+
+describe("describeWeek", () => {
+  it("says the month once when the week sits inside one", () => {
+    expect(describeWeek(weekOf("2026-10-07"))).toBe("Oct 5 – 11, 2026");
+  });
+
+  it("names both months when the week straddles them", () => {
+    expect(describeWeek(weekOf("2026-10-29"))).toBe("Oct 26 – Nov 1, 2026");
+  });
+
+  it("spells both years out when the week straddles New Year", () => {
+    expect(describeWeek(weekOf("2026-12-31"))).toBe(
+      "Dec 28, 2026 – Jan 3, 2027",
+    );
+  });
+
+  it("says the year once for a week inside one", () => {
+    expect(describeWeek(weekOf("2026-02-25"))).toBe("Feb 23 – Mar 1, 2026");
+  });
+
+  it("falls back to the raw ends of a week it cannot read", () => {
+    expect(
+      describeWeek({ start: "soon", end: "later", days: [] }),
+    ).toBe("soon – later");
   });
 });
