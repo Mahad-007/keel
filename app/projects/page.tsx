@@ -17,6 +17,7 @@ import {
   projectsHref,
   withStatus,
 } from "@/lib/projects/query";
+import { TIMESHEET_PATH } from "@/lib/time/week-query";
 
 import { NoMatchingProjects, NoProjects } from "./empty-state";
 import { ProjectsTable } from "./projects-table";
@@ -65,6 +66,12 @@ export default async function ProjectsPage({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-4">
+          <Link
+            href={TIMESHEET_PATH}
+            className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Timesheet
+          </Link>
           <Link
             href="/clients"
             className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
