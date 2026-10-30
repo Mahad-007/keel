@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   belongsOnSheet,
+  compareRows,
   expectsTime,
   isWorked,
   sumCells,
@@ -268,5 +269,67 @@ describe("belongsOnSheet", () => {
     expect(belongsOnSheet(rowFor("closed", [logged("2026-10-19", 30)]))).toBe(
       false,
     );
+  });
+});
+
+describe("compareRows", () => {
+  const week = weekOf("2026-10-29");
+
+  function rowFor(project: Partial<TimesheetProject>) {
+    return timesheetRow({ ...SITE_REBUILD, ...project }, week, []);
+  }
+
+  function order(projects: Partial<TimesheetProject>[]) {
+    return projects
+      .map(rowFor)
+      .sort(compareRows)
+      .map((row) => `${row.project.clientName}/${row.project.name}`);
+  }
+
+  it("groups a client's projects together", () => {
+    expect(
+      order([
+        { id: "a", clientName: "Harbour Co", name: "Site" },
+        { id: "b", clientName: "Anvil", name: "Brand" },
+        { id: "c", clientName: "Harbour Co", name: "App" },
+      ]),
+    ).toEqual(["Anvil/Brand", "Harbour Co/App", "Harbour Co/Site"]);
+  });
+
+  it("ignores case, so a lowercase client is not banished to the bottom", () => {
+    expect(
+      order([
+        { id: "a", clientName: "Zephyr", name: "One" },
+        { id: "b", clientName: "acme", name: "One" },
+      ]),
+    ).toEqual(["acme/One", "Zephyr/One"]);
+  });
+
+  it("does not order by how much was logged", () => {
+    const busy = timesheetRow(
+      { ...SITE_REBUILD, id: "z", clientName: "Zephyr", name: "Busy" },
+      week,
+      [logged("2026-10-27", 600)],
+    );
+    const idle = timesheetRow(
+      { ...SITE_REBUILD, id: "a", clientName: "Anvil", name: "Idle" },
+      week,
+      [],
+    );
+    expect([busy, idle].sort(compareRows)[0]).toBe(idle);
+  });
+
+  it("falls back to the id so identically named rows keep a fixed order", () => {
+    const first = rowFor({ id: "prj_a", clientName: "Anvil", name: "Site" });
+    const second = rowFor({ id: "prj_b", clientName: "Anvil", name: "Site" });
+    expect([second, first].sort(compareRows)).toEqual([first, second]);
+  });
+
+  it("is a stable comparison in both directions", () => {
+    const left = rowFor({ id: "a", clientName: "Anvil", name: "Site" });
+    const right = rowFor({ id: "b", clientName: "Harbour Co", name: "App" });
+    expect(compareRows(left, right)).toBeLessThan(0);
+    expect(compareRows(right, left)).toBeGreaterThan(0);
+    expect(compareRows(left, left)).toBe(0);
   });
 });
