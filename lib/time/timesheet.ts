@@ -250,3 +250,47 @@ export function expectsTime(project: Pick<TimesheetProject, "status">): boolean 
 export function belongsOnSheet(row: TimesheetRow): boolean {
   return row.entryCount > 0 || expectsTime(row.project);
 }
+
+/**
+ * How two values of the same kind of name compare on a sheet: by case, or
+ * rather without it.
+ *
+ * Lowercased before comparing, which is what `listClients` does in SQL for the
+ * same reason — `Zephyr` sorting above `acme` is a sheet that looks broken.
+ * The raw values break the tie afterwards so that two names differing only in
+ * case still have a fixed order instead of swapping between renders.
+ */
+function compareNames(left: string, right: string): number {
+  const folded = left.toLowerCase().localeCompare(right.toLowerCase());
+  if (folded !== 0) return folded;
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+/**
+ * The order rows read in: by client, then by project within the client, then
+ * by id.
+ *
+ * Client first because that is how a studio's week is thought about — the
+ * question is "how much of this week went to Harbour Co", and rows for one
+ * client scattered down the sheet make that a hunt. The project name then
+ * groups an engagement under its client, which is also the order the client's
+ * own invoice will read in.
+ *
+ * Not by hours. A sheet whose rows reordered themselves as the week filled in
+ * would be one where a reader's hand has to find the row again after every
+ * entry — and Day 027 puts a cursor in these cells, which cannot move under
+ * the cursor. The id breaks the last tie for the same reason: two identically
+ * named projects for one client must not swap places between reloads.
+ */
+export function compareRows(left: TimesheetRow, right: TimesheetRow): number {
+  const byClient = compareNames(
+    left.project.clientName,
+    right.project.clientName,
+  );
+  if (byClient !== 0) return byClient;
+
+  const byProject = compareNames(left.project.name, right.project.name);
+  if (byProject !== 0) return byProject;
+
+  return compareNames(left.project.id, right.project.id);
+}
