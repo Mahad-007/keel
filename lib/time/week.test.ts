@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   DAYS_PER_WEEK,
   isInWeek,
+  isWeekend,
   nextWeek,
   previousWeek,
   shiftWeek,
@@ -215,5 +216,27 @@ describe("isInWeek", () => {
   it("leaves a value that is not a date outside every week", () => {
     expect(isInWeek(week, "")).toBe(false);
     expect(isInWeek(week, "sometime")).toBe(false);
+  });
+});
+
+describe("isWeekend", () => {
+  it("counts Saturday and Sunday", () => {
+    expect(isWeekend("2026-10-31")).toBe(true);
+    expect(isWeekend("2026-11-01")).toBe(true);
+  });
+
+  it("does not count the five days between them", () => {
+    expect(isWeekend("2026-10-26")).toBe(false);
+    expect(isWeekend("2026-10-27")).toBe(false);
+    expect(isWeekend("2026-10-28")).toBe(false);
+    expect(isWeekend("2026-10-29")).toBe(false);
+    expect(isWeekend("2026-10-30")).toBe(false);
+  });
+
+  it("marks exactly two of a week's seven days", () => {
+    expect(weekOf("2026-10-26").days.filter(isWeekend)).toEqual([
+      "2026-10-31",
+      "2026-11-01",
+    ]);
   });
 });

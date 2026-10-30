@@ -175,3 +175,22 @@ export function nextWeek(week: Week): Week {
 export function isInWeek(week: Week, value: string): boolean {
   return value >= week.start && value <= week.end;
 }
+
+/** The days of the week that are not normally worked, in `WEEKDAY_NAMES`' numbering. */
+const WEEKEND_DAYS = [0, 6];
+
+/**
+ * Whether a day is a Saturday or a Sunday.
+ *
+ * The grid uses it to set the weekend columns back a shade. Not to hide them:
+ * work does happen at the weekend, and a timesheet that could not show it
+ * would be a timesheet somebody keeps a second copy of. The point is that five
+ * of the seven columns are where the eye should land first, and a column that
+ * is usually empty should look like one.
+ *
+ * Saturday and Sunday regardless of where the week starts, because this is a
+ * claim about the day rather than about its position in the grid.
+ */
+export function isWeekend(value: string): boolean {
+  return WEEKEND_DAYS.includes(dayOfWeek(value));
+}
