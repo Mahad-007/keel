@@ -6,8 +6,6 @@ import {
   cellFigure,
   describeCell,
   isWorked,
-  NOTHING_LOGGED,
-  NOTHING_LOGGED_LABEL,
   type TimesheetCell,
   type TimesheetProject,
 } from "@/lib/time/timesheet";
@@ -26,9 +24,15 @@ import { isWeekend } from "@/lib/time/week";
  * There is nothing inside it yet: Day 027 puts an input here, and the cursor
  * arriving at the right box is the same cursor arriving at the right cell.
  *
- * The dash in an empty cell is hidden from assistive technology and replaced
- * with words. "Dash" is what a screen reader says for it, which is a
- * punctuation mark rather than an answer.
+ * The figure is hidden from assistive technology and replaced by the cell's
+ * own sentence. A table announces its headers when a reader moves through it
+ * in reading mode, but this grid is read with focus — that is the whole point
+ * of the arrows — and a `<td>` that focus lands on is announced as its
+ * contents alone. Without the sentence, crossing a row is five bare durations
+ * with nothing saying which day or which project any of them is.
+ *
+ * It also takes care of the dash in an empty cell, which a screen reader reads
+ * as "dash": a punctuation mark rather than an answer.
  */
 export function SheetCell({
   project,
@@ -51,7 +55,6 @@ export function SheetCell({
     <td
       id={cellDomId(project.id, cell.workedOn)}
       tabIndex={isCursor ? 0 : -1}
-      title={describeCell(project, cell)}
       onFocus={onFocus}
       onKeyDown={onKeyDown}
       className={`py-2.5 pr-4 text-right align-top tabular-nums last:pr-0 focus:outline-2 focus:outline-offset-2 focus:outline-zinc-900 dark:focus:outline-zinc-100 ${
@@ -62,22 +65,20 @@ export function SheetCell({
             : "text-zinc-400 dark:text-zinc-600"
       }`}
     >
-      {worked ? (
-        cellFigure(cell)
-      ) : (
-        <>
-          <span aria-hidden="true">{NOTHING_LOGGED}</span>
-          <span className="sr-only">{NOTHING_LOGGED_LABEL}</span>
-        </>
-      )}
+      <span aria-hidden="true">{cellFigure(cell)}</span>
+      <span className="sr-only">{describeCell(project, cell)}</span>
       {/*
         Under the figure and in smaller type, on the rare cell that has
         something to add. Most cells are one entry that will be invoiced, and a
         note on every one of them would be a second column of text inside each
-        of seven columns.
+        of seven columns. Hidden rather than read, because the sentence above
+        already carries both of these facts.
       */}
       {aside !== null && (
-        <span className="block text-xs font-normal text-zinc-500 dark:text-zinc-400">
+        <span
+          aria-hidden="true"
+          className="block text-xs font-normal text-zinc-500 dark:text-zinc-400"
+        >
           {aside}
         </span>
       )}

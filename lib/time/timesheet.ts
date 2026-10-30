@@ -403,7 +403,7 @@ export function describeCell(
   cell: TimesheetCell,
 ): string {
   const where = `${project.name}, ${project.clientName}, ${weekdayHeading(cell.workedOn)}`;
-  if (!isWorked(cell)) return `${where} — nothing logged`;
+  if (!isWorked(cell)) return `${where} — ${NOTHING_LOGGED_LABEL}`;
 
   const parts = [
     formatMinutes(cell.minutes),
