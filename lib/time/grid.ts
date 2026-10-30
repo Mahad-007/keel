@@ -173,3 +173,36 @@ export function moveInGrid(
 export function isSameCell(left: GridPosition, right: GridPosition): boolean {
   return left.row === right.row && left.column === right.column;
 }
+
+/**
+ * The DOM id of one cell, derived from the row and the column it sits in
+ * rather than generated.
+ *
+ * Derived because focus has to be moved from outside the cell: the keypress
+ * lands on whichever cell the cursor is in, and the cell it should move to is
+ * a different element that may not have rendered its new tab index yet.
+ * Knowing the id from the position means the handler can reach it without a
+ * ref for every cell on the sheet.
+ *
+ * The project id and the date together, because that pair is what makes a cell
+ * unique — a project appears on one row and a day in one column. Row and
+ * column numbers would be shorter and wrong: they change when the week moves
+ * under the cursor, so a stale id would focus somebody else's Tuesday.
+ */
+export function cellDomId(projectId: string, workedOn: string): string {
+  return `timesheet-cell-${projectId}-${workedOn}`;
+}
+
+/**
+ * What the grid says about its own keys.
+ *
+ * Said rather than left to be discovered, because a grid with one tab stop is
+ * the one widget on the page that does not behave the way the rest of it does:
+ * a reader who presses Tab expecting the next cell gets the next control after
+ * the whole sheet, and without a sentence they conclude the page is broken.
+ *
+ * Above the grid rather than in a title on each cell, so it is read once by
+ * somebody arriving and not forty times by somebody crossing a row.
+ */
+export const GRID_KEYBOARD_HINT =
+  "The arrow keys move between cells. Home and End jump to the ends of a row, and with Ctrl or Cmd to the ends of the sheet.";

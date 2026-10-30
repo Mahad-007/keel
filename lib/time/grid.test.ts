@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { clampToGrid, gridMove, isSameCell, moveInGrid } from "./grid";
+import {
+  cellDomId,
+  clampToGrid,
+  gridMove,
+  isSameCell,
+  moveInGrid,
+} from "./grid";
 
 describe("gridMove", () => {
   it("reads the four arrows", () => {
@@ -199,5 +205,32 @@ describe("isSameCell", () => {
   it("is false when either differs", () => {
     expect(isSameCell({ row: 2, column: 3 }, { row: 2, column: 4 })).toBe(false);
     expect(isSameCell({ row: 2, column: 3 }, { row: 1, column: 3 })).toBe(false);
+  });
+});
+
+describe("cellDomId", () => {
+  it("is the same id for the same cell", () => {
+    expect(cellDomId("prj_site", "2026-10-27")).toBe(
+      cellDomId("prj_site", "2026-10-27"),
+    );
+  });
+
+  it("differs between two days of one project", () => {
+    expect(cellDomId("prj_site", "2026-10-27")).not.toBe(
+      cellDomId("prj_site", "2026-10-28"),
+    );
+  });
+
+  it("differs between two projects on one day", () => {
+    expect(cellDomId("prj_site", "2026-10-27")).not.toBe(
+      cellDomId("prj_brand", "2026-10-27"),
+    );
+  });
+
+  it("does not depend on where the cell sits in the grid", () => {
+    // The week moving under the cursor renumbers the rows; the id must not
+    // move with them, or focus lands on somebody else's Tuesday.
+    expect(cellDomId("prj_site", "2026-10-27")).toContain("prj_site");
+    expect(cellDomId("prj_site", "2026-10-27")).toContain("2026-10-27");
   });
 });
