@@ -147,3 +147,23 @@ export function shiftCalendarDate(value: string, days: number): string {
   moment.setUTCDate(moment.getUTCDate() + days);
   return moment.toISOString().slice(0, 10);
 }
+
+/**
+ * The UTC calendar date a moment falls on.
+ *
+ * The counterpart of `localCalendarDate`, and the one a server component has
+ * to use: there is no reader's clock on the server, so "today" can only mean
+ * today somewhere, and UTC is the only choice that does not depend on where
+ * the process happens to be deployed. A server in Sydney and a server in
+ * Oregon then agree about which week a timesheet opens on, which is worth more
+ * than either of them being right for one reader.
+ *
+ * It is wrong for part of every day for most of the world, and that is not
+ * hidden: the week it picks is in the URL as soon as a reader moves, the
+ * heading says which week is on screen, and nothing is written from it. Day
+ * 098 is where the reader's own week and timezone become settings; until then
+ * the honest default is the one that is the same everywhere.
+ */
+export function utcCalendarDate(moment: Date): string {
+  return moment.toISOString().slice(0, 10);
+}

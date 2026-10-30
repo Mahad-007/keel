@@ -6,6 +6,7 @@ import {
   isCalendarDate,
   localCalendarDate,
   shiftCalendarDate,
+  utcCalendarDate,
 } from "./dates";
 
 describe("calendarDateParts", () => {
@@ -214,6 +215,35 @@ describe("shiftCalendarDate", () => {
   it("refuses a fractional shift", () => {
     expect(() => shiftCalendarDate("2026-10-14", 1.5)).toThrow(
       /not a whole number of days/,
+    );
+  });
+});
+
+describe("utcCalendarDate", () => {
+  it("reads the day off a moment in UTC", () => {
+    expect(utcCalendarDate(new Date("2026-10-29T09:36:00.000Z"))).toBe(
+      "2026-10-29",
+    );
+  });
+
+  it("keeps the UTC day at either end of it", () => {
+    expect(utcCalendarDate(new Date("2026-10-29T00:00:00.000Z"))).toBe(
+      "2026-10-29",
+    );
+    expect(utcCalendarDate(new Date("2026-10-29T23:59:59.999Z"))).toBe(
+      "2026-10-29",
+    );
+  });
+
+  it("rolls to the next day at midnight UTC rather than locally", () => {
+    expect(utcCalendarDate(new Date("2026-10-30T00:00:00.000Z"))).toBe(
+      "2026-10-30",
+    );
+  });
+
+  it("produces something isCalendarDate accepts", () => {
+    expect(isCalendarDate(utcCalendarDate(new Date("2026-01-05T12:00:00Z")))).toBe(
+      true,
     );
   });
 });
