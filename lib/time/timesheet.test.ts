@@ -5,7 +5,9 @@ import {
   buildTimesheet,
   cellFigure,
   compareRows,
+  daysWorked,
   describeCell,
+  describeTimesheet,
   NOTHING_LOGGED,
   expectsTime,
   isWorked,
@@ -499,5 +501,75 @@ describe("describeCell", () => {
   it("stays silent about charging when all of it will be charged for", () => {
     const cell = timesheetCell("2026-10-27", [logged("2026-10-27", 60)]);
     expect(describeCell(SITE_REBUILD, cell)).not.toContain("chargeable");
+  });
+});
+
+describe("describeTimesheet", () => {
+  const week = weekOf("2026-10-29");
+  const anvil: TimesheetProject = {
+    id: "prj_brand",
+    name: "Brand refresh",
+    clientName: "Anvil",
+    status: "active",
+  };
+
+  it("counts the projects, the hours and the days", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD, anvil], [
+      logged("2026-10-27", 120),
+      logged("2026-10-29", 90, { projectId: anvil.id }),
+    ]);
+    expect(describeTimesheet(sheet)).toBe("2 projects, 3h 30m logged over 2 days.");
+  });
+
+  it("says one day rather than over one day", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD], [
+      logged("2026-10-27", 60),
+    ]);
+    expect(describeTimesheet(sheet)).toBe("One project, 1h logged on one day.");
+  });
+
+  it("says a week with nothing in it is empty rather than reading out a zero", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD, anvil], []);
+    expect(describeTimesheet(sheet)).toBe("2 projects, nothing logged this week.");
+  });
+
+  it("says so when there is no row to show", () => {
+    expect(describeTimesheet(buildTimesheet(week, [], []))).toBe(
+      "No projects to show for this week.",
+    );
+  });
+
+  it("counts a day once however many projects worked it", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD, anvil], [
+      logged("2026-10-27", 60),
+      logged("2026-10-27", 60, { projectId: anvil.id }),
+    ]);
+    expect(describeTimesheet(sheet)).toBe("2 projects, 2h logged on one day.");
+  });
+});
+
+describe("daysWorked", () => {
+  const week = weekOf("2026-10-29");
+
+  it("counts only the days with work in them", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD], [
+      logged("2026-10-26", 30),
+      logged("2026-10-30", 30),
+      logged("2026-11-01", 30),
+    ]);
+    expect(daysWorked(sheet)).toBe(3);
+  });
+
+  it("counts nothing for an empty week", () => {
+    expect(daysWorked(buildTimesheet(week, [SITE_REBUILD], []))).toBe(0);
+  });
+
+  it("cannot count more than the week holds", () => {
+    const sheet = buildTimesheet(
+      week,
+      [SITE_REBUILD],
+      week.days.map((day) => logged(day, 15)),
+    );
+    expect(daysWorked(sheet)).toBe(DAYS_PER_WEEK);
   });
 });
