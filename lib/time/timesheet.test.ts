@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  belongsOnSheet,
+  expectsTime,
   isWorked,
   sumCells,
   timesheetCell,
@@ -214,6 +216,57 @@ describe("timesheetRow", () => {
   it("is still seven cells wide with nothing logged", () => {
     expect(timesheetRow(SITE_REBUILD, week, []).cells).toHaveLength(
       DAYS_PER_WEEK,
+    );
+  });
+});
+
+describe("expectsTime", () => {
+  it("expects work on an active project", () => {
+    expect(expectsTime({ status: "active" })).toBe(true);
+  });
+
+  it("expects none on a draft, a paused or a closed one", () => {
+    expect(expectsTime({ status: "draft" })).toBe(false);
+    expect(expectsTime({ status: "paused" })).toBe(false);
+    expect(expectsTime({ status: "closed" })).toBe(false);
+  });
+});
+
+describe("belongsOnSheet", () => {
+  const week = weekOf("2026-10-29");
+
+  function rowFor(status: TimesheetProject["status"], entries: TimesheetEntry[]) {
+    return timesheetRow({ ...SITE_REBUILD, status }, week, entries);
+  }
+
+  it("keeps an active project with nothing logged", () => {
+    expect(belongsOnSheet(rowFor("active", []))).toBe(true);
+  });
+
+  it("drops a closed project with nothing logged", () => {
+    expect(belongsOnSheet(rowFor("closed", []))).toBe(false);
+  });
+
+  it("drops a draft and a paused project with nothing logged", () => {
+    expect(belongsOnSheet(rowFor("draft", []))).toBe(false);
+    expect(belongsOnSheet(rowFor("paused", []))).toBe(false);
+  });
+
+  it("keeps a closed project that was worked this week", () => {
+    expect(belongsOnSheet(rowFor("closed", [logged("2026-10-27", 30)]))).toBe(
+      true,
+    );
+  });
+
+  it("keeps a paused project that was worked this week", () => {
+    expect(belongsOnSheet(rowFor("paused", [logged("2026-10-27", 30)]))).toBe(
+      true,
+    );
+  });
+
+  it("drops a closed project whose only work was in another week", () => {
+    expect(belongsOnSheet(rowFor("closed", [logged("2026-10-19", 30)]))).toBe(
+      false,
     );
   });
 });
