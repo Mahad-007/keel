@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lte } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import { timeEntries, type TimeEntry } from "@/lib/db/schema";
@@ -177,6 +177,58 @@ export async function listTimeEntries(
     .select()
     .from(timeEntries)
     .where(eq(timeEntries.projectId, projectId))
+    .orderBy(...NEWEST_FIRST);
+}
+
+/**
+ * A stretch of days, both ends included: what a timesheet asks for.
+ *
+ * Calendar dates rather than timestamps, because `worked_on` holds a day. Both
+ * ends inclusive, because a week is seven days and a range that excluded its
+ * last one would lose every Sunday to an off-by-one nobody would see until a
+ * month was short.
+ */
+export type WorkedOnRange = {
+  /** The first day to include: `YYYY-MM-DD`. */
+  readonly from: string;
+  /** The last day to include. */
+  readonly to: string;
+};
+
+/**
+ * Every project's time entries worked on in a stretch of days, most recent
+ * first.
+ *
+ * The one query in this module that is not scoped to a project, because the
+ * timesheet is not: it is a week across the whole studio, and asking per
+ * project would mean a query per row and a round trip the page spends waiting.
+ *
+ * Both ends inclusive, as `WorkedOnRange` says. A range whose `from` is after
+ * its `to` holds no days and so comes back empty rather than throwing — that
+ * is what the comparison does on its own, and it is the honest answer for a
+ * span with nothing in it.
+ *
+ * The dates go through the same `calendarDate` guard the column itself does.
+ * A timestamp would compare as a string against days and silently exclude the
+ * whole of its own date, which is the kind of filter that looks like missing
+ * data rather than a bad query.
+ *
+ * The `project_id, worked_on` index does not cover this — the filter is on the
+ * second column — so this is a scan of the table restricted by date. For a
+ * week of one studio's work that is a handful of rows, and Day 092 is where
+ * query shapes get looked at with a plan in hand rather than a guess.
+ */
+export async function listTimeEntriesInRange(
+  range: WorkedOnRange,
+  database: Database = db,
+): Promise<TimeEntry[]> {
+  const from = calendarDate(range.from, "range start");
+  const to = calendarDate(range.to, "range end");
+
+  return database
+    .select()
+    .from(timeEntries)
+    .where(and(gte(timeEntries.workedOn, from), lte(timeEntries.workedOn, to)))
     .orderBy(...NEWEST_FIRST);
 }
 
