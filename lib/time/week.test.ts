@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { shiftCalendarDate } from "@/lib/dates";
+
 import {
   DAYS_PER_WEEK,
   describeWeek,
@@ -322,5 +324,21 @@ describe("hasWeek", () => {
     for (const day of ["0000-01-01", "9999-12-31"]) {
       expect(() => weekOf(day)).toThrow();
     }
+  });
+
+  it("accepts only dates whose neighbouring weeks exist too", () => {
+    // The page renders a link to the week either side, so admitting a date
+    // whose own week is representable is not enough — the throw would move
+    // from the parser into the navigation and be the same 500.
+    for (const day of [FIRST_WEEK_DAY, LAST_WEEK_DAY]) {
+      const week = weekOf(day);
+      expect(() => previousWeek(week)).not.toThrow();
+      expect(() => nextWeek(week)).not.toThrow();
+    }
+  });
+
+  it("refuses the day just outside each end", () => {
+    expect(hasWeek(shiftCalendarDate(FIRST_WEEK_DAY, -1))).toBe(false);
+    expect(hasWeek(shiftCalendarDate(LAST_WEEK_DAY, 1))).toBe(false);
   });
 });

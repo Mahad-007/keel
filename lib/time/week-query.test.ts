@@ -8,7 +8,7 @@ import {
   TIMESHEET_PATH,
   WEEK_PARAM,
 } from "./week-query";
-import { weekOf } from "./week";
+import { nextWeek, previousWeek, weekOf } from "./week";
 
 const TODAY = "2026-10-29";
 
@@ -37,6 +37,17 @@ describe("parseWeekParam", () => {
   it("falls back for a day whose week would run off the calendar", () => {
     expect(parseWeekParam("0000-01-01", TODAY)).toEqual(weekOf(TODAY));
     expect(parseWeekParam("9999-12-31", TODAY)).toEqual(weekOf(TODAY));
+  });
+
+  it("falls back rather than hand back a week with no week beside it", () => {
+    // The page it lands on links to the week either side, so a week whose
+    // neighbours are off the calendar has to fall back here as well.
+    for (const edge of ["0000-01-07", "9999-12-25"]) {
+      const week = parseWeekParam(edge, TODAY);
+      expect(week).toEqual(weekOf(TODAY));
+      expect(() => previousWeek(week)).not.toThrow();
+      expect(() => nextWeek(week)).not.toThrow();
+    }
   });
 
   it("falls back to this week for a timestamp", () => {
