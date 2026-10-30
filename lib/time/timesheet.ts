@@ -294,3 +294,49 @@ export function compareRows(left: TimesheetRow, right: TimesheetRow): number {
 
   return compareNames(left.project.id, right.project.id);
 }
+
+/**
+ * The whole sheet, from the week, the projects and the week's entries.
+ *
+ * One pass to file the entries under their projects, a row each, then the
+ * rows that belong, in order. The column totals are taken off the rows rather
+ * than off the entries, and the corner off the columns, so every figure on
+ * screen is the sum of the figures beside it — which is the only thing a
+ * reader can check without leaving the page.
+ *
+ * Entries naming a project that is not in the list are dropped, along with
+ * their minutes. The page passes every project, so this only happens to a
+ * caller that narrowed one side and not the other; dropping them keeps the
+ * corner figure equal to the grid, and a total that counted hours with no row
+ * to put them in would be a number nobody could account for.
+ *
+ * `projects` is not required to be in any order. The sheet sorts for itself,
+ * because a row's place on it is a property of the sheet rather than of
+ * whichever query filled it.
+ */
+export function buildTimesheet(
+  week: Week,
+  projects: readonly TimesheetProject[],
+  entries: readonly TimesheetEntry[],
+): Timesheet {
+  const byProject = new Map<string, TimesheetEntry[]>();
+  for (const entry of entries) {
+    const project = byProject.get(entry.projectId);
+    if (project === undefined) byProject.set(entry.projectId, [entry]);
+    else project.push(entry);
+  }
+
+  const rows = projects
+    .map((project) =>
+      timesheetRow(project, week, byProject.get(project.id) ?? []),
+    )
+    .filter(belongsOnSheet)
+    .sort(compareRows);
+
+  const dayTotals = week.days.map((day, column) => ({
+    workedOn: day,
+    ...sumCells(rows.map((row) => row.cells[column])),
+  }));
+
+  return { week, rows, dayTotals, ...sumCells(dayTotals) };
+}
