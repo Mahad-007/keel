@@ -8,7 +8,9 @@ import {
   daysWorked,
   describeCell,
   describeTimesheet,
+  isSheetEmpty,
   NOTHING_LOGGED,
+  sheetSize,
   expectsTime,
   isWorked,
   sumCells,
@@ -571,5 +573,49 @@ describe("daysWorked", () => {
       week.days.map((day) => logged(day, 15)),
     );
     expect(daysWorked(sheet)).toBe(DAYS_PER_WEEK);
+  });
+});
+
+describe("sheetSize", () => {
+  const week = weekOf("2026-10-29");
+  const anvil: TimesheetProject = {
+    id: "prj_brand",
+    name: "Brand refresh",
+    clientName: "Anvil",
+    status: "active",
+  };
+
+  it("is as many rows as the sheet has, and a week wide", () => {
+    expect(sheetSize(buildTimesheet(week, [SITE_REBUILD, anvil], []))).toEqual({
+      rows: 2,
+      columns: DAYS_PER_WEEK,
+    });
+  });
+
+  it("is still a week wide on a week with nothing logged", () => {
+    expect(sheetSize(buildTimesheet(week, [SITE_REBUILD], [])).columns).toBe(
+      DAYS_PER_WEEK,
+    );
+  });
+
+  it("counts the rows that were kept, not the projects offered", () => {
+    const sheet = buildTimesheet(
+      week,
+      [SITE_REBUILD, { ...anvil, status: "closed" }],
+      [],
+    );
+    expect(sheetSize(sheet).rows).toBe(1);
+  });
+});
+
+describe("isSheetEmpty", () => {
+  const week = weekOf("2026-10-29");
+
+  it("is true when there is no row to draw", () => {
+    expect(isSheetEmpty(buildTimesheet(week, [], []))).toBe(true);
+  });
+
+  it("is false for a week with rows but nothing logged", () => {
+    expect(isSheetEmpty(buildTimesheet(week, [SITE_REBUILD], []))).toBe(false);
   });
 });
