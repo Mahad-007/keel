@@ -120,3 +120,56 @@ export function clampToGrid(
     column: clamp(position.column, 0, Math.max(size.columns - 1, 0)),
   };
 }
+
+/**
+ * Where a keypress moves the cursor, or null if the keypress is not one of
+ * the grid's.
+ *
+ * Null means "the browser can have it", which is how Tab still leaves the grid
+ * and how typing still reaches anything inside a cell. Every other answer is a
+ * position — including the one the cursor is already in, when the press was
+ * for a move the edge of the grid refuses. That is deliberate: the component
+ * takes any position as a reason to keep the keypress, so ArrowRight on
+ * Sunday stops at Sunday rather than scrolling the page sideways.
+ *
+ * Nothing wraps. ArrowRight off the end of a row does not come back on the
+ * next one, because the next row is a different project and the press was
+ * about a day: a cursor that jumped engagement would be one a reader has to
+ * look for after every press. The edges of a grid are where a reader's hand
+ * learns the shape of it.
+ */
+export function moveInGrid(
+  from: GridPosition,
+  size: GridSize,
+  press: GridPress,
+): GridPosition | null {
+  const move = gridMove(press);
+  if (move === null) return null;
+
+  const lastRow = Math.max(size.rows - 1, 0);
+  const lastColumn = Math.max(size.columns - 1, 0);
+
+  switch (move) {
+    case "left":
+      return clampToGrid({ ...from, column: from.column - 1 }, size);
+    case "right":
+      return clampToGrid({ ...from, column: from.column + 1 }, size);
+    case "up":
+      return clampToGrid({ ...from, row: from.row - 1 }, size);
+    case "down":
+      return clampToGrid({ ...from, row: from.row + 1 }, size);
+    case "row-start":
+      return clampToGrid({ ...from, column: 0 }, size);
+    case "row-end":
+      return clampToGrid({ ...from, column: lastColumn }, size);
+    case "sheet-start":
+      return { row: 0, column: 0 };
+    case "sheet-end":
+      return { row: lastRow, column: lastColumn };
+  }
+}
+
+/** Whether two positions are the same cell. What decides which cell is tabbable. */
+export function isSameCell(left: GridPosition, right: GridPosition): boolean {
+  return left.row === right.row && left.column === right.column;
+}
