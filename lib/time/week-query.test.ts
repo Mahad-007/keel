@@ -34,6 +34,11 @@ describe("parseWeekParam", () => {
     expect(parseWeekParam("2026-02-30", TODAY)).toEqual(weekOf(TODAY));
   });
 
+  it("falls back for a day whose week would run off the calendar", () => {
+    expect(parseWeekParam("0000-01-01", TODAY)).toEqual(weekOf(TODAY));
+    expect(parseWeekParam("9999-12-31", TODAY)).toEqual(weekOf(TODAY));
+  });
+
   it("falls back to this week for a timestamp", () => {
     expect(parseWeekParam("2026-10-19T00:00:00.000Z", TODAY)).toEqual(
       weekOf(TODAY),

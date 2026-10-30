@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   DAYS_PER_WEEK,
   describeWeek,
+  FIRST_WEEK_DAY,
+  hasWeek,
+  LAST_WEEK_DAY,
   isInWeek,
   isWeekend,
   nextWeek,
@@ -288,5 +291,36 @@ describe("weekdayHeading", () => {
       "Sat 31",
       "Sun 1",
     ]);
+  });
+});
+
+describe("hasWeek", () => {
+  it("accepts an ordinary date", () => {
+    expect(hasWeek("2026-10-29")).toBe(true);
+  });
+
+  it("accepts the first and last day a week can be built around", () => {
+    expect(hasWeek(FIRST_WEEK_DAY)).toBe(true);
+    expect(hasWeek(LAST_WEEK_DAY)).toBe(true);
+  });
+
+  it("refuses a day whose week would run off the calendar", () => {
+    expect(hasWeek("0000-01-01")).toBe(false);
+    expect(hasWeek("9999-12-31")).toBe(false);
+  });
+
+  it("refuses anything that is not a calendar date", () => {
+    expect(hasWeek("2026-02-30")).toBe(false);
+    expect(hasWeek("2026-10-29T00:00:00.000Z")).toBe(false);
+    expect(hasWeek("")).toBe(false);
+  });
+
+  it("accepts exactly the dates weekOf can answer for", () => {
+    for (const day of [FIRST_WEEK_DAY, LAST_WEEK_DAY, "2026-10-29"]) {
+      expect(() => weekOf(day)).not.toThrow();
+    }
+    for (const day of ["0000-01-01", "9999-12-31"]) {
+      expect(() => weekOf(day)).toThrow();
+    }
   });
 });
