@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   belongsOnSheet,
+  buildTimesheet,
   compareRows,
   expectsTime,
   isWorked,
@@ -331,5 +332,106 @@ describe("compareRows", () => {
     expect(compareRows(left, right)).toBeLessThan(0);
     expect(compareRows(right, left)).toBeGreaterThan(0);
     expect(compareRows(left, left)).toBe(0);
+  });
+});
+
+describe("buildTimesheet", () => {
+  const week = weekOf("2026-10-29");
+
+  const anvilBrand: TimesheetProject = {
+    id: "prj_brand",
+    name: "Brand refresh",
+    clientName: "Anvil",
+    status: "active",
+  };
+
+  it("gives every included project a row, in order", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD, anvilBrand], []);
+    expect(sheet.rows.map((row) => row.project.id)).toEqual([
+      anvilBrand.id,
+      SITE_REBUILD.id,
+    ]);
+  });
+
+  it("files each entry under its own project", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD, anvilBrand], [
+      logged("2026-10-27", 60),
+      logged("2026-10-27", 30, { projectId: anvilBrand.id }),
+    ]);
+    const brand = sheet.rows.find((row) => row.project.id === anvilBrand.id);
+    const site = sheet.rows.find((row) => row.project.id === SITE_REBUILD.id);
+    expect(brand?.minutes).toBe(30);
+    expect(site?.minutes).toBe(60);
+  });
+
+  it("totals each day down the column", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD, anvilBrand], [
+      logged("2026-10-27", 60),
+      logged("2026-10-27", 30, { projectId: anvilBrand.id }),
+      logged("2026-10-29", 45),
+    ]);
+    expect(sheet.dayTotals.map((cell) => cell.minutes)).toEqual([
+      0, 90, 0, 45, 0, 0, 0,
+    ]);
+  });
+
+  it("heads the day totals with the week's own days", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD], []);
+    expect(sheet.dayTotals.map((cell) => cell.workedOn)).toEqual(week.days);
+  });
+
+  it("agrees between the corner, the rows and the columns", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD, anvilBrand], [
+      logged("2026-10-26", 15),
+      logged("2026-10-28", 120, { projectId: anvilBrand.id }),
+      logged("2026-11-01", 45, { billable: false }),
+    ]);
+    const acrossRows = sheet.rows.reduce((sum, row) => sum + row.minutes, 0);
+    const downColumns = sheet.dayTotals.reduce(
+      (sum, cell) => sum + cell.minutes,
+      0,
+    );
+    expect(sheet.minutes).toBe(180);
+    expect(acrossRows).toBe(180);
+    expect(downColumns).toBe(180);
+    expect(sheet.billableMinutes).toBe(135);
+    expect(sheet.entryCount).toBe(3);
+  });
+
+  it("keeps the week it was built for", () => {
+    expect(buildTimesheet(week, [], []).week).toBe(week);
+  });
+
+  it("leaves out a project the week expects nothing from", () => {
+    const sheet = buildTimesheet(
+      week,
+      [SITE_REBUILD, { ...anvilBrand, status: "closed" }],
+      [],
+    );
+    expect(sheet.rows.map((row) => row.project.id)).toEqual([SITE_REBUILD.id]);
+  });
+
+  it("drops entries naming a project it has no row for", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD], [
+      logged("2026-10-27", 60),
+      logged("2026-10-27", 999, { projectId: "prj_elsewhere" }),
+    ]);
+    expect(sheet.minutes).toBe(60);
+    expect(sheet.rows).toHaveLength(1);
+  });
+
+  it("holds no rows and no minutes for a studio with no projects", () => {
+    const sheet = buildTimesheet(week, [], []);
+    expect(sheet.rows).toEqual([]);
+    expect(sheet.minutes).toBe(0);
+    expect(sheet.dayTotals.every((cell) => cell.minutes === 0)).toBe(true);
+  });
+
+  it("sorts rows however the projects arrived", () => {
+    const forwards = buildTimesheet(week, [anvilBrand, SITE_REBUILD], []);
+    const backwards = buildTimesheet(week, [SITE_REBUILD, anvilBrand], []);
+    expect(forwards.rows.map((row) => row.project.id)).toEqual(
+      backwards.rows.map((row) => row.project.id),
+    );
   });
 });
