@@ -527,3 +527,23 @@ export function describeSheetTotal(sheet: Timesheet): string {
   if (free !== null) parts.push(free);
   return parts.join(", ");
 }
+
+/**
+ * The two columns that are not days, and the row that is not a project.
+ *
+ * Written here rather than in the markup because the grid's shape is a fact
+ * about the sheet: seven day columns between a row header and a total, and a
+ * total row under all of them. A heading changed in one place and not the
+ * other is how a column ends up labelled one thing and described as another.
+ *
+ * "Week" rather than "Total" for the row total, because the column it heads is
+ * the week — the total row underneath it is also a total, and two columns both
+ * called that would say nothing about which direction either runs in.
+ */
+export const SHEET_COLUMNS = {
+  project: "Project",
+  week: "Week",
+} as const;
+
+/** What the totals row is called in the leftmost column. */
+export const SHEET_TOTAL_ROW = "All projects";
