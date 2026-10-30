@@ -229,3 +229,23 @@ export function describeWeek(week: Week): string {
   }
   return `${from.month} ${from.day} – ${to.month} ${to.day}, ${to.year}`;
 }
+
+/**
+ * A column heading: `2026-10-26` becomes `Mon 26`.
+ *
+ * The name and the day of the month, because either alone leaves a question.
+ * `Mon` does not say which Monday, which matters the moment somebody is
+ * looking at a week that is not this one; `26` does not say what shape the
+ * week is, and the whole reason for a seven-column grid is that a reader knows
+ * where Wednesday is without counting.
+ *
+ * The month is not in it. It would be the same word in six of the seven
+ * columns and the heading above the grid already says which month or two the
+ * week spans — and the cells underneath need the width more than the heading
+ * does.
+ */
+export function weekdayHeading(value: string): string {
+  const parts = calendarDateParts(value);
+  if (parts === null) return value;
+  return `${weekdayName(value)} ${parts.day}`;
+}

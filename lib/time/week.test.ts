@@ -10,6 +10,7 @@ import {
   shiftWeek,
   startOfWeek,
   weekdayIndex,
+  weekdayHeading,
   weekdayName,
   weekOf,
 } from "./week";
@@ -265,5 +266,27 @@ describe("describeWeek", () => {
     expect(
       describeWeek({ start: "soon", end: "later", days: [] }),
     ).toBe("soon – later");
+  });
+});
+
+describe("weekdayHeading", () => {
+  it("names the day and numbers it", () => {
+    expect(weekdayHeading("2026-10-26")).toBe("Mon 26");
+  });
+
+  it("drops the leading zero from a single-digit day", () => {
+    expect(weekdayHeading("2026-11-01")).toBe("Sun 1");
+  });
+
+  it("heads every column of a week that straddles two months", () => {
+    expect(weekOf("2026-10-29").days.map(weekdayHeading)).toEqual([
+      "Mon 26",
+      "Tue 27",
+      "Wed 28",
+      "Thu 29",
+      "Fri 30",
+      "Sat 31",
+      "Sun 1",
+    ]);
   });
 });
