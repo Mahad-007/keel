@@ -212,6 +212,24 @@ describe("shiftCalendarDate", () => {
     );
   });
 
+  it("reaches both ends of the years a calendar date can hold", () => {
+    expect(shiftCalendarDate("0000-01-07", -6)).toBe("0000-01-01");
+    expect(shiftCalendarDate("9999-12-25", 6)).toBe("9999-12-31");
+  });
+
+  it("refuses a shift off the end of those years", () => {
+    // `toISOString` would write these as `+010000-01-01` and `-000001-12-31`,
+    // neither of which is a calendar date — so they fail here rather than
+    // somewhere further along with no sign of where they came from.
+    expect(() => shiftCalendarDate("9999-12-31", 1)).toThrow(/out of range/);
+    expect(() => shiftCalendarDate("0000-01-01", -1)).toThrow(/out of range/);
+  });
+
+  it("pads a year that needs it rather than writing it short", () => {
+    expect(shiftCalendarDate("0001-01-02", -1)).toBe("0001-01-01");
+    expect(shiftCalendarDate("0099-12-31", 1)).toBe("0100-01-01");
+  });
+
   it("refuses a fractional shift", () => {
     expect(() => shiftCalendarDate("2026-10-14", 1.5)).toThrow(
       /not a whole number of days/,
