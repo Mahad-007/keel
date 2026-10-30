@@ -130,24 +130,30 @@ export function startOfWeek(value: string): string {
  *
  * A calendar date holds a four-digit year, so the week containing
  * `0000-01-01` would start in a year that cannot be written down and the week
- * containing `9999-12-31` would end in one. Rather than special-case the two
- * of them, the first and last week of the range are simply out of bounds —
- * nobody is filling in a timesheet for the year 0000, and a URL asking for one
- * is a mangled URL rather than a request.
+ * containing `9999-12-31` would end in one. Rather than special-case the ends
+ * of the calendar, the weeks near them are simply out of bounds — nobody is
+ * filling in a timesheet for the year 0000, and a URL asking for one is a
+ * mangled URL rather than a request.
  *
- * Six days in from each end, because that is the furthest `startOfWeek` and
- * the walk out to `end` can reach.
+ * Thirteen days in from each end, not six. A week is never shown on its own:
+ * the page it is on renders a link to the week either side of it, so the
+ * furthest the arithmetic reaches from the day asked for is six days back to
+ * the start, seven more back to the previous week's start — and the same
+ * forwards to the next week's end. A margin of one week would put the two
+ * neighbouring weeks off the calendar and throw out of the navigation instead
+ * of out of the parser, which is the same 500 one step further along.
  */
-export const FIRST_WEEK_DAY = "0000-01-07";
-export const LAST_WEEK_DAY = "9999-12-25";
+export const FIRST_WEEK_DAY = "0000-01-14";
+export const LAST_WEEK_DAY = "9999-12-18";
 
 /**
- * Whether a week can be built around a date.
+ * Whether a week can be built around a date, and stepped either side of.
  *
  * What a parser checks instead of `isCalendarDate`, so a value naming a day at
- * the very edge of the calendar falls back to the week somebody is in rather
- * than throwing out of `weekOf` — a mangled param is still a request for the
- * timesheet, and a 500 is a worse answer to it than this week.
+ * the edge of the calendar falls back to the week somebody is in rather than
+ * throwing out of `weekOf` or out of the link to the week before it — a
+ * mangled param is still a request for the timesheet, and a 500 is a worse
+ * answer to it than this week.
  */
 export function hasWeek(value: string): boolean {
   return (
