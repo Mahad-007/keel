@@ -17,6 +17,7 @@ import {
   getTimeEntry,
   listTimeEntries,
   listTimeEntriesForDeliverable,
+  listTimeEntriesInRange,
   markTimeEntryBilled,
   updateTimeEntry,
 } from "./time-entries";
@@ -1284,5 +1285,128 @@ describe("the cascades that outrank the billed guard", () => {
     await deleteProject(other.id, db);
 
     expect(await getTimeEntry(entry.id, db)).toBeNull();
+  });
+});
+
+describe("listTimeEntriesInRange", () => {
+  /** A second project, so the range query can be shown to cross projects. */
+  let otherProjectId: string;
+
+  beforeEach(async () => {
+    const client = await createClient({ name: "Second Studio" }, db);
+    const project = await createProject(
+      { clientId: client.id, name: "Brand refresh" },
+      db,
+    );
+    otherProjectId = project.id;
+  });
+
+  it("returns the entries inside the range", async () => {
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-27" }, db);
+    await createTimeEntry({ projectId, minutes: 30, workedOn: "2026-10-29" }, db);
+
+    const entries = await listTimeEntriesInRange(
+      { from: "2026-10-26", to: "2026-11-01" },
+      db,
+    );
+    expect(entries.map((entry) => entry.minutes)).toEqual([30, 60]);
+  });
+
+  it("includes both ends of the range", async () => {
+    await createTimeEntry({ projectId, minutes: 15, workedOn: "2026-10-26" }, db);
+    await createTimeEntry({ projectId, minutes: 25, workedOn: "2026-11-01" }, db);
+
+    const entries = await listTimeEntriesInRange(
+      { from: "2026-10-26", to: "2026-11-01" },
+      db,
+    );
+    expect(entries).toHaveLength(2);
+  });
+
+  it("leaves out the day either side of the range", async () => {
+    await createTimeEntry({ projectId, minutes: 15, workedOn: "2026-10-25" }, db);
+    await createTimeEntry({ projectId, minutes: 25, workedOn: "2026-11-02" }, db);
+
+    const entries = await listTimeEntriesInRange(
+      { from: "2026-10-26", to: "2026-11-01" },
+      db,
+    );
+    expect(entries).toEqual([]);
+  });
+
+  it("crosses projects, which no other list in this module does", async () => {
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-27" }, db);
+    await createTimeEntry(
+      { projectId: otherProjectId, minutes: 45, workedOn: "2026-10-28" },
+      db,
+    );
+
+    const entries = await listTimeEntriesInRange(
+      { from: "2026-10-26", to: "2026-11-01" },
+      db,
+    );
+    expect(new Set(entries.map((entry) => entry.projectId))).toEqual(
+      new Set([projectId, otherProjectId]),
+    );
+  });
+
+  it("returns the most recent work first", async () => {
+    await createTimeEntry({ projectId, minutes: 10, workedOn: "2026-10-26" }, db);
+    await createTimeEntry({ projectId, minutes: 20, workedOn: "2026-10-30" }, db);
+    await createTimeEntry({ projectId, minutes: 30, workedOn: "2026-10-28" }, db);
+
+    const entries = await listTimeEntriesInRange(
+      { from: "2026-10-26", to: "2026-11-01" },
+      db,
+    );
+    expect(entries.map((entry) => entry.workedOn)).toEqual([
+      "2026-10-30",
+      "2026-10-28",
+      "2026-10-26",
+    ]);
+  });
+
+  it("returns a single day for a range of one", async () => {
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-27" }, db);
+    await createTimeEntry({ projectId, minutes: 30, workedOn: "2026-10-28" }, db);
+
+    const entries = await listTimeEntriesInRange(
+      { from: "2026-10-27", to: "2026-10-27" },
+      db,
+    );
+    expect(entries.map((entry) => entry.minutes)).toEqual([60]);
+  });
+
+  it("returns nothing for a range whose ends are the wrong way round", async () => {
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-27" }, db);
+
+    const entries = await listTimeEntriesInRange(
+      { from: "2026-11-01", to: "2026-10-26" },
+      db,
+    );
+    expect(entries).toEqual([]);
+  });
+
+  it("returns nothing when the week holds no work", async () => {
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-09-01" }, db);
+
+    expect(
+      await listTimeEntriesInRange({ from: "2026-10-26", to: "2026-11-01" }, db),
+    ).toEqual([]);
+  });
+
+  it("refuses a range end that is a timestamp rather than a day", async () => {
+    await expect(
+      listTimeEntriesInRange(
+        { from: "2026-10-26", to: "2026-11-01T23:59:59.000Z" },
+        db,
+      ),
+    ).rejects.toThrow(/range end/);
+  });
+
+  it("refuses a range start that is not a date", async () => {
+    await expect(
+      listTimeEntriesInRange({ from: "last Monday", to: "2026-11-01" }, db),
+    ).rejects.toThrow(/range start/);
   });
 });
