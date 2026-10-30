@@ -43,3 +43,6 @@ next-env.d.ts
 # local database
 keel.db
 keel.db-*
+
+# throwaway scripts and output from poking at the running app
+/.scratch/
