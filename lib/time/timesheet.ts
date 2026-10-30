@@ -1,7 +1,12 @@
+import { formatMinutes } from "@/lib/minutes";
 import type { ProjectStatus } from "@/lib/projects/status";
 
-import { billableMinutes, totalMinutes } from "./days";
-import { isInWeek, type Week } from "./week";
+import {
+  billableMinutes,
+  notChargeablePhrase,
+  totalMinutes,
+} from "./days";
+import { isInWeek, weekdayHeading, type Week } from "./week";
 
 /**
  * A week of the studio's time, as a grid: a row per project, a column per day.
@@ -339,4 +344,61 @@ export function buildTimesheet(
   }));
 
   return { week, rows, dayTotals, ...sumCells(dayTotals) };
+}
+
+/**
+ * What a cell with nothing in it shows: an en dash, not a zero.
+ *
+ * `0m` in forty cells is forty numbers to read past, and the eye cannot tell
+ * at a glance which of them are the ones that matter. A dash says "nothing
+ * here" without pretending to be a measurement — and it leaves the figures as
+ * the only numbers on the grid, which is what makes a busy Tuesday visible
+ * from across the room.
+ */
+export const NOTHING_LOGGED = "–";
+
+/**
+ * A cell as its figure, or the dash that stands for nothing.
+ *
+ * One function so the grid, the row totals and the column totals cannot
+ * disagree about how an empty cell reads. A row total of nothing is a dash for
+ * the same reason a cell is: on a sheet where most rows are open for the week
+ * rather than worked in it, a column of `0m` would be the loudest thing on the
+ * page.
+ */
+export function cellFigure(cell: TimesheetCell): string {
+  return isWorked(cell) ? formatMinutes(cell.minutes) : NOTHING_LOGGED;
+}
+
+/**
+ * A cell as one sentence, for a reader who is not looking at the grid.
+ *
+ * On screen a cell is a duration whose meaning comes entirely from where it
+ * sits: the row says which project, the heading says which day. Read aloud
+ * that is a bare number — "two thirty" — so the cell carries its own position
+ * as its accessible name, and the figure inside it is hidden rather than
+ * announced on its own.
+ *
+ * The project, the client and the day, in that order, because that is the
+ * order somebody arrowing across a row needs them: the row has not changed,
+ * the day has. The entry count is in it for the reason the column exists — a
+ * figure built from five entries is a different fact from the same figure
+ * built from one — and the non-chargeable clause appears only when there is a
+ * gap to report, the same rule the time list's day headings follow.
+ */
+export function describeCell(
+  project: TimesheetProject,
+  cell: TimesheetCell,
+): string {
+  const where = `${project.name}, ${project.clientName}, ${weekdayHeading(cell.workedOn)}`;
+  if (!isWorked(cell)) return `${where} — nothing logged`;
+
+  const parts = [
+    formatMinutes(cell.minutes),
+    cell.entryCount === 1 ? "one entry" : `${cell.entryCount} entries`,
+  ];
+  const free = notChargeablePhrase(cell.minutes, cell.billableMinutes);
+  if (free !== null) parts.push(free);
+
+  return `${where} — ${parts.join(", ")}`;
 }
