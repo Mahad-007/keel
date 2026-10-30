@@ -208,3 +208,45 @@ export function timesheetRow(
   const cells = weekCells(week, entries);
   return { project, cells, ...sumCells(cells) };
 }
+
+/**
+ * The status that earns a project a row on a week it has no time in: active.
+ *
+ * A timesheet that listed every project a studio has ever run would be a
+ * hundred rows of dashes, and the one thing a weekly sheet has to be is
+ * scannable. Active is the set somebody is expected to be working on, so those
+ * are the rows worth leaving open — and Day 027 turns exactly those empty
+ * cells into the place a week gets filled in.
+ *
+ * Draft, paused and closed are left out. A draft is work nobody has committed
+ * to, a paused project is one deliberately not being worked on, and a closed
+ * one is over; a row for each would be a prompt to log time against something
+ * that should not be having time logged against it.
+ */
+export const TIMESHEET_STATUS: ProjectStatus = "active";
+
+/**
+ * Whether a project is one the week expects work on.
+ *
+ * A fact about the project rather than about the sheet, which is why it is
+ * separate from `belongsOnSheet`: the status rule and the "but it has time in
+ * it" rule are different claims, and only one of them changes if Day 098 or a
+ * later filter decides which statuses a sheet shows.
+ */
+export function expectsTime(project: Pick<TimesheetProject, "status">): boolean {
+  return project.status === TIMESHEET_STATUS;
+}
+
+/**
+ * Whether a row belongs on the sheet: it has work in the week, or it is a
+ * project the week expects work on.
+ *
+ * Work in the week always wins. A paused project that somebody logged three
+ * hours against on Tuesday is exactly the row a reader needs to see — hiding
+ * it would mean a sheet whose column totals did not match the hours in it, and
+ * the figure a reader could not account for is the one that stops them
+ * trusting the page.
+ */
+export function belongsOnSheet(row: TimesheetRow): boolean {
+  return row.entryCount > 0 || expectsTime(row.project);
+}
