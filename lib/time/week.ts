@@ -9,10 +9,10 @@
  * can see.
  *
  * Pure, and all of it over strings. A calendar date is a day and not a moment
- * — `lib/dates.ts` says why — so the shifting that has to go through `Date`
- * does it in UTC, at midnight, and comes back out as a string before anybody
- * else sees it. A week that depended on the server's timezone would be a
- * different seven days for the person reading it than for the query that
+ * — `lib/dates.ts` says why — so the walking from one day to the next goes
+ * through `shiftCalendarDate`, which keeps the `Date` it needs in UTC and
+ * hands a string back out. A week that depended on the server's timezone would
+ * be a different seven days for the person reading it than for the query that
  * filled it in.
  */
 

@@ -113,3 +113,37 @@ export function localCalendarDate(moment: Date): string {
   const day = String(moment.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * The calendar date a given number of days away from another one:
+ * `shiftCalendarDate("2026-10-31", 1)` is `2026-11-01`.
+ *
+ * Through `Date` at midnight UTC, because month lengths and leap years are not
+ * worth reimplementing and `setUTCDate` already rolls over correctly. UTC
+ * rather than local, which is the whole reason this takes and returns strings:
+ * a `Date` built from a bare date in a local timezone is a different day for
+ * half the world, and a week shifted that way could land on a Sunday for the
+ * server and a Monday for the reader.
+ *
+ * The input has to be a calendar date and nothing else. A timestamp would make
+ * the answer depend on a time of day this does not keep, and a caller handing
+ * one over has confused a day with a moment — so it throws rather than quietly
+ * rounding, the way `parseHours` throws on something that is not hours.
+ *
+ * Daylight saving does not come into it. The dates have no time of day, so
+ * there is no hour to lose or repeat: the day after the clocks change is the
+ * next date on the calendar, which is what somebody filling in a timesheet
+ * means by tomorrow.
+ */
+export function shiftCalendarDate(value: string, days: number): string {
+  if (!isCalendarDate(value)) {
+    throw new Error(`not a calendar date: ${value}`);
+  }
+  if (!Number.isInteger(days)) {
+    throw new Error(`not a whole number of days: ${days}`);
+  }
+
+  const moment = new Date(`${value}T00:00:00.000Z`);
+  moment.setUTCDate(moment.getUTCDate() + days);
+  return moment.toISOString().slice(0, 10);
+}
