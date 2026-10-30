@@ -31,8 +31,16 @@ describe("gridMove", () => {
     expect(gridMove({ key: "End", metaKey: true })).toBe("sheet-end");
   });
 
-  it("ignores a modifier on the arrows", () => {
-    expect(gridMove({ key: "ArrowRight", ctrlKey: true })).toBe("right");
+  it("leaves a modified arrow to the browser, so Back still works", () => {
+    expect(gridMove({ key: "ArrowLeft", metaKey: true })).toBeNull();
+    expect(gridMove({ key: "ArrowLeft", altKey: true })).toBeNull();
+    expect(gridMove({ key: "ArrowRight", ctrlKey: true })).toBeNull();
+  });
+
+  it("leaves Alt alone entirely", () => {
+    expect(gridMove({ key: "Home", altKey: true })).toBeNull();
+    expect(gridMove({ key: "End", altKey: true })).toBeNull();
+    expect(gridMove({ key: "ArrowDown", altKey: true })).toBeNull();
   });
 
   it("leaves Tab alone, so the grid can be escaped", () => {
@@ -169,6 +177,7 @@ describe("moveInGrid", () => {
   it("hands a key it has no use for back to the browser", () => {
     expect(moveInGrid(middle, size, { key: "Tab" })).toBeNull();
     expect(moveInGrid(middle, size, { key: "x" })).toBeNull();
+    expect(moveInGrid(middle, size, { key: "ArrowLeft", altKey: true })).toBeNull();
   });
 
   it("brings a stale cursor inside the grid as it moves", () => {

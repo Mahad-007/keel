@@ -42,6 +42,7 @@ export type GridPress = {
   readonly key: string;
   readonly ctrlKey?: boolean;
   readonly metaKey?: boolean;
+  readonly altKey?: boolean;
 };
 
 /** The moves a keypress can ask for. */
@@ -64,25 +65,30 @@ export type GridMove =
  *
  * Home and End are the row's ends, which is what they mean in a spreadsheet
  * and in a text field — the nearest edge in the direction the line runs. With
- * a modifier they mean the sheet's ends instead, which is the same escalation
- * Ctrl+Home performs in a document.
+ * Ctrl or Cmd they mean the sheet's ends instead, which is the same escalation
+ * Ctrl+Home performs in a document. Either of those two will do: requiring
+ * Ctrl specifically would leave the shortcut unreachable on a Mac keyboard.
  *
- * Either modifier will do. Requiring Ctrl specifically would leave the
- * shortcut unreachable on a Mac keyboard, and no other binding on this page
- * claims Cmd+Home.
+ * A modified arrow is not the grid's. Cmd+Left is Back on a Mac and Alt+Left
+ * is Back everywhere else, and a grid that swallowed those would break the
+ * back button exactly on the page whose whole state is in the URL — the week
+ * somebody stepped to is a history entry, and stepping back out of it is the
+ * first thing they will try. Alt is left alone entirely for the same reason:
+ * the browser has bindings on it that this page has no business claiming.
  */
 export function gridMove(press: GridPress): GridMove | null {
+  if (press.altKey === true) return null;
   const whole = press.ctrlKey === true || press.metaKey === true;
 
   switch (press.key) {
     case "ArrowLeft":
-      return "left";
+      return whole ? null : "left";
     case "ArrowRight":
-      return "right";
+      return whole ? null : "right";
     case "ArrowUp":
-      return "up";
+      return whole ? null : "up";
     case "ArrowDown":
-      return "down";
+      return whole ? null : "down";
     case "Home":
       return whole ? "sheet-start" : "row-start";
     case "End":
