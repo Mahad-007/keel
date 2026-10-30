@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   belongsOnSheet,
   buildTimesheet,
+  cellFigure,
   compareRows,
+  describeCell,
+  NOTHING_LOGGED,
   expectsTime,
   isWorked,
   sumCells,
@@ -433,5 +436,68 @@ describe("buildTimesheet", () => {
     expect(forwards.rows.map((row) => row.project.id)).toEqual(
       backwards.rows.map((row) => row.project.id),
     );
+  });
+});
+
+describe("cellFigure", () => {
+  it("writes the duration of a worked cell", () => {
+    expect(cellFigure(timesheetCell("2026-10-27", [logged("2026-10-27", 150)]))).toBe(
+      "2h 30m",
+    );
+  });
+
+  it("writes a dash rather than a zero for an empty cell", () => {
+    expect(cellFigure(timesheetCell("2026-10-27", []))).toBe(NOTHING_LOGGED);
+  });
+
+  it("writes the total of a cell built from several entries", () => {
+    expect(
+      cellFigure(
+        timesheetCell("2026-10-27", [
+          logged("2026-10-27", 90),
+          logged("2026-10-27", 45),
+        ]),
+      ),
+    ).toBe("2h 15m");
+  });
+});
+
+describe("describeCell", () => {
+  it("says where the cell is before saying what is in it", () => {
+    const cell = timesheetCell("2026-10-27", [logged("2026-10-27", 150)]);
+    expect(describeCell(SITE_REBUILD, cell)).toBe(
+      "Site rebuild, Harbour Co, Tue 27 — 2h 30m, one entry",
+    );
+  });
+
+  it("counts several entries", () => {
+    const cell = timesheetCell("2026-10-27", [
+      logged("2026-10-27", 90),
+      logged("2026-10-27", 60),
+    ]);
+    expect(describeCell(SITE_REBUILD, cell)).toBe(
+      "Site rebuild, Harbour Co, Tue 27 — 2h 30m, 2 entries",
+    );
+  });
+
+  it("says nothing is logged rather than reading out a zero", () => {
+    expect(describeCell(SITE_REBUILD, timesheetCell("2026-10-27", []))).toBe(
+      "Site rebuild, Harbour Co, Tue 27 — nothing logged",
+    );
+  });
+
+  it("mentions the part that will not be charged for", () => {
+    const cell = timesheetCell("2026-10-27", [
+      logged("2026-10-27", 120),
+      logged("2026-10-27", 30, { billable: false }),
+    ]);
+    expect(describeCell(SITE_REBUILD, cell)).toBe(
+      "Site rebuild, Harbour Co, Tue 27 — 2h 30m, 2 entries, 30m not chargeable",
+    );
+  });
+
+  it("stays silent about charging when all of it will be charged for", () => {
+    const cell = timesheetCell("2026-10-27", [logged("2026-10-27", 60)]);
+    expect(describeCell(SITE_REBUILD, cell)).not.toContain("chargeable");
   });
 });
