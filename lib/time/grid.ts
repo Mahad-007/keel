@@ -54,3 +54,40 @@ export type GridMove =
   | "row-end"
   | "sheet-start"
   | "sheet-end";
+
+/**
+ * Which move a keypress asks for, or null if it asks for none.
+ *
+ * Null is the important answer: it is what leaves every other key alone.
+ * A grid that swallowed keys it had no use for would break Tab out of itself,
+ * and the first thing a reader does when the arrows stop working is press Tab.
+ *
+ * Home and End are the row's ends, which is what they mean in a spreadsheet
+ * and in a text field — the nearest edge in the direction the line runs. With
+ * a modifier they mean the sheet's ends instead, which is the same escalation
+ * Ctrl+Home performs in a document.
+ *
+ * Either modifier will do. Requiring Ctrl specifically would leave the
+ * shortcut unreachable on a Mac keyboard, and no other binding on this page
+ * claims Cmd+Home.
+ */
+export function gridMove(press: GridPress): GridMove | null {
+  const whole = press.ctrlKey === true || press.metaKey === true;
+
+  switch (press.key) {
+    case "ArrowLeft":
+      return "left";
+    case "ArrowRight":
+      return "right";
+    case "ArrowUp":
+      return "up";
+    case "ArrowDown":
+      return "down";
+    case "Home":
+      return whole ? "sheet-start" : "row-start";
+    case "End":
+      return whole ? "sheet-end" : "row-end";
+    default:
+      return null;
+  }
+}
