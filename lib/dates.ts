@@ -27,19 +27,42 @@ const MONTHS = [
 const LEADING_DATE = /^(\d{4})-(\d{2})-(\d{2})(?:[T ]|$)/;
 
 /**
+ * The calendar date on the front of a stored value, split into the pieces a
+ * label is built from — or null when there is no date there to read.
+ *
+ * `month` is the abbreviation rather than the number, because every caller
+ * wants the word and none of them wants to index `MONTHS` for itself. An
+ * impossible month is therefore the same answer as no date at all: a value
+ * that cannot be named cannot be formatted, and both end with the caller
+ * handing the string back untouched.
+ *
+ * `day` and `year` come back as numbers, so a caller can compare them without
+ * parsing the strings again — which is what the week heading does to decide
+ * whether to print the month twice.
+ */
+export function calendarDateParts(
+  value: string,
+): { year: number; month: string; day: number } | null {
+  const match = LEADING_DATE.exec(value.trim());
+  if (!match) return null;
+
+  const [, year, month, day] = match;
+  const name = MONTHS[Number(month) - 1];
+  if (name === undefined) return null;
+
+  return { year: Number(year), month: name, day: Number(day) };
+}
+
+/**
  * `2026-09-21T09:36:00.000Z` becomes `Sep 21, 2026`. Anything that isn't a
  * date is handed back untouched: a surprising value in one cell is better than
  * a page that won't render.
  */
 export function formatDate(value: string): string {
-  const match = LEADING_DATE.exec(value.trim());
-  if (!match) return value;
+  const parts = calendarDateParts(value);
+  if (parts === null) return value;
 
-  const [, year, month, day] = match;
-  const name = MONTHS[Number(month) - 1];
-  if (name === undefined) return value;
-
-  return `${name} ${Number(day)}, ${year}`;
+  return `${parts.month} ${parts.day}, ${parts.year}`;
 }
 
 const CALENDAR_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
