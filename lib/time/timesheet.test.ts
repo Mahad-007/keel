@@ -18,6 +18,7 @@ import {
   minutesFigure,
   NOTHING_LOGGED,
   sheetSize,
+  startingCursor,
   sumCells,
   timesheetCell,
   timesheetRow,
@@ -786,5 +787,32 @@ describe("the figure readers over any total", () => {
     expect(isWorked(row)).toBe(false);
     expect(cellFigure(row)).toBe(NOTHING_LOGGED);
     expect(cellAside(row)).toBeNull();
+  });
+});
+
+describe("startingCursor", () => {
+  const week = weekOf("2026-10-29");
+
+  it("starts on today's column", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD], []);
+    expect(startingCursor(sheet, "2026-10-29")).toEqual({ row: 0, column: 3 });
+  });
+
+  it("starts on the first column of a week today is not in", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD], []);
+    expect(startingCursor(sheet, "2026-11-20")).toEqual({ row: 0, column: 0 });
+  });
+
+  it("starts on the last column when today is the week's last day", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD], []);
+    expect(startingCursor(sheet, "2026-11-01")).toEqual({
+      row: 0,
+      column: DAYS_PER_WEEK - 1,
+    });
+  });
+
+  it("always starts on the first row", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD], []);
+    expect(startingCursor(sheet, "2026-10-29").row).toBe(0);
   });
 });

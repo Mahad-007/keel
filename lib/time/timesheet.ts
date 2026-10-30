@@ -1,7 +1,7 @@
 import { formatMinutes } from "@/lib/minutes";
 import type { ProjectStatus } from "@/lib/projects/status";
 
-import type { GridSize } from "./grid";
+import type { GridPosition, GridSize } from "./grid";
 import {
   billableMinutes,
   notChargeablePhrase,
@@ -577,4 +577,25 @@ export function cellAside(total: CellTotals): string | null {
   if (free !== null) parts.push(free);
 
   return parts.length === 0 ? null : parts.join(", ");
+}
+
+/**
+ * Where the cursor starts on a freshly opened sheet: the first row, on today's
+ * column if today is in the week.
+ *
+ * Today, because the overwhelmingly common reason to open a timesheet is to
+ * deal with the day you are on, and Day 027 puts an editor in these cells. A
+ * cursor that always landed on Monday would mean four presses before a Friday
+ * afternoon could be typed.
+ *
+ * The first column for any other week. "Today" is not in it, so there is no
+ * day with a claim on the cursor, and the start of the week is where reading
+ * one begins.
+ */
+export function startingCursor(
+  sheet: Timesheet,
+  today: string,
+): GridPosition {
+  const column = sheet.week.days.indexOf(today);
+  return { row: 0, column: column === -1 ? 0 : column };
 }
