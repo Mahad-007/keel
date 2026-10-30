@@ -359,16 +359,28 @@ export function buildTimesheet(
 export const NOTHING_LOGGED = "–";
 
 /**
- * A cell as its figure, or the dash that stands for nothing.
+ * A duration as the grid prints it: the figure, or the dash that stands for
+ * nothing.
  *
- * One function so the grid, the row totals and the column totals cannot
- * disagree about how an empty cell reads. A row total of nothing is a dash for
- * the same reason a cell is: on a sheet where most rows are open for the week
- * rather than worked in it, a column of `0m` would be the loudest thing on the
- * page.
+ * Takes the entry count as well as the minutes, because "nothing" means "no
+ * work was logged here" rather than "the arithmetic came to zero". The two
+ * cannot currently differ — a stored entry is always a positive number of
+ * minutes — and resting the dash on the count rather than on the total means
+ * they still cannot differ if that ever stops being true.
+ *
+ * One function so the cells, the row totals and the column totals cannot
+ * disagree about how an empty figure reads. A row total of nothing is a dash
+ * for the same reason a cell is: on a sheet where most rows are open for the
+ * week rather than worked in it, a column of `0m` would be the loudest thing
+ * on the page.
  */
+export function minutesFigure(minutes: number, entryCount: number): string {
+  return entryCount > 0 ? formatMinutes(minutes) : NOTHING_LOGGED;
+}
+
+/** A cell as its figure, or the dash that stands for nothing. */
 export function cellFigure(cell: TimesheetCell): string {
-  return isWorked(cell) ? formatMinutes(cell.minutes) : NOTHING_LOGGED;
+  return minutesFigure(cell.minutes, cell.entryCount);
 }
 
 /**
