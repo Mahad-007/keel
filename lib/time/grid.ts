@@ -91,3 +91,32 @@ export function gridMove(press: GridPress): GridMove | null {
       return null;
   }
 }
+
+/** A number held inside a range, both ends included. */
+function clamp(value: number, lowest: number, highest: number): number {
+  return Math.min(Math.max(value, lowest), highest);
+}
+
+/**
+ * A position brought back inside the grid.
+ *
+ * Needed because the cursor outlives the sheet under it. Stepping to the
+ * previous week leaves the same component mounted with different rows, and a
+ * cursor that was on the eleventh row of a sheet that now has four would be
+ * pointing at nothing — no cell would be tabbable, and the grid would have
+ * quietly dropped out of the tab order.
+ *
+ * Clamped rather than reset to the corner, so a reader who was looking at
+ * Thursday is still looking at Thursday after the week moves. An empty grid
+ * clamps to the corner, which no cell occupies; nothing renders there, and the
+ * component's own emptiness check is what keeps that from mattering.
+ */
+export function clampToGrid(
+  position: GridPosition,
+  size: GridSize,
+): GridPosition {
+  return {
+    row: clamp(position.row, 0, Math.max(size.rows - 1, 0)),
+    column: clamp(position.column, 0, Math.max(size.columns - 1, 0)),
+  };
+}
