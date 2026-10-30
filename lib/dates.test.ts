@@ -1,6 +1,51 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDate, isCalendarDate, localCalendarDate } from "./dates";
+import {
+  calendarDateParts,
+  formatDate,
+  isCalendarDate,
+  localCalendarDate,
+} from "./dates";
+
+describe("calendarDateParts", () => {
+  it("names the month and numbers the day and year", () => {
+    expect(calendarDateParts("2026-09-21")).toEqual({
+      year: 2026,
+      month: "Sep",
+      day: 21,
+    });
+  });
+
+  it("reads the date off the front of a timestamp", () => {
+    expect(calendarDateParts("2026-01-05T09:36:00.000Z")).toEqual({
+      year: 2026,
+      month: "Jan",
+      day: 5,
+    });
+    expect(calendarDateParts("2026-12-31 23:00:00")).toEqual({
+      year: 2026,
+      month: "Dec",
+      day: 31,
+    });
+  });
+
+  it("strips the leading zero off a day so it can be compared", () => {
+    const parts = calendarDateParts("2026-03-08");
+    expect(parts?.day).toBe(8);
+  });
+
+  it("refuses a month no name belongs to", () => {
+    expect(calendarDateParts("2026-00-01")).toBeNull();
+    expect(calendarDateParts("2026-13-01")).toBeNull();
+  });
+
+  it("refuses anything that does not start with a date", () => {
+    expect(calendarDateParts("")).toBeNull();
+    expect(calendarDateParts("not a date")).toBeNull();
+    expect(calendarDateParts("21/09/2026")).toBeNull();
+    expect(calendarDateParts("2026-09-2")).toBeNull();
+  });
+});
 
 describe("formatDate", () => {
   it("formats a full ISO timestamp", () => {
