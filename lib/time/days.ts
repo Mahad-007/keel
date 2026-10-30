@@ -28,10 +28,25 @@ import { isChargeable } from "./billing";
  * the whole entry back rather than a copy of part of it, so a caller that
  * needs them still has them.
  */
-export type LoggedEntry = {
+export type LoggedEntry = MeasuredEntry & {
   readonly id: string;
-  readonly minutes: number;
   readonly workedOn: string;
+};
+
+/**
+ * What adding time up needs, which is less again: the duration and whether it
+ * counts towards an invoice.
+ *
+ * Separate from `LoggedEntry` because the two sums below are the only
+ * arithmetic in the codebase every total passes through, and the callers are
+ * not all rows of one table. A timesheet cell is several entries with the id
+ * and the day already accounted for by the cell they are in; asking those for
+ * an id they do not need would mean either carrying one around or re-summing
+ * by hand, and a second place that adds up minutes is a second place that can
+ * read the billable flag differently.
+ */
+export type MeasuredEntry = {
+  readonly minutes: number;
   readonly billable: boolean;
 };
 
@@ -78,7 +93,7 @@ export type TimeDay<T extends LoggedEntry = LoggedEntry> = {
  * day with no entries is not in the list at all, but a filtered list can hand
  * this an empty array and zero is what it has logged.
  */
-export function totalMinutes(entries: readonly LoggedEntry[]): number {
+export function totalMinutes(entries: readonly MeasuredEntry[]): number {
   return entries.reduce((sum, entry) => sum + entry.minutes, 0);
 }
 
@@ -89,7 +104,7 @@ export function totalMinutes(entries: readonly LoggedEntry[]): number {
  * same predicate the mark on the row uses — so a day's figure cannot read a
  * flag differently from the row that produced it.
  */
-export function billableMinutes(entries: readonly LoggedEntry[]): number {
+export function billableMinutes(entries: readonly MeasuredEntry[]): number {
   return totalMinutes(entries.filter(isChargeable));
 }
 
