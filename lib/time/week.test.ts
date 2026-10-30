@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   DAYS_PER_WEEK,
+  nextWeek,
+  previousWeek,
+  shiftWeek,
   startOfWeek,
   weekdayIndex,
   weekdayName,
@@ -150,5 +153,38 @@ describe("weekOf", () => {
 
   it("refuses a date it cannot place", () => {
     expect(() => weekOf("next Tuesday")).toThrow(/not a calendar date/);
+  });
+});
+
+describe("shiftWeek", () => {
+  it("steps back a week", () => {
+    expect(previousWeek(weekOf("2026-10-26")).start).toBe("2026-10-19");
+  });
+
+  it("steps forward a week", () => {
+    expect(nextWeek(weekOf("2026-10-26")).start).toBe("2026-11-02");
+  });
+
+  it("stays put for a shift of nothing", () => {
+    const week = weekOf("2026-10-26");
+    expect(shiftWeek(week, 0)).toEqual(week);
+  });
+
+  it("comes back to where it started", () => {
+    const week = weekOf("2026-10-29");
+    let walked = week;
+    for (let step = 0; step < 9; step += 1) walked = previousWeek(walked);
+    for (let step = 0; step < 9; step += 1) walked = nextWeek(walked);
+    expect(walked).toEqual(week);
+  });
+
+  it("steps over a year boundary", () => {
+    expect(nextWeek(weekOf("2026-12-28")).start).toBe("2027-01-04");
+    expect(previousWeek(weekOf("2027-01-04")).start).toBe("2026-12-28");
+  });
+
+  it("always lands on a week weekOf could have built", () => {
+    const stepped = shiftWeek(weekOf("2026-10-29"), -13);
+    expect(weekOf(stepped.start)).toEqual(stepped);
   });
 });
