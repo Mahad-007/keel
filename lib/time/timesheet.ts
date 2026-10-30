@@ -59,23 +59,32 @@ export type TimesheetProject = {
 };
 
 /**
- * One cell: a project's work on one day.
+ * The three figures every total on the sheet holds, wherever it sits.
  *
- * `minutes` is what the cell shows. `billableMinutes` is how much of it is
- * meant to be charged for, which is only ever remarked on when the two differ
- * — the same rule a day heading in the time list follows, and the same reason.
+ * `minutes` is what is shown. `billableMinutes` is how much of it is meant to
+ * be charged for, which is only ever remarked on when the two differ — the
+ * same rule a day heading in the time list follows, and the same reason.
  *
  * `entryCount` is how many stretches of work the figure was built from. A cell
  * is one number standing in for several, and the count is what tells a reader
  * whether the eight hours in it is one entry or five — which is the difference
  * between a day's work and a figure worth opening.
+ *
+ * Named once because a cell, a row's total, a column's total and the figure in
+ * the corner are all this. Writing it four times would mean four chances for
+ * the words beside a number to depend on where on the grid the number sits,
+ * and the whole claim a grid makes is that they do not.
  */
-export type TimesheetCell = {
-  /** The day this cell is under: `YYYY-MM-DD`. */
-  readonly workedOn: string;
+export type CellTotals = {
   readonly minutes: number;
   readonly billableMinutes: number;
   readonly entryCount: number;
+};
+
+/** One cell: a project's work on one day. */
+export type TimesheetCell = CellTotals & {
+  /** The day this cell is under: `YYYY-MM-DD`. */
+  readonly workedOn: string;
 };
 
 /**
@@ -86,13 +95,10 @@ export type TimesheetCell = {
  * not line up with the headings above it, and an empty cell is a fact about
  * the week rather than a gap in the data.
  */
-export type TimesheetRow = {
+export type TimesheetRow = CellTotals & {
   readonly project: TimesheetProject;
   /** One cell per day of the week, earliest first. */
   readonly cells: readonly TimesheetCell[];
-  readonly minutes: number;
-  readonly billableMinutes: number;
-  readonly entryCount: number;
 };
 
 /**
@@ -103,14 +109,11 @@ export type TimesheetRow = {
  * through the same component as the rows above it and cannot drift into
  * formatting a duration differently from the cells it adds up.
  */
-export type Timesheet = {
+export type Timesheet = CellTotals & {
   readonly week: Week;
   readonly rows: readonly TimesheetRow[];
   /** What each day came to across every row, in the week's order. */
   readonly dayTotals: readonly TimesheetCell[];
-  readonly minutes: number;
-  readonly billableMinutes: number;
-  readonly entryCount: number;
 };
 
 /**
@@ -137,9 +140,9 @@ export function timesheetCell(
   };
 }
 
-/** Whether a cell holds any work at all. What decides if it reads as a figure or a dash. */
-export function isWorked(cell: TimesheetCell): boolean {
-  return cell.entryCount > 0;
+/** Whether a total holds any work at all. What decides if it reads as a figure or a dash. */
+export function isWorked(total: CellTotals): boolean {
+  return total.entryCount > 0;
 }
 
 /**
@@ -185,11 +188,7 @@ export function weekCells(
  * minutes — and the corner figure has to equal both the row totals and the
  * column totals or the grid is not a grid.
  */
-export function sumCells(cells: readonly TimesheetCell[]): {
-  minutes: number;
-  billableMinutes: number;
-  entryCount: number;
-} {
+export function sumCells(cells: readonly TimesheetCell[]): CellTotals {
   return {
     minutes: cells.reduce((sum, cell) => sum + cell.minutes, 0),
     billableMinutes: cells.reduce((sum, cell) => sum + cell.billableMinutes, 0),
@@ -378,9 +377,9 @@ export function minutesFigure(minutes: number, entryCount: number): string {
   return entryCount > 0 ? formatMinutes(minutes) : NOTHING_LOGGED;
 }
 
-/** A cell as its figure, or the dash that stands for nothing. */
-export function cellFigure(cell: TimesheetCell): string {
-  return minutesFigure(cell.minutes, cell.entryCount);
+/** A total as its figure, or the dash that stands for nothing. */
+export function cellFigure(total: CellTotals): string {
+  return minutesFigure(total.minutes, total.entryCount);
 }
 
 /**
@@ -569,12 +568,12 @@ export const NOTHING_LOGGED_LABEL = "nothing logged";
  * Nothing about an empty cell, because an empty cell has no facts. The dash
  * and `NOTHING_LOGGED_LABEL` are the whole of what there is to say.
  */
-export function cellAside(cell: TimesheetCell): string | null {
-  if (!isWorked(cell)) return null;
+export function cellAside(total: CellTotals): string | null {
+  if (!isWorked(total)) return null;
 
   const parts: string[] = [];
-  if (cell.entryCount > 1) parts.push(`${cell.entryCount} entries`);
-  const free = notChargeablePhrase(cell.minutes, cell.billableMinutes);
+  if (total.entryCount > 1) parts.push(`${total.entryCount} entries`);
+  const free = notChargeablePhrase(total.minutes, total.billableMinutes);
   if (free !== null) parts.push(free);
 
   return parts.length === 0 ? null : parts.join(", ");
