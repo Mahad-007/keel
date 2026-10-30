@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   DAYS_PER_WEEK,
+  isInWeek,
   nextWeek,
   previousWeek,
   shiftWeek,
@@ -186,5 +187,33 @@ describe("shiftWeek", () => {
   it("always lands on a week weekOf could have built", () => {
     const stepped = shiftWeek(weekOf("2026-10-29"), -13);
     expect(weekOf(stepped.start)).toEqual(stepped);
+  });
+});
+
+describe("isInWeek", () => {
+  const week = weekOf("2026-10-26");
+
+  it("includes every day of the week", () => {
+    for (const day of week.days) expect(isInWeek(week, day)).toBe(true);
+  });
+
+  it("includes both ends", () => {
+    expect(isInWeek(week, week.start)).toBe(true);
+    expect(isInWeek(week, week.end)).toBe(true);
+  });
+
+  it("excludes the day either side", () => {
+    expect(isInWeek(week, "2026-10-25")).toBe(false);
+    expect(isInWeek(week, "2026-11-02")).toBe(false);
+  });
+
+  it("excludes a day in another year", () => {
+    expect(isInWeek(week, "2025-10-28")).toBe(false);
+    expect(isInWeek(week, "2027-10-28")).toBe(false);
+  });
+
+  it("leaves a value that is not a date outside every week", () => {
+    expect(isInWeek(week, "")).toBe(false);
+    expect(isInWeek(week, "sometime")).toBe(false);
   });
 });
