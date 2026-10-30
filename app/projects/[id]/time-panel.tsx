@@ -1,8 +1,11 @@
+import Link from "next/link";
+
 import type { RunningTimerWithProject } from "@/lib/data/active-timers";
 import type { TimeEntry } from "@/lib/db/schema";
 import { deliverableOptions } from "@/lib/time/attribution";
 import { INITIAL_LOG_TIME_STATE, type LogTimeState } from "@/lib/time/form";
 import { rollUpProject, type RolledUpDeliverable } from "@/lib/time/rollup";
+import { TIMESHEET_PATH } from "@/lib/time/week-query";
 
 import { LogTimeForm } from "./log-time-form";
 import { TimeList } from "./time-list";
@@ -124,9 +127,24 @@ export function TimePanel({
         space, because the form and the list are two different things to be
         doing and the eye needs to be told where one ends.
       */}
-      <h3 className="mt-10 border-t border-zinc-200 pt-6 text-sm font-medium text-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
-        Logged
-      </h3>
+      <div className="mt-10 flex items-baseline justify-between gap-6 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+          Logged
+        </h3>
+        {/*
+          Out to the week, because this list answers "what has this engagement
+          cost" and the other question somebody asks of the same hours is
+          "where did my week go". The timesheet is the only place in the app
+          that crosses projects, and this list is where a reader is standing
+          when they want it.
+        */}
+        <Link
+          href={TIMESHEET_PATH}
+          className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+        >
+          This week, every project
+        </Link>
+      </div>
       <TimeList
         projectId={projectId}
         entries={entries}
