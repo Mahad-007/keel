@@ -137,3 +137,27 @@ export function weekOf(value: string): Week {
   );
   return { start, end: days[DAYS_PER_WEEK - 1], days };
 }
+
+/**
+ * The week a given number of weeks away: `shiftWeek(week, -1)` is the one
+ * before it.
+ *
+ * Built by shifting the start and rebuilding, rather than by shifting all
+ * seven days, because a week is identified by its start and the rest follows.
+ * It also means the result is a week that `weekOf` could have produced, which
+ * is what the back and forward links rely on — stepping back four times and
+ * forward four times lands on the week it left.
+ */
+export function shiftWeek(week: Week, weeks: number): Week {
+  return weekOf(shiftCalendarDate(week.start, weeks * DAYS_PER_WEEK));
+}
+
+/** The week before this one, which is what the back link points at. */
+export function previousWeek(week: Week): Week {
+  return shiftWeek(week, -1);
+}
+
+/** The week after this one. */
+export function nextWeek(week: Week): Week {
+  return shiftWeek(week, 1);
+}
