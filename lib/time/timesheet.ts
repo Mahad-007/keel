@@ -1,5 +1,6 @@
 import type { ProjectStatus } from "@/lib/projects/status";
 
+import { billableMinutes, totalMinutes } from "./days";
 import type { Week } from "./week";
 
 /**
@@ -105,3 +106,32 @@ export type Timesheet = {
   readonly billableMinutes: number;
   readonly entryCount: number;
 };
+
+/**
+ * One cell from the entries that fall in it.
+ *
+ * The day is passed rather than read off the first entry, because a cell with
+ * nothing in it still belongs to a day: that is what keeps a row seven cells
+ * wide, and it is the only way an empty Wednesday can be told apart from a
+ * Wednesday that is missing.
+ *
+ * The two sums are the time list's own, so a cell and a day heading cannot
+ * disagree about what a set of entries comes to or about which of them will be
+ * charged for.
+ */
+export function timesheetCell(
+  workedOn: string,
+  entries: readonly TimesheetEntry[],
+): TimesheetCell {
+  return {
+    workedOn,
+    minutes: totalMinutes(entries),
+    billableMinutes: billableMinutes(entries),
+    entryCount: entries.length,
+  };
+}
+
+/** Whether a cell holds any work at all. What decides if it reads as a figure or a dash. */
+export function isWorked(cell: TimesheetCell): boolean {
+  return cell.entryCount > 0;
+}
