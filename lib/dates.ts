@@ -134,6 +134,12 @@ export function localCalendarDate(moment: Date): string {
  * there is no hour to lose or repeat: the day after the clocks change is the
  * next date on the calendar, which is what somebody filling in a timesheet
  * means by tomorrow.
+ *
+ * A shift off either end of the four-digit years a calendar date can hold
+ * throws rather than returning something that is not one. `toISOString` writes
+ * those years in an expanded form — `+010000-01-01` — and handing that back
+ * would be a string every later `isCalendarDate` rejects, failing somewhere
+ * further along with no sign of where it came from.
  */
 export function shiftCalendarDate(value: string, days: number): string {
   if (!isCalendarDate(value)) {
@@ -145,7 +151,12 @@ export function shiftCalendarDate(value: string, days: number): string {
 
   const moment = new Date(`${value}T00:00:00.000Z`);
   moment.setUTCDate(moment.getUTCDate() + days);
-  return moment.toISOString().slice(0, 10);
+
+  const year = moment.getUTCFullYear();
+  if (year < 0 || year > 9999) {
+    throw new Error(`calendar date out of range: ${value} shifted by ${days}`);
+  }
+  return utcCalendarDate(moment);
 }
 
 /**
@@ -165,5 +176,8 @@ export function shiftCalendarDate(value: string, days: number): string {
  * the honest default is the one that is the same everywhere.
  */
 export function utcCalendarDate(moment: Date): string {
-  return moment.toISOString().slice(0, 10);
+  const year = String(moment.getUTCFullYear()).padStart(4, "0");
+  const month = String(moment.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(moment.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
