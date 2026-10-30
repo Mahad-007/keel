@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   isWorked,
+  sumCells,
   timesheetCell,
+  timesheetRow,
   weekCells,
   type TimesheetEntry,
+  type TimesheetProject,
 } from "./timesheet";
 import { DAYS_PER_WEEK, weekOf } from "./week";
 
@@ -24,6 +27,13 @@ function logged(
     ...overrides,
   };
 }
+
+const SITE_REBUILD: TimesheetProject = {
+  id: PROJECT_ID,
+  name: "Site rebuild",
+  clientName: "Harbour Co",
+  status: "active",
+};
 
 describe("timesheetCell", () => {
   it("adds the entries up", () => {
@@ -131,5 +141,79 @@ describe("weekCells", () => {
       logged("2026-11-01", 15),
     ]);
     expect(cells.reduce((sum, cell) => sum + cell.minutes, 0)).toBe(90);
+  });
+});
+
+describe("sumCells", () => {
+  const week = weekOf("2026-10-29");
+
+  it("adds every figure a cell holds", () => {
+    const cells = weekCells(week, [
+      logged("2026-10-26", 60),
+      logged("2026-10-28", 90, { billable: false }),
+      logged("2026-10-28", 30),
+    ]);
+    expect(sumCells(cells)).toEqual({
+      minutes: 180,
+      billableMinutes: 90,
+      entryCount: 3,
+    });
+  });
+
+  it("comes to nothing for no cells at all", () => {
+    expect(sumCells([])).toEqual({
+      minutes: 0,
+      billableMinutes: 0,
+      entryCount: 0,
+    });
+  });
+
+  it("comes to nothing for a week of empty cells", () => {
+    expect(sumCells(weekCells(week, []))).toEqual({
+      minutes: 0,
+      billableMinutes: 0,
+      entryCount: 0,
+    });
+  });
+});
+
+describe("timesheetRow", () => {
+  const week = weekOf("2026-10-29");
+
+  it("names the project it is a row for", () => {
+    expect(timesheetRow(SITE_REBUILD, week, []).project).toBe(SITE_REBUILD);
+  });
+
+  it("totals the week across the row", () => {
+    const row = timesheetRow(SITE_REBUILD, week, [
+      logged("2026-10-26", 120),
+      logged("2026-10-29", 45),
+    ]);
+    expect(row.minutes).toBe(165);
+    expect(row.entryCount).toBe(2);
+  });
+
+  it("keeps the row total equal to the sum of its printed cells", () => {
+    const row = timesheetRow(SITE_REBUILD, week, [
+      logged("2026-10-20", 600),
+      logged("2026-10-27", 30),
+    ]);
+    expect(row.minutes).toBe(sumCells(row.cells).minutes);
+    expect(row.minutes).toBe(30);
+  });
+
+  it("totals the chargeable part separately", () => {
+    const row = timesheetRow(SITE_REBUILD, week, [
+      logged("2026-10-27", 60),
+      logged("2026-10-27", 60, { billable: false }),
+    ]);
+    expect(row.minutes).toBe(120);
+    expect(row.billableMinutes).toBe(60);
+  });
+
+  it("is still seven cells wide with nothing logged", () => {
+    expect(timesheetRow(SITE_REBUILD, week, []).cells).toHaveLength(
+      DAYS_PER_WEEK,
+    );
   });
 });
