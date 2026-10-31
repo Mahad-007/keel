@@ -207,8 +207,16 @@ export function cellDomId(projectId: string, workedOn: string): string {
  * a reader who presses Tab expecting the next cell gets the next control after
  * the whole sheet, and without a sentence they conclude the page is broken.
  *
+ * "The day cells" rather than "the cells", because the totals along the edges
+ * are not in the cursor's path and a reader who arrows right off Sunday
+ * expecting the week's total needs telling why nothing happened. They are
+ * derived from the cells beside them and there is never anything to do to one,
+ * so visiting them would be an eighth press to cross a week and a stop that
+ * does nothing when it arrives — but a reader hunting for a stop that is not
+ * there is worse than a clause saying so.
+ *
  * Above the grid rather than in a title on each cell, so it is read once by
  * somebody arriving and not forty times by somebody crossing a row.
  */
 export const GRID_KEYBOARD_HINT =
-  "The arrow keys move between cells. Home and End jump to the ends of a row, and with Ctrl or Cmd to the ends of the sheet.";
+  "The arrow keys move between the day cells; the totals along the edges are read rather than stepped onto. Home and End jump to the ends of a row, and with Ctrl or Cmd to the ends of the sheet.";
