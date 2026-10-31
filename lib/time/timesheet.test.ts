@@ -555,6 +555,17 @@ describe("describeTimesheet", () => {
     ]);
     expect(describeTimesheet(sheet)).toBe("2 projects, 2h logged on one day.");
   });
+
+  it("agrees with the grid about an entry that came to no minutes", () => {
+    // A stored entry is always a positive number of minutes, so this cannot
+    // arise today. It is here because the summary and the grid have to answer
+    // the same question the same way if it ever does: a cell the reader can
+    // see is not a week with nothing logged in it.
+    const sheet = buildTimesheet(week, [SITE_REBUILD], [
+      logged("2026-10-27", 0),
+    ]);
+    expect(describeTimesheet(sheet)).toBe("One project, 0m logged on one day.");
+  });
 });
 
 describe("daysWorked", () => {
