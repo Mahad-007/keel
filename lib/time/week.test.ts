@@ -294,6 +294,20 @@ describe("weekdayHeading", () => {
       "Sun 1",
     ]);
   });
+
+  it("hands back a value that is not a day at all", () => {
+    expect(weekdayHeading("whenever")).toBe("whenever");
+  });
+
+  it("hands back a timestamp rather than heading a moment", () => {
+    expect(weekdayHeading("2026-10-26T09:00:00.000Z")).toBe(
+      "2026-10-26T09:00:00.000Z",
+    );
+  });
+
+  it("hands back a date-shaped day that does not exist", () => {
+    expect(weekdayHeading("2026-02-30")).toBe("2026-02-30");
+  });
 });
 
 describe("hasWeek", () => {
