@@ -275,10 +275,17 @@ describe("describeWeek", () => {
     expect(describeWeek(weekOf("2026-02-25"))).toBe("Feb 23 – Mar 1, 2026");
   });
 
-  it("writes the year of the earliest week in full", () => {
-    // The week before `FIRST_WEEK_DAY`'s, which the Previous link points at:
-    // year zero, which a bare number writes as `0`.
-    expect(describeWeek(weekOf("0000-01-10"))).toBe("Jan 10 – 16, 0000");
+  it("writes the year of the earliest admitted week in full", () => {
+    // Year zero, which a bare number writes as `0`.
+    expect(describeWeek(weekOf(FIRST_WEEK_DAY))).toBe("Jan 10 – 16, 0000");
+  });
+
+  it("writes the year of the week the earliest Previous link points at", () => {
+    // One step off the admitted range, which `hasWeek` would refuse as a param
+    // but the navigation still has to render a label for.
+    expect(describeWeek(previousWeek(weekOf(FIRST_WEEK_DAY)))).toBe(
+      "Jan 3 – 9, 0000",
+    );
   });
 
   it("writes both years in full when an early week straddles one", () => {
