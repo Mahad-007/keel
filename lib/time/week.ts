@@ -279,9 +279,18 @@ export function describeWeek(week: Week): string {
  * columns and the heading above the grid already says which month or two the
  * week spans — and the cells underneath need the width more than the heading
  * does.
+ *
+ * Anything that is not a day comes back untouched, for the reason
+ * `describeWeek` gives: a heading that looks wrong is easier to diagnose than
+ * a page that will not render. `calendarDateParts` is not the whole of that
+ * test, though — it reads the date off the front of a timestamp and it accepts
+ * `2026-02-30`, and both of those reach `weekdayName`, which asks what day of
+ * the week they are and throws because neither is a day. So the value has to
+ * clear `isCalendarDate` as well, which is the same guard the weekday
+ * numbering itself applies.
  */
 export function weekdayHeading(value: string): string {
   const parts = calendarDateParts(value);
-  if (parts === null) return value;
+  if (parts === null || !isCalendarDate(value)) return value;
   return `${weekdayName(value)} ${parts.day}`;
 }
