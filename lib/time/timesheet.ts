@@ -443,13 +443,17 @@ export function daysWorked(sheet: Timesheet): number {
  * A week with nothing in it says so plainly instead of reading out a zero.
  * That is the ordinary state of a Monday morning, and a sheet that opened with
  * "0m logged over 0 days" would be three numbers saying what one clause says
- * better.
+ * better. Quiet is decided by `isWorked` like every other figure on the sheet
+ * rather than by the minutes coming to zero: a sheet whose grid showed a cell
+ * and whose summary above it said nothing was logged would be the page
+ * disagreeing with itself in the two places a reader looks first.
  */
 export function describeTimesheet(sheet: Timesheet): string {
+  if (sheet.rows.length === 0) return "No projects to show for this week.";
+
   const projects =
     sheet.rows.length === 1 ? "One project" : `${sheet.rows.length} projects`;
-  if (sheet.rows.length === 0) return "No projects to show for this week.";
-  if (sheet.minutes === 0) return `${projects}, nothing logged this week.`;
+  if (!isWorked(sheet)) return `${projects}, nothing logged this week.`;
 
   const days = daysWorked(sheet);
   const over = days === 1 ? "on one day" : `over ${days} days`;
