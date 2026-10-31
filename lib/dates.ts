@@ -140,6 +140,13 @@ export function localCalendarDate(moment: Date): string {
  * those years in an expanded form — `+010000-01-01` — and handing that back
  * would be a string every later `isCalendarDate` rejects, failing somewhere
  * further along with no sign of where it came from.
+ *
+ * The range is checked as one claim the year has to satisfy rather than as two
+ * it has to avoid, because a shift large enough to take the `Date` past the
+ * eight-and-a-half-million days it can hold leaves every reading of it `NaN` —
+ * and `NaN` is neither less than zero nor greater than 9999. Written the other
+ * way round, that case walked straight through the guard and came back as
+ * `0NaN-NaN-NaN`.
  */
 export function shiftCalendarDate(value: string, days: number): string {
   if (!isCalendarDate(value)) {
@@ -153,7 +160,7 @@ export function shiftCalendarDate(value: string, days: number): string {
   moment.setUTCDate(moment.getUTCDate() + days);
 
   const year = moment.getUTCFullYear();
-  if (year < 0 || year > 9999) {
+  if (!(year >= 0 && year <= 9999)) {
     throw new Error(`calendar date out of range: ${value} shifted by ${days}`);
   }
   return utcCalendarDate(moment);
