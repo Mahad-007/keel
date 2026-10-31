@@ -1,5 +1,6 @@
 import {
   calendarDateParts,
+  formatYear,
   isCalendarDate,
   shiftCalendarDate,
 } from "@/lib/dates";
@@ -251,19 +252,27 @@ export function isWeekend(value: string): boolean {
  * but a hand-built literal can — falls back to the two strings. The heading
  * then looks wrong, which is the point: a page that renders a surprising
  * heading is easier to diagnose than one that will not render.
+ *
+ * The years are compared as numbers and written through `formatYear`, which is
+ * the one place the two differ: `0000-01-10` is in year zero, and a heading
+ * reading `Jan 10 – 16, 0` would be the first thing a reader saw on the week
+ * before the earliest one the navigation admits.
  */
 export function describeWeek(week: Week): string {
   const from = calendarDateParts(week.start);
   const to = calendarDateParts(week.end);
   if (from === null || to === null) return `${week.start} – ${week.end}`;
 
+  const fromYear = formatYear(from.year);
+  const toYear = formatYear(to.year);
+
   if (from.year !== to.year) {
-    return `${from.month} ${from.day}, ${from.year} – ${to.month} ${to.day}, ${to.year}`;
+    return `${from.month} ${from.day}, ${fromYear} – ${to.month} ${to.day}, ${toYear}`;
   }
   if (from.month === to.month) {
-    return `${from.month} ${from.day} – ${to.day}, ${to.year}`;
+    return `${from.month} ${from.day} – ${to.day}, ${toYear}`;
   }
-  return `${from.month} ${from.day} – ${to.month} ${to.day}, ${to.year}`;
+  return `${from.month} ${from.day} – ${to.month} ${to.day}, ${toYear}`;
 }
 
 /**
