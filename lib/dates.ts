@@ -54,6 +54,25 @@ export function calendarDateParts(
 }
 
 /**
+ * A year as a label writes it: four digits, with the zeros a small one needs.
+ *
+ * `calendarDateParts` hands the year back as a number so two of them can be
+ * compared, and a number has no leading zeros — so `0099` interpolates as
+ * `99`, which is a different year, and `0000` as `0`, which is not a year at
+ * all. The digits always number four, because that is what a calendar date
+ * holds, so padding reproduces exactly what was parsed.
+ *
+ * Nobody is dating work to the year 99. It is written because the week
+ * navigation reaches the ends of the calendar — a mangled `week` param lands
+ * on this week, but the week either side of the earliest admitted one is
+ * genuinely in year 0000 — and a heading reading `Jan 10 – 16, 0` is the kind
+ * of wrongness that makes a reader doubt the figures underneath it.
+ */
+export function formatYear(year: number): string {
+  return String(year).padStart(4, "0");
+}
+
+/**
  * `2026-09-21T09:36:00.000Z` becomes `Sep 21, 2026`. Anything that isn't a
  * date is handed back untouched: a surprising value in one cell is better than
  * a page that won't render.
@@ -62,7 +81,7 @@ export function formatDate(value: string): string {
   const parts = calendarDateParts(value);
   if (parts === null) return value;
 
-  return `${parts.month} ${parts.day}, ${parts.year}`;
+  return `${parts.month} ${parts.day}, ${formatYear(parts.year)}`;
 }
 
 const CALENDAR_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
