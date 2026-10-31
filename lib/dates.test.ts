@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   calendarDateParts,
   formatDate,
+  formatYear,
   isCalendarDate,
   localCalendarDate,
   shiftCalendarDate,
@@ -49,6 +50,18 @@ describe("calendarDateParts", () => {
   });
 });
 
+describe("formatYear", () => {
+  it("leaves a four-digit year alone", () => {
+    expect(formatYear(2026)).toBe("2026");
+  });
+
+  it("pads the years a calendar date can hold but a number cannot write", () => {
+    expect(formatYear(99)).toBe("0099");
+    expect(formatYear(1)).toBe("0001");
+    expect(formatYear(0)).toBe("0000");
+  });
+});
+
 describe("formatDate", () => {
   it("formats a full ISO timestamp", () => {
     expect(formatDate("2026-09-21T09:36:00.000Z")).toBe("Sep 21, 2026");
@@ -70,6 +83,13 @@ describe("formatDate", () => {
 
   it("ignores surrounding whitespace", () => {
     expect(formatDate("  2026-12-31T00:00:00.000Z  ")).toBe("Dec 31, 2026");
+  });
+
+  it("keeps the leading zeros of a year that has them", () => {
+    // The number the parts hold has none, so the label has to put them back:
+    // `0099` is not `99` and `0000` is not `0`.
+    expect(formatDate("0099-03-04")).toBe("Mar 4, 0099");
+    expect(formatDate("0000-01-10")).toBe("Jan 10, 0000");
   });
 
   it("hands back a value with an impossible month unchanged", () => {
