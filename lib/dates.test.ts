@@ -230,6 +230,18 @@ describe("shiftCalendarDate", () => {
     expect(shiftCalendarDate("0099-12-31", 1)).toBe("0100-01-01");
   });
 
+  it("refuses a shift so large the arithmetic gives up entirely", () => {
+    // Past the days a `Date` can hold, every reading of it is `NaN` — which is
+    // neither below zero nor above 9999, so a guard asked the other way round
+    // let this through as the string `0NaN-NaN-NaN`.
+    expect(() => shiftCalendarDate("2026-10-14", 1e15)).toThrow(
+      /out of range/,
+    );
+    expect(() => shiftCalendarDate("2026-10-14", -1e15)).toThrow(
+      /out of range/,
+    );
+  });
+
   it("refuses a fractional shift", () => {
     expect(() => shiftCalendarDate("2026-10-14", 1.5)).toThrow(
       /not a whole number of days/,
