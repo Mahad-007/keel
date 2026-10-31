@@ -99,7 +99,29 @@ export function TimesheetGrid({
 
   return (
     <>
+      {/*
+        `role="grid"` is what makes the arrows below reach this table at all.
+        A screen reader reads a plain `<table>` in browse mode, where it owns
+        the arrow keys for moving its own cursor through the document and the
+        keypress never arrives at a cell's `onKeyDown` — so the whole keyboard
+        pattern this component exists for would work for a reader using a mouse
+        or Tab and silently not for the one who needs it. A grid is announced
+        as a widget instead, and the reader's own navigation hands the arrows
+        over once focus is inside it.
+
+        Nothing else has to be spelled out: a `<td>` inside a table exposed as
+        a grid is a `gridcell`, a `<tr>` is a row and a `<th>` is a column or
+        row header, so the markup underneath is already the pattern. Declaring
+        each of those by hand would be three more places for the shape of the
+        sheet to drift from the shape of its markup.
+
+        `aria-readonly`, because every figure here is derived from entries
+        logged elsewhere and there is nothing to type into. Day 027 is what
+        puts an editor in a cell, and that is the day this comes off.
+      */}
       <table
+        role="grid"
+        aria-readonly={true}
         aria-describedby={KEYBOARD_HINT_ID}
         className="mt-4 w-full border-collapse text-sm"
       >
