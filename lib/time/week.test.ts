@@ -246,6 +246,14 @@ describe("isWeekend", () => {
       "2026-11-01",
     ]);
   });
+
+  it("calls anything that is not a day no weekend at all", () => {
+    // The same three shapes `weekdayHeading` hands back, since a column asks
+    // both of these about one value.
+    expect(isWeekend("whenever")).toBe(false);
+    expect(isWeekend("2026-10-31T09:00:00.000Z")).toBe(false);
+    expect(isWeekend("2026-02-30")).toBe(false);
+  });
 });
 
 describe("describeWeek", () => {
