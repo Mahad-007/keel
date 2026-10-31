@@ -231,8 +231,16 @@ const WEEKEND_DAYS = [0, 6];
  *
  * Saturday and Sunday regardless of where the week starts, because this is a
  * claim about the day rather than about its position in the grid.
+ *
+ * A value that is not a day is not a weekend, rather than an error. This is
+ * read in the same `<th>` as `weekdayHeading` and for the same part of the
+ * same decision — how a column is written — so the two have to degrade
+ * together or the one that throws decides: a heading that hands back a
+ * surprising string is only easier to diagnose than a page that will not
+ * render if nothing beside it takes the page down anyway.
  */
 export function isWeekend(value: string): boolean {
+  if (!isCalendarDate(value)) return false;
   return WEEKEND_DAYS.includes(dayOfWeek(value));
 }
 
