@@ -267,6 +267,18 @@ describe("describeWeek", () => {
     expect(describeWeek(weekOf("2026-02-25"))).toBe("Feb 23 – Mar 1, 2026");
   });
 
+  it("writes the year of the earliest week in full", () => {
+    // The week before `FIRST_WEEK_DAY`'s, which the Previous link points at:
+    // year zero, which a bare number writes as `0`.
+    expect(describeWeek(weekOf("0000-01-10"))).toBe("Jan 10 – 16, 0000");
+  });
+
+  it("writes both years in full when an early week straddles one", () => {
+    expect(describeWeek(weekOf("0099-12-31"))).toBe(
+      "Dec 28, 0099 – Jan 3, 0100",
+    );
+  });
+
   it("falls back to the raw ends of a week it cannot read", () => {
     expect(
       describeWeek({ start: "soon", end: "later", days: [] }),
