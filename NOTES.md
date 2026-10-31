@@ -486,3 +486,98 @@ npx eslint app components lib
 
 which is clean as of today apart from three unused-variable warnings in test
 files. It is the only check that sees a React rule being broken.
+
+## Day 026 ran twice, for the reason Days 013, 020 and 025 did
+
+Day 026 — the weekly timesheet at `/time`: the week arithmetic, the grid
+assembly, the keyboard cursor and the page — was built on 2026-10-30 in 84
+commits (`bd9e95f..bcb72c1`), and pushed: `origin/main` was already at
+`bcb72c1` when 2026-10-31 started. The box in `ROADMAP.md` was never ticked,
+so the workflow picked Day 026 again.
+
+So 2026-10-31 audited what was there. `npm run verify` was green on arrival —
+124 files, 3096 tests — and the milestone was complete: a seven-column grid by
+project with totals in both directions, a cursor the arrows move, the week in
+the URL, and two different empty states. `/security-review` over the range
+found nothing, and the reasoning is worth keeping: the range is read-only,
+adds no server action, and the only user-controlled value is the `week` param,
+which is gated twice — `hasWeek` before `weekOf`, then the data layer's own
+`calendarDate` guard before Drizzle's bound `gte`/`lte`.
+
+The audit also did what no test in this repo can: it ran the built app against
+a seeded throwaway database and read `/time` back. That is how the year-zero
+heading below was found, and it is the only check that executes the page at
+all — `/time` is `force-dynamic`, so `next build` never renders it.
+
+## What the Day 026 audit changed
+
+**The grid was not announced as one.** The table implemented the ARIA grid
+pattern — one tab stop, the arrows moving between cells — without saying it
+was a grid. A screen reader reads a plain `<table>` in browse mode, where it
+owns the arrow keys for its own cursor, so the keypress never reached a cell's
+`onKeyDown`: the whole point of the day worked for a mouse and for Tab and
+silently not for the reader who needs it. `role="grid"` is the fix, and the
+markup underneath needed nothing — a `<td>` inside a table exposed as a grid
+is already a `gridcell`. `aria-readonly` went on with it, and comes off on
+Day 027.
+
+The hint above the grid then had to say *which* cells the arrows cross. The
+totals along the two edges carry no tab index, deliberately — nothing can be
+done to a figure derived from the cells beside it — but once the table claims
+to be a widget, a reader arrowing right off Sunday expecting the week's total
+needs telling why nothing happened.
+
+**`calendarDateParts` lost the leading zeros of a year.** Pulling the pieces
+out of `formatDate` turned the year from the string the regex matched into a
+number, and a number has no leading zeros: `0099` formatted as `99`, which is
+a different year, and `0000` as `0`, which is not one. The week heading at the
+early end of the calendar read `Jan 10 – 16, 0`. The parts stay numbers
+because `describeWeek` compares two of them to decide whether to print one
+year or two; `formatYear` pads at the point of writing.
+
+**Two guards were incomplete in the same `<th>`.** `weekdayHeading` promised
+to hand back anything it could not read and tested that with
+`calendarDateParts`, which reads the date off the front of a timestamp and
+accepts `2026-02-30`; both then reached `weekdayName` and threw. Completing it
+achieved nothing on its own, because the column asks `isWeekend` about the
+same value in the same heading and that still threw on exactly those shapes.
+The lesson is the one the fix encodes: a fallback is only a fallback if
+everything reading the value falls back together.
+
+**A quadrillion-day shift came back as a string.** `shiftCalendarDate`'s range
+guard asked whether the year was below zero or above 9999. Past the days a
+`Date` can hold every reading of it is `NaN`, which is neither, so the guard
+passed and the function returned `0NaN-NaN-NaN` — a value every later
+`isCalendarDate` rejects somewhere with no sign of where it came from. Asked
+as one claim the year has to satisfy instead.
+
+**The week summary disagreed with the grid about zero.** Every other figure on
+the sheet decides "is there work here" by the entry count, and `minutesFigure`
+documents why: the count and the minutes cannot differ today, and resting on
+the count means they still cannot if that changes. `describeTimesheet` was the
+one place that asked the minutes, so a cell the reader could see could sit
+under a line saying nothing was logged.
+
+**`/time` was not on the page that indexes the routes.** Reachable from the
+projects list and from a project's time tab, and from nowhere a reader
+arriving at the site would look.
+
+### Left alone deliberately
+
+The cursor crosses the day cells and not the totals or the row headers. The
+strict grid pattern would have every cell in the arrow path, and a spreadsheet
+reader would expect ArrowRight off Sunday to land on the week's total. Both
+are true, and extending the cursor to an eighth column and a footer row is a
+redesign of `sheetSize`, `startingCursor`, `cellDomId` and `TotalCell` — on
+the day Day 027 is about to put an editor in exactly the seven cells that are
+in the path. It is Day 027's decision to make with the editor in hand, not an
+audit's to make without one. The hint says what the arrows do instead.
+
+The cell sentences are verbose: crossing a row announces the project and the
+client seven times, because each cell carries its own position as its
+accessible name. Under `role="grid"` a screen reader announces the row and
+column headers itself when the cursor moves, which makes most of that
+redundant — but how reliably it does so varies by reader and by mode, and
+trading a sentence that is certainly complete for one that depends on the
+headers being announced is not a trade to make blind. Worth revisiting the
+first time this is heard on a real screen reader.
