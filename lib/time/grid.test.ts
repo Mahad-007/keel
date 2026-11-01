@@ -6,6 +6,7 @@ import {
   gridMove,
   isSameCell,
   moveInGrid,
+  pressLeavesEditor,
 } from "./grid";
 
 describe("gridMove", () => {
@@ -241,5 +242,80 @@ describe("cellDomId", () => {
     // move with them, or focus lands on somebody else's Tuesday.
     expect(cellDomId("prj_site", "2026-10-27")).toContain("prj_site");
     expect(cellDomId("prj_site", "2026-10-27")).toContain("2026-10-27");
+  });
+});
+
+describe("pressLeavesEditor", () => {
+  const EMPTY = { at: 0, length: 0 };
+  const MIDDLE = { at: 2, length: 5 };
+  const START = { at: 0, length: 5 };
+  const END = { at: 5, length: 5 };
+
+  it("crosses an empty cell in either direction", () => {
+    expect(pressLeavesEditor({ key: "ArrowLeft" }, EMPTY)).toBe(true);
+    expect(pressLeavesEditor({ key: "ArrowRight" }, EMPTY)).toBe(true);
+  });
+
+  it("keeps a horizontal arrow for the text when the caret is inside it", () => {
+    expect(pressLeavesEditor({ key: "ArrowLeft" }, MIDDLE)).toBe(false);
+    expect(pressLeavesEditor({ key: "ArrowRight" }, MIDDLE)).toBe(false);
+  });
+
+  it("leaves leftwards only from the start of the text", () => {
+    expect(pressLeavesEditor({ key: "ArrowLeft" }, START)).toBe(true);
+    expect(pressLeavesEditor({ key: "ArrowLeft" }, END)).toBe(false);
+  });
+
+  it("leaves rightwards only from the end of the text", () => {
+    expect(pressLeavesEditor({ key: "ArrowRight" }, END)).toBe(true);
+    expect(pressLeavesEditor({ key: "ArrowRight" }, START)).toBe(false);
+  });
+
+  it("gives up and down to the grid wherever the caret is", () => {
+    expect(pressLeavesEditor({ key: "ArrowUp" }, MIDDLE)).toBe(true);
+    expect(pressLeavesEditor({ key: "ArrowDown" }, MIDDLE)).toBe(true);
+  });
+
+  it("keeps a horizontal arrow for a selection even at an edge", () => {
+    expect(
+      pressLeavesEditor({ key: "ArrowLeft" }, { ...START, selected: true }),
+    ).toBe(false);
+    expect(
+      pressLeavesEditor({ key: "ArrowRight" }, { ...END, selected: true }),
+    ).toBe(false);
+  });
+
+  it("still gives up and down to the grid over a selection", () => {
+    expect(
+      pressLeavesEditor({ key: "ArrowUp" }, { ...MIDDLE, selected: true }),
+    ).toBe(true);
+  });
+
+  it("treats Home and End as the text's ends before the row's", () => {
+    expect(pressLeavesEditor({ key: "Home" }, MIDDLE)).toBe(false);
+    expect(pressLeavesEditor({ key: "End" }, MIDDLE)).toBe(false);
+    expect(pressLeavesEditor({ key: "Home" }, START)).toBe(true);
+    expect(pressLeavesEditor({ key: "End" }, END)).toBe(true);
+  });
+
+  it("gives the sheet's ends to the grid from anywhere in the text", () => {
+    expect(pressLeavesEditor({ key: "Home", ctrlKey: true }, MIDDLE)).toBe(true);
+    expect(pressLeavesEditor({ key: "End", metaKey: true }, MIDDLE)).toBe(true);
+  });
+
+  it("leaves every other key to the box", () => {
+    expect(pressLeavesEditor({ key: "Tab" }, EMPTY)).toBe(false);
+    expect(pressLeavesEditor({ key: "1" }, EMPTY)).toBe(false);
+    expect(pressLeavesEditor({ key: "Backspace" }, MIDDLE)).toBe(false);
+    expect(pressLeavesEditor({ key: "Enter" }, MIDDLE)).toBe(false);
+  });
+
+  it("leaves a modified arrow alone, so Back still works", () => {
+    expect(pressLeavesEditor({ key: "ArrowLeft", altKey: true }, EMPTY)).toBe(
+      false,
+    );
+    expect(pressLeavesEditor({ key: "ArrowLeft", metaKey: true }, EMPTY)).toBe(
+      false,
+    );
   });
 });
