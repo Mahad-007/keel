@@ -101,3 +101,29 @@ export function parseBulkCellName(name: string): BulkCellAddress | null {
   if (projectId === "" || workedOn === "") return null;
   return { projectId, workedOn };
 }
+
+/**
+ * Every cell the grid offers, in the order it reads: a row at a time, Monday
+ * to Sunday.
+ *
+ * This list is the whole of what a bulk submission may say, and that is the
+ * point of building it rather than walking whatever arrived. A form is a POST
+ * endpoint, so a submission can carry any field name at all — including a
+ * project nobody was shown and a day in another week. The action reads exactly
+ * these names out of the body and ignores the rest, which means an unknown
+ * project or an out-of-week day is not a refusal to word but a field that was
+ * never looked at.
+ *
+ * Grid order because it is the order errors are reported in and the order
+ * entries are written in. A reader checking a list of problems against the
+ * sheet in front of them reads down the rows, and an entry list whose
+ * `createdAt` ties break in grid order reads the same way afterwards.
+ */
+export function bulkCellNames(
+  projectIds: readonly string[],
+  days: readonly string[],
+): string[] {
+  return projectIds.flatMap((projectId) =>
+    days.map((workedOn) => bulkCellName({ projectId, workedOn })),
+  );
+}
