@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   cellDomId,
+  cellErrorDomId,
   clampToGrid,
   gridMove,
   isSameCell,
@@ -316,6 +317,28 @@ describe("pressLeavesEditor", () => {
     );
     expect(pressLeavesEditor({ key: "ArrowLeft", metaKey: true }, EMPTY)).toBe(
       false,
+    );
+  });
+});
+
+describe("cellErrorDomId", () => {
+  it("sits under the cell's own id", () => {
+    expect(
+      cellErrorDomId("prj_site", "2026-10-27").startsWith(
+        cellDomId("prj_site", "2026-10-27"),
+      ),
+    ).toBe(true);
+  });
+
+  it("differs from the cell it describes", () => {
+    expect(cellErrorDomId("prj_site", "2026-10-27")).not.toBe(
+      cellDomId("prj_site", "2026-10-27"),
+    );
+  });
+
+  it("gives two cells of one row different messages to point at", () => {
+    expect(cellErrorDomId("prj_site", "2026-10-27")).not.toBe(
+      cellErrorDomId("prj_site", "2026-10-28"),
     );
   });
 });
