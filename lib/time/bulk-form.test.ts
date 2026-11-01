@@ -6,6 +6,7 @@ import {
   initialBulkState,
   readBulkFields,
   rejectedBulkState,
+  savedBulkNotice,
   savedBulkState,
 } from "./bulk-form";
 
@@ -146,5 +147,44 @@ describe("failedBulkState", () => {
 
   it("says nothing was written", () => {
     expect(failedBulkState(typed, "try again").saved).toBeNull();
+  });
+});
+
+describe("savedBulkNotice", () => {
+  it("says nothing when no press has landed", () => {
+    expect(savedBulkNotice(initialBulkState(NAMES))).toBeNull();
+  });
+
+  it("reads the total back as the column holds it", () => {
+    const notice = savedBulkNotice(
+      savedBulkState({ entryIds: ["tme_1"], minutes: 90 }, NAMES),
+    );
+    expect(notice).toContain("1h 30m");
+  });
+
+  it("counts one cell in words rather than as a figure", () => {
+    const notice = savedBulkNotice(
+      savedBulkState({ entryIds: ["tme_1"], minutes: 120 }, NAMES),
+    );
+    expect(notice).toBe(
+      "Logged 2h in one cell. The sheet now shows it and the boxes are empty again.",
+    );
+  });
+
+  it("counts several cells", () => {
+    const notice = savedBulkNotice(
+      savedBulkState({ entryIds: ["tme_1", "tme_2", "tme_3"], minutes: 390 }, NAMES),
+    );
+    expect(notice).toBe(
+      "Logged 6h 30m across 3 cells. The sheet now shows them and the boxes are empty again.",
+    );
+  });
+
+  it("says nothing after a refusal", () => {
+    expect(savedBulkNotice(rejectedBulkState({}, { a: "no" }))).toBeNull();
+  });
+
+  it("says nothing after a failure", () => {
+    expect(savedBulkNotice(failedBulkState({}, "try again"))).toBeNull();
   });
 });
