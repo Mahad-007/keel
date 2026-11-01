@@ -1,7 +1,7 @@
 import { and, asc, count, eq, max } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
-import { deliverables, projects, type Deliverable } from "@/lib/db/schema";
+import { deliverables, type Deliverable } from "@/lib/db/schema";
 import {
   moveOne,
   nextSortOrder,
