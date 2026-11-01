@@ -1536,3 +1536,72 @@ describe("createTimeEntries", () => {
     expect(await listTimeEntries(projectId, db)).toEqual([]);
   });
 });
+
+describe("createTimeEntries guards", () => {
+  it("throws on a duration of no minutes, before anything is opened", async () => {
+    await expect(
+      createTimeEntries(
+        [
+          { projectId, minutes: 60, workedOn: "2026-10-19" },
+          { projectId, minutes: 0, workedOn: "2026-10-20" },
+        ],
+        db,
+      ),
+    ).rejects.toThrow(/time entry minutes/);
+    expect(await listTimeEntries(projectId, db)).toEqual([]);
+  });
+
+  it("throws on a negative duration", async () => {
+    await expect(
+      createTimeEntries([{ projectId, minutes: -30, workedOn: "2026-10-19" }], db),
+    ).rejects.toThrow(/time entry minutes/);
+  });
+
+  it("throws on a fractional duration", async () => {
+    await expect(
+      createTimeEntries([{ projectId, minutes: 1.5, workedOn: "2026-10-19" }], db),
+    ).rejects.toThrow(/time entry minutes/);
+  });
+
+  it("throws on a timestamp where a calendar date belongs", async () => {
+    await expect(
+      createTimeEntries(
+        [{ projectId, minutes: 60, workedOn: "2026-10-19T09:00:00Z" }],
+        db,
+      ),
+    ).rejects.toThrow(/time entry worked on/);
+  });
+
+  it("throws on a blank project rather than refusing it", async () => {
+    await expect(
+      createTimeEntries([{ projectId: "  ", minutes: 60, workedOn: "2026-10-19" }], db),
+    ).rejects.toThrow(/time entry project/);
+  });
+
+  it("leaves the table alone when an attribution belongs elsewhere", async () => {
+    const other = await createProject(
+      { clientId: (await createClient({ name: "Bell & Co" }, db)).id, name: "App" },
+      db,
+    );
+    const foreign = await createDeliverable(
+      { projectId: other.id, title: "Elsewhere" },
+      db,
+    );
+
+    await expect(
+      createTimeEntries(
+        [
+          { projectId, minutes: 60, workedOn: "2026-10-19" },
+          {
+            projectId,
+            deliverableId: foreign.id,
+            minutes: 60,
+            workedOn: "2026-10-20",
+          },
+        ],
+        db,
+      ),
+    ).rejects.toThrow(/does not belong to project/);
+    expect(await listTimeEntries(projectId, db)).toEqual([]);
+  });
+});
