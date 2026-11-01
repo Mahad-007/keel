@@ -23,6 +23,32 @@ import { requiredText } from "./fields";
  */
 
 /**
+ * The project's id if there is a project with it, or null.
+ *
+ * An answer rather than an exception, because the callers are split on what a
+ * missing project means. A time entry being written with one is a bug — the
+ * foreign key would refuse it anyway — and those go through
+ * `requireProject` below. A page that has been open while the project was
+ * closed down somewhere else is news for a reader, and those want a refusal
+ * they can word.
+ *
+ * Only the id is selected. Every caller is asking whether the row is there,
+ * and reading the rest of a project to answer that is a wider read for no
+ * reason.
+ */
+export async function findProject(
+  id: string,
+  database: Database,
+): Promise<string | null> {
+  const [row] = await database
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.id, id))
+    .limit(1);
+  return row?.id ?? null;
+}
+
+/**
  * The project's id if it exists, or a thrown error naming the id that was
  * passed.
  *
@@ -36,13 +62,9 @@ export async function requireProject(
   field: string,
 ): Promise<string> {
   const projectId = requiredText(id, field);
-  const [row] = await database
-    .select({ id: projects.id })
-    .from(projects)
-    .where(eq(projects.id, projectId))
-    .limit(1);
-  if (!row) throw new Error(`no project with id ${projectId}`);
-  return row.id;
+  const found = await findProject(projectId, database);
+  if (found === null) throw new Error(`no project with id ${projectId}`);
+  return found;
 }
 
 /**

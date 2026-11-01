@@ -18,6 +18,7 @@ import {
 import { newId } from "@/lib/id";
 import { negativeEstimateCount } from "@/lib/scope";
 
+import { findProject } from "./belonging";
 import {
   isPresentText,
   isWholeMinutes,
@@ -81,18 +82,6 @@ async function requireProject(
  * deleted while the page sat open is an ordinary thing to have happen, and the
  * reader needs a sentence rather than a stack trace. One query either way.
  */
-async function findProject(
-  id: string,
-  database: Database,
-): Promise<string | null> {
-  const [row] = await database
-    .select({ id: projects.id })
-    .from(projects)
-    .where(eq(projects.id, id))
-    .limit(1);
-  return row?.id ?? null;
-}
-
 /**
  * The position at the end of a project's list, which is where new scope goes.
  *
