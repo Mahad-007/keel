@@ -122,6 +122,34 @@ export async function createTimeEntry(
   return row;
 }
 
+/**
+ * Why a set of entries was not written.
+ *
+ * Codes rather than sentences, the same arrangement the rest of this module
+ * uses. `no-such-project` is reachable from a page that was right when it
+ * rendered — a timesheet left open while a project was deleted somewhere
+ * else — so the words for a reader belong with the form that shows them.
+ *
+ * `no-entries` is not reachable from any page: a grid with nothing typed into
+ * it is refused before the write is called. It is here because a caller that
+ * managed to ask for a write of nothing has a bug, and reporting success for
+ * a write that changed nothing is the kind of answer that hides one.
+ */
+export type BulkTimeReason = "no-such-project" | "no-entries";
+
+/**
+ * The outcome of writing a set of entries: every row, or the reason none of
+ * them was written.
+ *
+ * There is no partial answer in this type, and that is the point of the
+ * function. A caller told "nine of your twelve landed" has no way to work out
+ * which three are missing and no way to ask for them again without
+ * duplicating the nine.
+ */
+export type BulkTimeResult =
+  | { readonly ok: true; readonly entries: TimeEntry[] }
+  | { readonly ok: false; readonly reason: BulkTimeReason };
+
 /** One time entry by id, or null if there is no entry with that id. */
 export async function getTimeEntry(
   id: string,
