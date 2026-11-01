@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { bulkCellName, parseBulkCellName, BULK_CELL_PREFIX } from "./bulk";
+import {
+  bulkCellName,
+  bulkCellNames,
+  parseBulkCellName,
+  BULK_CELL_PREFIX,
+} from "./bulk";
 
 describe("bulkCellName", () => {
   it("joins the prefix, the project and the day", () => {
@@ -70,5 +75,43 @@ describe("parseBulkCellName", () => {
 
   it("refuses a field that is not a cell at all", () => {
     expect(parseBulkCellName("week")).toBeNull();
+  });
+});
+
+describe("bulkCellNames", () => {
+  const days = ["2026-10-19", "2026-10-20", "2026-10-21"];
+
+  it("gives one name per project per day", () => {
+    expect(bulkCellNames(["prj_a", "prj_b"], days)).toHaveLength(6);
+  });
+
+  it("reads a row at a time, earliest day first", () => {
+    expect(bulkCellNames(["prj_a", "prj_b"], days.slice(0, 2))).toEqual([
+      "cell:prj_a:2026-10-19",
+      "cell:prj_a:2026-10-20",
+      "cell:prj_b:2026-10-19",
+      "cell:prj_b:2026-10-20",
+    ]);
+  });
+
+  it("names every cell exactly once", () => {
+    const names = bulkCellNames(["prj_a", "prj_b", "prj_c"], days);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("offers nothing when there are no rows", () => {
+    expect(bulkCellNames([], days)).toEqual([]);
+  });
+
+  it("offers nothing when the week has no days", () => {
+    expect(bulkCellNames(["prj_a"], [])).toEqual([]);
+  });
+
+  it("produces names the parser reads back as the pair they came from", () => {
+    for (const name of bulkCellNames(["prj_a", "prj_b"], days)) {
+      const address = parseBulkCellName(name);
+      expect(address).not.toBeNull();
+      expect(bulkCellName(address!)).toBe(name);
+    }
   });
 });
