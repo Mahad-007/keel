@@ -4,6 +4,7 @@ import {
   bulkCellName,
   bulkCellNames,
   parseBulkCellName,
+  typedBulkCells,
   BULK_CELL_PREFIX,
 } from "./bulk";
 
@@ -113,5 +114,74 @@ describe("bulkCellNames", () => {
       expect(address).not.toBeNull();
       expect(bulkCellName(address!)).toBe(name);
     }
+  });
+});
+
+describe("typedBulkCells", () => {
+  const names = bulkCellNames(["prj_a", "prj_b"], [
+    "2026-10-19",
+    "2026-10-20",
+  ]);
+
+  it("keeps only the cells with something in them", () => {
+    const typed = typedBulkCells(names, {
+      "cell:prj_a:2026-10-19": "2h",
+      "cell:prj_a:2026-10-20": "",
+      "cell:prj_b:2026-10-19": "",
+      "cell:prj_b:2026-10-20": "30",
+    });
+    expect(typed.map((cell) => cell.name)).toEqual([
+      "cell:prj_a:2026-10-19",
+      "cell:prj_b:2026-10-20",
+    ]);
+  });
+
+  it("carries the pair each typed cell is about", () => {
+    const [cell] = typedBulkCells(names, {
+      "cell:prj_b:2026-10-20": "45m",
+    });
+    expect(cell.address).toEqual({
+      projectId: "prj_b",
+      workedOn: "2026-10-20",
+    });
+  });
+
+  it("keeps the text exactly as typed", () => {
+    const [cell] = typedBulkCells(names, {
+      "cell:prj_a:2026-10-19": " 1h 30m ",
+    });
+    expect(cell.text).toBe(" 1h 30m ");
+  });
+
+  it("treats whitespace as a cell nobody filled in", () => {
+    expect(
+      typedBulkCells(names, { "cell:prj_a:2026-10-19": "   " }),
+    ).toEqual([]);
+  });
+
+  it("treats a missing field as blank rather than failing", () => {
+    expect(typedBulkCells(names, {})).toEqual([]);
+  });
+
+  it("ignores a field the grid never offered", () => {
+    const typed = typedBulkCells(names, {
+      "cell:prj_elsewhere:2026-10-19": "8h",
+    });
+    expect(typed).toEqual([]);
+  });
+
+  it("keeps the cells in grid order whatever order the fields are in", () => {
+    const typed = typedBulkCells(names, {
+      "cell:prj_b:2026-10-19": "1h",
+      "cell:prj_a:2026-10-20": "2h",
+    });
+    expect(typed.map((cell) => cell.name)).toEqual([
+      "cell:prj_a:2026-10-20",
+      "cell:prj_b:2026-10-19",
+    ]);
+  });
+
+  it("skips a name that is not a cell name at all", () => {
+    expect(typedBulkCells(["week"], { week: "2026-10-19" })).toEqual([]);
   });
 });
