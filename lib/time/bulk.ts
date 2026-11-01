@@ -72,3 +72,32 @@ export function bulkCellName(address: BulkCellAddress): string {
     address.workedOn,
   ].join(BULK_CELL_SEPARATOR);
 }
+
+/**
+ * The pair a cell's name was built from, or null if the name is not one.
+ *
+ * The inverse of `bulkCellName`, and it has to be a true inverse: the per-cell
+ * errors come back keyed by name, and the sentence that names the cell for a
+ * reader is built from the pair. A name that round-tripped to a different day
+ * would be a message pointing at the wrong column.
+ *
+ * Null rather than a throw for anything that is not a cell name. Nothing a
+ * page renders produces one, so the only way here is a hand-built submission —
+ * and the caller that asked is reporting on a form rather than running the
+ * app's own arithmetic, so it needs an answer it can skip rather than an
+ * exception.
+ *
+ * Split from the right, on exactly two separators. The project id cannot
+ * contain one and neither can the date, so the shape is fixed; checking the
+ * count rather than taking the first three parts is what refuses a name with
+ * something extra tacked on instead of silently reading the front of it.
+ */
+export function parseBulkCellName(name: string): BulkCellAddress | null {
+  const parts = name.split(BULK_CELL_SEPARATOR);
+  if (parts.length !== 3) return null;
+
+  const [prefix, projectId, workedOn] = parts;
+  if (prefix !== BULK_CELL_PREFIX) return null;
+  if (projectId === "" || workedOn === "") return null;
+  return { projectId, workedOn };
+}
