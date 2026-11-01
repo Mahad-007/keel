@@ -29,6 +29,37 @@
  */
 
 /**
+ * One cell of the grid, submitted: the field it came from, the pair it is
+ * about, and the duration as it was typed.
+ *
+ * The name is kept alongside the pair because that is what an error is keyed
+ * under — the form renders its message beside the box, and the box is found by
+ * its name. Parsing the pair back out at that point would be a second place
+ * for the two to disagree.
+ */
+export type TypedBulkCell = {
+  readonly name: string;
+  readonly address: BulkCellAddress;
+  /** What the reader typed, untrimmed. */
+  readonly text: string;
+};
+
+/**
+ * One cell ready to be written: a project, a day, and whole minutes.
+ *
+ * Nothing else, because a cell has nowhere to put anything else. A note and an
+ * attribution both belong to a particular stretch of work, and a grid cell
+ * stands for a day — so a bulk entry is project-level and unannotated, and
+ * both are added afterwards from the project's own time list. Saying so here
+ * is better than a grid with a second box in every cell that almost nobody
+ * fills in.
+ */
+export type BulkTimeDraft = BulkCellAddress & {
+  /** Whole minutes, as the column holds them. */
+  readonly minutes: number;
+};
+
+/**
  * What a cell's form field is called, before the project and the day are put
  * on it.
  *
