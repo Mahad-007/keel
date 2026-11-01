@@ -163,3 +163,25 @@ export function failedBulkState(
 ): BulkTimeState {
   return { ...failedFormState(fields, formError), saved: null };
 }
+
+/**
+ * The things that can stop a sheet that no single cell is to blame for.
+ *
+ * Each is reachable from a page that was right when it rendered — a press with
+ * nothing typed, a project closed down in another tab, a transaction the
+ * driver refused — so each says what to do rather than only what went wrong.
+ *
+ * All three say that nothing was written, and on this form that is the
+ * sentence that matters most. The press covers a dozen cells at once, so a
+ * reader who cannot tell whether it half-landed has no way to try again
+ * without risking a duplicate of whatever did — and the transaction is what
+ * makes "nothing was written" true rather than hopeful.
+ */
+export const BULK_PROBLEMS = {
+  nothingTyped:
+    "Nothing to save yet. Type how long something took into the day it was worked on — a blank cell is left exactly as it was.",
+  missingProject:
+    "One of those projects no longer exists, so nothing was saved. Reload the sheet — that row has gone with it — and fill in what is left.",
+  failed:
+    "Could not save that time. The whole sheet is written in one go, so nothing landed at all — try again.",
+} as const;
