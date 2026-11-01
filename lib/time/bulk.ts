@@ -28,6 +28,19 @@
  * time list, which shows the entries one at a time.
  */
 
+import type { ParseResult } from "@/lib/forms/result";
+
+/*
+  The duration rules come from the log-time form rather than being written
+  again here, and that is deliberate: a duration the log refuses is a duration
+  the grid must refuse too. `1,5h`, `1:30` and a bare `.5` are the same three
+  mistakes wherever they are typed, and they get the same three sentences —
+  which is what stops the grid from quietly accepting a figure a reader has
+  already been told is ambiguous, and what keeps the one-day ceiling the same
+  ceiling in both places.
+*/
+import { loggedMinutes } from "./form";
+
 /**
  * One cell of the grid, submitted: the field it came from, the pair it is
  * about, and the duration as it was typed.
@@ -58,6 +71,7 @@ export type BulkTimeDraft = BulkCellAddress & {
   /** Whole minutes, as the column holds them. */
   readonly minutes: number;
 };
+
 
 /**
  * What a cell's form field is called, before the project and the day are put
@@ -190,4 +204,46 @@ export function typedBulkCells(
     typed.push({ name, address, text });
   }
   return typed;
+}
+
+/**
+ * A submitted sheet, read: either every typed cell as a draft entry, or a
+ * message for each cell that could not be read.
+ *
+ * All or nothing, and that is the whole reason the write is a transaction. A
+ * press that wrote the nine cells it could read and reported three it could
+ * not would leave a reader having to work out which nine landed before they
+ * dared press again — and pressing again would duplicate those nine. One bad
+ * cell stops the lot, the boxes keep what was typed, and the three messages
+ * say what to fix.
+ *
+ * Errors are keyed by field name, which is what the form renders them beside.
+ * They come out in grid order because that is the order `typedBulkCells`
+ * walks: a reader checking the list against the sheet reads down the rows.
+ *
+ * Nothing here looks at what a cell already holds. A day that already has
+ * twenty hours against it and gets eight more is a sheet worth questioning,
+ * but every one of those entries is a readable duration somebody meant to
+ * type, and refusing the ninth hour of a day one cell at a time is a form
+ * arguing with a reader who can see the figures. Day 030 is where an
+ * implausible day gets flagged, against the entries around it.
+ */
+export function parseBulkCells(
+  names: readonly string[],
+  fields: Readonly<Record<string, string>>,
+): ParseResult<BulkTimeDraft[], string> {
+  const drafts: BulkTimeDraft[] = [];
+  const errors: Record<string, string> = {};
+
+  for (const cell of typedBulkCells(names, fields)) {
+    const minutes = loggedMinutes(cell.text);
+    if (minutes.ok) {
+      drafts.push({ ...cell.address, minutes: minutes.value });
+    } else {
+      errors[cell.name] = minutes.message;
+    }
+  }
+
+  if (Object.keys(errors).length > 0) return { ok: false, errors };
+  return { ok: true, value: drafts };
 }
