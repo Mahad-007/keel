@@ -12,6 +12,7 @@ import {
 } from "./projects";
 import {
   clearTimeEntryBilled,
+  createTimeEntries,
   createTimeEntry,
   deleteTimeEntry,
   getTimeEntry,
@@ -1408,5 +1409,130 @@ describe("listTimeEntriesInRange", () => {
     await expect(
       listTimeEntriesInRange({ from: "last Monday", to: "2026-11-01" }, db),
     ).rejects.toThrow(/range start/);
+  });
+});
+
+describe("createTimeEntries", () => {
+  it("writes every entry and hands back the rows", async () => {
+    const result = await createTimeEntries(
+      [
+        { projectId, minutes: 120, workedOn: "2026-10-19" },
+        { projectId, minutes: 90, workedOn: "2026-10-20" },
+        { projectId, minutes: 30, workedOn: "2026-10-21" },
+      ],
+      db,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.entries).toHaveLength(3);
+    expect(result.entries.map((entry) => entry.minutes)).toEqual([120, 90, 30]);
+    expect(await listTimeEntries(projectId, db)).toHaveLength(3);
+  });
+
+  it("hands the rows back in the order they were asked for", async () => {
+    const result = await createTimeEntries(
+      [
+        { projectId, minutes: 60, workedOn: "2026-10-19" },
+        { projectId, minutes: 60, workedOn: "2026-10-20" },
+      ],
+      db,
+    );
+
+    expect(result.ok && result.entries.map((entry) => entry.workedOn)).toEqual([
+      "2026-10-19",
+      "2026-10-20",
+    ]);
+  });
+
+  it("spreads entries across several projects in one press", async () => {
+    const other = await createProject(
+      { clientId: (await createClient({ name: "Bell & Co" }, db)).id, name: "App" },
+      db,
+    );
+
+    const result = await createTimeEntries(
+      [
+        { projectId, minutes: 60, workedOn: "2026-10-19" },
+        { projectId: other.id, minutes: 30, workedOn: "2026-10-19" },
+      ],
+      db,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(await listTimeEntries(projectId, db)).toHaveLength(1);
+    expect(await listTimeEntries(other.id, db)).toHaveLength(1);
+  });
+
+  it("defaults every entry to chargeable, like the single-entry door", async () => {
+    const result = await createTimeEntries(
+      [{ projectId, minutes: 60, workedOn: "2026-10-19" }],
+      db,
+    );
+
+    expect(result.ok && result.entries[0].billable).toBe(true);
+    expect(result.ok && result.entries[0].billedInvoiceId).toBeNull();
+  });
+
+  it("stores no note and no attribution for a bare entry", async () => {
+    const result = await createTimeEntries(
+      [{ projectId, minutes: 60, workedOn: "2026-10-19" }],
+      db,
+    );
+
+    expect(result.ok && result.entries[0].note).toBeNull();
+    expect(result.ok && result.entries[0].deliverableId).toBeNull();
+  });
+
+  it("carries an attribution through when one is given", async () => {
+    const deliverable = await createDeliverable(
+      { projectId, title: "Wireframes" },
+      db,
+    );
+
+    const result = await createTimeEntries(
+      [
+        {
+          projectId,
+          deliverableId: deliverable.id,
+          minutes: 60,
+          workedOn: "2026-10-19",
+        },
+      ],
+      db,
+    );
+
+    expect(result.ok && result.entries[0].deliverableId).toBe(deliverable.id);
+  });
+
+  it("refuses a write of nothing rather than reporting success", async () => {
+    expect(await createTimeEntries([], db)).toEqual({
+      ok: false,
+      reason: "no-entries",
+    });
+  });
+
+  it("refuses the whole sheet when one project has gone", async () => {
+    const result = await createTimeEntries(
+      [
+        { projectId, minutes: 60, workedOn: "2026-10-19" },
+        { projectId: "prj_gone", minutes: 60, workedOn: "2026-10-19" },
+      ],
+      db,
+    );
+
+    expect(result).toEqual({ ok: false, reason: "no-such-project" });
+  });
+
+  it("writes nothing at all when one project has gone", async () => {
+    await createTimeEntries(
+      [
+        { projectId, minutes: 60, workedOn: "2026-10-19" },
+        { projectId: "prj_gone", minutes: 60, workedOn: "2026-10-19" },
+      ],
+      db,
+    );
+
+    expect(await listTimeEntries(projectId, db)).toEqual([]);
   });
 });
