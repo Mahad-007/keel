@@ -1605,3 +1605,51 @@ describe("createTimeEntries guards", () => {
     expect(await listTimeEntries(projectId, db)).toEqual([]);
   });
 });
+
+describe("createTimeEntries alongside time already logged", () => {
+  it("adds to a day rather than replacing what is there", async () => {
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-19" }, db);
+    await tick();
+
+    await createTimeEntries(
+      [{ projectId, minutes: 30, workedOn: "2026-10-19" }],
+      db,
+    );
+
+    const entries = await listTimeEntries(projectId, db);
+    expect(entries).toHaveLength(2);
+    expect(entries.map((entry) => entry.minutes).sort()).toEqual([30, 60]);
+  });
+
+  it("writes two cells of the same day as two separate entries", async () => {
+    const result = await createTimeEntries(
+      [
+        { projectId, minutes: 60, workedOn: "2026-10-19" },
+        { projectId, minutes: 60, workedOn: "2026-10-19" },
+      ],
+      db,
+    );
+
+    expect(result.ok && result.entries).toHaveLength(2);
+    expect(result.ok && result.entries[0].id).not.toBe(
+      result.ok && result.entries[1].id,
+    );
+  });
+
+  it("leaves billed time untouched", async () => {
+    const billed = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-19" },
+      db,
+    );
+    await markTimeEntryBilled(billed.id, "inv_1", db);
+
+    await createTimeEntries(
+      [{ projectId, minutes: 30, workedOn: "2026-10-19" }],
+      db,
+    );
+
+    const after = await getTimeEntry(billed.id, db);
+    expect(after?.minutes).toBe(60);
+    expect(after?.billedInvoiceId).toBe("inv_1");
+  });
+});
