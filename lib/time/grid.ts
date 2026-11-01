@@ -220,3 +220,65 @@ export function cellDomId(projectId: string, workedOn: string): string {
  */
 export const GRID_KEYBOARD_HINT =
   "The arrow keys move between the day cells; the totals along the edges are read rather than stepped onto. Home and End jump to the ends of a row, and with Ctrl or Cmd to the ends of the sheet.";
+
+/**
+ * What the caret is doing inside a cell's box, as far as the grid cares.
+ *
+ * Three numbers rather than the input element, so the rule below can be tested
+ * without a DOM. The component reads them off the event's target; everything
+ * that decides anything is here.
+ */
+export type CaretPosition = {
+  /** Where the caret sits in the text, counting from zero. */
+  readonly at: number;
+  /** How many characters the box holds. */
+  readonly length: number;
+  /** Whether a stretch of the text is selected rather than the caret resting. */
+  readonly selected?: boolean;
+};
+
+/**
+ * Whether a keypress inside a cell's box belongs to the grid, or to the box.
+ *
+ * The conflict is unavoidable once a cell holds an editor: ArrowLeft means
+ * "the previous day" to a grid and "one character back" to a text field, and
+ * both readings are the right one some of the time. Giving the arrows to the
+ * grid outright would make a typed figure uncorrectable except by deleting it;
+ * giving them to the box outright would take away the whole reason Day 026
+ * built a cursor.
+ *
+ * So the edge of the text decides. ArrowLeft with the caret at the start has
+ * nothing left to do inside the box, and that is exactly the press a reader
+ * means as "back a day"; anywhere else in the text it is a correction. The
+ * common case settles it for free — an empty box has the caret at both edges
+ * at once, so a reader filling in a blank week crosses it with the arrows and
+ * never discovers there was a rule.
+ *
+ * A selection keeps the horizontal keys whatever the caret says. Shift-arrowing
+ * over `1h30m` and pressing ArrowLeft collapses the selection, which is a text
+ * operation; moving the cursor off the cell instead would throw away a
+ * selection the reader had just made on purpose.
+ *
+ * Up and down are always the grid's. A single-line input has no line above to
+ * go to, so the only thing either key could do inside the box is jump the
+ * caret to an end — and they are the one pair of keys that cannot be reached
+ * by any amount of typing, which makes them the way out of a full box.
+ */
+export function pressLeavesEditor(
+  press: GridPress,
+  caret: CaretPosition,
+): boolean {
+  const move = gridMove(press);
+  if (move === null) return false;
+
+  switch (move) {
+    case "left":
+    case "row-start":
+      return caret.selected !== true && caret.at <= 0;
+    case "right":
+    case "row-end":
+      return caret.selected !== true && caret.at >= caret.length;
+    default:
+      return true;
+  }
+}
