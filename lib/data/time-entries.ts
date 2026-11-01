@@ -7,6 +7,7 @@ import { editRefusedByInvoice, isBilled } from "@/lib/time/billing";
 
 import {
   deliverableProject,
+  findProject,
   foreignDeliverable,
   requireProject,
   requireProjectDeliverable,
@@ -149,6 +150,92 @@ export type BulkTimeReason = "no-such-project" | "no-entries";
 export type BulkTimeResult =
   | { readonly ok: true; readonly entries: TimeEntry[] }
   | { readonly ok: false; readonly reason: BulkTimeReason };
+
+/**
+ * Writes a set of time entries and hands back the rows, or refuses the lot.
+ *
+ * What the timesheet grid presses once for. A week written up on Friday is a
+ * dozen entries across several projects, and twelve separate inserts is twelve
+ * chances to end up with a sheet that is half filled in — the one state nobody
+ * can recover from, because the figures on screen no longer say which of the
+ * twelve a reader still owes.
+ *
+ * One immediate transaction around the lot, so a sheet lands whole or not at
+ * all. Immediate rather than deferred because the first thing it does is read:
+ * a deferred transaction takes no write lock until the first insert, which
+ * would let two presses both find a project that one of them is about to
+ * invalidate.
+ *
+ * Each entry goes through `createTimeEntry` rather than being inserted here.
+ * That is the one door time comes through — it is what defaults an entry to
+ * chargeable, collapses a blank attribution to NULL, and refuses an
+ * attribution belonging to another engagement — and a bulk insert would be a
+ * second set of rules for the same table to drift from.
+ *
+ * The cost is real and worth writing down: every entry is its own savepoint
+ * and its own project lookup, on top of the distinct-project pass in front of
+ * them. For a week of one studio's work that is tens of statements inside one
+ * transaction, which against a local file is nothing and against a hosted
+ * libSQL is tens of round trips on a press somebody makes once a week. What
+ * bounds it is the grid: the cells a submission may name are the week's days
+ * times the studio's projects, and nothing a caller sends can add to that.
+ *
+ * The projects are checked up front, once each, rather than being left to the
+ * insert. `createTimeEntry` throws on a project that is not there, which is
+ * the right answer for a form that names one engagement — it is a bug — and
+ * the wrong one here: a timesheet names every active project at once, so one
+ * closed down in another tab while the sheet sat open is ordinary news that
+ * deserves a sentence rather than a stack trace.
+ */
+export async function createTimeEntries(
+  inputs: readonly NewTimeEntryInput[],
+  database: Database = db,
+): Promise<BulkTimeResult> {
+  /*
+    Asked before the transaction is opened, like the guards below: a write of
+    nothing would report success and change nothing, and the caller that
+    managed to ask for one has a bug rather than a studio to blame.
+  */
+  if (inputs.length === 0) return { ok: false, reason: "no-entries" };
+
+  /*
+    The column guards, run over every input before anything is opened. Each is
+    the same function `createTimeEntry` applies, so this is the same rule
+    earlier rather than a second opinion about it — and a duration of zero or a
+    date with a time on it is a bug in the caller that now costs no round trip
+    and no rolled-back transaction to find.
+  */
+  for (const input of inputs) {
+    positiveMinutes(input.minutes, "time entry minutes");
+    calendarDate(input.workedOn, "time entry worked on");
+  }
+
+  return database.transaction(
+    async (tx) => {
+      /*
+        Once per project rather than once per entry. A week of one project is
+        seven entries naming the same engagement, and asking seven times would
+        be six reads whose answer is already known.
+      */
+      const known = new Set<string>();
+      for (const input of inputs) {
+        const projectId = requiredText(input.projectId, "time entry project");
+        if (known.has(projectId)) continue;
+        if ((await findProject(projectId, tx)) === null) {
+          return { ok: false, reason: "no-such-project" };
+        }
+        known.add(projectId);
+      }
+
+      const entries: TimeEntry[] = [];
+      for (const input of inputs) {
+        entries.push(await createTimeEntry(input, tx));
+      }
+      return { ok: true, entries };
+    },
+    { behavior: "immediate" },
+  );
+}
 
 /** One time entry by id, or null if there is no entry with that id. */
 export async function getTimeEntry(
