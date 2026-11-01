@@ -74,6 +74,21 @@ export type BulkTimeDraft = BulkCellAddress & {
 
 
 /**
+ * How much a cell's box will hold, which is the number the input carries as
+ * its `maxLength`.
+ *
+ * A duration is short: `1h30m` is five characters and `0.25h` is five. Eight
+ * leaves room for a space and a stray zero without leaving room for a
+ * sentence — a cell is not a note, and a box that accepted forty characters
+ * would invite one and then refuse it.
+ *
+ * Exported because the browser and the validator must agree. Two copies of a
+ * limit drift, and the day they do the browser stops somebody at a length the
+ * parser would have accepted.
+ */
+export const BULK_CELL_MAX_LENGTH = 8;
+
+/**
  * What a cell's form field is called, before the project and the day are put
  * on it.
  *
