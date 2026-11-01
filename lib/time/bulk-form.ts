@@ -1,5 +1,11 @@
 import { readFields } from "@/lib/forms/form-data";
-import type { FormState } from "@/lib/forms/state";
+import type { FieldErrors } from "@/lib/forms/result";
+import {
+  failedFormState,
+  initialFormState,
+  rejectedFormState,
+  type FormState,
+} from "@/lib/forms/state";
 
 /**
  * The state the timesheet's bulk form is rendered from, between the press and
@@ -96,3 +102,64 @@ export type BulkSaved = {
 export type BulkTimeState = FormState<string> & {
   readonly saved: BulkSaved | null;
 };
+
+/**
+ * An untouched grid: every box empty, nothing wrong, nothing written yet.
+ *
+ * A function rather than a constant, because the cells depend on the week the
+ * page is showing. Stepping to another week serves a different set of names,
+ * and a constant could not hold them.
+ */
+export function initialBulkState(names: readonly string[]): BulkTimeState {
+  return { ...initialFormState(blankBulkFields(names)), saved: null };
+}
+
+/**
+ * The press wrote. The grid comes back empty, ready for whatever is next.
+ *
+ * Emptied rather than left holding what was typed, and that is the one
+ * decision on this form worth defending. A grid that kept its figures after a
+ * save would be a grid where every box still reads `2h` beside a cell that now
+ * reads `2h` — and the next press would log the whole week a second time. Time
+ * is money, so a duplicate here ends up on an invoice somebody will defend
+ * line by line.
+ *
+ * The cells themselves are not the record of what happened. The sheet
+ * underneath is, and it is re-read the moment the page is revalidated.
+ */
+export function savedBulkState(
+  saved: BulkSaved,
+  names: readonly string[],
+): BulkTimeState {
+  return { ...initialBulkState(names), saved };
+}
+
+/**
+ * Validation refused the submission. Nothing was written, and the grid keeps
+ * every figure that was typed into it.
+ *
+ * Keeping them is not a nicety on this form: a reader who filled in fifteen
+ * cells and got one message back would otherwise lose the fourteen that were
+ * fine, and there is nowhere to get them from but memory.
+ */
+export function rejectedBulkState(
+  fields: BulkTimeFields,
+  errors: FieldErrors<string>,
+): BulkTimeState {
+  return { ...rejectedFormState(fields, errors), saved: null };
+}
+
+/**
+ * The submission was good and nothing was written anyway — the project deleted
+ * in another tab, a driver that refused the transaction.
+ *
+ * The grid keeps its figures for the same reason, and more pressingly: the
+ * sentence for most of these says to try again, and there is nothing to try
+ * again with if the boxes have been cleared.
+ */
+export function failedBulkState(
+  fields: BulkTimeFields,
+  formError: string,
+): BulkTimeState {
+  return { ...failedFormState(fields, formError), saved: null };
+}
