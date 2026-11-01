@@ -158,3 +158,36 @@ export function bulkCellNames(
     days.map((workedOn) => bulkCellName({ projectId, workedOn })),
   );
 }
+
+/**
+ * The cells a reader actually typed something into, in grid order.
+ *
+ * Almost every cell of a submitted sheet is blank, and a blank cell is an
+ * answer rather than a mistake: it says no time went to that project on that
+ * day. Treating it as a field that failed would mean a forty-cell grid coming
+ * back with thirty-seven errors on it the first time anybody pressed Save.
+ *
+ * Whitespace counts as blank, so a stray space left in a box — a tab taken
+ * through the grid, a half-typed figure deleted — is a cell nobody filled in
+ * rather than a duration nobody can read.
+ *
+ * A name the parser refuses is skipped rather than reported. The caller builds
+ * the list from the grid it rendered, so a name that does not parse is a bug
+ * here rather than news for a reader; skipping keeps that from becoming an
+ * error message beside a box that does not exist.
+ */
+export function typedBulkCells(
+  names: readonly string[],
+  fields: Readonly<Record<string, string>>,
+): TypedBulkCell[] {
+  const typed: TypedBulkCell[] = [];
+  for (const name of names) {
+    const text = fields[name] ?? "";
+    if (text.trim() === "") continue;
+
+    const address = parseBulkCellName(name);
+    if (address === null) continue;
+    typed.push({ name, address, text });
+  }
+  return typed;
+}
