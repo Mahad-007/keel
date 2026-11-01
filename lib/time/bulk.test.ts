@@ -4,6 +4,7 @@ import {
   bulkCellName,
   bulkCellNames,
   parseBulkCellName,
+  parseBulkCells,
   typedBulkCells,
   BULK_CELL_PREFIX,
 } from "./bulk";
@@ -183,5 +184,118 @@ describe("typedBulkCells", () => {
 
   it("skips a name that is not a cell name at all", () => {
     expect(typedBulkCells(["week"], { week: "2026-10-19" })).toEqual([]);
+  });
+});
+
+describe("parseBulkCells", () => {
+  const days = ["2026-10-19", "2026-10-20"];
+  const names = bulkCellNames(["prj_a", "prj_b"], days);
+
+  it("reads every typed cell as a draft entry", () => {
+    const parsed = parseBulkCells(names, {
+      "cell:prj_a:2026-10-19": "2h",
+      "cell:prj_b:2026-10-20": "90",
+    });
+    expect(parsed).toEqual({
+      ok: true,
+      value: [
+        { projectId: "prj_a", workedOn: "2026-10-19", minutes: 120 },
+        { projectId: "prj_b", workedOn: "2026-10-20", minutes: 90 },
+      ],
+    });
+  });
+
+  it("reads a sheet with nothing typed as no drafts at all", () => {
+    expect(parseBulkCells(names, {})).toEqual({ ok: true, value: [] });
+  });
+
+  it("accepts the spellings the log-time form accepts", () => {
+    const parsed = parseBulkCells(names, {
+      "cell:prj_a:2026-10-19": "1h30m",
+      "cell:prj_a:2026-10-20": "45m",
+      "cell:prj_b:2026-10-19": "1.5h",
+      "cell:prj_b:2026-10-20": "90",
+    });
+    expect(parsed.ok && parsed.value.map((draft) => draft.minutes)).toEqual([
+      90, 45, 90, 90,
+    ]);
+  });
+
+  it("keeps the drafts in grid order", () => {
+    const parsed = parseBulkCells(names, {
+      "cell:prj_b:2026-10-19": "1h",
+      "cell:prj_a:2026-10-20": "2h",
+    });
+    expect(
+      parsed.ok && parsed.value.map((draft) => draft.projectId),
+    ).toEqual(["prj_a", "prj_b"]);
+  });
+
+  it("refuses the whole sheet when one cell cannot be read", () => {
+    const parsed = parseBulkCells(names, {
+      "cell:prj_a:2026-10-19": "2h",
+      "cell:prj_b:2026-10-20": "lunch",
+    });
+    expect(parsed.ok).toBe(false);
+  });
+
+  it("keys the message under the cell that could not be read", () => {
+    const parsed = parseBulkCells(names, {
+      "cell:prj_a:2026-10-19": "2h",
+      "cell:prj_b:2026-10-20": "lunch",
+    });
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) return;
+    expect(Object.keys(parsed.errors)).toEqual(["cell:prj_b:2026-10-20"]);
+  });
+
+  it("reports every unreadable cell rather than only the first", () => {
+    const parsed = parseBulkCells(names, {
+      "cell:prj_a:2026-10-19": "1:30",
+      "cell:prj_a:2026-10-20": "1,5h",
+      "cell:prj_b:2026-10-19": ".5",
+    });
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) return;
+    expect(Object.keys(parsed.errors)).toEqual([
+      "cell:prj_a:2026-10-19",
+      "cell:prj_a:2026-10-20",
+      "cell:prj_b:2026-10-19",
+    ]);
+  });
+
+  it("refuses a cell of no time at all", () => {
+    const parsed = parseBulkCells(names, {
+      "cell:prj_a:2026-10-19": "0",
+    });
+    expect(parsed.ok).toBe(false);
+  });
+
+  it("refuses a negative duration", () => {
+    const parsed = parseBulkCells(names, {
+      "cell:prj_a:2026-10-19": "-1h",
+    });
+    expect(parsed.ok).toBe(false);
+  });
+
+  it("refuses a cell longer than the day it is filed under", () => {
+    const parsed = parseBulkCells(names, {
+      "cell:prj_a:2026-10-19": "25h",
+    });
+    expect(parsed.ok).toBe(false);
+  });
+
+  it("accepts a cell of exactly one day", () => {
+    const parsed = parseBulkCells(names, {
+      "cell:prj_a:2026-10-19": "24h",
+    });
+    expect(parsed.ok && parsed.value[0].minutes).toBe(1440);
+  });
+
+  it("writes nothing for a cell the grid never offered", () => {
+    const parsed = parseBulkCells(names, {
+      "cell:prj_elsewhere:2026-10-19": "8h",
+    });
+    expect(parsed).toEqual({ ok: true, value: [] });
   });
 });
