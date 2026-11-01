@@ -185,3 +185,22 @@ export const BULK_PROBLEMS = {
   failed:
     "Could not save that time. The whole sheet is written in one go, so nothing landed at all — try again.",
 } as const;
+
+/**
+ * What to say when the press never got an answer — the connection dropped, the
+ * tab was suspended mid-request, the request was aborted.
+ *
+ * It does not claim nothing was written, because from the client there is no
+ * way to know: the request may have been lost on the way out, or the answer
+ * lost on the way back with a dozen entries already stored. The transaction
+ * guarantees the sheet landed whole or not at all, which is a real guarantee
+ * and still not one the browser can read.
+ *
+ * Nor does it say "try again", which is the instruction that would log the
+ * whole week twice. That is the worst outcome this form has: a duplicated
+ * week is money, and it is money on an invoice somebody will defend line by
+ * line. So it asks the reader to reload and look at the figures, which is the
+ * one thing that answers the question.
+ */
+export const BULK_NO_ANSWER =
+  "Could not tell whether that sheet was saved — the answer never arrived. It was either written whole or not at all; reload the week and look at the figures before filling it in again.";
