@@ -200,6 +200,21 @@ export function cellDomId(projectId: string, workedOn: string): string {
 }
 
 /**
+ * The DOM id of the message under one cell's box.
+ *
+ * Derived from the same pair as the cell itself, for the same reason: the box
+ * points at its message with `aria-describedby`, so a figure that cannot be
+ * read is announced with the box it was typed into rather than sitting in a
+ * list somewhere a screen reader may never reach.
+ *
+ * Namespaced under the cell's own id, so a message cannot collide with
+ * anything else on a page that happens to be named after a date.
+ */
+export function cellErrorDomId(projectId: string, workedOn: string): string {
+  return `${cellDomId(projectId, workedOn)}-error`;
+}
+
+/**
  * What the grid says about its own keys.
  *
  * Said rather than left to be discovered, because a grid with one tab stop is
