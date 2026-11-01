@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { bulkCellName, BULK_CELL_PREFIX } from "./bulk";
+import { bulkCellName, parseBulkCellName, BULK_CELL_PREFIX } from "./bulk";
 
 describe("bulkCellName", () => {
   it("joins the prefix, the project and the day", () => {
@@ -39,5 +39,36 @@ describe("bulkCellName", () => {
       workedOn: "2026-10-19",
     });
     expect(first).not.toBe(second);
+  });
+});
+
+describe("parseBulkCellName", () => {
+  it("reads back the pair a name was built from", () => {
+    const address = { projectId: "prj_abc", workedOn: "2026-10-19" };
+    expect(parseBulkCellName(bulkCellName(address))).toEqual(address);
+  });
+
+  it("refuses a name under another prefix", () => {
+    expect(parseBulkCellName("note:prj_abc:2026-10-19")).toBeNull();
+  });
+
+  it("refuses a name with a part missing", () => {
+    expect(parseBulkCellName("cell:prj_abc")).toBeNull();
+  });
+
+  it("refuses a name with something tacked on the end", () => {
+    expect(parseBulkCellName("cell:prj_abc:2026-10-19:billable")).toBeNull();
+  });
+
+  it("refuses a blank project", () => {
+    expect(parseBulkCellName("cell::2026-10-19")).toBeNull();
+  });
+
+  it("refuses a blank day", () => {
+    expect(parseBulkCellName("cell:prj_abc:")).toBeNull();
+  });
+
+  it("refuses a field that is not a cell at all", () => {
+    expect(parseBulkCellName("week")).toBeNull();
   });
 });
