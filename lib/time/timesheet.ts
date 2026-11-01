@@ -421,6 +421,39 @@ export function describeCell(
 }
 
 /**
+ * What a cell's box is for, said once at the end of the cell's own sentence.
+ *
+ * "Add" rather than "set", because that is what the box does: a typed duration
+ * becomes a new entry beside whatever the cell already holds, and nothing
+ * already logged is touched. The verb is the whole of what a reader needs to
+ * know before typing, and getting it wrong costs an hour logged twice.
+ */
+export const CELL_EDITOR_INSTRUCTION = "Type how long to add.";
+
+/**
+ * A cell's box as one sentence: where it is, what is already there, and what
+ * typing into it will do.
+ *
+ * The cell's own sentence with the instruction after it, rather than a second
+ * sentence written from scratch. A box in a grid has no visible label — the
+ * row says which project and the heading says which day — so the accessible
+ * name has to carry both, and it is the same position `describeCell` already
+ * describes. Writing it twice would be two chances for the box to name a
+ * different day from the figure above it.
+ *
+ * What is already in the cell is part of it, because a box that adds to
+ * something needs to say what it is adding to: four hours typed into a cell
+ * that already holds four is an eight-hour day, and a reader who cannot see
+ * the figure has no other way to know that.
+ */
+export function describeCellEditor(
+  project: TimesheetProject,
+  cell: TimesheetCell,
+): string {
+  return `${describeCell(project, cell)}. ${CELL_EDITOR_INSTRUCTION}`;
+}
+
+/**
  * How many days of the week hold work, across every row.
  *
  * A figure worth its own sentence, because the total alone does not say what
