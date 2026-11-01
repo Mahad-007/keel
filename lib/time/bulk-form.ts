@@ -1,4 +1,5 @@
 import { readFields } from "@/lib/forms/form-data";
+import { formatMinutes } from "@/lib/minutes";
 import type { FieldErrors } from "@/lib/forms/result";
 import {
   failedFormState,
@@ -204,3 +205,30 @@ export const BULK_PROBLEMS = {
  */
 export const BULK_NO_ANSWER =
   "Could not tell whether that sheet was saved — the answer never arrived. It was either written whole or not at all; reload the week and look at the figures before filling it in again.";
+
+/**
+ * What to say after a sheet is saved, or null when there is nothing to say.
+ *
+ * The form does not navigate, so a successful press changes the page in ways a
+ * reader may be looking at none of: a dozen boxes empty, and figures appear in
+ * the cells beside them. Anyone working from a screen reader gets no
+ * notification of either. This is the sentence that goes in a live region.
+ *
+ * Three things, and each is one the reader cannot now see. The total, because
+ * it is read back as the column holds it and a figure that came out
+ * differently from the way it was typed is the thing worth catching. The
+ * count, because a press over a dozen cells that wrote three is the mistake
+ * this sentence exists to make visible. And that the boxes are empty, because
+ * that is the state the grid is now in and the next press depends on knowing
+ * it.
+ */
+export function savedBulkNotice(state: BulkTimeState): string | null {
+  if (state.saved === null) return null;
+
+  const { entryIds, minutes } = state.saved;
+  const where =
+    entryIds.length === 1 ? "in one cell" : `across ${entryIds.length} cells`;
+  const them = entryIds.length === 1 ? "it" : "them";
+
+  return `Logged ${formatMinutes(minutes)} ${where}. The sheet now shows ${them} and the boxes are empty again.`;
+}
