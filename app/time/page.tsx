@@ -110,7 +110,23 @@ export default async function TimePage({ searchParams }: PageProps<"/time">) {
         that is actually that.
       */}
       {!empty ? (
-        <TimesheetGrid sheet={sheet} today={today} save={save} />
+        /*
+          Keyed on the week, which makes stepping to another one a fresh grid
+          rather than the same one with different figures in it. The grid holds
+          the form's state, and that state is about a particular sheet: a
+          refusal carries a message for a cell of *this* week and a save
+          carries a sentence about entries just written to it. Navigating by
+          search param does not remount a component, so without the key a
+          reader who stepped away from a refused sheet would find "Nothing was
+          saved. One field needs fixing." over a week with no cell marked, and
+          an announcement about a press that belonged to the week before.
+        */
+        <TimesheetGrid
+          key={week.start}
+          sheet={sheet}
+          today={today}
+          save={save}
+        />
       ) : projects.length === 0 ? (
         <NoProjectsToSheet />
       ) : (
