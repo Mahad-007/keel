@@ -297,3 +297,29 @@ export function pressLeavesEditor(
       return true;
   }
 }
+
+/**
+ * The caret of a text box, read off the element the keypress landed on.
+ *
+ * Here rather than in the component so that the one piece of DOM reading the
+ * rule above depends on is itself testable. A browser gives `selectionStart`
+ * as null for an input it does not track a caret in, and null read as zero is
+ * the bug that would hand every ArrowLeft to the grid and make a typed figure
+ * uncorrectable — so the fallback is the end of the text, where a caret
+ * actually sits after typing.
+ */
+export function caretIn(input: {
+  readonly value: string;
+  readonly selectionStart: number | null;
+  readonly selectionEnd: number | null;
+}): CaretPosition {
+  const { value, selectionStart, selectionEnd } = input;
+  return {
+    at: selectionStart ?? value.length,
+    length: value.length,
+    selected:
+      selectionStart !== null &&
+      selectionEnd !== null &&
+      selectionStart !== selectionEnd,
+  };
+}
