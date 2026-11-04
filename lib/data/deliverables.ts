@@ -74,15 +74,6 @@ async function requireProject(
 }
 
 /**
- * The project's id if there is such a project, or null.
- *
- * Pulled out of the guard above because not every caller wants an exception.
- * Writing one deliverable against a project that does not exist is a bug in
- * the caller, so it throws; importing a pasted list into a project somebody
- * deleted while the page sat open is an ordinary thing to have happen, and the
- * reader needs a sentence rather than a stack trace. One query either way.
- */
-/**
  * The position at the end of a project's list, which is where new scope goes.
  *
  * `max()` rather than reading the rows: appending does not care what order the
