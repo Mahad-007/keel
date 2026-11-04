@@ -21,6 +21,7 @@ import {
 } from "@/lib/time/grid";
 import {
   BULK_NO_ANSWER,
+  BULK_SHEET_INSTRUCTION,
   failedBulkState,
   initialBulkState,
   readBulkFields,
@@ -52,7 +53,14 @@ function cellName(projectId: string, workedOn: string): string {
   return bulkCellName({ projectId, workedOn });
 }
 
-/** What the table points `aria-describedby` at. One grid to a page. */
+/**
+ * What the table points `aria-describedby` at: what the sheet is for, then how
+ * to move around it. One grid to a page, so the ids are constants.
+ *
+ * Both, and in that order, because a reader arriving at the grid needs to know
+ * what a cell means before they need to know how to reach the next one.
+ */
+const INSTRUCTION_ID = "timesheet-instruction";
 const KEYBOARD_HINT_ID = "timesheet-keys";
 
 /**
@@ -228,6 +236,16 @@ export function TimesheetGrid({
       */}
       <FormSummary state={state} />
       {/*
+        Above the grid rather than beside the button, because it is read before
+        anything is typed and the button is at the bottom of forty boxes.
+      */}
+      <p
+        id={INSTRUCTION_ID}
+        className="mt-4 max-w-prose text-sm leading-6 text-zinc-600 dark:text-zinc-400"
+      >
+        {BULK_SHEET_INSTRUCTION}
+      </p>
+      {/*
         `role="grid"` is what makes the arrows below reach this table at all.
         A screen reader reads a plain `<table>` in browse mode, where it owns
         the arrow keys for moving its own cursor through the document and the
@@ -249,7 +267,7 @@ export function TimesheetGrid({
       */}
       <table
         role="grid"
-        aria-describedby={KEYBOARD_HINT_ID}
+        aria-describedby={`${INSTRUCTION_ID} ${KEYBOARD_HINT_ID}`}
         className="mt-4 w-full border-collapse text-sm"
       >
         {/*

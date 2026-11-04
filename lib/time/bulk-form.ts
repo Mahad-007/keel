@@ -189,6 +189,24 @@ export function failedBulkState(
 }
 
 /**
+ * What the sheet is for, said once above it.
+ *
+ * Three facts, and each one is a mistake if it is not said. That a cell is a
+ * duration rather than a clock reading, because `9-5` in a day column is the
+ * first thing somebody will try. That the whole sheet saves in one press,
+ * because a reader who thinks each cell saves itself will press once per cell
+ * and watch nothing happen. And that a figure is *added* to the cell, because
+ * the alternative reading — that it replaces what is there — is the one that
+ * ends with an hour logged twice.
+ *
+ * Where a correction is made is in it for the same reason: the grid cannot
+ * make one, so a reader who typed into the wrong day needs telling where to go
+ * rather than finding out by typing a negative.
+ */
+export const BULK_SHEET_INSTRUCTION =
+  "Type how long something took into the day it was worked on — 1h30m, 45m, or 90 for ninety minutes — and save the whole week in one press. Each figure is added to whatever the cell already holds; to change or remove an entry, open the project and use its time list.";
+
+/**
  * The things that can stop a sheet that no single cell is to blame for.
  *
  * Each is reachable from a page that was right when it rendered — a press with
