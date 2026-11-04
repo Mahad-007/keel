@@ -18,7 +18,10 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createTimeEntries } from "@/lib/data/time-entries";
+import {
+  createTimeEntries,
+  type BulkTimeReason,
+} from "@/lib/data/time-entries";
 import { parseBulkCells } from "@/lib/time/bulk";
 import {
   BULK_PROBLEMS,
@@ -30,6 +33,27 @@ import {
   type BulkTimeState,
 } from "@/lib/time/bulk-form";
 import { TIMESHEET_PATH } from "@/lib/time/week-query";
+
+/**
+ * What a refusal from the data layer says to the reader.
+ *
+ * Exhaustive by its type, so a reason added to `createTimeEntries` is a
+ * compile error here rather than a blank banner over a grid that did not save.
+ *
+ * `no-such-project` is the one that is really reachable: a timesheet names
+ * every active engagement at once, so one closed down in another tab while the
+ * sheet sat open is ordinary news. Its sentence says to reload, because the
+ * row has gone with the project and there is nothing to try again.
+ *
+ * `no-entries` cannot happen from here — a sheet with nothing typed into it is
+ * refused above, with a sentence that says what a blank cell means. If it ever
+ * does, it is a bug in this file rather than anything a reader did, so it gets
+ * the ordinary failure.
+ */
+const BULK_REFUSAL_PROBLEMS: Record<BulkTimeReason, string> = {
+  "no-such-project": BULK_PROBLEMS.missingProject,
+  "no-entries": BULK_PROBLEMS.failed,
+};
 
 /**
  * Saving a sheet: every cell a reader typed a duration into, written as one
@@ -71,7 +95,9 @@ export async function writeBulkTime(
   }
 
   const result = await createTimeEntries(parsed.value);
-  if (!result.ok) return failedBulkState(fields, BULK_PROBLEMS.failed);
+  if (!result.ok) {
+    return failedBulkState(fields, BULK_REFUSAL_PROBLEMS[result.reason]);
+  }
 
   /*
     The figures are read off the page, so nothing in the cells changes until
