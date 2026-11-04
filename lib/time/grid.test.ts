@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   cellDomId,
+  caretIn,
   cellErrorDomId,
   clampToGrid,
   gridMove,
@@ -340,5 +341,41 @@ describe("cellErrorDomId", () => {
     expect(cellErrorDomId("prj_site", "2026-10-27")).not.toBe(
       cellErrorDomId("prj_site", "2026-10-28"),
     );
+  });
+});
+
+describe("caretIn", () => {
+  it("reads where the caret sits and how long the text is", () => {
+    expect(
+      caretIn({ value: "1h30m", selectionStart: 2, selectionEnd: 2 }),
+    ).toEqual({ at: 2, length: 5, selected: false });
+  });
+
+  it("notices a stretch of the text is selected", () => {
+    expect(
+      caretIn({ value: "1h30m", selectionStart: 0, selectionEnd: 5 }).selected,
+    ).toBe(true);
+  });
+
+  it("puts an untracked caret at the end, where typing leaves it", () => {
+    expect(
+      caretIn({ value: "2h", selectionStart: null, selectionEnd: null }),
+    ).toEqual({ at: 2, length: 2, selected: false });
+  });
+
+  it("reads an empty box as a caret at both edges at once", () => {
+    const caret = caretIn({ value: "", selectionStart: 0, selectionEnd: 0 });
+    expect(pressLeavesEditor({ key: "ArrowLeft" }, caret)).toBe(true);
+    expect(pressLeavesEditor({ key: "ArrowRight" }, caret)).toBe(true);
+  });
+
+  it("keeps the arrows inside a box the caret is in the middle of", () => {
+    const caret = caretIn({
+      value: "1h30m",
+      selectionStart: 2,
+      selectionEnd: 2,
+    });
+    expect(pressLeavesEditor({ key: "ArrowLeft" }, caret)).toBe(false);
+    expect(pressLeavesEditor({ key: "ArrowRight" }, caret)).toBe(false);
   });
 });
