@@ -1,7 +1,7 @@
 import type { FocusEvent, KeyboardEvent } from "react";
 
 import { BULK_CELL_MAX_LENGTH, bulkCellName } from "@/lib/time/bulk";
-import { cellDomId } from "@/lib/time/grid";
+import { cellDomId, cellErrorDomId } from "@/lib/time/grid";
 import {
   describeCellEditor,
   type TimesheetCell,
@@ -38,6 +38,7 @@ export function CellBox({
   project,
   cell,
   value,
+  error,
   isCursor,
   onFocus,
   onKeyDown,
@@ -46,6 +47,8 @@ export function CellBox({
   cell: TimesheetCell;
   /** What is in the box: blank on a fresh sheet, what was typed after a refusal. */
   value: string;
+  /** Why this cell was refused, or null if it was not. */
+  error: string | null;
   /** Whether this is the cell the cursor is on, and so the grid's tab stop. */
   isCursor: boolean;
   onFocus: (event: FocusEvent<HTMLInputElement>) => void;
@@ -55,6 +58,7 @@ export function CellBox({
     projectId: project.id,
     workedOn: cell.workedOn,
   });
+  const errorId = cellErrorDomId(project.id, cell.workedOn);
 
   return (
     <input
@@ -63,6 +67,18 @@ export function CellBox({
       name={name}
       defaultValue={value}
       aria-label={describeCellEditor(project, cell)}
+      /*
+        The message is pointed at rather than only rendered under the box, so a
+        reader who arrows onto a refused cell hears why it was refused with the
+        box they typed it into. A sentence in a list somewhere else on the page
+        is a sentence they have to go and find.
+
+        `aria-invalid` is undefined rather than false on a cell that is fine,
+        the same as every other control in the app: forty inputs each saying
+        they are valid is noise to read past.
+      */
+      aria-invalid={error !== null || undefined}
+      aria-describedby={error === null ? undefined : errorId}
       tabIndex={isCursor ? 0 : -1}
       onFocus={onFocus}
       onKeyDown={onKeyDown}
@@ -75,7 +91,11 @@ export function CellBox({
       maxLength={BULK_CELL_MAX_LENGTH}
       autoComplete="off"
       spellCheck={false}
-      className="w-full rounded border border-zinc-300 bg-white px-1.5 py-1 text-right text-sm tabular-nums text-zinc-900 outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-700"
+      className={`w-full rounded border ${
+        error === null
+          ? "border-zinc-300 dark:border-zinc-700"
+          : "border-red-500 dark:border-red-500"
+      } bg-white px-1.5 py-1 text-right text-sm tabular-nums text-zinc-900 outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-300 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-700`}
     />
   );
 }
