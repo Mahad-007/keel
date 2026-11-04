@@ -94,7 +94,23 @@ export async function writeBulkTime(
     return failedBulkState(fields, BULK_PROBLEMS.nothingTyped);
   }
 
-  const result = await createTimeEntries(parsed.value);
+  /*
+    A throw from here is the driver rather than the submission: a column guard
+    this file's own parsing should have caught, or a transaction the database
+    refused. The reader cannot act on either beyond pressing again, and the
+    sentence they get is the one that matters — the whole sheet was one
+    transaction, so nothing landed and a second press cannot duplicate
+    anything.
+  */
+  let result;
+  try {
+    result = await createTimeEntries(parsed.value);
+  } catch (error) {
+    // The reader cannot act on a driver error, but the logs should keep it.
+    console.error("writeBulkTime: failed to save the sheet", error);
+    return failedBulkState(fields, BULK_PROBLEMS.failed);
+  }
+
   if (!result.ok) {
     return failedBulkState(fields, BULK_REFUSAL_PROBLEMS[result.reason]);
   }
