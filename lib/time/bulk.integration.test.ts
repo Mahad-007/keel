@@ -10,7 +10,7 @@ import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 
 import { bulkCellName, bulkCellNames, parseBulkCells } from "./bulk";
-import { buildTimesheet, cellFigure } from "./timesheet";
+import { buildTimesheet, cellFigure, sheetCellNames } from "./timesheet";
 import { weekOf } from "./week";
 
 /**
@@ -103,6 +103,37 @@ describe("a sheet typed, written and read back", () => {
     const built = await sheet();
     expect(figureAt(built, siteId, "2026-10-20")).toBe("–");
     expect(figureAt(built, appId, "2026-10-19")).toBe("–");
+  });
+
+  it("offers exactly the cells the built sheet has rows and days for", async () => {
+    const built = await sheet();
+    const names = sheetCellNames(built);
+
+    expect(names).toEqual(
+      bulkCellNames(
+        built.rows.map((row) => row.project.id),
+        built.week.days,
+      ),
+    );
+    expect(names).toHaveLength(built.rows.length * built.week.days.length);
+  });
+
+  it("writes to the right cell when the names come from the sheet itself", async () => {
+    const names = sheetCellNames(await sheet());
+
+    /*
+      Typed into a name picked by position rather than built from a pair, which
+      is the thing this test is for: the page renders its boxes by walking the
+      sheet, so the first row's first day has to be the first name.
+    */
+    const parsed = parseBulkCells(names, { [names[0]]: "2h" });
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    await createTimeEntries(parsed.value.map((draft) => ({ ...draft })), db);
+
+    const built = await sheet();
+    expect(figureAt(built, built.rows[0].project.id, WEEK.days[0])).toBe("2h");
+    expect(built.entryCount).toBe(1);
   });
 
   it("adds to the week total rather than replacing it", async () => {
