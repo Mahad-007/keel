@@ -64,6 +64,17 @@ const INSTRUCTION_ID = "timesheet-instruction";
 const KEYBOARD_HINT_ID = "timesheet-keys";
 
 /**
+ * The Save button, which has to be findable by id.
+ *
+ * It disables itself while the press is in flight, and a browser drops the
+ * focus it was holding to the document when a focused control is disabled — so
+ * the cursor has to be put back by hand afterwards. The button is not in the
+ * document at the moment the press is made in the form it will be in when the
+ * answer arrives, which is why a ref would not do.
+ */
+const SAVE_BUTTON_ID = "timesheet-save";
+
+/**
  * The week as a grid: a row per project, a column per day, totals down the
  * right and along the bottom.
  *
@@ -174,17 +185,28 @@ export function TimesheetGrid({
     the grid's tab stop moves with the cursor and Tab leaves from where the
     reader actually is.
 
-    Nothing moves after a press that landed. Focus is on the Save button, which
-    is still there and still the thing a reader who has more to type will come
-    back past; throwing the cursor into a cell would be the page deciding where
-    they go next.
+    After a press that landed the cursor goes back to the Save button, which is
+    where it was when the press was made. It does not stay there on its own:
+    the button disables itself mid-flight and a browser drops focus to the
+    document when that happens, so a reader who pressed Save with the keyboard
+    would otherwise find their next Tab starting from the top of the page,
+    above a grid of forty boxes.
+
+    Back to the button rather than into a cell, because that is where they
+    were. Throwing the cursor into the sheet would be the page deciding what
+    they do next, and after writing up a week the answer is usually nothing.
   */
   useEffect(() => {
     const first = refusedCells(sheet, state.errors)[0];
-    if (first === undefined) return;
-    document
-      .getElementById(cellDomId(first.project.id, first.cell.workedOn))
-      ?.focus();
+    if (first !== undefined) {
+      document
+        .getElementById(cellDomId(first.project.id, first.cell.workedOn))
+        ?.focus();
+      return;
+    }
+    if (state.saved !== null) {
+      document.getElementById(SAVE_BUTTON_ID)?.focus();
+    }
   }, [state, sheet]);
 
   /**
@@ -368,7 +390,9 @@ export function TimesheetGrid({
       */}
       <CellProblems refused={refusedCells(sheet, state.errors)} />
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <SubmitButton pendingLabel="Saving…">Save sheet</SubmitButton>
+        <SubmitButton id={SAVE_BUTTON_ID} pendingLabel="Saving…">
+          Save sheet
+        </SubmitButton>
         {/*
           Rendered empty rather than conditionally, because a live region has
           to be in the document before the text arrives for a screen reader to
