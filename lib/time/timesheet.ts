@@ -1,7 +1,7 @@
 import { formatMinutes } from "@/lib/minutes";
 import type { ProjectStatus } from "@/lib/projects/status";
 
-import { bulkCellNames } from "./bulk";
+import { bulkCellName, bulkCellNames } from "./bulk";
 import type { GridPosition, GridSize } from "./grid";
 import {
   billableMinutes,
@@ -694,6 +694,54 @@ export function startingCursor(
  */
 export function sheetCaption(sheet: Timesheet): string {
   return `Time logged in ${describeWeek(sheet.week)}, by project and day.`;
+}
+
+/**
+ * One cell a submitted sheet was refused over: which cell, and why.
+ *
+ * The project and the cell rather than their ids, because what is done with
+ * this is a sentence — and a sentence needs the project's name, its client and
+ * the day, none of which an id carries.
+ */
+export type RefusedCell = {
+  readonly project: TimesheetProject;
+  readonly cell: TimesheetCell;
+  readonly message: string;
+};
+
+/**
+ * The cells a refused sheet has something to say about, in reading order.
+ *
+ * In reading order rather than in the order the errors are keyed, which is the
+ * whole reason this walks the sheet instead of the error list: a reader
+ * checking a list of problems against the grid in front of them reads down the
+ * rows, and `Object.keys` order is an implementation detail of whatever built
+ * the object.
+ *
+ * An error keyed under a cell the sheet no longer has is dropped. That is the
+ * week moving under a refused submission — stepping to another week while the
+ * messages were on screen — and a sentence about a cell that is not there
+ * would point at nothing.
+ */
+export function refusedCells(
+  sheet: Timesheet,
+  errors: Readonly<Record<string, string | undefined>>,
+): RefusedCell[] {
+  const refused: RefusedCell[] = [];
+  for (const row of sheet.rows) {
+    for (const cell of row.cells) {
+      const message =
+        errors[
+          bulkCellName({
+            projectId: row.project.id,
+            workedOn: cell.workedOn,
+          })
+        ];
+      if (message === undefined) continue;
+      refused.push({ project: row.project, cell, message });
+    }
+  }
+  return refused;
 }
 
 /**
