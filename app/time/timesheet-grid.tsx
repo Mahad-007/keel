@@ -5,11 +5,13 @@ import { useActionState, useState, type KeyboardEvent } from "react";
 import { FormSummary, SubmitButton } from "@/components/form";
 import { bulkCellName } from "@/lib/time/bulk";
 import {
+  caretIn,
   cellDomId,
   clampToGrid,
   GRID_KEYBOARD_HINT,
   isSameCell,
   moveInGrid,
+  pressLeavesEditor,
   type GridPosition,
 } from "@/lib/time/grid";
 import {
@@ -130,6 +132,15 @@ export function TimesheetGrid({
     from: GridPosition,
     event: KeyboardEvent<HTMLInputElement>,
   ) {
+    /*
+      The box gets the keypress first, and only gives it up at the edge of its
+      own text: ArrowLeft with the caret mid-figure is a correction, and the
+      same press with the caret at the start is "back a day". Without this the
+      arrows would make a typed duration uncorrectable except by deleting it —
+      see `pressLeavesEditor`, which is where the rule is.
+    */
+    if (!pressLeavesEditor(event, caretIn(event.currentTarget))) return;
+
     const next = moveInGrid(from, size, event);
     if (next === null) return;
     event.preventDefault();
