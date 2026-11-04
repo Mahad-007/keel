@@ -1,0 +1,81 @@
+import type { FocusEvent, KeyboardEvent } from "react";
+
+import { BULK_CELL_MAX_LENGTH, bulkCellName } from "@/lib/time/bulk";
+import { cellDomId } from "@/lib/time/grid";
+import {
+  describeCellEditor,
+  type TimesheetCell,
+  type TimesheetProject,
+} from "@/lib/time/timesheet";
+
+/**
+ * The box inside one cell of the grid: how long to add to that project on
+ * that day.
+ *
+ * Its own component rather than an input typed into the cell, because a cell
+ * is now two things — the figure already logged and the box that adds to it —
+ * and they are read by different people in different ways. The figure is for
+ * the eye; everything here is for the keyboard.
+ *
+ * The box carries the cell's whole sentence as its accessible name. A box in a
+ * grid has no visible label — the row says which project and the column
+ * heading says which day — and a focused input is announced by its label
+ * rather than by the text sitting above it, so without this a reader crossing
+ * a row hears "edit, blank" seven times.
+ *
+ * It is the grid's tab stop rather than the cell around it. One tab stop to a
+ * sheet is what Day 026 built, and now that focus has somewhere to type the
+ * tabbable thing has to be the box: a `<td>` that took the focus would leave a
+ * reader pressing Tab again to reach the input inside it, forty times across a
+ * week.
+ *
+ * Nothing here is controlled. Forty controlled inputs would re-render the
+ * sheet on every keystroke, and the state they would be kept in is already
+ * kept by the browser; what comes back from a refused submission is rendered
+ * as `defaultValue`, which React restores when the action settles.
+ */
+export function CellBox({
+  project,
+  cell,
+  value,
+  isCursor,
+  onFocus,
+  onKeyDown,
+}: {
+  project: TimesheetProject;
+  cell: TimesheetCell;
+  /** What is in the box: blank on a fresh sheet, what was typed after a refusal. */
+  value: string;
+  /** Whether this is the cell the cursor is on, and so the grid's tab stop. */
+  isCursor: boolean;
+  onFocus: (event: FocusEvent<HTMLInputElement>) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+}) {
+  const name = bulkCellName({
+    projectId: project.id,
+    workedOn: cell.workedOn,
+  });
+
+  return (
+    <input
+      type="text"
+      id={cellDomId(project.id, cell.workedOn)}
+      name={name}
+      defaultValue={value}
+      aria-label={describeCellEditor(project, cell)}
+      tabIndex={isCursor ? 0 : -1}
+      onFocus={onFocus}
+      onKeyDown={onKeyDown}
+      /*
+        A duration is short, and the ceiling is the one the parser agrees to —
+        see `BULK_CELL_MAX_LENGTH`. `autoComplete` off because a browser
+        offering last week's figures under a cell is offering to log them
+        again, and `spellCheck` off because `1h30m` is not a word.
+      */
+      maxLength={BULK_CELL_MAX_LENGTH}
+      autoComplete="off"
+      spellCheck={false}
+      className="w-full rounded border border-zinc-300 bg-white px-1.5 py-1 text-right text-sm tabular-nums text-zinc-900 outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-700"
+    />
+  );
+}
