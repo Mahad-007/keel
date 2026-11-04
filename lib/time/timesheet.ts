@@ -389,6 +389,23 @@ export function cellFigure(total: CellTotals): string {
 }
 
 /**
+ * Where a cell is, in the words a reader would use to find it: the project,
+ * its client, and the day.
+ *
+ * Pulled out because three different sentences name the same cell — what it
+ * holds, what typing into it does, and why it was refused — and a position
+ * written three times is a position that drifts. The client is in it because
+ * two studios can both have a project called "Website", and a message naming
+ * the wrong one points at the wrong row.
+ */
+export function cellPosition(
+  project: TimesheetProject,
+  cell: Pick<TimesheetCell, "workedOn">,
+): string {
+  return `${project.name}, ${project.clientName}, ${weekdayHeading(cell.workedOn)}`;
+}
+
+/**
  * A cell as one sentence, for a reader who is not looking at the grid.
  *
  * On screen a cell is a duration whose meaning comes entirely from where it
@@ -408,7 +425,7 @@ export function describeCell(
   project: TimesheetProject,
   cell: TimesheetCell,
 ): string {
-  const where = `${project.name}, ${project.clientName}, ${weekdayHeading(cell.workedOn)}`;
+  const where = cellPosition(project, cell);
   if (!isWorked(cell)) return `${where} — ${NOTHING_LOGGED_LABEL}`;
 
   const parts = [
