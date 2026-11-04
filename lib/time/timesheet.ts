@@ -472,6 +472,28 @@ export function describeCellEditor(
 }
 
 /**
+ * Why one cell was refused, as a sentence that says which cell.
+ *
+ * The position in front of the message because the messages are shared with
+ * the log-time form, where the field has a label above it and the sentence can
+ * start with what is wrong. A grid has no labels, and forty boxes means a
+ * message that began "That is not a length of time" could be about any of
+ * them — so the cell comes first and the reason follows it.
+ *
+ * Needed at all because a duration message is a sentence and a day column is
+ * sixty pixels wide. The messages are listed under the sheet rather than
+ * inside the cells, and each box points at its own line there — which only
+ * works if the line says where it belongs.
+ */
+export function describeCellProblem(
+  project: TimesheetProject,
+  cell: Pick<TimesheetCell, "workedOn">,
+  message: string,
+): string {
+  return `${cellPosition(project, cell)} — ${message}`;
+}
+
+/**
  * How many days of the week hold work, across every row.
  *
  * A figure worth its own sentence, because the total alone does not say what
