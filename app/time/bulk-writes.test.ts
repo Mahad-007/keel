@@ -152,6 +152,27 @@ describe("writeBulkTime", () => {
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
+  it("says nothing landed when the transaction itself fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    written.mockRejectedValue(new Error("database is locked"));
+
+    const state = await save({ [cell(SITE, MONDAY)]: "2h" });
+
+    expect(state.formError).toBe(BULK_PROBLEMS.failed);
+    expect(state.fields[cell(SITE, MONDAY)]).toBe("2h");
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("keeps a driver error in the logs for whoever has to look", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const failure = new Error("database is locked");
+    written.mockRejectedValue(failure);
+
+    await save({ [cell(SITE, MONDAY)]: "2h" });
+
+    expect(logged).toHaveBeenCalledWith(expect.any(String), failure);
+  });
+
   it("says what a blank cell means rather than writing nothing", async () => {
     const state = await save({ [cell(SITE, MONDAY)]: "   " });
 
