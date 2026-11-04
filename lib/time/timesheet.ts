@@ -1,6 +1,7 @@
 import { formatMinutes } from "@/lib/minutes";
 import type { ProjectStatus } from "@/lib/projects/status";
 
+import { bulkCellNames } from "./bulk";
 import type { GridPosition, GridSize } from "./grid";
 import {
   billableMinutes,
@@ -654,4 +655,26 @@ export function startingCursor(
  */
 export function sheetCaption(sheet: Timesheet): string {
   return `Time logged in ${describeWeek(sheet.week)}, by project and day.`;
+}
+
+/**
+ * Every cell name the sheet in front of a reader offers, in reading order.
+ *
+ * This is the list that bounds a submission. The grid's boxes are named after
+ * the pair they stand for, and a form is a POST endpoint — so the only thing
+ * that keeps a hand-built body from logging time against a project nobody was
+ * shown is the action reading exactly these names and ignoring the rest. The
+ * list comes from the sheet the page built rather than from a fresh query,
+ * because the sheet is what was rendered.
+ *
+ * Here rather than in `bulk.ts` because it is the sheet that knows its own
+ * rows and days; `bulkCellNames` takes the two lists and knows nothing about a
+ * timesheet. This is the one line joining them, and it goes on the side that
+ * already has the shape.
+ */
+export function sheetCellNames(sheet: Timesheet): string[] {
+  return bulkCellNames(
+    sheet.rows.map((row) => row.project.id),
+    sheet.week.days,
+  );
 }
