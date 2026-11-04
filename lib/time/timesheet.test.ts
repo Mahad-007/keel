@@ -9,6 +9,7 @@ import {
   daysWorked,
   describeCell,
   describeCellEditor,
+  describeCellProblem,
   describeColumnTotal,
   describeRowTotal,
   describeSheetTotal,
@@ -513,6 +514,39 @@ describe("describeCell", () => {
   it("stays silent about charging when all of it will be charged for", () => {
     const cell = timesheetCell("2026-10-27", [logged("2026-10-27", 60)]);
     expect(describeCell(SITE_REBUILD, cell)).not.toContain("chargeable");
+  });
+});
+
+describe("describeCellProblem", () => {
+  it("names the cell before saying what is wrong with it", () => {
+    expect(
+      describeCellProblem(
+        SITE_REBUILD,
+        timesheetCell("2026-10-27", []),
+        "That is not a length of time.",
+      ),
+    ).toBe(
+      "Site rebuild, Harbour Co, Tue 27 — That is not a length of time.",
+    );
+  });
+
+  it("says nothing about what the cell already holds", () => {
+    const sentence = describeCellProblem(
+      SITE_REBUILD,
+      timesheetCell("2026-10-27", [logged("2026-10-27", 150)]),
+      "Write it as 1h30m.",
+    );
+    expect(sentence).not.toContain("2h 30m");
+  });
+
+  it("names the day of the cell it is about, not the week", () => {
+    expect(
+      describeCellProblem(
+        SITE_REBUILD,
+        timesheetCell("2026-10-29", []),
+        "Write it as 1h30m.",
+      ),
+    ).toContain("Thu 29");
   });
 });
 
