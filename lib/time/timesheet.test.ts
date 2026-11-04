@@ -19,6 +19,7 @@ import {
   isWorked,
   minutesFigure,
   NOTHING_LOGGED,
+  refusedCells,
   sheetCaption,
   sheetCellNames,
   sheetSize,
@@ -547,6 +548,57 @@ describe("describeCellProblem", () => {
         "Write it as 1h30m.",
       ),
     ).toContain("Thu 29");
+  });
+});
+
+describe("refusedCells", () => {
+  const week = weekOf("2026-10-29");
+  const anvilBrand: TimesheetProject = {
+    id: "prj_brand",
+    name: "Brand refresh",
+    clientName: "Anvil",
+    status: "active",
+  };
+
+  function sheet() {
+    return buildTimesheet(week, [SITE_REBUILD, anvilBrand], []);
+  }
+
+  function nameOf(projectId: string, workedOn: string): string {
+    return bulkCellName({ projectId, workedOn });
+  }
+
+  it("has nothing to say about a sheet that was not refused", () => {
+    expect(refusedCells(sheet(), {})).toEqual([]);
+  });
+
+  it("names the cell each message belongs to", () => {
+    const refused = refusedCells(sheet(), {
+      [nameOf(SITE_REBUILD.id, "2026-10-27")]: "Write it as 1h30m.",
+    });
+
+    expect(refused).toHaveLength(1);
+    expect(refused[0].project.id).toBe(SITE_REBUILD.id);
+    expect(refused[0].cell.workedOn).toBe("2026-10-27");
+    expect(refused[0].message).toBe("Write it as 1h30m.");
+  });
+
+  it("reads down the rows rather than through the error list", () => {
+    const refused = refusedCells(sheet(), {
+      [nameOf(SITE_REBUILD.id, "2026-10-27")]: "second",
+      [nameOf(anvilBrand.id, "2026-10-29")]: "first",
+    });
+
+    expect(refused.map((one) => one.message)).toEqual(["first", "second"]);
+  });
+
+  it("drops a message about a cell this sheet does not have", () => {
+    const refused = refusedCells(sheet(), {
+      [nameOf("prj_elsewhere", "2026-10-27")]: "Write it as 1h30m.",
+      [nameOf(SITE_REBUILD.id, "2026-11-30")]: "Write it as 1h30m.",
+    });
+
+    expect(refused).toEqual([]);
   });
 });
 
