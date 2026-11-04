@@ -19,6 +19,7 @@ import {
   minutesFigure,
   NOTHING_LOGGED,
   sheetCaption,
+  sheetCellNames,
   sheetSize,
   startingCursor,
   sumCells,
@@ -28,6 +29,7 @@ import {
   type TimesheetEntry,
   type TimesheetProject,
 } from "./timesheet";
+import { bulkCellName, parseBulkCellName } from "./bulk";
 import { DAYS_PER_WEEK, weekOf } from "./week";
 
 /** A week's worth of fixtures: one project, named once. */
@@ -511,6 +513,45 @@ describe("describeCell", () => {
   it("stays silent about charging when all of it will be charged for", () => {
     const cell = timesheetCell("2026-10-27", [logged("2026-10-27", 60)]);
     expect(describeCell(SITE_REBUILD, cell)).not.toContain("chargeable");
+  });
+});
+
+describe("sheetCellNames", () => {
+  const week = weekOf("2026-10-29");
+  const anvilBrand: TimesheetProject = {
+    id: "prj_brand",
+    name: "Brand refresh",
+    clientName: "Anvil",
+    status: "active",
+  };
+
+  it("covers every cell of the grid once", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD, anvilBrand], []);
+    const names = sheetCellNames(sheet);
+    expect(names).toHaveLength(2 * DAYS_PER_WEEK);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("names them a row at a time, in the sheet's own order", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD, anvilBrand], []);
+    const names = sheetCellNames(sheet);
+    expect(names[0]).toBe(
+      bulkCellName({ projectId: anvilBrand.id, workedOn: sheet.week.days[0] }),
+    );
+    expect(names[DAYS_PER_WEEK]).toBe(
+      bulkCellName({ projectId: SITE_REBUILD.id, workedOn: sheet.week.days[0] }),
+    );
+  });
+
+  it("offers nothing for a sheet with no rows", () => {
+    expect(sheetCellNames(buildTimesheet(week, [], []))).toEqual([]);
+  });
+
+  it("names only the days of the week the sheet is showing", () => {
+    const sheet = buildTimesheet(week, [SITE_REBUILD], []);
+    for (const name of sheetCellNames(sheet)) {
+      expect(sheet.week.days).toContain(parseBulkCellName(name)?.workedOn);
+    }
   });
 });
 
