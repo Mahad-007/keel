@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type KeyboardEvent } from "react";
+import { useActionState, useState, type KeyboardEvent } from "react";
 
+import { FormSummary, SubmitButton } from "@/components/form";
 import { bulkCellName } from "@/lib/time/bulk";
 import {
   cellDomId,
@@ -11,7 +12,10 @@ import {
   moveInGrid,
   type GridPosition,
 } from "@/lib/time/grid";
-import { initialBulkState } from "@/lib/time/bulk-form";
+import {
+  initialBulkState,
+  type BulkTimeState,
+} from "@/lib/time/bulk-form";
 import {
   describeColumnTotal,
   describeRowTotal,
@@ -53,10 +57,22 @@ const KEYBOARD_HINT_ID = "timesheet-keys";
 export function TimesheetGrid({
   sheet,
   today,
+  save,
 }: {
   sheet: Timesheet;
   /** The reader's today, for marking a column and placing the cursor. */
   today: string;
+  /**
+   * The write, with the cells this sheet offered already captured by the page
+   * that served it. Captured there rather than bound here: a `.bind` in a
+   * client component only prepends its arguments to the POST body, which would
+   * make the list of allowed cells part of the submission — and a list the
+   * caller sends is no bound on the submission at all.
+   */
+  save: (
+    previous: BulkTimeState,
+    formData: FormData,
+  ) => Promise<BulkTimeState>;
 }) {
   /*
     Where the cursor is. Clamped on every render rather than corrected when the
@@ -77,7 +93,16 @@ export function TimesheetGrid({
     renders from: blank on a fresh sheet, what was typed on a refused one.
   */
   const names = sheetCellNames(sheet);
-  const state = initialBulkState(names);
+
+  /*
+    Computed here rather than handed down as a prop, which is the one place
+    this form differs from the others. A grid's initial state is forty empty
+    strings keyed by cell name, and a prop is serialised into the page — so
+    passing it would put the whole list in the markup twice, once as the boxes
+    and once as the state they started from. It is only read on the first
+    render anyway.
+  */
+  const [state, formAction] = useActionState(save, initialBulkState(names));
 
   /**
    * A keypress inside a cell, answered by moving focus to another one.
@@ -109,7 +134,15 @@ export function TimesheetGrid({
   }
 
   return (
-    <>
+    <form action={formAction} noValidate>
+      {/*
+        Above the grid, because the field that failed may be a long way down a
+        sheet of forty boxes — and on this form the summary carries the one
+        fact that matters most: nothing was saved. The whole sheet is one
+        transaction, so a reader who reads this knows there is nothing
+        half-written to go and find.
+      */}
+      <FormSummary state={state} />
       {/*
         `role="grid"` is what makes the arrows below reach this table at all.
         A screen reader reads a plain `<table>` in browse mode, where it owns
@@ -224,6 +257,9 @@ export function TimesheetGrid({
       >
         {GRID_KEYBOARD_HINT}
       </p>
-    </>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <SubmitButton pendingLabel="Saving…">Save sheet</SubmitButton>
+      </div>
+    </form>
   );
 }

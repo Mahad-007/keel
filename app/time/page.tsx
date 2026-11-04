@@ -5,14 +5,17 @@ import { listProjectsWithClient } from "@/lib/data/projects";
 import { listTimeEntriesInRange } from "@/lib/data/time-entries";
 import { utcCalendarDate } from "@/lib/dates";
 import { PROJECTS_PATH } from "@/lib/projects/query";
+import type { BulkTimeState } from "@/lib/time/bulk-form";
 import {
   buildTimesheet,
   describeTimesheet,
   isSheetEmpty,
+  sheetCellNames,
 } from "@/lib/time/timesheet";
 import { describeWeek } from "@/lib/time/week";
 import { parseTimesheetWeek } from "@/lib/time/week-query";
 
+import { writeBulkTime } from "./bulk-writes";
 import { NoProjectsToSheet, NothingOpenThisWeek } from "./no-sheet";
 import { TimesheetGrid } from "./timesheet-grid";
 import { WeekNav } from "./week-nav";
@@ -57,6 +60,21 @@ export default async function TimePage({ searchParams }: PageProps<"/time">) {
   */
   const empty = isSheetEmpty(sheet);
 
+  /*
+    The cells this sheet offers, captured by the closure below rather than sent
+    with the submission. That capture is the whole bound on a bulk write: a
+    form is a POST endpoint, so a body can name any project and any day, and
+    the action reads only these names out of it. The compiler encrypts what a
+    `"use server"` function declared here closes over, which is what makes the
+    list the server's rather than the caller's.
+  */
+  const names = sheetCellNames(sheet);
+
+  async function save(previous: BulkTimeState, formData: FormData) {
+    "use server";
+    return writeBulkTime(names, previous, formData);
+  }
+
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 font-sans">
       <header className="flex items-start justify-between gap-6 border-b border-zinc-200 pb-4 dark:border-zinc-800">
@@ -92,7 +110,7 @@ export default async function TimePage({ searchParams }: PageProps<"/time">) {
         that is actually that.
       */}
       {!empty ? (
-        <TimesheetGrid sheet={sheet} today={today} />
+        <TimesheetGrid sheet={sheet} today={today} save={save} />
       ) : projects.length === 0 ? (
         <NoProjectsToSheet />
       ) : (
