@@ -200,12 +200,13 @@ export function cellDomId(projectId: string, workedOn: string): string {
 }
 
 /**
- * The DOM id of the message under one cell's box.
+ * The DOM id of the message about one cell's box.
  *
- * Derived from the same pair as the cell itself, for the same reason: the box
- * points at its message with `aria-describedby`, so a figure that cannot be
- * read is announced with the box it was typed into rather than sitting in a
- * list somewhere a screen reader may never reach.
+ * Derived from the same pair as the cell itself, and that is what lets the
+ * message live outside the cell: a duration message is a full sentence and a
+ * day column is sixty pixels wide, so the sentences are listed under the sheet
+ * and each box points at its own line with `aria-describedby`. A figure that
+ * cannot be read is still announced with the box it was typed into.
  *
  * Namespaced under the cell's own id, so a message cannot collide with
  * anything else on a page that happens to be named after a date.

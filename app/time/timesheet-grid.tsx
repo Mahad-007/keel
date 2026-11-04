@@ -23,16 +23,23 @@ import {
   SHEET_COLUMNS,
   SHEET_TOTAL_ROW,
   sheetCaption,
+  refusedCells,
   sheetCellNames,
   sheetSize,
   startingCursor,
   type Timesheet,
 } from "@/lib/time/timesheet";
 
+import { CellProblems } from "./cell-problems";
 import { DayHeading } from "./day-heading";
 import { ProjectHeading } from "./project-heading";
 import { SheetCell } from "./sheet-cell";
 import { TotalCell } from "./total-cell";
+
+/** One cell's field name, from the pair it stands for. */
+function cellName(projectId: string, workedOn: string): string {
+  return bulkCellName({ projectId, workedOn });
+}
 
 /** What the table points `aria-describedby` at. One grid to a page. */
 const KEYBOARD_HINT_ID = "timesheet-keys";
@@ -201,11 +208,11 @@ export function TimesheetGrid({
                   key={cell.workedOn}
                   project={row.project}
                   cell={cell}
-                  value={state.fields[bulkCellName({
-                    projectId: row.project.id,
-                    workedOn: cell.workedOn,
-                  })] ?? ""}
-                  error={null}
+                  value={state.fields[cellName(row.project.id, cell.workedOn)] ?? ""}
+                  error={
+                    state.errors[cellName(row.project.id, cell.workedOn)] ??
+                    null
+                  }
                   isCursor={isSameCell(at, { row: rowIndex, column })}
                   onFocus={() => setCursor({ row: rowIndex, column })}
                   onKeyDown={(event) =>
@@ -257,6 +264,14 @@ export function TimesheetGrid({
       >
         {GRID_KEYBOARD_HINT}
       </p>
+      {/*
+        The reasons, under the sheet rather than in the cells — see
+        `CellProblems` for why — with each box pointing at its own line. The
+        refused cells are read off the sheet in reading order rather than off
+        the error object, so the list runs down the rows the way a reader
+        checking it against the grid does.
+      */}
+      <CellProblems refused={refusedCells(sheet, state.errors)} />
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <SubmitButton pendingLabel="Saving…">Save sheet</SubmitButton>
       </div>
