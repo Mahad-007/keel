@@ -2,6 +2,7 @@
 
 import { useState, type KeyboardEvent } from "react";
 
+import { bulkCellName } from "@/lib/time/bulk";
 import {
   cellDomId,
   clampToGrid,
@@ -10,6 +11,7 @@ import {
   moveInGrid,
   type GridPosition,
 } from "@/lib/time/grid";
+import { initialBulkState } from "@/lib/time/bulk-form";
 import {
   describeColumnTotal,
   describeRowTotal,
@@ -17,6 +19,7 @@ import {
   SHEET_COLUMNS,
   SHEET_TOTAL_ROW,
   sheetCaption,
+  sheetCellNames,
   sheetSize,
   startingCursor,
   type Timesheet,
@@ -43,9 +46,9 @@ const KEYBOARD_HINT_ID = "timesheet-keys";
  *
  * The figures are not computed here. `buildTimesheet` did that on the server,
  * and this maps over what it produced — the division the rest of the app keeps
- * between arithmetic in `lib/` and markup in a component. Nothing in this
- * component writes, either: Day 027 is what puts an editor in a cell, and
- * until then the cursor is for reading.
+ * between arithmetic in `lib/` and markup in a component. Nor are they decided
+ * here: every cell holds a box, and what a typed sheet means is settled by the
+ * pure functions in `bulk.ts` before anything is written.
  */
 export function TimesheetGrid({
   sheet,
@@ -68,6 +71,14 @@ export function TimesheetGrid({
   const size = sheetSize(sheet);
   const at = clampToGrid(cursor, size);
 
+  /*
+    The cells the sheet offers, and what is in them. The names bound what a
+    submission may say — see `sheetCellNames` — and the state is what each box
+    renders from: blank on a fresh sheet, what was typed on a refused one.
+  */
+  const names = sheetCellNames(sheet);
+  const state = initialBulkState(names);
+
   /**
    * A keypress inside a cell, answered by moving focus to another one.
    *
@@ -85,7 +96,7 @@ export function TimesheetGrid({
    */
   function moveCursor(
     from: GridPosition,
-    event: KeyboardEvent<HTMLTableCellElement>,
+    event: KeyboardEvent<HTMLInputElement>,
   ) {
     const next = moveInGrid(from, size, event);
     if (next === null) return;
@@ -115,13 +126,12 @@ export function TimesheetGrid({
         each of those by hand would be three more places for the shape of the
         sheet to drift from the shape of its markup.
 
-        `aria-readonly`, because every figure here is derived from entries
-        logged elsewhere and there is nothing to type into. Day 027 is what
-        puts an editor in a cell, and that is the day this comes off.
+        Not `aria-readonly` any more: every cell now holds a box, and a grid
+        that announced itself as read-only would be telling a reader not to
+        bother typing into the thing the day was built for.
       */}
       <table
         role="grid"
-        aria-readonly={true}
         aria-describedby={KEYBOARD_HINT_ID}
         className="mt-4 w-full border-collapse text-sm"
       >
@@ -158,6 +168,11 @@ export function TimesheetGrid({
                   key={cell.workedOn}
                   project={row.project}
                   cell={cell}
+                  value={state.fields[bulkCellName({
+                    projectId: row.project.id,
+                    workedOn: cell.workedOn,
+                  })] ?? ""}
+                  error={null}
                   isCursor={isSameCell(at, { row: rowIndex, column })}
                   onFocus={() => setCursor({ row: rowIndex, column })}
                   onKeyDown={(event) =>

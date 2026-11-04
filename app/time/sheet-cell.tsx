@@ -1,87 +1,102 @@
 import type { FocusEvent, KeyboardEvent } from "react";
 
-import { cellDomId } from "@/lib/time/grid";
 import {
   cellAside,
   cellFigure,
-  describeCell,
   isWorked,
   type TimesheetCell,
   type TimesheetProject,
 } from "@/lib/time/timesheet";
 import { isWeekend } from "@/lib/time/week";
 
+import { CellBox } from "./cell-box";
+
 /**
- * One cell of the grid: what a project came to on one day.
+ * One cell of the grid: what a project came to on one day, and a box for
+ * adding to it.
  *
- * Focusable, and the whole point of the day. A table of forty cells reached by
- * Tab is thirty-nine presses from Monday on the first row to Monday on the
- * second, so the grid keeps one tab stop and the arrows move between cells
- * inside it — which means exactly one cell carries a usable tab index at a
- * time and the rest are reachable only from it.
+ * Two things in one cell, stacked, and the order is deliberate. The figure is
+ * the answer — what the day already came to — and the box underneath is what
+ * changes it, so a reader's eye meets what is true before what they are about
+ * to do about it.
  *
- * The focus ring is on the cell itself rather than on something inside it.
- * There is nothing inside it yet: Day 027 puts an input here, and the cursor
- * arriving at the right box is the same cursor arriving at the right cell.
+ * The tab stop is inside the box rather than on this cell. Day 026 put it
+ * here, when there was nothing to type into and the cursor was for reading;
+ * now that a cell holds an editor, a `<td>` that took the focus would leave a
+ * reader pressing Tab again to get into the input, forty times across a week.
  *
- * The figure is hidden from assistive technology and replaced by the cell's
- * own sentence. A table announces its headers when a reader moves through it
- * in reading mode, but this grid is read with focus — that is the whole point
- * of the arrows — and a `<td>` that focus lands on is announced as its
- * contents alone. Without the sentence, crossing a row is five bare durations
- * with nothing saying which day or which project any of them is.
+ * The figure is hidden from assistive technology and the box's own label
+ * carries it instead. A `<td>` that focus lands on is announced as its
+ * contents, but focus lands on the input now, and an input is announced by its
+ * label — so the sentence naming the project, the day and the figure belongs
+ * there. Rendering it here as well would read the cell out twice.
  *
- * It also takes care of the dash in an empty cell, which a screen reader reads
- * as "dash": a punctuation mark rather than an answer.
+ * Hiding the figure also takes care of the dash in an empty cell, which a
+ * screen reader reads as "dash": a punctuation mark rather than an answer.
  */
 export function SheetCell({
   project,
   cell,
+  value,
+  error,
   isCursor,
   onFocus,
   onKeyDown,
 }: {
   project: TimesheetProject;
   cell: TimesheetCell;
+  /** What is in the cell's box: blank, or what was typed into a refused sheet. */
+  value: string;
+  /** Why this cell was refused, or null if it was not. */
+  error: string | null;
   /** Whether this is the cell the cursor is on, and so the grid's tab stop. */
   isCursor: boolean;
-  onFocus: (event: FocusEvent<HTMLTableCellElement>) => void;
-  onKeyDown: (event: KeyboardEvent<HTMLTableCellElement>) => void;
+  onFocus: (event: FocusEvent<HTMLInputElement>) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
 }) {
   const worked = isWorked(cell);
   const aside = cellAside(cell);
 
   return (
-    <td
-      id={cellDomId(project.id, cell.workedOn)}
-      tabIndex={isCursor ? 0 : -1}
-      onFocus={onFocus}
-      onKeyDown={onKeyDown}
-      className={`py-2.5 pr-4 text-right align-top tabular-nums last:pr-0 focus:outline-2 focus:outline-offset-2 focus:outline-zinc-900 dark:focus:outline-zinc-100 ${
-        worked
-          ? "text-zinc-900 dark:text-zinc-100"
-          : isWeekend(cell.workedOn)
-            ? "text-zinc-300 dark:text-zinc-700"
-            : "text-zinc-400 dark:text-zinc-600"
-      }`}
-    >
-      <span aria-hidden="true">{cellFigure(cell)}</span>
-      <span className="sr-only">{describeCell(project, cell)}</span>
+    <td className="py-2.5 pr-4 align-top last:pr-0">
+      <span
+        aria-hidden="true"
+        className={`block text-right tabular-nums ${
+          worked
+            ? "text-zinc-900 dark:text-zinc-100"
+            : isWeekend(cell.workedOn)
+              ? "text-zinc-300 dark:text-zinc-700"
+              : "text-zinc-400 dark:text-zinc-600"
+        }`}
+      >
+        {cellFigure(cell)}
+      </span>
       {/*
         Under the figure and in smaller type, on the rare cell that has
         something to add. Most cells are one entry that will be invoiced, and a
         note on every one of them would be a second column of text inside each
-        of seven columns. Hidden rather than read, because the sentence above
+        of seven columns. Hidden rather than read, because the box's own label
         already carries both of these facts.
       */}
       {aside !== null && (
         <span
           aria-hidden="true"
-          className="block text-xs font-normal text-zinc-500 dark:text-zinc-400"
+          className="block text-right text-xs font-normal text-zinc-500 dark:text-zinc-400"
         >
           {aside}
         </span>
       )}
+      <div className="mt-1.5">
+        <CellBox
+          project={project}
+          cell={cell}
+          value={value}
+          error={error}
+          isCursor={isCursor}
+          onFocus={onFocus}
+          onKeyDown={onKeyDown}
+        />
+      </div>
     </td>
   );
 }
