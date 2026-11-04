@@ -1,5 +1,6 @@
 import type { FocusEvent, KeyboardEvent } from "react";
 
+import { useFormPending } from "@/components/form";
 import { BULK_CELL_MAX_LENGTH, bulkCellName } from "@/lib/time/bulk";
 import { cellDomId, cellErrorDomId } from "@/lib/time/grid";
 import {
@@ -60,6 +61,22 @@ export function CellBox({
   });
   const errorId = cellErrorDomId(project.id, cell.workedOn);
 
+  /*
+    Read-only while the sheet is on its way to the server, which is not
+    decoration either. React resets a form with a function action once the
+    action settles, restoring every box to the value it has just re-rendered —
+    so anything typed during the flight is thrown away without a word. Saying
+    so with the attribute is better than letting somebody fill in Thursday and
+    watch it vanish.
+
+    Read-only rather than disabled: a disabled input loses the focus it is
+    holding, and the browser drops focus to the document when it does — which
+    on this page means the reader's place in a forty-box grid. A read-only box
+    keeps the cursor, keeps the arrows working, and comes back the moment the
+    press is answered.
+  */
+  const pending = useFormPending();
+
   return (
     <input
       type="text"
@@ -89,6 +106,7 @@ export function CellBox({
         again, and `spellCheck` off because `1h30m` is not a word.
       */
       maxLength={BULK_CELL_MAX_LENGTH}
+      readOnly={pending}
       autoComplete="off"
       spellCheck={false}
       className={`w-full rounded border ${
