@@ -22,6 +22,7 @@ import {
   createTimeEntries,
   type BulkTimeReason,
 } from "@/lib/data/time-entries";
+import { projectPath } from "@/lib/projects/detail";
 import { parseBulkCells } from "@/lib/time/bulk";
 import {
   BULK_PROBLEMS,
@@ -123,6 +124,17 @@ export async function writeBulkTime(
     not be served a cached sheet from before the press.
   */
   revalidatePath(TIMESHEET_PATH);
+
+  /*
+    And each project the sheet wrote to. An hour logged from the grid counts
+    against what that engagement was agreed for exactly as one logged from its
+    own page does, so its time list, its rollup and its scope figures are all
+    now out of date. Once per project rather than once per entry, because a
+    week of one engagement is seven entries naming the same page.
+  */
+  for (const id of new Set(result.entries.map((entry) => entry.projectId))) {
+    revalidatePath(projectPath(id));
+  }
 
   return savedBulkState(writtenBulkSheet(result.entries), names);
 }
