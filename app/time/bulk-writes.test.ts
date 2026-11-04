@@ -127,6 +127,31 @@ describe("writeBulkTime", () => {
     expect(state.fields[cell(BRAND, TUESDAY)]).toBe("1,5h");
   });
 
+  it("names a project that went while the sheet sat open", async () => {
+    written.mockResolvedValue({ ok: false, reason: "no-such-project" });
+
+    const state = await save({ [cell(BRAND, MONDAY)]: "2h" });
+
+    expect(state.formError).toBe(BULK_PROBLEMS.missingProject);
+    expect(state.saved).toBeNull();
+  });
+
+  it("keeps the figures when the write is refused, with nothing to reload from", async () => {
+    written.mockResolvedValue({ ok: false, reason: "no-such-project" });
+
+    const state = await save({ [cell(BRAND, MONDAY)]: "2h" });
+
+    expect(state.fields[cell(BRAND, MONDAY)]).toBe("2h");
+  });
+
+  it("leaves the sheet unrevalidated when nothing was written", async () => {
+    written.mockResolvedValue({ ok: false, reason: "no-such-project" });
+
+    await save({ [cell(BRAND, MONDAY)]: "2h" });
+
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
   it("says what a blank cell means rather than writing nothing", async () => {
     const state = await save({ [cell(SITE, MONDAY)]: "   " });
 
