@@ -8,6 +8,7 @@ import {
   rejectedBulkState,
   savedBulkNotice,
   savedBulkState,
+  writtenBulkSheet,
 } from "./bulk-form";
 
 describe("blankBulkFields", () => {
@@ -147,6 +148,34 @@ describe("failedBulkState", () => {
 
   it("says nothing was written", () => {
     expect(failedBulkState(typed, "try again").saved).toBeNull();
+  });
+});
+
+describe("writtenBulkSheet", () => {
+  it("keeps the ids in the order the rows were written", () => {
+    expect(
+      writtenBulkSheet([
+        { id: "tme_2", minutes: 60 },
+        { id: "tme_1", minutes: 30 },
+      ]).entryIds,
+    ).toEqual(["tme_2", "tme_1"]);
+  });
+
+  it("adds up what the rows came to", () => {
+    expect(
+      writtenBulkSheet([
+        { id: "tme_1", minutes: 90 },
+        { id: "tme_2", minutes: 30 },
+        { id: "tme_3", minutes: 1 },
+      ]).minutes,
+    ).toBe(121);
+  });
+
+  it("reports one row as one cell's worth", () => {
+    expect(writtenBulkSheet([{ id: "tme_1", minutes: 45 }])).toEqual({
+      entryIds: ["tme_1"],
+      minutes: 45,
+    });
   });
 });
 
