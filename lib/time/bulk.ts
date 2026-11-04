@@ -73,20 +73,23 @@ export type BulkTimeDraft = BulkCellAddress & {
 };
 
 
-/**
- * How much a cell's box will hold, which is the number the input carries as
- * its `maxLength`.
- *
- * A duration is short: `1h30m` is five characters and `0.25h` is five. Eight
- * leaves room for a space and a stray zero without leaving room for a
- * sentence — a cell is not a note, and a box that accepted forty characters
- * would invite one and then refuse it.
- *
- * Exported because the browser and the validator must agree. Two copies of a
- * limit drift, and the day they do the browser stops somebody at a length the
- * parser would have accepted.
- */
-export const BULK_CELL_MAX_LENGTH = 8;
+/*
+  There is deliberately no length cap on a cell's box.
+
+  A cap looks obviously right — `1h30m` is five characters and a cell is not a
+  note — and it is the one thing on this form that can log the wrong number
+  without saying a word. The duration parser reads words as well as letters, so
+  `1 hour 30 minutes` is a duration a reader may well type; truncated to eight
+  characters it becomes `1 hour 3`, which is not refused. It is 63 minutes. An
+  hour and a half goes in and an hour and three minutes comes out, with no
+  message anywhere, onto an invoice somebody will defend line by line.
+
+  That is not a matter of picking a larger number: any cap can cut a long
+  spelling down to a shorter one the parser still accepts. So the box holds
+  whatever is typed and the parser decides, which is also the rule the log-time
+  form follows — and a box too narrow to show a long figure is a visual
+  complaint, not a wrong figure.
+*/
 
 /**
  * What a cell's form field is called, before the project and the day are put

@@ -1,7 +1,7 @@
 import type { FocusEvent, KeyboardEvent } from "react";
 
 import { useFormPending } from "@/components/form";
-import { BULK_CELL_MAX_LENGTH, bulkCellName } from "@/lib/time/bulk";
+import { bulkCellName } from "@/lib/time/bulk";
 import { cellDomId, cellErrorDomId } from "@/lib/time/grid";
 import {
   describeCellEditor,
@@ -100,12 +100,15 @@ export function CellBox({
       onFocus={onFocus}
       onKeyDown={onKeyDown}
       /*
-        A duration is short, and the ceiling is the one the parser agrees to —
-        see `BULK_CELL_MAX_LENGTH`. `autoComplete` off because a browser
-        offering last week's figures under a cell is offering to log them
-        again, and `spellCheck` off because `1h30m` is not a word.
+        No `maxLength`, for the reason written out in `bulk.ts`: the parser
+        reads `1 hour 30 minutes`, and a cap would cut that down to `1 hour 3`
+        — a duration it still accepts, worth 63 minutes instead of 90, logged
+        without a word.
+
+        `autoComplete` off because a browser offering last week's figures under
+        a cell is offering to log them again, and `spellCheck` off because
+        `1h30m` is not a word.
       */
-      maxLength={BULK_CELL_MAX_LENGTH}
       readOnly={pending}
       autoComplete="off"
       spellCheck={false}
