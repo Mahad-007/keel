@@ -15,7 +15,10 @@ import {
   type GridPosition,
 } from "@/lib/time/grid";
 import {
+  BULK_NO_ANSWER,
+  failedBulkState,
   initialBulkState,
+  readBulkFields,
   savedBulkNotice,
   type BulkTimeState,
 } from "@/lib/time/bulk-form";
@@ -112,7 +115,37 @@ export function TimesheetGrid({
     and once as the state they started from. It is only read on the first
     render anyway.
   */
-  const [state, formAction] = useActionState(save, initialBulkState(names));
+  /*
+    The write has to come back with a state even when the call itself never
+    completes.
+
+    `useActionState` has no answer for a rejected action: the rejection escapes
+    the dispatch and takes the page to an error boundary, which here would
+    throw away a week somebody had just typed into forty boxes. A dropped
+    connection, a tab suspended mid-request and an aborted request all reject,
+    and the cell list is captured by an encrypted closure, so a page left open
+    across a deploy that rotated the key rejects too.
+
+    What it says is not "try again", which is the instruction that would log
+    the week twice — see `BULK_NO_ANSWER`. The fields come from the submission
+    rather than from the previous state, so the boxes come back holding what
+    was in them when the press was made.
+  */
+  async function attempt(
+    previous: BulkTimeState,
+    formData: FormData,
+  ): Promise<BulkTimeState> {
+    try {
+      return await save(previous, formData);
+    } catch (error) {
+      // Nothing a reader can act on beyond reloading, but worth a line in the
+      // console for whoever is looking into why sheets are failing.
+      console.error("save sheet: the server never answered", error);
+      return failedBulkState(readBulkFields(formData, names), BULK_NO_ANSWER);
+    }
+  }
+
+  const [state, formAction] = useActionState(attempt, initialBulkState(names));
 
   /**
    * A keypress inside a cell, answered by moving focus to another one.
