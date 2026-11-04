@@ -85,6 +85,29 @@ export type BulkSaved = {
 };
 
 /**
+ * What a press wrote, read off the rows it wrote.
+ *
+ * Off the rows rather than off the submission, which is the whole reason this
+ * takes entries at all: the minutes are what the column ended up holding, so a
+ * reader who typed `90` is told they logged 1h 30m and one who typed `0.6m` is
+ * told they logged a minute. A total added up from the typed text would agree
+ * with the boxes and not necessarily with the sheet, which is the one
+ * disagreement worth catching.
+ *
+ * Narrower than a `TimeEntry` on purpose. Only the id and the duration are
+ * read, so a sentence about a saved sheet cannot come to depend on a note or
+ * an attribution that a grid cell never offered.
+ */
+export function writtenBulkSheet(
+  entries: readonly { readonly id: string; readonly minutes: number }[],
+): BulkSaved {
+  return {
+    entryIds: entries.map((entry) => entry.id),
+    minutes: entries.reduce((total, entry) => total + entry.minutes, 0),
+  };
+}
+
+/**
  * The form's whole state: the grid as typed, a message per cell that failed,
  * one sentence for a problem belonging to no cell, and what the last press
  * wrote.
