@@ -233,9 +233,16 @@ export function cellErrorDomId(projectId: string, workedOn: string): string {
  *
  * Above the grid rather than in a title on each cell, so it is read once by
  * somebody arriving and not forty times by somebody crossing a row.
+ *
+ * The clause about a typed figure is there because the rule in
+ * `pressLeavesEditor` is invisible from the outside: a reader who has just
+ * typed `1h30m` and presses ArrowRight stays in the box, and the one thing
+ * they must not conclude is that the arrows have stopped working. Up and down
+ * are named as the way out of a full box for the same reason — they always
+ * leave, whatever the caret is doing.
  */
 export const GRID_KEYBOARD_HINT =
-  "The arrow keys move between the day cells; the totals along the edges are read rather than stepped onto. Home and End jump to the ends of a row, and with Ctrl or Cmd to the ends of the sheet.";
+  "The arrow keys move between the day cells; the totals along the edges are read rather than stepped onto. In a cell holding a typed figure, left and right move through the figure first and leave the cell at either end of it, while up and down always move row to row. Home and End jump to the ends of a row, and with Ctrl or Cmd to the ends of the sheet.";
 
 /**
  * What the caret is doing inside a cell's box, as far as the grid cares.
