@@ -1,6 +1,11 @@
 "use client";
 
-import { useActionState, useState, type KeyboardEvent } from "react";
+import {
+  useActionState,
+  useEffect,
+  useState,
+  type KeyboardEvent,
+} from "react";
 
 import { FormSummary, SubmitButton } from "@/components/form";
 import { bulkCellName } from "@/lib/time/bulk";
@@ -146,6 +151,33 @@ export function TimesheetGrid({
   }
 
   const [state, formAction] = useActionState(attempt, initialBulkState(names));
+
+  /*
+    The cursor to the first refused cell after a press that was refused.
+
+    Without it the page looks unchanged from the keyboard: focus is still on
+    the Save button, the messages are under a sheet of forty boxes, and the one
+    that needs fixing is somewhere in the middle of it. Landing on the box
+    rather than on the message is what lets the figure be retyped straight
+    away, and the box points at its own message so the reason is read with it.
+
+    First in reading order, which is what `refusedCells` walks — not whichever
+    error happened to be keyed first. Focusing the box fires its `onFocus`, so
+    the grid's tab stop moves with the cursor and Tab leaves from where the
+    reader actually is.
+
+    Nothing moves after a press that landed. Focus is on the Save button, which
+    is still there and still the thing a reader who has more to type will come
+    back past; throwing the cursor into a cell would be the page deciding where
+    they go next.
+  */
+  useEffect(() => {
+    const first = refusedCells(sheet, state.errors)[0];
+    if (first === undefined) return;
+    document
+      .getElementById(cellDomId(first.project.id, first.cell.workedOn))
+      ?.focus();
+  }, [state, sheet]);
 
   /**
    * A keypress inside a cell, answered by moving focus to another one.
