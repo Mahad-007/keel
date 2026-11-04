@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTimeEntries } from "@/lib/data/time-entries";
+import { projectPath } from "@/lib/projects/detail";
 import { bulkCellName } from "@/lib/time/bulk";
 import { BULK_PROBLEMS, initialBulkState } from "@/lib/time/bulk-form";
 import { TIMESHEET_PATH } from "@/lib/time/week-query";
@@ -103,6 +104,23 @@ describe("writeBulkTime", () => {
   it("revalidates the timesheet, where the new figures are read from", async () => {
     await save({ [cell(SITE, MONDAY)]: "2h" });
     expect(revalidatePath).toHaveBeenCalledWith(TIMESHEET_PATH);
+  });
+
+  it("revalidates each project the week was logged against, once", async () => {
+    written.mockResolvedValue({
+      ok: true,
+      entries: [
+        entry("tme_1", 120),
+        { ...entry("tme_2", 60), workedOn: TUESDAY },
+        { ...entry("tme_3", 30), projectId: BRAND },
+      ],
+    });
+
+    await save({ [cell(SITE, MONDAY)]: "2h" });
+
+    expect(revalidatePath).toHaveBeenCalledWith(projectPath(SITE));
+    expect(revalidatePath).toHaveBeenCalledWith(projectPath(BRAND));
+    expect(revalidatePath).toHaveBeenCalledTimes(3);
   });
 
   it("refuses the whole sheet when one cell cannot be read", async () => {
