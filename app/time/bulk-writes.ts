@@ -1,0 +1,86 @@
+/**
+ * The one write the timesheet grid can ask for: a week of cells, saved
+ * together.
+ *
+ * No `"use server"` at the top of this file, the same arrangement as the write
+ * modules beside the project tabs. A `"use server"` module exports an endpoint
+ * per function, POSTable with whatever arguments a caller likes — which here
+ * would mean the list of cell names was part of the submission, and a list
+ * that comes from the caller is no bound on the submission at all. The page
+ * declares a closure around this and the compiler encrypts what it captured;
+ * this stays a plain function taking the names as a parameter, which is what
+ * makes it testable without a page.
+ *
+ * As everywhere else in the app so far, the capture says which page made the
+ * call and not who was holding it. Phase 8 answers the second question from
+ * the session.
+ */
+
+import { revalidatePath } from "next/cache";
+
+import { createTimeEntries } from "@/lib/data/time-entries";
+import { parseBulkCells } from "@/lib/time/bulk";
+import {
+  BULK_PROBLEMS,
+  failedBulkState,
+  readBulkFields,
+  rejectedBulkState,
+  savedBulkState,
+  writtenBulkSheet,
+  type BulkTimeState,
+} from "@/lib/time/bulk-form";
+import { TIMESHEET_PATH } from "@/lib/time/week-query";
+
+/**
+ * Saving a sheet: every cell a reader typed a duration into, written as one
+ * entry each, in one transaction.
+ *
+ * `names` is the grid the page rendered — see the module comment. Only those
+ * fields are read out of the body, so a submission naming a project that was
+ * never on the sheet or a day outside the week is not refused with a sentence
+ * about it; the field is simply never looked at, and the sheet that is saved
+ * is the sheet somebody was shown.
+ *
+ * No redirect, and not even a changed URL. Writing up a week ends with
+ * checking the figures that just appeared in the cells, so the page stays
+ * where it is and is revalidated underneath: the boxes come back empty and the
+ * durations are now in the totals above them.
+ *
+ * The order of the three refusals is the order of what a reader can do about
+ * them. An unreadable cell is a message beside the box, so it comes first and
+ * stops everything; a sheet with nothing in it is a press that asked for
+ * nothing; and only then is anything written.
+ */
+export async function writeBulkTime(
+  names: readonly string[],
+  _previous: BulkTimeState,
+  formData: FormData,
+): Promise<BulkTimeState> {
+  const fields = readBulkFields(formData, names);
+
+  const parsed = parseBulkCells(names, fields);
+  if (!parsed.ok) return rejectedBulkState(fields, parsed.errors);
+
+  /*
+    A press with every box empty. Not an error in any cell — a blank cell is an
+    answer — so it belongs to the submission as a whole, and the sentence says
+    what a blank cell means rather than only that nothing happened.
+  */
+  if (parsed.value.length === 0) {
+    return failedBulkState(fields, BULK_PROBLEMS.nothingTyped);
+  }
+
+  const result = await createTimeEntries(parsed.value);
+  if (!result.ok) return failedBulkState(fields, BULK_PROBLEMS.failed);
+
+  /*
+    The figures are read off the page, so nothing in the cells changes until
+    the sheet is re-rendered. The week is not in the path — it is a search
+    param — and revalidating the path covers every week of it, which is what
+    is wanted: a reader who steps back to the week they just filled in should
+    not be served a cached sheet from before the press.
+  */
+  revalidatePath(TIMESHEET_PATH);
+
+  return savedBulkState(writtenBulkSheet(result.entries), names);
+}
