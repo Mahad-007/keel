@@ -8,6 +8,7 @@ import {
   compareRows,
   daysWorked,
   describeCell,
+  describeCellEditor,
   describeColumnTotal,
   describeRowTotal,
   describeSheetTotal,
@@ -510,6 +511,37 @@ describe("describeCell", () => {
   it("stays silent about charging when all of it will be charged for", () => {
     const cell = timesheetCell("2026-10-27", [logged("2026-10-27", 60)]);
     expect(describeCell(SITE_REBUILD, cell)).not.toContain("chargeable");
+  });
+});
+
+describe("describeCellEditor", () => {
+  it("names the cell and then says what typing into it does", () => {
+    const cell = timesheetCell("2026-10-27", [logged("2026-10-27", 150)]);
+    expect(describeCellEditor(SITE_REBUILD, cell)).toBe(
+      "Site rebuild, Harbour Co, Tue 27 — 2h 30m, one entry. Type how long to add.",
+    );
+  });
+
+  it("says what is already there, because the box adds to it", () => {
+    const cell = timesheetCell("2026-10-27", [logged("2026-10-27", 240)]);
+    expect(describeCellEditor(SITE_REBUILD, cell)).toContain("4h");
+  });
+
+  it("still names an empty cell, which is the usual one to type into", () => {
+    expect(
+      describeCellEditor(SITE_REBUILD, timesheetCell("2026-10-27", [])),
+    ).toBe(
+      "Site rebuild, Harbour Co, Tue 27 — nothing logged. Type how long to add.",
+    );
+  });
+
+  it("promises to add rather than to replace", () => {
+    const sentence = describeCellEditor(
+      SITE_REBUILD,
+      timesheetCell("2026-10-27", []),
+    );
+    expect(sentence).toContain("add");
+    expect(sentence).not.toContain("set");
   });
 });
 
