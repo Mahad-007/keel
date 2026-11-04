@@ -16,6 +16,7 @@ import {
 } from "@/lib/time/grid";
 import {
   initialBulkState,
+  savedBulkNotice,
   type BulkTimeState,
 } from "@/lib/time/bulk-form";
 import {
@@ -285,6 +286,28 @@ export function TimesheetGrid({
       <CellProblems refused={refusedCells(sheet, state.errors)} />
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <SubmitButton pendingLabel="Saving…">Save sheet</SubmitButton>
+        {/*
+          Rendered empty rather than conditionally, because a live region has
+          to be in the document before the text arrives for a screen reader to
+          notice it appearing. `status` rather than `alert`: the sheet saved as
+          asked, which is worth saying and not worth interrupting for.
+
+          A press changes the page in ways a reader may be looking at none of —
+          a dozen boxes empty and figures appearing in the cells above them —
+          so the sentence says what landed, where, and that the boxes are blank
+          again. Keyed on the first entry written, because two presses that
+          each logged two hours would render identical text, and unchanged text
+          is no change at all: the second would go unannounced.
+        */}
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-sm text-zinc-600 dark:text-zinc-400"
+        >
+          {state.saved === null ? null : (
+            <span key={state.saved.entryIds[0]}>{savedBulkNotice(state)}</span>
+          )}
+        </p>
       </div>
     </form>
   );
