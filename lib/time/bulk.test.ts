@@ -221,6 +221,30 @@ describe("parseBulkCells", () => {
     ]);
   });
 
+  /*
+    The spellings a cap on the box would have ruined. `1 hour 30 minutes` cut
+    to eight characters is `1 hour 3`, which the parser reads as 63 minutes
+    rather than refusing — so these are here to say that a cell holds whatever
+    somebody types and the parser is what decides.
+  */
+  it("reads a duration written out in words", () => {
+    const parsed = parseBulkCells(names, {
+      "cell:prj_a:2026-10-19": "1 hour 30 minutes",
+      "cell:prj_a:2026-10-20": "90 minutes",
+      "cell:prj_b:2026-10-19": "2 hours 30 minutes",
+    });
+    expect(parsed.ok && parsed.value.map((draft) => draft.minutes)).toEqual([
+      90, 90, 150,
+    ]);
+  });
+
+  it("does not read a long spelling as the figure its first few characters make", () => {
+    const parsed = parseBulkCells(names, {
+      "cell:prj_a:2026-10-19": "1 hour 30 minutes",
+    });
+    expect(parsed.ok && parsed.value[0].minutes).not.toBe(63);
+  });
+
   it("keeps the drafts in grid order", () => {
     const parsed = parseBulkCells(names, {
       "cell:prj_b:2026-10-19": "1h",
