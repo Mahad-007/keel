@@ -27,17 +27,48 @@ export const EVERY_CLIENT_LABEL = "Every client";
 export const EVERY_PROJECT_LABEL = "Every project";
 
 /**
+ * What a client is called wherever the log names one.
+ *
+ * An archived client is marked, the same way the project form's picker marks
+ * one. Without it the option is a puzzle — the reader knows the client book
+ * does not list them, and here they are in a list of clients — and the answer
+ * is that their projects are still on the books.
+ */
+function clientLabelOf(project: ProjectWithClient): string {
+  return project.clientArchivedAt === null
+    ? project.clientName
+    : `${project.clientName} (archived)`;
+}
+
+/**
+ * What a project is called, which depends on whether a client is already
+ * filtered on.
+ *
+ * The client's name leads when every client is in play, because that is what
+ * makes a list of projects scannable — a studio's projects are called
+ * "Website" four times over. Once a client is filtered on, their name on every
+ * line is a word that distinguishes nothing, so it comes off.
+ *
+ * One rule, because the picker and the heading above it have to agree: a
+ * reader who chose "Harbour Co — Website" should see that phrase in the
+ * heading rather than a shorter version of it.
+ */
+function projectLabelOf(
+  project: ProjectWithClient,
+  clientId: string | null,
+): string {
+  return clientId === null
+    ? `${project.clientName} — ${project.name}`
+    : project.name;
+}
+
+/**
  * Every client with a project, once each, in the order a person reads a list.
  *
  * Deduplicated on the id rather than on the name, because two clients can
  * share one: a studio with two contacts called James has two rows in the
  * client book, and collapsing them here would file one of them's time under
  * the other.
- *
- * An archived client is marked, the same way the project form's picker marks
- * one. Without it the option is a puzzle — the reader knows the client book
- * does not list them, and here they are in a list of clients — and the answer
- * is that their projects are still on the books.
  */
 export function clientFilterOptions(
   projects: readonly ProjectWithClient[],
@@ -47,10 +78,7 @@ export function clientFilterOptions(
     if (byId.has(project.clientId)) continue;
     byId.set(project.clientId, {
       value: project.clientId,
-      label:
-        project.clientArchivedAt === null
-          ? project.clientName
-          : `${project.clientName} (archived)`,
+      label: clientLabelOf(project),
     });
   }
   return [...byId.values()].sort((left, right) =>
@@ -67,11 +95,8 @@ export function clientFilterOptions(
  * picker that answers a press with an empty log, and `withClient` drops a
  * project filter for the same reason.
  *
- * The client's name leads the label when every client is in play, because that
- * is what makes the list scannable — a studio's projects are called "Website"
- * four times over, and four identical lines in a collapsed `<select>` is a
- * choice nobody can make. Once a client is filtered on, their name on every
- * line is a word that distinguishes nothing, so it comes off.
+ * The labels are `projectLabelOf`'s, so the line a reader chose in the picker
+ * is the phrase they then see in the heading.
  */
 export function projectFilterOptions(
   projects: readonly ProjectWithClient[],
@@ -82,10 +107,7 @@ export function projectFilterOptions(
     .map((project) => ({
       client: project.clientName,
       value: project.id,
-      label:
-        clientId === null
-          ? `${project.clientName} — ${project.name}`
-          : project.name,
+      label: projectLabelOf(project, clientId),
       name: project.name,
     }));
 
