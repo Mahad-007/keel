@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   calendarDateParts,
+  endOfMonth,
   formatDate,
   formatDaySpan,
   formatYear,
   isCalendarDate,
   localCalendarDate,
   shiftCalendarDate,
+  startOfMonth,
   utcCalendarDate,
 } from "./dates";
 
@@ -328,5 +330,58 @@ describe("formatDaySpan", () => {
     expect(formatDaySpan("nonsense", "2026-10-16")).toBe(
       "nonsense – 2026-10-16",
     );
+  });
+});
+
+describe("startOfMonth", () => {
+  it("reduces any day of a month to its first", () => {
+    expect(startOfMonth("2026-10-16")).toBe("2026-10-01");
+  });
+
+  it("is a no-op on the first of a month", () => {
+    expect(startOfMonth("2026-10-01")).toBe("2026-10-01");
+  });
+
+  it("works at the ends of the calendar", () => {
+    expect(startOfMonth("0000-01-31")).toBe("0000-01-01");
+    expect(startOfMonth("9999-12-31")).toBe("9999-12-01");
+  });
+
+  it("throws on anything that is not a calendar date", () => {
+    expect(() => startOfMonth("2026-10")).toThrow(/not a calendar date/);
+    expect(() => startOfMonth("2026-10-16T09:00:00.000Z")).toThrow(
+      /not a calendar date/,
+    );
+  });
+});
+
+describe("endOfMonth", () => {
+  it("knows a thirty-one day month", () => {
+    expect(endOfMonth("2026-10-16")).toBe("2026-10-31");
+  });
+
+  it("knows a thirty day month", () => {
+    expect(endOfMonth("2026-11-01")).toBe("2026-11-30");
+  });
+
+  it("knows February in an ordinary year", () => {
+    expect(endOfMonth("2026-02-16")).toBe("2026-02-28");
+  });
+
+  it("knows February in a leap year", () => {
+    expect(endOfMonth("2024-02-16")).toBe("2024-02-29");
+  });
+
+  it("rolls over the year from December", () => {
+    expect(endOfMonth("2026-12-05")).toBe("2026-12-31");
+  });
+
+  it("is a no-op on the last day of a month", () => {
+    expect(endOfMonth("2026-10-31")).toBe("2026-10-31");
+  });
+
+  it("holds at both ends of the calendar", () => {
+    expect(endOfMonth("9999-12-01")).toBe("9999-12-31");
+    expect(endOfMonth("0000-02-01")).toBe("0000-02-29");
   });
 });

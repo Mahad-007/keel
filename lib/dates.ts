@@ -209,6 +209,48 @@ export function utcCalendarDate(moment: Date): string {
 }
 
 /**
+ * The first day of the month a date falls in: `2026-10-16` is `2026-10-01`.
+ *
+ * String surgery rather than arithmetic, because the day of the month is
+ * already in the string and the month it belongs to does not change. That also
+ * makes it work at both ends of the calendar, where `shiftCalendarDate` would
+ * have to walk up to thirty days and could run off the end.
+ *
+ * Idempotent, so calling it on the first of a month is a no-op — which is what
+ * lets a date range preset built from any day of a month name the same month.
+ *
+ * Throws on anything that is not a calendar date, like `shiftCalendarDate`: a
+ * caller handing over a timestamp has confused a day with a moment, and
+ * quietly reading the day off the front would hide that.
+ */
+export function startOfMonth(value: string): string {
+  if (!isCalendarDate(value)) {
+    throw new Error(`not a calendar date: ${value}`);
+  }
+  return `${value.slice(0, 7)}-01`;
+}
+
+/**
+ * The last day of the month a date falls in: `2026-02-16` is `2026-02-28`.
+ *
+ * Reached by stepping to the first of the next month and back one day, so
+ * month lengths and leap years come from `Date` rather than from a table
+ * written here. December rolls over through the year, which `setUTCMonth`
+ * already does correctly.
+ *
+ * It holds at both ends of the calendar, unlike `shiftCalendarDate`. The last
+ * month there is steps into a year that cannot be written down and straight
+ * back out of it, and a `Date` has room for that in between — so the only
+ * answer it can give is a day in the month it was asked about.
+ */
+export function endOfMonth(value: string): string {
+  const moment = new Date(`${startOfMonth(value)}T00:00:00.000Z`);
+  moment.setUTCMonth(moment.getUTCMonth() + 1);
+  moment.setUTCDate(moment.getUTCDate() - 1);
+  return utcCalendarDate(moment);
+}
+
+/**
  * Two days as one heading: `Oct 26 – Nov 1, 2026`.
  *
  * Four shapes, because repeating what has not changed is what makes a date
