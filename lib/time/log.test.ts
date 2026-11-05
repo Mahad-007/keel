@@ -1,11 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ANY_BILLING,
+  CHARGEABLE_TIME,
+  FREE_TIME,
+} from "./billable";
+import {
   describeLog,
+  describeLogScope,
   EMPTY_LOG,
   summarizeLog,
   type LoggedWork,
 } from "./log";
+import { ALL_DATES } from "./range";
 
 function work(
   partial: Partial<LoggedWork> & Pick<LoggedWork, "minutes">,
@@ -116,5 +123,55 @@ describe("describeLog", () => {
     expect(describeLog(summary)).toBe(
       "One entry, 45m on one day for one project, 45m of it not chargeable.",
     );
+  });
+});
+
+describe("describeLogScope", () => {
+  const everything = {
+    range: ALL_DATES,
+    billable: ANY_BILLING,
+    project: null,
+    client: null,
+  } as const;
+
+  it("says the date range even when it is every date there is", () => {
+    expect(describeLogScope(everything)).toBe("All time");
+  });
+
+  it("leaves out the filters that are not narrowing anything", () => {
+    expect(describeLogScope(everything)).not.toMatch(/Every|Everything/);
+  });
+
+  it("reads the filters outside in: days, client, project, billing", () => {
+    expect(
+      describeLogScope({
+        range: { from: "2026-10-01", to: "2026-10-31" },
+        billable: CHARGEABLE_TIME,
+        project: "Site rebuild",
+        client: "Harbour Co",
+      }),
+    ).toBe("Oct 1 – 31, 2026 · Harbour Co · Site rebuild · Chargeable");
+  });
+
+  it("names a client with no project filter", () => {
+    expect(describeLogScope({ ...everything, client: "Harbour Co" })).toBe(
+      "All time · Harbour Co",
+    );
+  });
+
+  it("names the billing filter on its own", () => {
+    expect(describeLogScope({ ...everything, billable: FREE_TIME })).toBe(
+      "All time · Not chargeable",
+    );
+  });
+
+  it("leaves out a filter whose name the page could not find", () => {
+    expect(
+      describeLogScope({
+        ...everything,
+        range: { from: "2026-10-01", to: null },
+        project: null,
+      }),
+    ).toBe("Since Oct 1, 2026");
   });
 });

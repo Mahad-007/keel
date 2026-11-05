@@ -1,6 +1,12 @@
 import { formatMinutes } from "@/lib/minutes";
 
+import {
+  billableFilterLabel,
+  DEFAULT_BILLABLE_FILTER,
+  type BillableFilter,
+} from "./billable";
 import { billableMinutes, totalMinutes, type MeasuredEntry } from "./days";
+import { describeRange, type DateRange } from "./range";
 
 /**
  * What a filtered time log comes to, and how to say it in a line.
@@ -110,4 +116,49 @@ export function describeLog(summary: LogSummary): string {
   if (summary.billableMinutes === summary.minutes) return `${sentence}.`;
   const free = summary.minutes - summary.billableMinutes;
   return `${sentence}, ${formatMinutes(free)} of it not chargeable.`;
+}
+
+/**
+ * What the filters in force are, as a breadcrumb: `Oct 1 – 31, 2026 · Harbour
+ * Co · Site rebuild · Chargeable`.
+ *
+ * The heading rather than the figures, and it is the half that stops the
+ * figures being misread: "14h 30m" under "October" is a different claim from
+ * "14h 30m" under "October, Harbour Co, chargeable only", and a reader who
+ * came back to a bookmarked log has no other way to tell which one they are
+ * looking at.
+ *
+ * The date range is always said, even when it is every date there is, because
+ * that is the filter most easily forgotten and the one that changes the total
+ * most. The others are said only when they are narrowing something: a
+ * breadcrumb that listed "Every client · Every project · Everything" on the
+ * unfiltered log would be three words of nothing in the place a reader looks
+ * to find out what they are reading.
+ *
+ * The names come from the caller rather than being looked up here, because
+ * this is pure and a project's name is a row the page has already read. A
+ * filter naming something that has gone has no name to show, so it is left
+ * out of the breadcrumb — and the note beside the picker is what explains the
+ * gap.
+ */
+export function describeLogScope({
+  range,
+  billable,
+  project,
+  client,
+}: {
+  readonly range: DateRange;
+  readonly billable: BillableFilter;
+  /** The filtered project's name, or null when every project is shown. */
+  readonly project: string | null;
+  /** The filtered client's name, or null when every client is shown. */
+  readonly client: string | null;
+}): string {
+  const parts = [describeRange(range)];
+  if (client !== null) parts.push(client);
+  if (project !== null) parts.push(project);
+  if (billable !== DEFAULT_BILLABLE_FILTER) {
+    parts.push(billableFilterLabel(billable));
+  }
+  return parts.join(" · ");
 }
