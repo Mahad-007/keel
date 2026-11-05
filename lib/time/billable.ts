@@ -40,3 +40,23 @@ export const BILLABLE_FILTERS = [
 
 /** What a log with no `?billable=` param means: every entry. */
 export const DEFAULT_BILLABLE_FILTER: BillableFilter = ALL_TIME;
+
+export function isBillableFilter(value: unknown): value is BillableFilter {
+  return (
+    typeof value === "string" &&
+    (BILLABLE_FILTERS as readonly string[]).includes(value)
+  );
+}
+
+/**
+ * A `?billable=` param narrowed to a filter, falling back to showing
+ * everything.
+ *
+ * Falling back rather than erroring, the same call the projects list makes: a
+ * stale bookmark or a typo should show the time, not a 500. Showing more than
+ * was asked for loses nothing, because the filter row says which option is
+ * actually in effect.
+ */
+export function parseBillableFilter(value: unknown): BillableFilter {
+  return isBillableFilter(value) ? value : DEFAULT_BILLABLE_FILTER;
+}
