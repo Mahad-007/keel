@@ -1,4 +1,4 @@
-import { isCalendarDate } from "@/lib/dates";
+import { formatDate, formatDaySpan, isCalendarDate } from "@/lib/dates";
 
 /**
  * The stretch of days a time log is showing, with either end able to be open.
@@ -95,4 +95,29 @@ export function isBackwardsRange(range: DateRange): boolean {
  */
 export function reverseRange(range: DateRange): DateRange {
   return { from: range.to, to: range.from };
+}
+
+/** What a log showing every day there is calls its range. */
+export const ALL_DATES_LABEL = "All time";
+
+/**
+ * A range as a heading: `Oct 1 – 31, 2026`, `Since Oct 1, 2026`, `All time`.
+ *
+ * Four shapes, because an open end is a different sentence rather than a
+ * missing half of one. `Oct 1 – ` with nothing after it would read as a
+ * heading that failed to render, and `Oct 1 – Dec 31, 9999` would be a bound
+ * nobody asked for presented as one they did.
+ *
+ * The closed shape is `formatDaySpan`'s, so the log's heading and the
+ * timesheet's are the same heading. A backwards range is described as it was
+ * typed rather than corrected, which is what makes the note beside it — the
+ * range runs backwards, here it is turned round — say something the heading
+ * does not already contradict.
+ */
+export function describeRange({ from, to }: DateRange): string {
+  if (from === null) {
+    return to === null ? ALL_DATES_LABEL : `Up to ${formatDate(to)}`;
+  }
+  if (to === null) return `Since ${formatDate(from)}`;
+  return formatDaySpan(from, to);
 }

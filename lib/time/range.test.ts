@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ALL_DATES,
+  describeRange,
   isAllDates,
   isBackwardsRange,
   parseRangeEnd,
@@ -118,5 +119,41 @@ describe("reverseRange", () => {
   it("applied twice is the range it started as", () => {
     const range = { from: "2026-10-01", to: null };
     expect(reverseRange(reverseRange(range))).toEqual(range);
+  });
+});
+
+describe("describeRange", () => {
+  it("names a closed range the way the timesheet names a week", () => {
+    expect(describeRange({ from: "2026-10-01", to: "2026-10-31" })).toBe(
+      "Oct 1 – 31, 2026",
+    );
+  });
+
+  it("names a range of one day as that day", () => {
+    expect(describeRange({ from: "2026-10-16", to: "2026-10-16" })).toBe(
+      "Oct 16, 2026",
+    );
+  });
+
+  it("says since when only the first day is bounded", () => {
+    expect(describeRange({ from: "2026-10-01", to: null })).toBe(
+      "Since Oct 1, 2026",
+    );
+  });
+
+  it("says up to when only the last day is bounded", () => {
+    expect(describeRange({ from: null, to: "2026-10-31" })).toBe(
+      "Up to Oct 31, 2026",
+    );
+  });
+
+  it("says all time when neither end is bounded", () => {
+    expect(describeRange(ALL_DATES)).toBe("All time");
+  });
+
+  it("describes a backwards range as it was typed rather than correcting it", () => {
+    expect(describeRange({ from: "2026-10-31", to: "2026-10-01" })).toBe(
+      "Oct 31 – 1, 2026",
+    );
   });
 });
