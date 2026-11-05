@@ -348,6 +348,53 @@ export async function listTimeEntriesInRange(
 }
 
 /**
+ * What the time log asks for: any of the four filters, each optional.
+ *
+ * Every field absent is every entry there is, which is what `/time/entries`
+ * with no params shows. `null` and absent mean the same thing on each of
+ * them — no restriction — because the query is built from a parsed URL where
+ * an unset filter is null, and making the caller strip those out would be
+ * making it build the same object twice.
+ *
+ * `clientId` is here even though a time entry has no client column. The
+ * question "what has Harbour Co cost this month" is the one a studio asks at
+ * the end of a month, and answering it by listing their projects and then
+ * asking for each one's time would be a query per project and a different
+ * answer if a project moved client in between.
+ */
+export type TimeEntryFilter = {
+  /** The first day to include. Absent or null for no lower bound. */
+  readonly from?: string | null;
+  /** The last day to include, inclusive. Absent or null for no upper bound. */
+  readonly to?: string | null;
+  /** The one project to show, or absent for every project. */
+  readonly projectId?: string | null;
+  /** The one client to show, or absent for every client. */
+  readonly clientId?: string | null;
+  /** The billing state to show, or absent for both of them. */
+  readonly billable?: boolean | null;
+};
+
+/**
+ * A time entry with the names of what it was done for, which is what a log
+ * across projects has to show.
+ *
+ * The project page's list needs none of this — every row there belongs to the
+ * project in the heading — but a log filtered by date holds entries from four
+ * engagements at once, and a duration with no project beside it is a figure
+ * nobody can act on.
+ *
+ * `clientId` comes back as well as the name, because the rows are what the
+ * log's own links are built from: a row naming Harbour Co links to Harbour
+ * Co's time, and a link needs the id the filter is written with.
+ */
+export type TimeEntryWithNames = TimeEntry & {
+  projectName: string;
+  clientId: string;
+  clientName: string;
+};
+
+/**
  * One deliverable's time entries, most recent first.
  *
  * The question behind it is the one the whole scope-creep phase asks: this
