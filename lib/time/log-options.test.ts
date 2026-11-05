@@ -6,6 +6,7 @@ import {
   clientFilterOptions,
   describeMissingFilters,
   filterIsOffered,
+  filterLabel,
   projectFilterOptions,
 } from "./log-options";
 
@@ -198,5 +199,32 @@ describe("describeMissingFilters", () => {
     const note = describeMissingFilters(true, false) ?? "";
     expect(note).toContain("still narrowed");
     expect(note).toContain("clearing the filters");
+  });
+});
+
+describe("filterLabel", () => {
+  const options = [
+    { value: "prj_one", label: "Site rebuild" },
+    { value: "prj_two", label: "Packaging" },
+  ];
+
+  it("names the filtered option", () => {
+    expect(filterLabel("prj_two", options)).toBe("Packaging");
+  });
+
+  it("is nothing when nothing is filtered", () => {
+    expect(filterLabel(null, options)).toBeNull();
+  });
+
+  it("is nothing for a filter the pickers cannot offer", () => {
+    expect(filterLabel("prj_gone", options)).toBeNull();
+  });
+
+  it("agrees with whether the filter is offered at all", () => {
+    for (const id of ["prj_one", "prj_gone", null]) {
+      expect(filterLabel(id, options) !== null).toBe(
+        filterIsOffered(id, options) && id !== null,
+      );
+    }
   });
 });

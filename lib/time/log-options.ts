@@ -141,3 +141,21 @@ export function describeMissingFilters(
 
   return `${named} that is no longer on the list below. The log is still narrowed to it, so the picker shows nothing chosen; clearing the filters shows everything again.`;
 }
+
+/**
+ * What a filter is called, for the heading above the log — or null when it
+ * names nothing the pickers can offer.
+ *
+ * The heading is built from the names the page already read rather than from
+ * the ids in the URL, because `cli_8f3a2b` above a column of figures tells a
+ * reader nothing about whose money it is. A filter whose name cannot be found
+ * is left out of the heading and explained in a note instead, which is what
+ * `filterIsOffered` decides.
+ */
+export function filterLabel(
+  id: string | null,
+  options: readonly FilterOption[],
+): string | null {
+  if (id === null) return null;
+  return options.find((option) => option.value === id)?.label ?? null;
+}
