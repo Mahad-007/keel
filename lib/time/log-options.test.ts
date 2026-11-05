@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { ProjectWithClient } from "@/lib/data/projects";
 
-import { clientFilterOptions, projectFilterOptions } from "./log-options";
+import {
+  clientFilterOptions,
+  describeMissingFilters,
+  filterIsOffered,
+  projectFilterOptions,
+} from "./log-options";
 
 /** A project row with only the fields a picker reads filled in properly. */
 function project(
@@ -145,5 +150,53 @@ describe("projectFilterOptions", () => {
     );
 
     expect(options).toEqual([]);
+  });
+});
+
+describe("filterIsOffered", () => {
+  const options = [{ value: "prj_one", label: "Site rebuild" }];
+
+  it("is true for a filter the picker can offer", () => {
+    expect(filterIsOffered("prj_one", options)).toBe(true);
+  });
+
+  it("is true for no filter at all", () => {
+    expect(filterIsOffered(null, options)).toBe(true);
+    expect(filterIsOffered(null, [])).toBe(true);
+  });
+
+  it("is false for a filter naming something that has gone", () => {
+    expect(filterIsOffered("prj_gone", options)).toBe(false);
+    expect(filterIsOffered("prj_one", [])).toBe(false);
+  });
+});
+
+describe("describeMissingFilters", () => {
+  it("says nothing when both filters are on offer", () => {
+    expect(describeMissingFilters(false, false)).toBeNull();
+  });
+
+  it("names the project filter on its own", () => {
+    expect(describeMissingFilters(true, false)).toMatch(
+      /^The project filter names a project that is no longer on the list/,
+    );
+  });
+
+  it("names the client filter on its own", () => {
+    expect(describeMissingFilters(false, true)).toMatch(
+      /^The client filter names a client that is no longer on the list/,
+    );
+  });
+
+  it("names both at once in one sentence", () => {
+    expect(describeMissingFilters(true, true)).toMatch(
+      /^The project and client filters both name something/,
+    );
+  });
+
+  it("always says the filter is still in force and how to clear it", () => {
+    const note = describeMissingFilters(true, false) ?? "";
+    expect(note).toContain("still narrowed");
+    expect(note).toContain("clearing the filters");
   });
 });

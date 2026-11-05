@@ -98,3 +98,46 @@ export function projectFilterOptions(
     )
     .map(({ value, label }) => ({ value, label }));
 }
+
+/**
+ * Whether a filter names something the picker beside it can offer.
+ *
+ * A `<select>` whose value matches none of its options does not stay unset —
+ * the browser shows the first option instead, which here is "Every project".
+ * So a log narrowed to a project that has since been deleted would render a
+ * picker claiming no project filter at all, over a list showing one project's
+ * time. That is the one failure a reader cannot diagnose, and this is what the
+ * page checks before it says so in words.
+ *
+ * An absent filter is not missing: there is nothing for it to name.
+ */
+export function filterIsOffered(
+  id: string | null,
+  options: readonly FilterOption[],
+): boolean {
+  return id === null || options.some((option) => option.value === id);
+}
+
+/**
+ * The sentence a log needs when one of its filters names something that is no
+ * longer on offer, or null when both are fine.
+ *
+ * It says three things, because a reader seeing an unexpectedly short list
+ * needs all three: that the filter is still in force, that the picker is not
+ * showing it, and how to get back to everything.
+ */
+export function describeMissingFilters(
+  projectMissing: boolean,
+  clientMissing: boolean,
+): string | null {
+  if (!projectMissing && !clientMissing) return null;
+
+  const named =
+    projectMissing && clientMissing
+      ? "The project and client filters both name something"
+      : projectMissing
+        ? "The project filter names a project"
+        : "The client filter names a client";
+
+  return `${named} that is no longer on the list below. The log is still narrowed to it, so the picker shows nothing chosen; clearing the filters shows everything again.`;
+}
