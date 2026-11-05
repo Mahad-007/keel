@@ -7,7 +7,7 @@ import {
   withRange,
   type TimeLogQuery,
 } from "@/lib/time/log-query";
-import { reverseRange, type DateRange } from "@/lib/time/range";
+import { reverseRange } from "@/lib/time/range";
 
 /**
  * The note above a log whose date range runs backwards, and the link that
@@ -34,7 +34,7 @@ export function BackwardsRange({
 }: {
   query: TimeLogQuery;
   /** The range as it was typed, both ends of which the sentence names. */
-  range: DateRange & { from: string; to: string };
+  range: { readonly from: string; readonly to: string };
 }) {
   return (
     <CaveatNote className="mt-4">
