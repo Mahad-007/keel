@@ -4,6 +4,11 @@ import type { RunningTimerWithProject } from "@/lib/data/active-timers";
 import type { TimeEntry } from "@/lib/db/schema";
 import { deliverableOptions } from "@/lib/time/attribution";
 import { INITIAL_LOG_TIME_STATE, type LogTimeState } from "@/lib/time/form";
+import {
+  timeLogHref,
+  UNFILTERED_LOG,
+  withProject,
+} from "@/lib/time/log-query";
 import { rollUpProject, type RolledUpDeliverable } from "@/lib/time/rollup";
 import { TIMESHEET_PATH } from "@/lib/time/week-query";
 
@@ -132,18 +137,27 @@ export function TimePanel({
           Logged
         </h3>
         {/*
-          Out to the week, because this list answers "what has this engagement
-          cost" and the other question somebody asks of the same hours is
-          "where did my week go". The timesheet is the only place in the app
-          that crosses projects, and this list is where a reader is standing
-          when they want it.
+          Two ways out of this list, because it answers one question — what has
+          this engagement cost — and the same hours answer two more. "Where did
+          my week go" is the timesheet; "what has this project cost between
+          these dates, and how much of it is chargeable" is the log, which is
+          this list with filters on it. Both cross projects, and this list is
+          where a reader is standing when they want either.
         */}
-        <Link
-          href={TIMESHEET_PATH}
-          className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
-          This week, every project
-        </Link>
+        <span className="flex items-baseline gap-4">
+          <Link
+            href={timeLogHref(withProject(UNFILTERED_LOG, projectId))}
+            className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Filter this project&rsquo;s time
+          </Link>
+          <Link
+            href={TIMESHEET_PATH}
+            className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            This week, every project
+          </Link>
+        </span>
       </div>
       <TimeList
         projectId={projectId}
