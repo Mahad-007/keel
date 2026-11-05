@@ -60,3 +60,18 @@ export function isBillableFilter(value: unknown): value is BillableFilter {
 export function parseBillableFilter(value: unknown): BillableFilter {
   return isBillableFilter(value) ? value : DEFAULT_BILLABLE_FILTER;
 }
+
+/**
+ * The filter as the query wants it: the value `billable` has to equal, or
+ * `undefined` for no restriction.
+ *
+ * `all` is a fact about the UI — a tab that has to be nameable and linkable —
+ * and the query has no use for it. Translating here keeps the sentinel out of
+ * `lib/data/`, where a boolean column compared against the string "all" would
+ * be a filter that quietly matches nothing.
+ */
+export function filteredBillable(filter: BillableFilter): boolean | undefined {
+  if (filter === CHARGEABLE_TIME) return true;
+  if (filter === FREE_TIME) return false;
+  return undefined;
+}

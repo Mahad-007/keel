@@ -4,6 +4,7 @@ import {
   ALL_TIME,
   BILLABLE_FILTERS,
   CHARGEABLE_TIME,
+  filteredBillable,
   FREE_TIME,
   isBillableFilter,
   parseBillableFilter,
@@ -37,5 +38,19 @@ describe("parseBillableFilter", () => {
   it("falls back to showing everything", () => {
     expect(parseBillableFilter("nonsense")).toBe(ALL_TIME);
     expect(parseBillableFilter(undefined)).toBe(ALL_TIME);
+  });
+});
+
+describe("filteredBillable", () => {
+  it("restricts to chargeable time", () => {
+    expect(filteredBillable(CHARGEABLE_TIME)).toBe(true);
+  });
+
+  it("restricts to time that will not be charged for", () => {
+    expect(filteredBillable(FREE_TIME)).toBe(false);
+  });
+
+  it("asks for no restriction at all when nothing is filtered", () => {
+    expect(filteredBillable(ALL_TIME)).toBeUndefined();
   });
 });
