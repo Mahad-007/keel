@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { ALL_DATES, parseRangeEnd, rangeFromParams } from "./range";
+import {
+  ALL_DATES,
+  isAllDates,
+  isBackwardsRange,
+  parseRangeEnd,
+  rangeFromParams,
+  reverseRange,
+} from "./range";
 
 describe("parseRangeEnd", () => {
   it("keeps a calendar date", () => {
@@ -54,5 +61,62 @@ describe("rangeFromParams", () => {
       from: null,
       to: "2026-10-31",
     });
+  });
+});
+
+describe("isAllDates", () => {
+  it("is true when neither end is bounded", () => {
+    expect(isAllDates(ALL_DATES)).toBe(true);
+  });
+
+  it("is false when either end is bounded", () => {
+    expect(isAllDates({ from: "2026-10-01", to: null })).toBe(false);
+    expect(isAllDates({ from: null, to: "2026-10-31" })).toBe(false);
+    expect(isAllDates({ from: "2026-10-01", to: "2026-10-31" })).toBe(false);
+  });
+});
+
+describe("isBackwardsRange", () => {
+  it("is true when the first day is after the last", () => {
+    expect(isBackwardsRange({ from: "2026-10-31", to: "2026-10-01" })).toBe(
+      true,
+    );
+  });
+
+  it("is false for a range in the right order", () => {
+    expect(isBackwardsRange({ from: "2026-10-01", to: "2026-10-31" })).toBe(
+      false,
+    );
+  });
+
+  it("is false for a single day, which holds that day", () => {
+    expect(isBackwardsRange({ from: "2026-10-16", to: "2026-10-16" })).toBe(
+      false,
+    );
+  });
+
+  it("is false when either end is open", () => {
+    expect(isBackwardsRange({ from: "2026-10-31", to: null })).toBe(false);
+    expect(isBackwardsRange({ from: null, to: "2026-10-01" })).toBe(false);
+    expect(isBackwardsRange(ALL_DATES)).toBe(false);
+  });
+});
+
+describe("reverseRange", () => {
+  it("swaps the two ends", () => {
+    expect(reverseRange({ from: "2026-10-31", to: "2026-10-01" })).toEqual({
+      from: "2026-10-01",
+      to: "2026-10-31",
+    });
+  });
+
+  it("turns a backwards range into one that is not", () => {
+    const backwards = { from: "2026-10-31", to: "2026-10-01" };
+    expect(isBackwardsRange(reverseRange(backwards))).toBe(false);
+  });
+
+  it("applied twice is the range it started as", () => {
+    const range = { from: "2026-10-01", to: null };
+    expect(reverseRange(reverseRange(range))).toEqual(range);
   });
 });

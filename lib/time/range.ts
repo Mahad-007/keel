@@ -53,3 +53,46 @@ export function rangeFromParams(
 ): DateRange {
   return { from: parseRangeEnd(from), to: parseRangeEnd(to) };
 }
+
+/**
+ * Whether a range leaves out any day at all.
+ *
+ * What decides whether the log is showing the whole book or a slice of it, and
+ * therefore whether the heading has to say so. A page that announced its date
+ * filter when there is none would be a label nobody reads on the day it
+ * matters.
+ */
+export function isAllDates(range: DateRange): boolean {
+  return range.from === null && range.to === null;
+}
+
+/**
+ * Whether a range runs the wrong way: a first day after its last.
+ *
+ * Worth asking rather than quietly fixing. A backwards range holds no days, so
+ * the query returns nothing — and an empty list under two date boxes that both
+ * have dates in them reads as "there is no work here", which is the one wrong
+ * conclusion. The page says the range runs backwards and offers to turn it
+ * round, which is the fix the reader was going to make by hand.
+ *
+ * Swapping the ends here instead would be worse: a reader who typed the wrong
+ * box would get a list that looks right, filtered to a range they did not ask
+ * for, with the URL disagreeing with the boxes above it.
+ *
+ * An open end is never backwards — there is nothing for it to be after.
+ */
+export function isBackwardsRange(range: DateRange): boolean {
+  if (range.from === null || range.to === null) return false;
+  return range.from > range.to;
+}
+
+/**
+ * The same range with its ends swapped, which is what the fix link points at.
+ *
+ * Unconditional, so it is a plain fact about the value rather than something
+ * that only works on a range already known to be backwards. Applying it twice
+ * is the range it started as.
+ */
+export function reverseRange(range: DateRange): DateRange {
+  return { from: range.to, to: range.from };
+}
