@@ -71,3 +71,43 @@ export function summarizeLog(entries: readonly LoggedWork[]): LogSummary {
     projects: new Set(entries.map((entry) => entry.projectId)).size,
   };
 }
+
+/** What a log with nothing in it says, where the figures would be. */
+export const NOTHING_LOGGED = "Nothing logged.";
+
+/** How many days the work was spread over, as a clause. */
+function overDays(days: number): string {
+  return days === 1 ? "on one day" : `over ${days} days`;
+}
+
+/** How many engagements it was for, as a clause. */
+function acrossProjects(projects: number): string {
+  return projects === 1 ? "for one project" : `across ${projects} projects`;
+}
+
+/**
+ * The line under the heading: what the log on screen comes to.
+ *
+ * Four facts, because each answers a different question and none implies the
+ * others. The row count says how finely the work was written down; the total
+ * says what it cost; the days say whether it was a push or a trickle; the
+ * projects say how wide the filter is. A reader who has set a date range and a
+ * client is checking all four.
+ *
+ * The chargeable figure is only mentioned when it differs from the total,
+ * which is the rule `describeDayTotal` follows — a clause that is always true
+ * is a clause nobody reads, and the one log where it mattered would look like
+ * the rest. Said as what is *not* chargeable, because the total is already in
+ * the sentence and the gap between it and the invoice is the interesting part.
+ */
+export function describeLog(summary: LogSummary): string {
+  if (summary.entries === 0) return NOTHING_LOGGED;
+
+  const rows = summary.entries === 1 ? "One entry" : `${summary.entries} entries`;
+  const spread = `${overDays(summary.days)} ${acrossProjects(summary.projects)}`;
+  const sentence = `${rows}, ${formatMinutes(summary.minutes)} ${spread}`;
+
+  if (summary.billableMinutes === summary.minutes) return `${sentence}.`;
+  const free = summary.minutes - summary.billableMinutes;
+  return `${sentence}, ${formatMinutes(free)} of it not chargeable.`;
+}
