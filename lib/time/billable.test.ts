@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  ALL_TIME,
+  ANY_BILLING,
   BILLABLE_FILTERS,
   CHARGEABLE_TIME,
   filteredBillable,
@@ -36,8 +36,8 @@ describe("parseBillableFilter", () => {
   });
 
   it("falls back to showing everything", () => {
-    expect(parseBillableFilter("nonsense")).toBe(ALL_TIME);
-    expect(parseBillableFilter(undefined)).toBe(ALL_TIME);
+    expect(parseBillableFilter("nonsense")).toBe(ANY_BILLING);
+    expect(parseBillableFilter(undefined)).toBe(ANY_BILLING);
   });
 });
 
@@ -51,6 +51,6 @@ describe("filteredBillable", () => {
   });
 
   it("asks for no restriction at all when nothing is filtered", () => {
-    expect(filteredBillable(ALL_TIME)).toBeUndefined();
+    expect(filteredBillable(ANY_BILLING)).toBeUndefined();
   });
 });

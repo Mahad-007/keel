@@ -1,5 +1,5 @@
 /**
- * The chargeable filter on a time log: all time, only what will be charged
+ * The chargeable filter on a time log: every entry, only what will be charged
  * for, or only what will not.
  *
  * The flag is the one column on a time entry that changes what the hour is
@@ -13,8 +13,13 @@
  * to mark as current.
  */
 
-/** No filter at all: chargeable and not, together. */
-export const ALL_TIME = "all";
+/**
+ * No filter at all: chargeable and not, together.
+ *
+ * Named for the column rather than for the rows, because the log's other
+ * filter is a date range and "all time" there would mean the whole calendar.
+ */
+export const ANY_BILLING = "all";
 
 /** Only time meant to be charged for. */
 export const CHARGEABLE_TIME = "chargeable";
@@ -23,7 +28,7 @@ export const CHARGEABLE_TIME = "chargeable";
 export const FREE_TIME = "free";
 
 export type BillableFilter =
-  | typeof ALL_TIME
+  | typeof ANY_BILLING
   | typeof CHARGEABLE_TIME
   | typeof FREE_TIME;
 
@@ -33,13 +38,13 @@ export type BillableFilter =
  * back out of a filter.
  */
 export const BILLABLE_FILTERS = [
-  ALL_TIME,
+  ANY_BILLING,
   CHARGEABLE_TIME,
   FREE_TIME,
 ] as const satisfies readonly BillableFilter[];
 
 /** What a log with no `?billable=` param means: every entry. */
-export const DEFAULT_BILLABLE_FILTER: BillableFilter = ALL_TIME;
+export const DEFAULT_BILLABLE_FILTER: BillableFilter = ANY_BILLING;
 
 export function isBillableFilter(value: unknown): value is BillableFilter {
   return (
