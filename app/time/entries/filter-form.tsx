@@ -75,9 +75,17 @@ export function FilterForm({
         {/*
           The project list is narrowed to whichever client is filtered on *as
           the page was served*, not as the picker beside it currently reads.
-          Narrowing it live would need JavaScript; narrowing it on apply is one
-          press behind and never wrong, and `withClient` drops a project filter
-          the client cannot own so the pair can never disagree.
+          Narrowing it live would need JavaScript, so it is one press behind:
+          changing the client and pressing Apply can submit the old client's
+          project alongside the new client, which is a pair no entry can match.
+
+          That is a state the page explains rather than one the form prevents.
+          A form cannot know what the other picker has been changed to without
+          JavaScript, and the two honest ways out — ignoring one of the two
+          filters, or refusing the submission — both answer a press with
+          something the URL does not say. So the log says which project does
+          not belong to which client and offers to drop the project, which is
+          the rule `withClient` applies to the links that can see both.
         */}
         <SelectField
           name={PROJECT_PARAM}
