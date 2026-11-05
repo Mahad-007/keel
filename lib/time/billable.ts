@@ -80,3 +80,21 @@ export function filteredBillable(filter: BillableFilter): boolean | undefined {
   if (filter === FREE_TIME) return false;
   return undefined;
 }
+
+/**
+ * The word on a filter tab.
+ *
+ * "Everything" rather than "All", because the tabs sit in a row with a date
+ * range beside them and "All" on its own leaves a reader to guess all of
+ * what — all time, all projects, or all billing states.
+ *
+ * "Not chargeable" rather than "Non-billable", which is the same word the row
+ * itself is marked with. A tab and the mark it selects for have to read as the
+ * same fact, or a reader filtering to one of them has to work out that they
+ * are.
+ */
+export function billableFilterLabel(filter: BillableFilter): string {
+  if (filter === CHARGEABLE_TIME) return "Chargeable";
+  if (filter === FREE_TIME) return "Not chargeable";
+  return "Everything";
+}

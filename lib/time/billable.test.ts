@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   ANY_BILLING,
   BILLABLE_FILTERS,
+  billableFilterLabel,
   CHARGEABLE_TIME,
   filteredBillable,
   FREE_TIME,
@@ -52,5 +53,21 @@ describe("filteredBillable", () => {
 
   it("asks for no restriction at all when nothing is filtered", () => {
     expect(filteredBillable(ANY_BILLING)).toBeUndefined();
+  });
+});
+
+describe("billableFilterLabel", () => {
+  it("names the two halves the way the row is marked", () => {
+    expect(billableFilterLabel(CHARGEABLE_TIME)).toBe("Chargeable");
+    expect(billableFilterLabel(FREE_TIME)).toBe("Not chargeable");
+  });
+
+  it("says all of what the unfiltered tab shows", () => {
+    expect(billableFilterLabel(ANY_BILLING)).toBe("Everything");
+  });
+
+  it("names every option, with no two sharing a word", () => {
+    const labels = BILLABLE_FILTERS.map(billableFilterLabel);
+    expect(new Set(labels).size).toBe(BILLABLE_FILTERS.length);
   });
 });
