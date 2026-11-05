@@ -95,3 +95,30 @@ export function parseTimeLogQuery(params: SearchParams): TimeLogQuery {
     billable: parseBillableFilter(firstParam(params[BILLABLE_PARAM])),
   };
 }
+
+/**
+ * The URL for a query, leaving out anything that is not filtering.
+ *
+ * Omitting the defaults means the unfiltered log has exactly one address —
+ * `/time/entries` — rather than sixteen that render the same list. That
+ * matters for marking a preset link as current, where comparing a range
+ * against the one on screen is how a link knows it points at where the reader
+ * already is, and it keeps the address a reader pastes into a message down to
+ * the filters they actually set.
+ *
+ * The params go on in the order they are read in the heading — days, then
+ * whose work, then the billing state — so two links to the same log are the
+ * same string rather than the same set of params shuffled.
+ */
+export function timeLogHref(query: TimeLogQuery): string {
+  const params = new URLSearchParams();
+  if (query.range.from !== null) params.set(FROM_PARAM, query.range.from);
+  if (query.range.to !== null) params.set(TO_PARAM, query.range.to);
+  if (query.clientId !== null) params.set(CLIENT_PARAM, query.clientId);
+  if (query.projectId !== null) params.set(PROJECT_PARAM, query.projectId);
+  if (query.billable !== DEFAULT_BILLABLE_FILTER) {
+    params.set(BILLABLE_PARAM, query.billable);
+  }
+  const search = params.toString();
+  return search === "" ? TIME_LOG_PATH : `${TIME_LOG_PATH}?${search}`;
+}

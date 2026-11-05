@@ -4,7 +4,9 @@ import { ANY_BILLING, CHARGEABLE_TIME, FREE_TIME } from "./billable";
 import {
   parseIdParam,
   parseTimeLogQuery,
+  timeLogHref,
   UNFILTERED_LOG,
+  type TimeLogQuery,
 } from "./log-query";
 import { ALL_DATES } from "./range";
 
@@ -88,5 +90,53 @@ describe("parseTimeLogQuery", () => {
 
   it("keeps an unfiltered range as every date there is", () => {
     expect(parseTimeLogQuery({ project: "prj_abc" }).range).toEqual(ALL_DATES);
+  });
+});
+
+describe("timeLogHref", () => {
+  it("is the bare path when nothing is filtered", () => {
+    expect(timeLogHref(UNFILTERED_LOG)).toBe("/time/entries");
+  });
+
+  it("carries every filter that is set", () => {
+    expect(
+      timeLogHref({
+        range: { from: "2026-10-01", to: "2026-10-31" },
+        projectId: "prj_abc",
+        clientId: "cli_xyz",
+        billable: FREE_TIME,
+      }),
+    ).toBe(
+      "/time/entries?from=2026-10-01&to=2026-10-31&client=cli_xyz&project=prj_abc&billable=free",
+    );
+  });
+
+  it("leaves out the end of the range that is open", () => {
+    expect(
+      timeLogHref({ ...UNFILTERED_LOG, range: { from: "2026-10-01", to: null } }),
+    ).toBe("/time/entries?from=2026-10-01");
+  });
+
+  it("leaves out the billing filter that shows everything", () => {
+    expect(timeLogHref({ ...UNFILTERED_LOG, billable: ANY_BILLING })).toBe(
+      "/time/entries",
+    );
+  });
+
+  it("round-trips a query through its own URL", () => {
+    const query: TimeLogQuery = {
+      range: { from: "2026-09-17", to: null },
+      projectId: "prj_abc",
+      clientId: null,
+      billable: CHARGEABLE_TIME,
+    };
+    const search = new URL(timeLogHref(query), "https://keel.test").searchParams;
+    expect(parseTimeLogQuery(Object.fromEntries(search))).toEqual(query);
+  });
+
+  it("escapes an id that would otherwise break the URL", () => {
+    expect(
+      timeLogHref({ ...UNFILTERED_LOG, projectId: "prj a&b" }),
+    ).toBe("/time/entries?project=prj+a%26b");
   });
 });
