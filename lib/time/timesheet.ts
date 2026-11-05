@@ -1,4 +1,5 @@
 import { formatMinutes } from "@/lib/minutes";
+import { compareNames } from "@/lib/names";
 import type { ProjectStatus } from "@/lib/projects/status";
 
 import { bulkCellName, bulkCellNames } from "./bulk";
@@ -260,21 +261,6 @@ export function expectsTime(project: Pick<TimesheetProject, "status">): boolean 
  */
 export function belongsOnSheet(row: TimesheetRow): boolean {
   return row.entryCount > 0 || expectsTime(row.project);
-}
-
-/**
- * How two values of the same kind of name compare on a sheet: by case, or
- * rather without it.
- *
- * Lowercased before comparing, which is what `listClients` does in SQL for the
- * same reason — `Zephyr` sorting above `acme` is a sheet that looks broken.
- * The raw values break the tie afterwards so that two names differing only in
- * case still have a fixed order instead of swapping between renders.
- */
-function compareNames(left: string, right: string): number {
-  const folded = left.toLowerCase().localeCompare(right.toLowerCase());
-  if (folded !== 0) return folded;
-  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 /**
