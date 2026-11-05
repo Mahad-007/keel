@@ -1,6 +1,6 @@
 import { endOfMonth, shiftCalendarDate, startOfMonth } from "@/lib/dates";
 
-import { ALL_DATES, type DateRange } from "./range";
+import { ALL_DATES, ALL_DATES_LABEL, type DateRange } from "./range";
 import { hasWeek, weekOf } from "./week";
 
 /**
@@ -80,4 +80,41 @@ export function presetRange(preset: RangePreset, today: string): DateRange {
     return { from: startOfMonth(today), to: endOfMonth(today) };
   }
   return { from: shiftCalendarDate(today, -(RECENT_DAYS - 1)), to: today };
+}
+
+/**
+ * The word on a preset link.
+ *
+ * "All time" rather than "All", and it is the same string the heading uses for
+ * an unfiltered range — the link that clears the date filter and the heading
+ * that says it is cleared have to read as the same fact.
+ */
+export function rangePresetLabel(preset: RangePreset): string {
+  if (preset === THIS_WEEK) return "This week";
+  if (preset === THIS_MONTH) return "This month";
+  if (preset === LAST_30_DAYS) return `Last ${RECENT_DAYS} days`;
+  return ALL_DATES_LABEL;
+}
+
+/**
+ * Which preset a range is, or null when it is none of them.
+ *
+ * What a preset link is marked current by. Compared on the dates rather than
+ * carried in the URL as a fourth param, so a range that was typed into the two
+ * boxes and happens to be this month is marked as this month — and so a link
+ * somebody kept from last week does not claim to be showing the week it is now.
+ *
+ * `all` is matched like the rest rather than special-cased, so a log with no
+ * date filter marks the way-out link as where it already is.
+ */
+export function matchingPreset(
+  range: DateRange,
+  today: string,
+): RangePreset | null {
+  return (
+    RANGE_PRESETS.find((preset) => {
+      const candidate = presetRange(preset, today);
+      return candidate.from === range.from && candidate.to === range.to;
+    }) ?? null
+  );
 }

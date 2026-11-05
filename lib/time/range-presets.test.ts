@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { ALL_DATES } from "./range";
+import { ALL_DATES, describeRange } from "./range";
 import {
   ANY_DATE,
   LAST_30_DAYS,
+  matchingPreset,
   presetRange,
+  rangePresetLabel,
   RANGE_PRESETS,
   THIS_MONTH,
   THIS_WEEK,
@@ -65,5 +67,47 @@ describe("presetRange", () => {
       const { from, to } = presetRange(preset, FRIDAY);
       if (from !== null && to !== null) expect(from <= to).toBe(true);
     }
+  });
+});
+
+describe("rangePresetLabel", () => {
+  it("says how many days the recent preset covers", () => {
+    expect(rangePresetLabel(LAST_30_DAYS)).toBe("Last 30 days");
+  });
+
+  it("calls the unfiltered preset what the heading calls it", () => {
+    expect(rangePresetLabel(ANY_DATE)).toBe(describeRange(ALL_DATES));
+  });
+
+  it("names every preset, with no two sharing a word", () => {
+    const labels = RANGE_PRESETS.map(rangePresetLabel);
+    expect(new Set(labels).size).toBe(RANGE_PRESETS.length);
+  });
+});
+
+describe("matchingPreset", () => {
+  it("recognises a range that was typed rather than clicked", () => {
+    expect(matchingPreset({ from: "2026-10-01", to: "2026-10-31" }, FRIDAY)).toBe(
+      THIS_MONTH,
+    );
+  });
+
+  it("recognises an unfiltered range as the way-out preset", () => {
+    expect(matchingPreset(ALL_DATES, FRIDAY)).toBe(ANY_DATE);
+  });
+
+  it("round-trips every preset", () => {
+    for (const preset of RANGE_PRESETS) {
+      expect(matchingPreset(presetRange(preset, FRIDAY), FRIDAY)).toBe(preset);
+    }
+  });
+
+  it("is nothing for a range that is none of them", () => {
+    expect(matchingPreset({ from: "2026-10-03", to: "2026-10-09" }, FRIDAY)).toBeNull();
+  });
+
+  it("stops matching a week preset once the day moves on", () => {
+    const week = presetRange(THIS_WEEK, FRIDAY);
+    expect(matchingPreset(week, "2026-10-26")).toBeNull();
   });
 });
