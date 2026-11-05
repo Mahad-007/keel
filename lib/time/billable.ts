@@ -24,6 +24,16 @@ export const ANY_BILLING = "all";
 /** Only time meant to be charged for. */
 export const CHARGEABLE_TIME = "chargeable";
 
+/**
+ * What time that will not reach an invoice is called, wherever it is named.
+ *
+ * One string, because it is said in two places that cannot see each other: the
+ * mark on an entry's row, and the filter tab that selects for those rows. A
+ * tab and the mark it selects for have to read as the same fact, or a reader
+ * filtering to one of them is left working out that they are.
+ */
+export const NOT_CHARGEABLE_LABEL = "Not chargeable";
+
 /** Only time that will not reach an invoice. */
 export const FREE_TIME = "free";
 
@@ -88,13 +98,11 @@ export function filteredBillable(filter: BillableFilter): boolean | undefined {
  * range beside them and "All" on its own leaves a reader to guess all of
  * what — all time, all projects, or all billing states.
  *
- * "Not chargeable" rather than "Non-billable", which is the same word the row
- * itself is marked with. A tab and the mark it selects for have to read as the
- * same fact, or a reader filtering to one of them has to work out that they
- * are.
+ * The chargeable half borrows the row's own mark, so the tab and the rows it
+ * selects cannot come to say different things.
  */
 export function billableFilterLabel(filter: BillableFilter): string {
   if (filter === CHARGEABLE_TIME) return "Chargeable";
-  if (filter === FREE_TIME) return "Not chargeable";
+  if (filter === FREE_TIME) return NOT_CHARGEABLE_LABEL;
   return "Everything";
 }

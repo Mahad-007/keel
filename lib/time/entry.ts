@@ -1,6 +1,7 @@
 import { formatDate } from "@/lib/dates";
 import { formatMinutes } from "@/lib/minutes";
 
+import { NOT_CHARGEABLE_LABEL } from "./billable";
 import { isBilled, isChargeable, type BillingSubject } from "./billing";
 
 /**
@@ -156,7 +157,7 @@ export const NO_NOTE_LABEL = "No note";
  */
 export function entryMarks(entry: ListedTimeEntry): string[] {
   const marks: string[] = [];
-  if (!isChargeable(entry)) marks.push("Not chargeable");
+  if (!isChargeable(entry)) marks.push(NOT_CHARGEABLE_LABEL);
   if (isBilled(entry)) marks.push("Billed");
   return marks;
 }
