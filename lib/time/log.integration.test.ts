@@ -12,8 +12,8 @@ import { createTestDb } from "@/lib/db/testing";
 import { describeLog, describeLogScope, summarizeLog } from "./log";
 import {
   clientFilterOptions,
-  filterLabel,
   projectFilterOptions,
+  resolveLogFilters,
 } from "./log-options";
 import { logEntryFilter, parseTimeLogQuery } from "./log-query";
 
@@ -48,6 +48,7 @@ async function log(params: Record<string, string>) {
 
   const clients = clientFilterOptions(projects);
   const projectOptions = projectFilterOptions(projects, query.clientId);
+  const resolved = resolveLogFilters(query, projects);
 
   return {
     entries,
@@ -55,9 +56,10 @@ async function log(params: Record<string, string>) {
     scope: describeLogScope({
       range: query.range,
       billable: query.billable,
-      project: filterLabel(query.projectId, projectOptions),
-      client: filterLabel(query.clientId, clients),
+      project: resolved.project,
+      client: resolved.client,
     }),
+    resolved,
     clients,
     projectOptions,
   };
@@ -192,13 +194,21 @@ describe("the time log, from search params to figures", () => {
   });
 
   it("comes back empty, not wrong, when a project and a client disagree", async () => {
-    const { entries, summary } = await log({
+    const { entries, summary, resolved } = await log({
       client: pellId,
       project: siteId,
     });
 
     expect(entries).toEqual([]);
     expect(summary).toBe("Nothing logged.");
+    /*
+      The pair is the reason the log is empty, and neither filter is missing:
+      both name something real. Calling the project gone would be false about a
+      project sitting on the books.
+    */
+    expect(resolved.mismatched).toBe(true);
+    expect(resolved.projectGone).toBe(false);
+    expect(resolved.project).toBe("Site rebuild");
   });
 
   it("leaves a filter out of the heading when it names something gone", async () => {

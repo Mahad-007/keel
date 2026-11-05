@@ -5,9 +5,8 @@ import type { ProjectWithClient } from "@/lib/data/projects";
 import {
   clientFilterOptions,
   describeMissingFilters,
-  filterIsOffered,
-  filterLabel,
   projectFilterOptions,
+  resolveLogFilters,
 } from "./log-options";
 
 /** A project row with only the fields a picker reads filled in properly. */
@@ -154,90 +153,177 @@ describe("projectFilterOptions", () => {
   });
 });
 
-describe("filterIsOffered", () => {
-  const options = [{ value: "prj_one", label: "Site rebuild" }];
-
-  it("is true for a filter the picker can offer", () => {
-    expect(filterIsOffered("prj_one", options)).toBe(true);
-  });
-
-  it("is true for no filter at all", () => {
-    expect(filterIsOffered(null, options)).toBe(true);
-    expect(filterIsOffered(null, [])).toBe(true);
-  });
-
-  it("is false for a filter naming something that has gone", () => {
-    expect(filterIsOffered("prj_gone", options)).toBe(false);
-    expect(filterIsOffered("prj_one", [])).toBe(false);
-  });
-});
-
 describe("describeMissingFilters", () => {
   it("says nothing when both filters are on offer", () => {
-    expect(describeMissingFilters(false, false)).toBeNull();
+    expect(describeMissingFilters({ projectGone: false, clientGone: false })).toBeNull();
   });
 
   it("names the project filter on its own", () => {
-    expect(describeMissingFilters(true, false)).toMatch(
+    expect(describeMissingFilters({ projectGone: true, clientGone: false })).toMatch(
       /^The project filter names a project that is no longer on the list/,
     );
   });
 
   it("names the client filter on its own", () => {
-    expect(describeMissingFilters(false, true)).toMatch(
+    expect(describeMissingFilters({ projectGone: false, clientGone: true })).toMatch(
       /^The client filter names a client that is no longer on the list/,
     );
   });
 
   it("names both at once in one sentence", () => {
-    expect(describeMissingFilters(true, true)).toMatch(
+    expect(describeMissingFilters({ projectGone: true, clientGone: true })).toMatch(
       /^The project and client filters both name something/,
     );
   });
 
   it("stays grammatical when it is talking about two filters", () => {
-    const note = describeMissingFilters(true, true) ?? "";
+    const note = describeMissingFilters({ projectGone: true, clientGone: true }) ?? "";
     expect(note).toContain("narrowed to them");
     expect(note).toContain("the pickers show");
     expect(note).not.toContain("narrowed to it");
   });
 
   it("stays singular when it is talking about one", () => {
-    const note = describeMissingFilters(false, true) ?? "";
+    const note = describeMissingFilters({ projectGone: false, clientGone: true }) ?? "";
     expect(note).toContain("narrowed to it");
     expect(note).toContain("the picker shows");
   });
 
   it("always says the filter is still in force and how to clear it", () => {
-    const note = describeMissingFilters(true, false) ?? "";
+    const note = describeMissingFilters({ projectGone: true, clientGone: false }) ?? "";
     expect(note).toContain("still narrowed");
     expect(note).toContain("clearing the filters");
   });
 });
 
-describe("filterLabel", () => {
-  const options = [
-    { value: "prj_one", label: "Site rebuild" },
-    { value: "prj_two", label: "Packaging" },
-  ];
 
-  it("names the filtered option", () => {
-    expect(filterLabel("prj_two", options)).toBe("Packaging");
+describe("resolveLogFilters", () => {
+  const SITE = project({ id: "prj_site", name: "Site rebuild" });
+  const BRAND = project({
+    id: "prj_brand",
+    name: "Brand refresh",
+    clientId: "cli_pell",
+    clientName: "Pell & Sons",
+  });
+  const BOOK = [SITE, BRAND];
+
+  it("names nothing when nothing is filtered", () => {
+    expect(
+      resolveLogFilters({ projectId: null, clientId: null }, BOOK),
+    ).toEqual({
+      project: null,
+      client: null,
+      projectGone: false,
+      clientGone: false,
+      mismatched: false,
+    });
   });
 
-  it("is nothing when nothing is filtered", () => {
-    expect(filterLabel(null, options)).toBeNull();
+  it("names a filtered project with its client, when no client is filtered", () => {
+    const resolved = resolveLogFilters(
+      { projectId: "prj_brand", clientId: null },
+      BOOK,
+    );
+
+    expect(resolved.project).toBe("Pell & Sons — Brand refresh");
+    expect(resolved.projectGone).toBe(false);
   });
 
-  it("is nothing for a filter the pickers cannot offer", () => {
-    expect(filterLabel("prj_gone", options)).toBeNull();
+  it("drops the client's name from the project once the client is filtered", () => {
+    const resolved = resolveLogFilters(
+      { projectId: "prj_brand", clientId: "cli_pell" },
+      BOOK,
+    );
+
+    expect(resolved.project).toBe("Brand refresh");
+    expect(resolved.client).toBe("Pell & Sons");
+    expect(resolved.mismatched).toBe(false);
   });
 
-  it("agrees with whether the filter is offered at all", () => {
-    for (const id of ["prj_one", "prj_gone", null]) {
-      expect(filterLabel(id, options) !== null).toBe(
-        filterIsOffered(id, options) && id !== null,
-      );
-    }
+  it("names a client off any one of their projects", () => {
+    expect(
+      resolveLogFilters({ projectId: null, clientId: "cli_harbour" }, BOOK)
+        .client,
+    ).toBe("Harbour Co");
+  });
+
+  it("marks a client who is archived but still has projects", () => {
+    const archived = project({
+      id: "prj_old",
+      name: "Leaflet",
+      clientId: "cli_old",
+      clientName: "Mott",
+      clientArchivedAt: "2026-09-01T09:00:00.000Z",
+    });
+
+    expect(
+      resolveLogFilters({ projectId: null, clientId: "cli_old" }, [archived])
+        .client,
+    ).toBe("Mott (archived)");
+  });
+
+  it("says a project that names nothing is gone", () => {
+    const resolved = resolveLogFilters(
+      { projectId: "prj_gone", clientId: null },
+      BOOK,
+    );
+
+    expect(resolved.projectGone).toBe(true);
+    expect(resolved.project).toBeNull();
+    expect(resolved.mismatched).toBe(false);
+  });
+
+  it("says a client who has no project at all is gone", () => {
+    const resolved = resolveLogFilters(
+      { projectId: null, clientId: "cli_gone" },
+      BOOK,
+    );
+
+    expect(resolved.clientGone).toBe(true);
+    expect(resolved.client).toBeNull();
+  });
+
+  it("does not call another client's project gone", () => {
+    const resolved = resolveLogFilters(
+      { projectId: "prj_site", clientId: "cli_pell" },
+      BOOK,
+    );
+
+    expect(resolved.projectGone).toBe(false);
+    expect(resolved.clientGone).toBe(false);
+    expect(resolved.mismatched).toBe(true);
+    expect(resolved.project).toBe("Site rebuild");
+    expect(resolved.client).toBe("Pell & Sons");
+  });
+
+  it("is not a mismatch when the project is the filtered client's", () => {
+    expect(
+      resolveLogFilters(
+        { projectId: "prj_site", clientId: "cli_harbour" },
+        BOOK,
+      ).mismatched,
+    ).toBe(false);
+  });
+
+  it("is not a mismatch when one of the two names nothing", () => {
+    expect(
+      resolveLogFilters({ projectId: "prj_gone", clientId: "cli_pell" }, BOOK)
+        .mismatched,
+    ).toBe(false);
+    expect(
+      resolveLogFilters({ projectId: "prj_site", clientId: "cli_gone" }, BOOK)
+        .mismatched,
+    ).toBe(false);
+  });
+
+  it("says nothing is missing when the two merely disagree", () => {
+    expect(
+      describeMissingFilters(
+        resolveLogFilters(
+          { projectId: "prj_site", clientId: "cli_pell" },
+          BOOK,
+        ),
+      ),
+    ).toBeNull();
   });
 });

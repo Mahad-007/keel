@@ -1,6 +1,8 @@
 import type { ProjectWithClient } from "@/lib/data/projects";
 import { compareNames } from "@/lib/names";
 
+import type { TimeLogQuery } from "./log-query";
+
 /**
  * The two pickers on the time log's filter form, built from the projects the
  * page already read.
@@ -122,27 +124,71 @@ export function projectFilterOptions(
 }
 
 /**
- * Whether a filter names something the picker beside it can offer.
+ * What the project and client filters actually name, resolved against every
+ * project rather than against the narrowed picker.
  *
- * A `<select>` whose value matches none of its options does not stay unset —
- * the browser shows the first option instead, which here is "Every project".
- * So a log narrowed to a project that has since been deleted would render a
- * picker claiming no project filter at all, over a list showing one project's
- * time. That is the one failure a reader cannot diagnose, and this is what the
- * page checks before it says so in words.
+ * Three things can be true of an id in the URL, and the page has to tell them
+ * apart because each needs different words:
  *
- * An absent filter is not missing: there is nothing for it to name.
+ * - it names something, and the heading can say what;
+ * - it names nothing at all — a project deleted while the log sat open, or a
+ *   hand-built URL — and the picker beside it will show its first option
+ *   instead, so the page has to say in words what the control cannot;
+ * - it names a real project belonging to a client the other filter excludes,
+ *   which is the pair that can only ever show an empty log.
+ *
+ * Resolved against the whole list, which is what separates the second from the
+ * third. The project picker is narrowed to the filtered client, so a project
+ * of somebody else's is absent from it — and calling that "no longer on the
+ * list" would be a sentence that is simply false about a project sitting on
+ * the books.
  */
-export function filterIsOffered(
-  id: string | null,
-  options: readonly FilterOption[],
-): boolean {
-  return id === null || options.some((option) => option.value === id);
+export type ResolvedLogFilters = {
+  /** The project's name for the heading, or null when it named nothing. */
+  readonly project: string | null;
+  /** The client's name for the heading, or null when it named nothing. */
+  readonly client: string | null;
+  /** The project filter names no project at all. */
+  readonly projectGone: boolean;
+  /** The client filter names no client with a project. */
+  readonly clientGone: boolean;
+  /** Both name something real, and the project is not the client's. */
+  readonly mismatched: boolean;
+};
+
+export function resolveLogFilters(
+  query: Pick<TimeLogQuery, "projectId" | "clientId">,
+  projects: readonly ProjectWithClient[],
+): ResolvedLogFilters {
+  const project =
+    query.projectId === null
+      ? null
+      : (projects.find((one) => one.id === query.projectId) ?? null);
+  /*
+    Any project of theirs will do: the client's name and whether they are
+    archived are the same on every row, and a client with no project has no
+    time and so is not a client this log can be narrowed to.
+  */
+  const client =
+    query.clientId === null
+      ? null
+      : (projects.find((one) => one.clientId === query.clientId) ?? null);
+
+  return {
+    project: project === null ? null : projectLabelOf(project, query.clientId),
+    client: client === null ? null : clientLabelOf(client),
+    projectGone: query.projectId !== null && project === null,
+    clientGone: query.clientId !== null && client === null,
+    mismatched:
+      project !== null &&
+      client !== null &&
+      project.clientId !== query.clientId,
+  };
 }
 
 /**
  * The sentence a log needs when one of its filters names something that is no
- * longer on offer, or null when both are fine.
+ * longer there, or null when both are fine.
  *
  * It says three things, because a reader seeing an unexpectedly short list
  * needs all three: that the filter is still in force, that the picker is not
@@ -153,37 +199,19 @@ export function filterIsOffered(
  * that disagrees with itself halfway through, and this note is read by someone
  * already unsure what the page is showing them.
  */
-export function describeMissingFilters(
-  projectMissing: boolean,
-  clientMissing: boolean,
-): string | null {
-  if (!projectMissing && !clientMissing) return null;
+export function describeMissingFilters({
+  projectGone,
+  clientGone,
+}: Pick<ResolvedLogFilters, "projectGone" | "clientGone">): string | null {
+  if (!projectGone && !clientGone) return null;
 
-  if (projectMissing && clientMissing) {
+  if (projectGone && clientGone) {
     return "The project and client filters both name something that is no longer on the lists below. The log is still narrowed to them, so the pickers show nothing chosen; clearing the filters shows everything again.";
   }
 
-  const named = projectMissing
+  const named = projectGone
     ? "The project filter names a project"
     : "The client filter names a client";
 
   return `${named} that is no longer on the list below. The log is still narrowed to it, so the picker shows nothing chosen; clearing the filters shows everything again.`;
-}
-
-/**
- * What a filter is called, for the heading above the log — or null when it
- * names nothing the pickers can offer.
- *
- * The heading is built from the names the page already read rather than from
- * the ids in the URL, because `cli_8f3a2b` above a column of figures tells a
- * reader nothing about whose money it is. A filter whose name cannot be found
- * is left out of the heading and explained in a note instead, which is what
- * `filterIsOffered` decides.
- */
-export function filterLabel(
-  id: string | null,
-  options: readonly FilterOption[],
-): string | null {
-  if (id === null) return null;
-  return options.find((option) => option.value === id)?.label ?? null;
 }

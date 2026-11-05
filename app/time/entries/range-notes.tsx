@@ -4,6 +4,7 @@ import { CaveatNote } from "@/components/form";
 import { formatDate } from "@/lib/dates";
 import {
   timeLogHref,
+  withProject,
   withRange,
   type TimeLogQuery,
 } from "@/lib/time/log-query";
@@ -46,6 +47,46 @@ export function BackwardsRange({
         className="font-medium underline underline-offset-4"
       >
         Turn the range round
+      </Link>
+      .
+    </CaveatNote>
+  );
+}
+
+/**
+ * The note above a log whose project and client filters cannot both be
+ * satisfied, and the link that drops the narrower one.
+ *
+ * A project belongs to one client, so a project filter naming somebody else's
+ * project is a pair that matches nothing however the dates are set. Both
+ * filters are real and both are showing in their pickers, which is what makes
+ * this the hardest of the empty logs to read: every control looks right.
+ *
+ * The way out drops the project rather than the client, which is the rule
+ * `withClient` follows — somebody who picked a client is asking to see that
+ * client, and the project they had set belongs to a different question.
+ *
+ * Said as "does not belong to" rather than as a possessive, because the
+ * client's name can carry an "(archived)" marker and `Pell & Sons
+ * (archived)'s projects` is not a phrase anybody reads twice.
+ */
+export function MismatchedFilters({
+  query,
+  resolved,
+}: {
+  query: TimeLogQuery;
+  /** Both names, so the sentence can say which two filters disagree. */
+  resolved: { readonly project: string | null; readonly client: string | null };
+}) {
+  return (
+    <CaveatNote className="mt-4">
+      {resolved.project} does not belong to {resolved.client}, so no entry can
+      match both filters and the log is empty whatever the dates say.{" "}
+      <Link
+        href={timeLogHref(withProject(query, null))}
+        className="font-medium underline underline-offset-4"
+      >
+        Show every project for this client
       </Link>
       .
     </CaveatNote>

@@ -10,9 +10,8 @@ import { describeLog, describeLogScope, summarizeLog } from "@/lib/time/log";
 import {
   clientFilterOptions,
   describeMissingFilters,
-  filterIsOffered,
-  filterLabel,
   projectFilterOptions,
+  resolveLogFilters,
 } from "@/lib/time/log-options";
 import {
   isFilteredLog,
@@ -27,7 +26,7 @@ import { NoMatchingTime, NoTimeLogged } from "./empty-log";
 import { FilterForm } from "./filter-form";
 import { LogTable } from "./log-table";
 import { RangePresets } from "./range-presets";
-import { BackwardsRange } from "./range-notes";
+import { BackwardsRange, MismatchedFilters } from "./range-notes";
 
 /**
  * Read at request time. Every filter comes off the URL and one of the presets
@@ -67,22 +66,21 @@ export default async function TimeLogPage({
   const projectOptions = projectFilterOptions(projects, query.clientId);
 
   /*
-    A filter can name something the pickers cannot offer: a project deleted
-    while the log sat open, or a hand-built URL. The log is still narrowed to
-    it, and a `<select>` with no matching option shows its first one instead —
-    so the page says in words what the control cannot.
+    What the two id filters actually name, against every project rather than
+    against the narrowed picker — which is what tells a project that has been
+    deleted from one belonging to a client this log excludes. Both show up as
+    an empty log and neither is visible in the controls, so the page has to say
+    which it is.
   */
-  const missing = describeMissingFilters(
-    !filterIsOffered(query.projectId, projectOptions),
-    !filterIsOffered(query.clientId, clients),
-  );
+  const resolved = resolveLogFilters(query, projects);
+  const missing = describeMissingFilters(resolved);
 
   const summary = summarizeLog(entries);
   const scope = describeLogScope({
     range: query.range,
     billable: query.billable,
-    project: filterLabel(query.projectId, projectOptions),
-    client: filterLabel(query.clientId, clients),
+    project: resolved.project,
+    client: resolved.client,
   });
 
   const filtered = isFilteredLog(query);
@@ -142,6 +140,9 @@ export default async function TimeLogPage({
       {missing === null ? null : (
         <CaveatNote className="mt-4">{missing}</CaveatNote>
       )}
+      {resolved.mismatched ? (
+        <MismatchedFilters query={query} resolved={resolved} />
+      ) : null}
 
       {/*
         Three outcomes, and they are not the same page. Rows are rows; a studio
