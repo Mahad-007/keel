@@ -1914,3 +1914,52 @@ describe("listFilteredTimeEntries by project and client", () => {
     ).rejects.toThrow(/filter client/);
   });
 });
+
+describe("listFilteredTimeEntries by billing state", () => {
+  beforeEach(async () => {
+    await seedLog();
+  });
+
+  it("narrows to time that will be charged for", async () => {
+    const entries = await listFilteredTimeEntries({ billable: true }, db);
+
+    expect(entries).toHaveLength(4);
+    expect(entries.every((entry) => entry.billable)).toBe(true);
+  });
+
+  it("narrows to time that will not be charged for", async () => {
+    const entries = await listFilteredTimeEntries({ billable: false }, db);
+
+    expect(entries.map((entry) => entry.note)).toEqual(["Favour"]);
+  });
+
+  it("reads a null flag as both states", async () => {
+    const entries = await listFilteredTimeEntries({ billable: null }, db);
+
+    expect(entries).toHaveLength(5);
+  });
+
+  it("says nothing about whether an invoice has already billed it", async () => {
+    const [latest] = await listFilteredTimeEntries({ billable: true }, db);
+    await markTimeEntryBilled(latest.id, "inv_one", db);
+
+    const entries = await listFilteredTimeEntries({ billable: true }, db);
+
+    expect(entries).toHaveLength(4);
+    expect(entries[0].billedInvoiceId).toBe("inv_one");
+  });
+
+  it("combines with every other filter at once", async () => {
+    const entries = await listFilteredTimeEntries(
+      {
+        from: "2026-10-01",
+        to: "2026-10-31",
+        projectId,
+        billable: false,
+      },
+      db,
+    );
+
+    expect(entries.map((entry) => entry.note)).toEqual(["Favour"]);
+  });
+});
