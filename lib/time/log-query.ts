@@ -138,14 +138,6 @@ export function withRange(
   return { ...query, range };
 }
 
-/** The same query showing a different billing state, keeping the rest. */
-export function withBillable(
-  query: TimeLogQuery,
-  billable: BillableFilter,
-): TimeLogQuery {
-  return { ...query, billable };
-}
-
 /** The same query narrowed to one project, or widened to every project. */
 export function withProject(
   query: TimeLogQuery,

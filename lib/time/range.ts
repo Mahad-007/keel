@@ -55,19 +55,8 @@ export function rangeFromParams(
 }
 
 /**
- * Whether a range leaves out any day at all.
- *
- * What decides whether the log is showing the whole book or a slice of it, and
- * therefore whether the heading has to say so. A page that announced its date
- * filter when there is none would be a label nobody reads on the day it
- * matters.
- */
-export function isAllDates(range: DateRange): boolean {
-  return range.from === null && range.to === null;
-}
-
-/**
- * Whether a range runs the wrong way: a first day after its last.
+ * Both ends of a range that runs the wrong way — a first day after its
+ * last — or null when it runs the right way.
  *
  * Worth asking rather than quietly fixing. A backwards range holds no days, so
  * the query returns nothing — and an empty list under two date boxes that both
@@ -91,17 +80,6 @@ export function backwardsEnds(
   const { from, to } = range;
   if (from === null || to === null || from <= to) return null;
   return { from, to };
-}
-
-/**
- * The same question as a predicate, for the callers that only need the answer.
- *
- * Written in terms of `backwardsEnds` rather than beside it, so there is one
- * place the rule lives — two functions comparing the ends themselves would be
- * two chances to disagree about whether a single-day range counts.
- */
-export function isBackwardsRange(range: DateRange): boolean {
-  return backwardsEnds(range) !== null;
 }
 
 /**

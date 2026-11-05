@@ -4,8 +4,6 @@ import {
   ALL_DATES,
   backwardsEnds,
   describeRange,
-  isAllDates,
-  isBackwardsRange,
   parseRangeEnd,
   rangeFromParams,
   reverseRange,
@@ -66,44 +64,6 @@ describe("rangeFromParams", () => {
   });
 });
 
-describe("isAllDates", () => {
-  it("is true when neither end is bounded", () => {
-    expect(isAllDates(ALL_DATES)).toBe(true);
-  });
-
-  it("is false when either end is bounded", () => {
-    expect(isAllDates({ from: "2026-10-01", to: null })).toBe(false);
-    expect(isAllDates({ from: null, to: "2026-10-31" })).toBe(false);
-    expect(isAllDates({ from: "2026-10-01", to: "2026-10-31" })).toBe(false);
-  });
-});
-
-describe("isBackwardsRange", () => {
-  it("is true when the first day is after the last", () => {
-    expect(isBackwardsRange({ from: "2026-10-31", to: "2026-10-01" })).toBe(
-      true,
-    );
-  });
-
-  it("is false for a range in the right order", () => {
-    expect(isBackwardsRange({ from: "2026-10-01", to: "2026-10-31" })).toBe(
-      false,
-    );
-  });
-
-  it("is false for a single day, which holds that day", () => {
-    expect(isBackwardsRange({ from: "2026-10-16", to: "2026-10-16" })).toBe(
-      false,
-    );
-  });
-
-  it("is false when either end is open", () => {
-    expect(isBackwardsRange({ from: "2026-10-31", to: null })).toBe(false);
-    expect(isBackwardsRange({ from: null, to: "2026-10-01" })).toBe(false);
-    expect(isBackwardsRange(ALL_DATES)).toBe(false);
-  });
-});
-
 describe("reverseRange", () => {
   it("swaps the two ends", () => {
     expect(reverseRange({ from: "2026-10-31", to: "2026-10-01" })).toEqual({
@@ -114,7 +74,7 @@ describe("reverseRange", () => {
 
   it("turns a backwards range into one that is not", () => {
     const backwards = { from: "2026-10-31", to: "2026-10-01" };
-    expect(isBackwardsRange(reverseRange(backwards))).toBe(false);
+    expect(backwardsEnds(reverseRange(backwards))).toBeNull();
   });
 
   it("applied twice is the range it started as", () => {
@@ -177,17 +137,14 @@ describe("backwardsEnds", () => {
     expect(backwardsEnds({ from: null, to: "2026-10-01" })).toBeNull();
   });
 
-  it("agrees with the predicate on every shape of range", () => {
+  it("finds nothing backwards in any range a parser can produce", () => {
     const ranges = [
       ALL_DATES,
-      { from: "2026-10-01", to: "2026-10-31" },
-      { from: "2026-10-31", to: "2026-10-01" },
-      { from: "2026-10-16", to: "2026-10-16" },
-      { from: "2026-10-31", to: null },
-      { from: null, to: "2026-10-01" },
+      rangeFromParams("2026-10-01", "2026-10-31"),
+      rangeFromParams("2026-10-16", "2026-10-16"),
+      rangeFromParams("2026-10-31", undefined),
+      rangeFromParams(undefined, "2026-10-01"),
     ];
-    for (const range of ranges) {
-      expect(backwardsEnds(range) !== null).toBe(isBackwardsRange(range));
-    }
+    for (const range of ranges) expect(backwardsEnds(range)).toBeNull();
   });
 });

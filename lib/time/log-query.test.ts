@@ -8,7 +8,6 @@ import {
   parseTimeLogQuery,
   timeLogHref,
   UNFILTERED_LOG,
-  withBillable,
   withClient,
   withProject,
   withRange,
@@ -164,15 +163,6 @@ describe("withRange", () => {
   });
 });
 
-describe("withBillable", () => {
-  it("changes the billing state and keeps the rest", () => {
-    expect(withBillable(NARROWED, FREE_TIME)).toEqual({
-      ...NARROWED,
-      billable: FREE_TIME,
-    });
-  });
-});
-
 describe("withProject", () => {
   it("narrows to one project, keeping the client it belongs to", () => {
     expect(withProject(NARROWED, "prj_other")).toEqual({
@@ -253,11 +243,13 @@ describe("logEntryFilter", () => {
     });
   });
 
-  it("turns the two billing tabs into the column value each means", () => {
-    expect(logEntryFilter(withBillable(NARROWED, FREE_TIME)).billable).toBe(
-      false,
-    );
-    expect(logEntryFilter(withBillable(NARROWED, ANY_BILLING)).billable).toBeUndefined();
+  it("turns each billing option into the column value it means", () => {
+    expect(
+      logEntryFilter({ ...NARROWED, billable: FREE_TIME }).billable,
+    ).toBe(false);
+    expect(
+      logEntryFilter({ ...NARROWED, billable: ANY_BILLING }).billable,
+    ).toBeUndefined();
   });
 
   it("keeps an open end of the range open", () => {
