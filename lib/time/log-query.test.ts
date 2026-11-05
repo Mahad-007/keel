@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ANY_BILLING, CHARGEABLE_TIME, FREE_TIME } from "./billable";
 import {
   isFilteredLog,
+  logEntryFilter,
   parseIdParam,
   parseTimeLogQuery,
   timeLogHref,
@@ -228,5 +229,42 @@ describe("isFilteredLog", () => {
   it("agrees with the URL about whether anything is filtered", () => {
     expect(timeLogHref(UNFILTERED_LOG)).toBe("/time/entries");
     expect(timeLogHref(NARROWED)).not.toBe("/time/entries");
+  });
+});
+
+describe("logEntryFilter", () => {
+  it("asks for no restriction on anything when nothing is filtered", () => {
+    expect(logEntryFilter(UNFILTERED_LOG)).toEqual({
+      from: null,
+      to: null,
+      projectId: null,
+      clientId: null,
+      billable: undefined,
+    });
+  });
+
+  it("carries every filter through", () => {
+    expect(logEntryFilter(NARROWED)).toEqual({
+      from: "2026-10-01",
+      to: "2026-10-31",
+      projectId: "prj_abc",
+      clientId: "cli_xyz",
+      billable: true,
+    });
+  });
+
+  it("turns the two billing tabs into the column value each means", () => {
+    expect(logEntryFilter(withBillable(NARROWED, FREE_TIME)).billable).toBe(
+      false,
+    );
+    expect(logEntryFilter(withBillable(NARROWED, ANY_BILLING)).billable).toBeUndefined();
+  });
+
+  it("keeps an open end of the range open", () => {
+    const filter = logEntryFilter(
+      withRange(UNFILTERED_LOG, { from: "2026-10-01", to: null }),
+    );
+    expect(filter.from).toBe("2026-10-01");
+    expect(filter.to).toBeNull();
   });
 });

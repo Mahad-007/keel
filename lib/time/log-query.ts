@@ -1,7 +1,9 @@
+import type { TimeEntryFilter } from "@/lib/data/time-entries";
 import { firstParam, type SearchParams } from "@/lib/projects/query";
 
 import {
   DEFAULT_BILLABLE_FILTER,
+  filteredBillable,
   parseBillableFilter,
   type BillableFilter,
 } from "./billable";
@@ -184,4 +186,29 @@ export function isFilteredLog(query: TimeLogQuery): boolean {
     query.clientId !== null ||
     query.billable !== DEFAULT_BILLABLE_FILTER
   );
+}
+
+/**
+ * The query as the data layer wants it.
+ *
+ * One translation, in one place, because two of the four filters are not the
+ * same value on both sides: `all` is a tab the UI has to be able to name and
+ * link, and the query has no use for it, so it becomes no restriction here
+ * rather than a boolean column compared against a string. The date range goes
+ * across unchanged, because both ends being able to be open is a fact about
+ * the question rather than about the URL.
+ *
+ * Written as a function rather than by having the page build the object,
+ * because a page that assembled the filter inline is a page that can forget
+ * one — and a forgotten filter does not fail, it quietly shows more time than
+ * was asked for.
+ */
+export function logEntryFilter(query: TimeLogQuery): TimeEntryFilter {
+  return {
+    from: query.range.from,
+    to: query.range.to,
+    projectId: query.projectId,
+    clientId: query.clientId,
+    billable: filteredBillable(query.billable),
+  };
 }
