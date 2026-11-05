@@ -122,3 +122,66 @@ export function timeLogHref(query: TimeLogQuery): string {
   const search = params.toString();
   return search === "" ? TIME_LOG_PATH : `${TIME_LOG_PATH}?${search}`;
 }
+
+/**
+ * The same query over a different stretch of days, which is what a preset link
+ * points at. The other three filters come along: somebody who has narrowed to
+ * one client's unbilled time and then clicks "This month" wants that month of
+ * it, not a reset.
+ */
+export function withRange(
+  query: TimeLogQuery,
+  range: DateRange,
+): TimeLogQuery {
+  return { ...query, range };
+}
+
+/** The same query showing a different billing state, keeping the rest. */
+export function withBillable(
+  query: TimeLogQuery,
+  billable: BillableFilter,
+): TimeLogQuery {
+  return { ...query, billable };
+}
+
+/** The same query narrowed to one project, or widened to every project. */
+export function withProject(
+  query: TimeLogQuery,
+  projectId: string | null,
+): TimeLogQuery {
+  return { ...query, projectId };
+}
+
+/**
+ * The same query narrowed to one client, or widened to every client — and the
+ * project filter dropped either way.
+ *
+ * A project belongs to one client, so a client filter and a project filter set
+ * to a project of somebody else's is a pair that can only ever show an empty
+ * log. Dropping the narrower of the two is the only reading that answers the
+ * press: a reader who picks a client is asking to see that client, and leaving
+ * a stale project filter in place would answer with nothing and no explanation.
+ */
+export function withClient(
+  query: TimeLogQuery,
+  clientId: string | null,
+): TimeLogQuery {
+  return { ...query, clientId, projectId: null };
+}
+
+/**
+ * Whether anything is being filtered out at all.
+ *
+ * What decides whether the page offers a way back to the whole log, and
+ * whether an empty list means "there is no time here" or "the filters are
+ * hiding all of it". Those are completely different things to tell a reader.
+ */
+export function isFilteredLog(query: TimeLogQuery): boolean {
+  return (
+    query.range.from !== null ||
+    query.range.to !== null ||
+    query.projectId !== null ||
+    query.clientId !== null ||
+    query.billable !== DEFAULT_BILLABLE_FILTER
+  );
+}

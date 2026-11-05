@@ -2,10 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import { ANY_BILLING, CHARGEABLE_TIME, FREE_TIME } from "./billable";
 import {
+  isFilteredLog,
   parseIdParam,
   parseTimeLogQuery,
   timeLogHref,
   UNFILTERED_LOG,
+  withBillable,
+  withClient,
+  withProject,
+  withRange,
   type TimeLogQuery,
 } from "./log-query";
 import { ALL_DATES } from "./range";
@@ -138,5 +143,90 @@ describe("timeLogHref", () => {
     expect(
       timeLogHref({ ...UNFILTERED_LOG, projectId: "prj a&b" }),
     ).toBe("/time/entries?project=prj+a%26b");
+  });
+});
+
+/** A log narrowed every way there is, to prove each change keeps the rest. */
+const NARROWED: TimeLogQuery = {
+  range: { from: "2026-10-01", to: "2026-10-31" },
+  projectId: "prj_abc",
+  clientId: "cli_xyz",
+  billable: CHARGEABLE_TIME,
+};
+
+describe("withRange", () => {
+  it("changes the days and keeps the other three filters", () => {
+    expect(withRange(NARROWED, ALL_DATES)).toEqual({
+      ...NARROWED,
+      range: ALL_DATES,
+    });
+  });
+});
+
+describe("withBillable", () => {
+  it("changes the billing state and keeps the rest", () => {
+    expect(withBillable(NARROWED, FREE_TIME)).toEqual({
+      ...NARROWED,
+      billable: FREE_TIME,
+    });
+  });
+});
+
+describe("withProject", () => {
+  it("narrows to one project, keeping the client it belongs to", () => {
+    expect(withProject(NARROWED, "prj_other")).toEqual({
+      ...NARROWED,
+      projectId: "prj_other",
+    });
+  });
+
+  it("widens to every project", () => {
+    expect(withProject(NARROWED, null).projectId).toBeNull();
+  });
+});
+
+describe("withClient", () => {
+  it("drops a project filter that would belong to somebody else", () => {
+    expect(withClient(NARROWED, "cli_other")).toEqual({
+      ...NARROWED,
+      clientId: "cli_other",
+      projectId: null,
+    });
+  });
+
+  it("drops the project filter when widening to every client too", () => {
+    expect(withClient(NARROWED, null)).toEqual({
+      ...NARROWED,
+      clientId: null,
+      projectId: null,
+    });
+  });
+
+  it("keeps the date range and the billing state", () => {
+    const changed = withClient(NARROWED, "cli_other");
+    expect(changed.range).toEqual(NARROWED.range);
+    expect(changed.billable).toBe(CHARGEABLE_TIME);
+  });
+});
+
+describe("isFilteredLog", () => {
+  it("is false for the log with nothing set", () => {
+    expect(isFilteredLog(UNFILTERED_LOG)).toBe(false);
+  });
+
+  it("is true for each filter on its own", () => {
+    const narrowings: TimeLogQuery[] = [
+      { ...UNFILTERED_LOG, range: { from: "2026-10-01", to: null } },
+      { ...UNFILTERED_LOG, range: { from: null, to: "2026-10-31" } },
+      { ...UNFILTERED_LOG, projectId: "prj_abc" },
+      { ...UNFILTERED_LOG, clientId: "cli_xyz" },
+      { ...UNFILTERED_LOG, billable: FREE_TIME },
+    ];
+    for (const query of narrowings) expect(isFilteredLog(query)).toBe(true);
+  });
+
+  it("agrees with the URL about whether anything is filtered", () => {
+    expect(timeLogHref(UNFILTERED_LOG)).toBe("/time/entries");
+    expect(timeLogHref(NARROWED)).not.toBe("/time/entries");
   });
 });
