@@ -80,10 +80,28 @@ export function isAllDates(range: DateRange): boolean {
  * for, with the URL disagreeing with the boxes above it.
  *
  * An open end is never backwards — there is nothing for it to be after.
+ *
+ * The two ends come back rather than a bare yes, because the note that
+ * explains this spells both of them out, and a caller handed `true` would
+ * have to assert that the ends it already looked at are not null.
+ */
+export function backwardsEnds(
+  range: DateRange,
+): { readonly from: string; readonly to: string } | null {
+  const { from, to } = range;
+  if (from === null || to === null || from <= to) return null;
+  return { from, to };
+}
+
+/**
+ * The same question as a predicate, for the callers that only need the answer.
+ *
+ * Written in terms of `backwardsEnds` rather than beside it, so there is one
+ * place the rule lives — two functions comparing the ends themselves would be
+ * two chances to disagree about whether a single-day range counts.
  */
 export function isBackwardsRange(range: DateRange): boolean {
-  if (range.from === null || range.to === null) return false;
-  return range.from > range.to;
+  return backwardsEnds(range) !== null;
 }
 
 /**

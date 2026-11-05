@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ALL_DATES,
+  backwardsEnds,
   describeRange,
   isAllDates,
   isBackwardsRange,
@@ -155,5 +156,38 @@ describe("describeRange", () => {
     expect(describeRange({ from: "2026-10-31", to: "2026-10-01" })).toBe(
       "Oct 31 – 1, 2026",
     );
+  });
+});
+
+describe("backwardsEnds", () => {
+  it("hands back both ends of a backwards range", () => {
+    expect(backwardsEnds({ from: "2026-10-31", to: "2026-10-01" })).toEqual({
+      from: "2026-10-31",
+      to: "2026-10-01",
+    });
+  });
+
+  it("is nothing for a range in the right order", () => {
+    expect(backwardsEnds({ from: "2026-10-01", to: "2026-10-31" })).toBeNull();
+    expect(backwardsEnds({ from: "2026-10-16", to: "2026-10-16" })).toBeNull();
+  });
+
+  it("is nothing when either end is open", () => {
+    expect(backwardsEnds({ from: "2026-10-31", to: null })).toBeNull();
+    expect(backwardsEnds({ from: null, to: "2026-10-01" })).toBeNull();
+  });
+
+  it("agrees with the predicate on every shape of range", () => {
+    const ranges = [
+      ALL_DATES,
+      { from: "2026-10-01", to: "2026-10-31" },
+      { from: "2026-10-31", to: "2026-10-01" },
+      { from: "2026-10-16", to: "2026-10-16" },
+      { from: "2026-10-31", to: null },
+      { from: null, to: "2026-10-01" },
+    ];
+    for (const range of ranges) {
+      expect(backwardsEnds(range) !== null).toBe(isBackwardsRange(range));
+    }
   });
 });
