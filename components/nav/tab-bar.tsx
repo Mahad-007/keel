@@ -14,11 +14,15 @@ const OTHER_TAB =
   "border-transparent text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:text-zinc-100";
 
 /**
- * A row of tabs: the status filter on the list, the sections on a project.
+ * A row of tabs: the status filter on the project list, the sections on a
+ * project, the date presets on the time log.
  *
  * Shared because two tab rows that are subtly different heights or sit on
  * different rules read as two different kinds of control, when they are the
- * same control pointed at different things.
+ * same control pointed at different things. In `components/` rather than
+ * beside the first page that wanted one, for the same reason the form
+ * primitives are: a third route reaching across into another route's folder is
+ * how two copies of a control start.
  */
 export function TabBar({ label, children }: { label: string; children: ReactNode }) {
   return (

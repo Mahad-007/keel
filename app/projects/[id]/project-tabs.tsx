@@ -1,11 +1,10 @@
+import { TabBar, TabLink } from "@/components/nav/tab-bar";
 import { projectTabHref } from "@/lib/projects/detail";
 import {
   PROJECT_TABS,
   PROJECT_TAB_LABELS,
   type ProjectTab,
 } from "@/lib/projects/tabs";
-
-import { TabBar, TabLink } from "../tab-bar";
 
 /**
  * The sections of a project page, as a row of tabs.

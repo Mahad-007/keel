@@ -1,3 +1,4 @@
+import { TabBar, TabLink } from "@/components/nav/tab-bar";
 import {
   PROJECT_STATUS_FILTERS,
   filterCount,
@@ -9,8 +10,6 @@ import {
   type ProjectsQuery,
 } from "@/lib/projects/query";
 import type { ProjectStatus } from "@/lib/projects/status";
-
-import { TabBar, TabLink } from "./tab-bar";
 
 /**
  * The status filter: one link per option, each pointing at the same list
