@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   calendarDateParts,
   formatDate,
+  formatDaySpan,
   formatYear,
   isCalendarDate,
   localCalendarDate,
@@ -294,6 +295,38 @@ describe("utcCalendarDate", () => {
   it("produces something isCalendarDate accepts", () => {
     expect(isCalendarDate(utcCalendarDate(new Date("2026-01-05T12:00:00Z")))).toBe(
       true,
+    );
+  });
+});
+
+describe("formatDaySpan", () => {
+  it("spells both years out across New Year", () => {
+    expect(formatDaySpan("2026-12-28", "2027-01-03")).toBe(
+      "Dec 28, 2026 – Jan 3, 2027",
+    );
+  });
+
+  it("says the year once across two months", () => {
+    expect(formatDaySpan("2026-10-26", "2026-11-01")).toBe(
+      "Oct 26 – Nov 1, 2026",
+    );
+  });
+
+  it("says the month once inside one month", () => {
+    expect(formatDaySpan("2026-10-05", "2026-10-11")).toBe("Oct 5 – 11, 2026");
+  });
+
+  it("says a span of one day as that day", () => {
+    expect(formatDaySpan("2026-10-16", "2026-10-16")).toBe("Oct 16, 2026");
+  });
+
+  it("pads a year small enough to lose its zeros", () => {
+    expect(formatDaySpan("0000-01-10", "0000-01-16")).toBe("Jan 10 – 16, 0000");
+  });
+
+  it("hands back both strings when either end is not a date", () => {
+    expect(formatDaySpan("nonsense", "2026-10-16")).toBe(
+      "nonsense – 2026-10-16",
     );
   });
 });

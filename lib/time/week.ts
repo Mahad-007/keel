@@ -1,6 +1,6 @@
 import {
   calendarDateParts,
-  formatYear,
+  formatDaySpan,
   isCalendarDate,
   shiftCalendarDate,
 } from "@/lib/dates";
@@ -247,40 +247,16 @@ export function isWeekend(value: string): boolean {
 /**
  * A week as a heading: `Oct 26 – Nov 1, 2026`.
  *
- * Three shapes, because repeating what has not changed is what makes a date
- * range hard to read. A week inside one month says the month once — `Oct 5 –
- * 11, 2026` — and a week inside one year says the year once. Only a week that
- * straddles New Year spells both out: `Dec 28, 2026 – Jan 3, 2027`, where
- * dropping the first year would be wrong rather than merely repetitive.
+ * The shaping is `formatDaySpan`'s — the month said once inside a month, the
+ * year said once inside a year — because the time log's date range needs the
+ * same heading over a span that is not seven days, and two functions deciding
+ * when to repeat a year would be two headings a reader has to learn.
  *
- * An en dash with spaces around it, not a hyphen. `Oct 26 - Nov 1` reads as
- * subtraction at a glance, and the heading sits above a grid full of numbers.
- *
- * A week whose ends are not calendar dates — which `weekOf` cannot produce,
- * but a hand-built literal can — falls back to the two strings. The heading
- * then looks wrong, which is the point: a page that renders a surprising
- * heading is easier to diagnose than one that will not render.
- *
- * The years are compared as numbers and written through `formatYear`, which is
- * the one place the two differ: `0000-01-10` is in year zero, and a heading
- * reading `Jan 10 – 16, 0` would be the first thing a reader saw on the week
- * before the earliest one the navigation admits.
+ * A week is seven days, so the one-day shape that helper has is unreachable
+ * from here.
  */
 export function describeWeek(week: Week): string {
-  const from = calendarDateParts(week.start);
-  const to = calendarDateParts(week.end);
-  if (from === null || to === null) return `${week.start} – ${week.end}`;
-
-  const fromYear = formatYear(from.year);
-  const toYear = formatYear(to.year);
-
-  if (from.year !== to.year) {
-    return `${from.month} ${from.day}, ${fromYear} – ${to.month} ${to.day}, ${toYear}`;
-  }
-  if (from.month === to.month) {
-    return `${from.month} ${from.day} – ${to.day}, ${toYear}`;
-  }
-  return `${from.month} ${from.day} – ${to.month} ${to.day}, ${toYear}`;
+  return formatDaySpan(week.start, week.end);
 }
 
 /**

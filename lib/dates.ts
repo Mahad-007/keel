@@ -207,3 +207,45 @@ export function utcCalendarDate(moment: Date): string {
   const day = String(moment.getUTCDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * Two days as one heading: `Oct 26 – Nov 1, 2026`.
+ *
+ * Four shapes, because repeating what has not changed is what makes a date
+ * range hard to read. A span inside one month says the month once — `Oct 5 –
+ * 11, 2026` — and a span inside one year says the year once. Only a span that
+ * straddles New Year spells both out: `Dec 28, 2026 – Jan 3, 2027`, where
+ * dropping the first year would be wrong rather than merely repetitive. A span
+ * of one day is that day, not the same date twice with a dash between it.
+ *
+ * An en dash with spaces around it, not a hyphen. `Oct 26 - Nov 1` reads as
+ * subtraction at a glance, and these headings sit above grids full of numbers.
+ *
+ * A span whose ends are not calendar dates falls back to the two strings. The
+ * heading then looks wrong, which is the point: a page that renders a
+ * surprising heading is easier to diagnose than one that will not render.
+ *
+ * The years are compared as numbers and written through `formatYear`, which is
+ * the one place the two differ: `0000-01-10` is in year zero, and a heading
+ * reading `Jan 10 – 16, 0` would be the first thing a reader saw of a week at
+ * the edge of the calendar.
+ */
+export function formatDaySpan(from: string, to: string): string {
+  const start = calendarDateParts(from);
+  const end = calendarDateParts(to);
+  if (start === null || end === null) return `${from} – ${to}`;
+
+  const startYear = formatYear(start.year);
+  const endYear = formatYear(end.year);
+
+  if (start.year !== end.year) {
+    return `${start.month} ${start.day}, ${startYear} – ${end.month} ${end.day}, ${endYear}`;
+  }
+  if (start.month !== end.month) {
+    return `${start.month} ${start.day} – ${end.month} ${end.day}, ${endYear}`;
+  }
+  if (start.day !== end.day) {
+    return `${start.month} ${start.day} – ${end.day}, ${endYear}`;
+  }
+  return `${start.month} ${start.day}, ${endYear}`;
+}
