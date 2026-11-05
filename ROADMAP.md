@@ -44,7 +44,7 @@ as an atomic commit and what does not.
 - [x] **Day 025** — A running timer: start, stop, and a persisted active-timer row so a reload does not lose it.
 - [x] **Day 026** — Weekly timesheet view at `/time`, a seven-column grid by project, with keyboard-navigable cells.
 - [x] **Day 027** — Bulk time entry from the timesheet grid, writing many entries in one transaction.
-- [ ] **Day 028** — Time filtering by date range, project, client, and billable flag, driven entirely by URL search params.
+- [x] **Day 028** — Time filtering by date range, project, client, and billable flag, driven entirely by URL search params.
 - [ ] **Day 029** — CSV export of filtered time entries, generated server-side with correct escaping and a tested formatter.
 - [ ] **Day 030** — Idle-time correction: flag entries that look implausible (over 12h, overlapping, negative) and offer a fix, with the detection logic pure and tested.
 
