@@ -9,6 +9,7 @@ import {
   createProject,
   deleteProject,
   duplicateProject,
+  getProject,
 } from "./projects";
 import {
   clearTimeEntryBilled,
@@ -16,6 +17,7 @@ import {
   createTimeEntry,
   deleteTimeEntry,
   getTimeEntry,
+  listFilteredTimeEntries,
   listTimeEntries,
   listTimeEntriesForDeliverable,
   listTimeEntriesInRange,
@@ -1651,5 +1653,85 @@ describe("createTimeEntries alongside time already logged", () => {
     const after = await getTimeEntry(billed.id, db);
     expect(after?.minutes).toBe(60);
     expect(after?.billedInvoiceId).toBe("inv_1");
+  });
+});
+
+describe("listFilteredTimeEntries", () => {
+  /** A second client with a project of their own, so the joins have work to do. */
+  let otherClientId: string;
+  let otherProjectId: string;
+  let clientId: string;
+
+  beforeEach(async () => {
+    const project = await getProject(projectId, db);
+    clientId = project?.clientId ?? "";
+
+    const other = await createClient({ name: "Pell & Sons" }, db);
+    otherClientId = other.id;
+    const otherProject = await createProject(
+      { clientId: other.id, name: "Brand refresh" },
+      db,
+    );
+    otherProjectId = otherProject.id;
+
+    await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-09-30", note: "September" },
+      db,
+    );
+    await createTimeEntry(
+      { projectId, minutes: 90, workedOn: "2026-10-01", note: "Kickoff" },
+      db,
+    );
+    await createTimeEntry(
+      {
+        projectId,
+        minutes: 30,
+        workedOn: "2026-10-16",
+        note: "Favour",
+        billable: false,
+      },
+      db,
+    );
+    await createTimeEntry(
+      { projectId: otherProjectId, minutes: 120, workedOn: "2026-10-31" },
+      db,
+    );
+    await createTimeEntry(
+      { projectId: otherProjectId, minutes: 45, workedOn: "2026-11-01" },
+      db,
+    );
+  });
+
+  it("hands back every entry, most recent first, with no filters", async () => {
+    const entries = await listFilteredTimeEntries({}, db);
+
+    expect(entries.map((entry) => entry.workedOn)).toEqual([
+      "2026-11-01",
+      "2026-10-31",
+      "2026-10-16",
+      "2026-10-01",
+      "2026-09-30",
+    ]);
+  });
+
+  it("names the project and the client each entry was done for", async () => {
+    const entries = await listFilteredTimeEntries({ projectId }, db);
+
+    expect(entries[0].projectName).toBe("Site rebuild");
+    expect(entries[0].clientName).toBe("Harbour Co");
+    expect(entries[0].clientId).toBe(clientId);
+  });
+
+  it("keeps every column of the entry itself", async () => {
+    const [entry] = await listFilteredTimeEntries(
+      { from: "2026-10-16", to: "2026-10-16" },
+      db,
+    );
+
+    expect(entry.note).toBe("Favour");
+    expect(entry.minutes).toBe(30);
+    expect(entry.billable).toBe(false);
+    expect(entry.billedInvoiceId).toBeNull();
+    expect(entry.deliverableId).toBeNull();
   });
 });

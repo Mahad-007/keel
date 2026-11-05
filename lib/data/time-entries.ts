@@ -1,7 +1,12 @@
-import { and, desc, eq, gte, isNull, lte } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, gte, isNull, lte, type SQL } from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
-import { timeEntries, type TimeEntry } from "@/lib/db/schema";
+import {
+  clients,
+  projects,
+  timeEntries,
+  type TimeEntry,
+} from "@/lib/db/schema";
 import { newId } from "@/lib/id";
 import { editRefusedByInvoice, isBilled } from "@/lib/time/billing";
 
@@ -393,6 +398,78 @@ export type TimeEntryWithNames = TimeEntry & {
   clientId: string;
   clientName: string;
 };
+
+/**
+ * Every time entry the filters admit, most recent first, with the project and
+ * client it was done for.
+ *
+ * What `/time/entries` renders. One query however many filters are set: each
+ * one that is absent simply contributes no condition, so "Harbour Co's
+ * unbilled time in October" and "everything" are the same statement with a
+ * different WHERE clause rather than four code paths that can disagree about
+ * the ordering.
+ *
+ * The joins are inner, like the project list's, and for the same reason: the
+ * foreign keys guarantee both rows exist, so a left join would add a null case
+ * that cannot happen and that every caller would then have to render something
+ * for.
+ *
+ * The dates go through the same `calendarDate` guard the column itself does,
+ * for the reason `listTimeEntriesInRange` gives — a timestamp compared as a
+ * string against days silently excludes the whole of its own date, which looks
+ * like missing data rather than a bad query. A range whose `from` is after its
+ * `to` holds no days and comes back empty, which is what the comparison does
+ * on its own and the honest answer for a span with nothing in it.
+ *
+ * An id that names nothing is a filter that matches nothing rather than an
+ * error. A project deleted while the log sat open is ordinary news, and an
+ * empty list under a picker the page has marked as naming something gone is
+ * the right thing to show.
+ *
+ * No index covers this. The filter may be on any of three tables and the sort
+ * is on `worked_on` across the whole table, so it is a scan of the entries
+ * joined to their projects. For one studio's ledger that is the right trade
+ * against four indexes to maintain, and Day 092 is where query shapes get
+ * looked at with a plan in hand rather than a guess.
+ */
+export async function listFilteredTimeEntries(
+  filter: TimeEntryFilter = {},
+  database: Database = db,
+): Promise<TimeEntryWithNames[]> {
+  const conditions: SQL[] = [];
+  if (filter.from != null) {
+    conditions.push(gte(timeEntries.workedOn, calendarDate(filter.from, "range start")));
+  }
+  if (filter.to != null) {
+    conditions.push(lte(timeEntries.workedOn, calendarDate(filter.to, "range end")));
+  }
+  if (filter.projectId != null) {
+    conditions.push(
+      eq(timeEntries.projectId, requiredText(filter.projectId, "filter project")),
+    );
+  }
+  if (filter.clientId != null) {
+    conditions.push(
+      eq(projects.clientId, requiredText(filter.clientId, "filter client")),
+    );
+  }
+  if (filter.billable != null) {
+    conditions.push(eq(timeEntries.billable, filter.billable));
+  }
+
+  return database
+    .select({
+      ...getTableColumns(timeEntries),
+      projectName: projects.name,
+      clientId: clients.id,
+      clientName: clients.name,
+    })
+    .from(timeEntries)
+    .innerJoin(projects, eq(projects.id, timeEntries.projectId))
+    .innerJoin(clients, eq(clients.id, projects.clientId))
+    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .orderBy(...NEWEST_FIRST);
+}
 
 /**
  * One deliverable's time entries, most recent first.
