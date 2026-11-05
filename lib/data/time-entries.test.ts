@@ -1656,50 +1656,65 @@ describe("createTimeEntries alongside time already logged", () => {
   });
 });
 
+/**
+ * A second client with a project of their own, and five entries spread across
+ * two months, two billing states and both engagements — so every filter has
+ * something to admit and something to leave out.
+ *
+ * Shared by the groups below rather than seeded in each, because the filters
+ * are only interesting against the same set of rows: a group that quietly
+ * seeded different entries would be testing a different question.
+ */
+async function seedLog(): Promise<{
+  clientId: string;
+  otherClientId: string;
+  otherProjectId: string;
+}> {
+  const project = await getProject(projectId, db);
+  const clientId = project?.clientId ?? "";
+
+  const other = await createClient({ name: "Pell & Sons" }, db);
+  const otherProject = await createProject(
+    { clientId: other.id, name: "Brand refresh" },
+    db,
+  );
+  const otherProjectId = otherProject.id;
+
+  await createTimeEntry(
+    { projectId, minutes: 60, workedOn: "2026-09-30", note: "September" },
+    db,
+  );
+  await createTimeEntry(
+    { projectId, minutes: 90, workedOn: "2026-10-01", note: "Kickoff" },
+    db,
+  );
+  await createTimeEntry(
+    {
+      projectId,
+      minutes: 30,
+      workedOn: "2026-10-16",
+      note: "Favour",
+      billable: false,
+    },
+    db,
+  );
+  await createTimeEntry(
+    { projectId: otherProjectId, minutes: 120, workedOn: "2026-10-31" },
+    db,
+  );
+  await createTimeEntry(
+    { projectId: otherProjectId, minutes: 45, workedOn: "2026-11-01" },
+    db,
+  );
+
+  return { clientId, otherClientId: other.id, otherProjectId };
+}
+
 describe("listFilteredTimeEntries", () => {
-  /** A second client with a project of their own, so the joins have work to do. */
-  let otherClientId: string;
-  let otherProjectId: string;
   let clientId: string;
 
   beforeEach(async () => {
-    const project = await getProject(projectId, db);
-    clientId = project?.clientId ?? "";
-
-    const other = await createClient({ name: "Pell & Sons" }, db);
-    otherClientId = other.id;
-    const otherProject = await createProject(
-      { clientId: other.id, name: "Brand refresh" },
-      db,
-    );
-    otherProjectId = otherProject.id;
-
-    await createTimeEntry(
-      { projectId, minutes: 60, workedOn: "2026-09-30", note: "September" },
-      db,
-    );
-    await createTimeEntry(
-      { projectId, minutes: 90, workedOn: "2026-10-01", note: "Kickoff" },
-      db,
-    );
-    await createTimeEntry(
-      {
-        projectId,
-        minutes: 30,
-        workedOn: "2026-10-16",
-        note: "Favour",
-        billable: false,
-      },
-      db,
-    );
-    await createTimeEntry(
-      { projectId: otherProjectId, minutes: 120, workedOn: "2026-10-31" },
-      db,
-    );
-    await createTimeEntry(
-      { projectId: otherProjectId, minutes: 45, workedOn: "2026-11-01" },
-      db,
-    );
+    ({ clientId } = await seedLog());
   });
 
   it("hands back every entry, most recent first, with no filters", async () => {
@@ -1733,5 +1748,75 @@ describe("listFilteredTimeEntries", () => {
     expect(entry.billable).toBe(false);
     expect(entry.billedInvoiceId).toBeNull();
     expect(entry.deliverableId).toBeNull();
+  });
+});
+
+describe("listFilteredTimeEntries by date", () => {
+  beforeEach(async () => {
+    await seedLog();
+  });
+
+  it("includes both ends of a range", async () => {
+    const entries = await listFilteredTimeEntries(
+      { from: "2026-10-01", to: "2026-10-31" },
+      db,
+    );
+
+    expect(entries.map((entry) => entry.workedOn)).toEqual([
+      "2026-10-31",
+      "2026-10-16",
+      "2026-10-01",
+    ]);
+  });
+
+  it("leaves the upper end open when only a start is given", async () => {
+    const entries = await listFilteredTimeEntries({ from: "2026-10-31" }, db);
+
+    expect(entries.map((entry) => entry.workedOn)).toEqual([
+      "2026-11-01",
+      "2026-10-31",
+    ]);
+  });
+
+  it("leaves the lower end open when only an end is given", async () => {
+    const entries = await listFilteredTimeEntries({ to: "2026-10-01" }, db);
+
+    expect(entries.map((entry) => entry.workedOn)).toEqual([
+      "2026-10-01",
+      "2026-09-30",
+    ]);
+  });
+
+  it("reads a null end as no bound at all", async () => {
+    const bounded = await listFilteredTimeEntries({ from: null, to: null }, db);
+
+    expect(bounded).toHaveLength(5);
+  });
+
+  it("holds one day when both ends are the same", async () => {
+    const entries = await listFilteredTimeEntries(
+      { from: "2026-10-16", to: "2026-10-16" },
+      db,
+    );
+
+    expect(entries.map((entry) => entry.note)).toEqual(["Favour"]);
+  });
+
+  it("holds nothing when the range runs backwards", async () => {
+    const entries = await listFilteredTimeEntries(
+      { from: "2026-10-31", to: "2026-10-01" },
+      db,
+    );
+
+    expect(entries).toEqual([]);
+  });
+
+  it("refuses a timestamp rather than comparing it against days", async () => {
+    await expect(
+      listFilteredTimeEntries({ from: "2026-10-01T00:00:00.000Z" }, db),
+    ).rejects.toThrow(/range start/);
+    await expect(
+      listFilteredTimeEntries({ to: "2026-10-31T23:59:59.999Z" }, db),
+    ).rejects.toThrow(/range end/);
   });
 });
