@@ -1820,3 +1820,97 @@ describe("listFilteredTimeEntries by date", () => {
     ).rejects.toThrow(/range end/);
   });
 });
+
+describe("listFilteredTimeEntries by project and client", () => {
+  let otherClientId: string;
+  let otherProjectId: string;
+
+  beforeEach(async () => {
+    ({ otherClientId, otherProjectId } = await seedLog());
+  });
+
+  it("narrows to one project", async () => {
+    const entries = await listFilteredTimeEntries({ projectId }, db);
+
+    expect(entries.map((entry) => entry.workedOn)).toEqual([
+      "2026-10-16",
+      "2026-10-01",
+      "2026-09-30",
+    ]);
+  });
+
+  it("narrows to one client across their projects", async () => {
+    const second = await createProject(
+      { clientId: otherClientId, name: "Packaging" },
+      db,
+    );
+    await createTimeEntry(
+      { projectId: second.id, minutes: 15, workedOn: "2026-10-20" },
+      db,
+    );
+
+    const entries = await listFilteredTimeEntries(
+      { clientId: otherClientId },
+      db,
+    );
+
+    expect(
+      entries.map((entry) => `${entry.projectName} ${entry.workedOn}`),
+    ).toEqual([
+      "Brand refresh 2026-11-01",
+      "Brand refresh 2026-10-31",
+      "Packaging 2026-10-20",
+    ]);
+  });
+
+  it("holds nothing when a project and a client disagree", async () => {
+    const entries = await listFilteredTimeEntries(
+      { projectId, clientId: otherClientId },
+      db,
+    );
+
+    expect(entries).toEqual([]);
+  });
+
+  it("holds everything when a project and its own client agree", async () => {
+    const entries = await listFilteredTimeEntries(
+      { projectId: otherProjectId, clientId: otherClientId },
+      db,
+    );
+
+    expect(entries).toHaveLength(2);
+  });
+
+  it("holds nothing for an id that names no project", async () => {
+    const entries = await listFilteredTimeEntries(
+      { projectId: "prj_gone" },
+      db,
+    );
+
+    expect(entries).toEqual([]);
+  });
+
+  it("holds nothing for an id that names no client", async () => {
+    const entries = await listFilteredTimeEntries({ clientId: "cli_gone" }, db);
+
+    expect(entries).toEqual([]);
+  });
+
+  it("reads a null id as no filter at all", async () => {
+    const entries = await listFilteredTimeEntries(
+      { projectId: null, clientId: null },
+      db,
+    );
+
+    expect(entries).toHaveLength(5);
+  });
+
+  it("refuses a blank id, which is a caller that built the filter wrong", async () => {
+    await expect(
+      listFilteredTimeEntries({ projectId: "  " }, db),
+    ).rejects.toThrow(/filter project/);
+    await expect(
+      listFilteredTimeEntries({ clientId: "  " }, db),
+    ).rejects.toThrow(/filter client/);
+  });
+});
