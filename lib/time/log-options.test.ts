@@ -195,6 +195,19 @@ describe("describeMissingFilters", () => {
     );
   });
 
+  it("stays grammatical when it is talking about two filters", () => {
+    const note = describeMissingFilters(true, true) ?? "";
+    expect(note).toContain("narrowed to them");
+    expect(note).toContain("the pickers show");
+    expect(note).not.toContain("narrowed to it");
+  });
+
+  it("stays singular when it is talking about one", () => {
+    const note = describeMissingFilters(false, true) ?? "";
+    expect(note).toContain("narrowed to it");
+    expect(note).toContain("the picker shows");
+  });
+
   it("always says the filter is still in force and how to clear it", () => {
     const note = describeMissingFilters(true, false) ?? "";
     expect(note).toContain("still narrowed");

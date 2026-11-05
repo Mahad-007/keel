@@ -125,6 +125,11 @@ export function filterIsOffered(
  * It says three things, because a reader seeing an unexpectedly short list
  * needs all three: that the filter is still in force, that the picker is not
  * showing it, and how to get back to everything.
+ *
+ * The two-filter case is its own sentence rather than the same one with a
+ * plural slotted in. "Both name something ... narrowed to it" is a sentence
+ * that disagrees with itself halfway through, and this note is read by someone
+ * already unsure what the page is showing them.
  */
 export function describeMissingFilters(
   projectMissing: boolean,
@@ -132,12 +137,13 @@ export function describeMissingFilters(
 ): string | null {
   if (!projectMissing && !clientMissing) return null;
 
-  const named =
-    projectMissing && clientMissing
-      ? "The project and client filters both name something"
-      : projectMissing
-        ? "The project filter names a project"
-        : "The client filter names a client";
+  if (projectMissing && clientMissing) {
+    return "The project and client filters both name something that is no longer on the lists below. The log is still narrowed to them, so the pickers show nothing chosen; clearing the filters shows everything again.";
+  }
+
+  const named = projectMissing
+    ? "The project filter names a project"
+    : "The client filter names a client";
 
   return `${named} that is no longer on the list below. The log is still narrowed to it, so the picker shows nothing chosen; clearing the filters shows everything again.`;
 }
