@@ -12,6 +12,7 @@ import {
   isSheetEmpty,
   sheetCellNames,
 } from "@/lib/time/timesheet";
+import { TIME_LOG_PATH } from "@/lib/time/log-query";
 import { describeWeek } from "@/lib/time/week";
 import { parseTimesheetWeek } from "@/lib/time/week-query";
 
@@ -90,6 +91,18 @@ export default async function TimePage({ searchParams }: PageProps<"/time">) {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-4">
+          {/*
+            The log is the other way to read the same entries: this page is a
+            week of everything, and that one is any stretch of days narrowed to
+            whose work it was. A reader who has filled in a week goes there to
+            check what it came to.
+          */}
+          <Link
+            href={TIME_LOG_PATH}
+            className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Time log
+          </Link>
           <Link
             href={PROJECTS_PATH}
             className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
