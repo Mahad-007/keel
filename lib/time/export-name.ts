@@ -14,6 +14,12 @@
  * hyphens anyway. Days and a word are what survive the trip intact.
  */
 
+import {
+  CHARGEABLE_TIME,
+  FREE_TIME,
+  type BillableFilter,
+} from "./billable";
+import type { TimeLogQuery } from "./log-query";
 import type { DateRange } from "./range";
 
 /** What every export is called before the filters are added to it. */
@@ -59,4 +65,39 @@ export function rangeNamePart({ from, to }: DateRange): string {
   if (to === null) return `from-${from}`;
   if (from === to) return from;
   return `${from}-to-${to}`;
+}
+
+/**
+ * The billing state in the name, or null when both halves are in the file.
+ *
+ * Null rather than a word for the unfiltered case, for the reason
+ * `timeLogHref` leaves the default param off: a name that said `everything`
+ * would put a word in every filename to distinguish the commonest export from
+ * nothing.
+ *
+ * `not-chargeable` rather than `free`, which is the URL's word for the same
+ * filter. The param is short because it is typed; a filename is read, and
+ * "free" beside a column of durations reads as time that cost nothing rather
+ * than time nobody is being charged for.
+ */
+export function billingNamePart(filter: BillableFilter): string | null {
+  if (filter === CHARGEABLE_TIME) return "chargeable";
+  if (filter === FREE_TIME) return "not-chargeable";
+  return null;
+}
+
+/**
+ * The file's name: the stem, the days, the billing state if it narrows
+ * anything, and `.csv`.
+ *
+ * Hyphens throughout and nothing else, so `downloadFilename` has nothing to
+ * clean and the name in the downloads folder is the name built here.
+ */
+export function timeLogFilename(
+  query: Pick<TimeLogQuery, "range" | "billable">,
+): string {
+  const parts = [EXPORT_NAME_STEM, rangeNamePart(query.range)];
+  const billing = billingNamePart(query.billable);
+  if (billing !== null) parts.push(billing);
+  return `${parts.join("-")}${CSV_EXTENSION}`;
 }
