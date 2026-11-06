@@ -25,6 +25,8 @@
  * holds is tested here and what the format does to it is tested there.
  */
 
+import { MINUTES_PER_HOUR } from "@/lib/minutes";
+
 /**
  * The header row, which is also the order of every row under it.
  *
@@ -69,3 +71,32 @@ export type ExportableEntry = {
   /** What was done, in a person's words, or null when they did not say. */
   readonly note: string | null;
 };
+
+/**
+ * Minutes as the decimal hours an invoice is written in: `90` becomes `1.50`.
+ *
+ * Two decimal places, because that is how an hourly figure is quoted and
+ * multiplied — and because the column beside it holds the minutes exactly. A
+ * twenty-minute entry exports as `0.33`, which is a third of an hour rounded,
+ * and anyone adding the hours column of a long export will find it a few
+ * minutes short of the minutes column. That is the trade: the Hours column is
+ * for reading and for a rate, the Minutes column is for summing, and the
+ * header says which is which.
+ *
+ * `toFixed` rather than `hoursInput`'s four places and trimmed zeros. That one
+ * exists to round-trip through a form field; this one lines up in a column.
+ */
+export function exportHours(minutes: number): string {
+  return (minutes / MINUTES_PER_HOUR).toFixed(2);
+}
+
+/**
+ * A flag as a word: `Yes` or `No`.
+ *
+ * Not `TRUE`, which a spreadsheet turns into a boolean and will happily add
+ * up, and not `1`, which it turns into a number — a column of those invites a
+ * total that counts rows and reads as minutes. A word in the cell is a word.
+ */
+export function exportFlag(value: boolean): string {
+  return value ? "Yes" : "No";
+}
