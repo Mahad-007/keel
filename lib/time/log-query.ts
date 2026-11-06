@@ -126,16 +126,16 @@ export function timeLogHref(query: TimeLogQuery): string {
 }
 
 /**
- * The query as search params, which is the half of an href that is about the
- * filters rather than about where it points.
+ * A path with the query's filters on it, and nothing on it when there are
+ * none.
  *
- * Extracted because the log is not the only address these filters have: the
- * CSV export is the same question asked of a route handler, and a reader who
- * presses Export after setting four filters has to get those four filters in
- * the file. Two functions building the string separately is how one of them
- * comes to drop a param.
+ * The one place the params are assembled, because the log is not the only
+ * address these filters have: the CSV export is the same question asked of a
+ * route handler, and a reader who presses Export after setting four filters
+ * has to get those four filters in the file. Two functions building the string
+ * separately is how one of them comes to drop a param.
  */
-export function logQueryParams(query: TimeLogQuery): URLSearchParams {
+function withLogParams(path: string, query: TimeLogQuery): string {
   const params = new URLSearchParams();
   if (query.range.from !== null) params.set(FROM_PARAM, query.range.from);
   if (query.range.to !== null) params.set(TO_PARAM, query.range.to);
@@ -144,12 +144,8 @@ export function logQueryParams(query: TimeLogQuery): URLSearchParams {
   if (query.billable !== DEFAULT_BILLABLE_FILTER) {
     params.set(BILLABLE_PARAM, query.billable);
   }
-  return params;
-}
 
-/** A path with the query's filters on it, and nothing on it when there are none. */
-function withLogParams(path: string, query: TimeLogQuery): string {
-  const search = logQueryParams(query).toString();
+  const search = params.toString();
   return search === "" ? path : `${path}?${search}`;
 }
 
