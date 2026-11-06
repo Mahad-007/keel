@@ -196,3 +196,40 @@ export function downloadFilename(name: string): string {
     .replace(EDGE_PUNCTUATION, "");
   return cleaned === "" ? FALLBACK_FILENAME : cleaned;
 }
+
+/**
+ * What a CSV response says it is.
+ *
+ * The charset is spelled out rather than left to the default, which for
+ * `text/*` is US-ASCII in the oldest reading and the browser's guess in
+ * practice. A client called Ångström has a name that is UTF-8 on the way out,
+ * and a guessed encoding is how it arrives as mojibake.
+ */
+export const CSV_MEDIA_TYPE = "text/csv; charset=utf-8";
+
+/**
+ * The byte order mark, which is what makes Excel read the file as UTF-8.
+ *
+ * Excel ignores the charset on the response — it is reading a file off disk by
+ * then — and without the mark it decodes a CSV in the machine's local
+ * codepage. A client's name comes out mangled, which looks like the app
+ * mangled it.
+ *
+ * Not part of `csvDocument`, because it is a fact about the file rather than
+ * about the format: the mark is not a field, not a row, and a test of the
+ * formatter that had to skip three bytes to read the header row would be a
+ * test of the wrong thing.
+ */
+export const UTF8_BOM = "﻿";
+
+/**
+ * The `Content-Disposition` for a download: save it, under this name.
+ *
+ * `attachment` rather than `inline`, which is the difference between a file in
+ * the reader's downloads folder and a wall of commas where the page they came
+ * from used to be. It is also what makes the filename mean anything — a
+ * browser showing a document inline has no use for one.
+ */
+export function attachmentDisposition(name: string): string {
+  return `attachment; filename="${downloadFilename(name)}"`;
+}
