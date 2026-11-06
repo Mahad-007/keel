@@ -159,3 +159,40 @@ export function csvRow(fields: readonly string[]): string {
 export function csvDocument(rows: readonly (readonly string[])[]): string {
   return rows.map((row) => `${csvRow(row)}${CSV_ROW_END}`).join("");
 }
+
+/** What a download is called when nothing usable is left of its name. */
+export const FALLBACK_FILENAME = "export.csv";
+
+/** Everything a filename is not allowed to hold, collapsed to one hyphen. */
+const NOT_IN_FILENAME = /[^A-Za-z0-9._-]+/g;
+
+/** Dots and hyphens at either end, which name a hidden file or no file. */
+const EDGE_PUNCTUATION = /^[.-]+|[.-]+$/g;
+
+/**
+ * A filename cut down to the characters it is safe to interpolate into a
+ * response header.
+ *
+ * An allowlist rather than a list of things to strip, because this value goes
+ * into `Content-Disposition` between two quotes: a name holding a quote ends
+ * the parameter early, a semicolon adds a parameter nobody wrote, and a CRLF
+ * ends the header and starts whatever follows it. Naming the characters a
+ * filename needs makes all three impossible rather than merely unlikely —
+ * which is the right standard for a header, even though every name this app
+ * builds is already dates and plain words.
+ *
+ * Leading dots and hyphens come off at both ends. A download called `.csv` is
+ * a hidden file on the reader's machine, and one called `-f` is an argument to
+ * whatever they type next.
+ *
+ * Non-ASCII goes with them, which is a real loss and the reason the names are
+ * built from dates rather than from a client's name: carrying a name through
+ * properly means the RFC 5987 `filename*` form as well as this one, and a
+ * second encoding to get wrong for a filename nobody reads twice.
+ */
+export function downloadFilename(name: string): string {
+  const cleaned = name
+    .replace(NOT_IN_FILENAME, "-")
+    .replace(EDGE_PUNCTUATION, "");
+  return cleaned === "" ? FALLBACK_FILENAME : cleaned;
+}
