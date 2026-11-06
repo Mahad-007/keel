@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { csvField, needsCsvQuoting } from "./csv";
+import { csvField, needsCsvQuoting, startsCsvFormula } from "./csv";
 
 describe("needsCsvQuoting", () => {
   it("leaves ordinary text unquoted", () => {
@@ -71,5 +71,50 @@ describe("csvField", () => {
 
   it("keeps the spaces round a field it had to quote", () => {
     expect(csvField(" Harbour Co ")).toBe('" Harbour Co "');
+  });
+});
+
+describe("startsCsvFormula", () => {
+  it("spots each sign a spreadsheet evaluates", () => {
+    expect(startsCsvFormula("=1+1")).toBe(true);
+    expect(startsCsvFormula("+1")).toBe(true);
+    expect(startsCsvFormula("-2h on the call")).toBe(true);
+    expect(startsCsvFormula("@SUM(A1)")).toBe(true);
+  });
+
+  it("spots the leading whitespace that used to get past the check", () => {
+    expect(startsCsvFormula("\t=cmd")).toBe(true);
+    expect(startsCsvFormula("\r=cmd")).toBe(true);
+  });
+
+  it("leaves a sign in the middle of a note alone", () => {
+    expect(startsCsvFormula("See =1+1 in the brief")).toBe(false);
+    expect(startsCsvFormula("Harbour Co")).toBe(false);
+    expect(startsCsvFormula("")).toBe(false);
+  });
+
+  it("leaves the columns this app generates alone", () => {
+    expect(startsCsvFormula("2026-10-16")).toBe(false);
+    expect(startsCsvFormula("90")).toBe(false);
+    expect(startsCsvFormula("1.50")).toBe(false);
+    expect(startsCsvFormula("Yes")).toBe(false);
+  });
+});
+
+describe("csvField with a formula in it", () => {
+  it("prefixes the field so the cell holds text", () => {
+    expect(csvField("=1+1")).toBe("'=1+1");
+  });
+
+  it("prefixes and quotes a formula that also holds a comma", () => {
+    expect(csvField("=SUM(1,2)")).toBe("\"'=SUM(1,2)\"");
+  });
+
+  it("keeps the tab the prefix pushed into the middle of the field", () => {
+    expect(csvField("\t=cmd")).toBe("'\t=cmd");
+  });
+
+  it("still quotes a carriage return the prefix pushed along", () => {
+    expect(csvField("\r=cmd")).toBe("\"'\r=cmd\"");
   });
 });
