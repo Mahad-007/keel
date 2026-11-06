@@ -22,7 +22,7 @@ const BUILT: { href: string; name: string; note: string }[] = [
   { href: "/clients/archived", name: "Archive", note: "Past clients, kept with their history intact." },
   { href: "/projects", name: "Projects", note: "Every engagement, filterable by status and sortable by date." },
   { href: "/time", name: "Timesheet", note: "A week of the studio's work, a row per project and a column per day." },
-  { href: "/time/entries", name: "Time log", note: "Every logged stretch of work, filtered by dates, client, project and billing." },
+  { href: "/time/entries", name: "Time log", note: "Every logged stretch of work, filtered by dates, client, project and billing, and exportable as CSV." },
 ];
 
 export default function Home() {
