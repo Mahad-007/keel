@@ -87,21 +87,6 @@ export function startsCsvFormula(value: string): boolean {
 }
 
 /**
- * What a field is held as text by: an apostrophe in front of it.
- *
- * The cost is visible and worth stating plainly — a note reading `-2h, see
- * email` exports as `'-2h, see email`, and the apostrophe is in the cell. The
- * alternative is a spreadsheet that runs a client's text, and quoting does not
- * help: `"=1+1"` is a quoted CSV field and still an evaluated cell.
- *
- * Only the first character is looked at, because only the first character
- * starts a formula. `See =1+1 in the brief` is text wherever it is opened.
- */
-export function csvTextPrefix(value: string): string {
-  return startsCsvFormula(value) ? `'${value}` : value;
-}
-
-/**
  * One field, ready to sit in a row: quoted if it has to be, with any quote
  * inside it doubled.
  *
@@ -115,14 +100,20 @@ export function csvTextPrefix(value: string): string {
  * field is allowed to hold them — the row still ends where the row ends. A
  * reader that cannot handle that is not reading CSV.
  *
- * The formula guard goes on first, so a field that starts with a sign is held
- * as text whether or not it also needed quoting. Every field goes through it
- * rather than only the free-text ones: a caller that had to decide which of
- * its columns were safe is a caller that will one day add a column and decide
- * wrong.
+ * The formula guard goes on first — an apostrophe in front, which holds the
+ * cell as text — so a field that starts with a sign is safe whether or not it
+ * also needed quoting. Every field goes through it rather than only the
+ * free-text ones: a caller that had to decide which of its columns were safe
+ * is a caller that will one day add a column and decide wrong.
+ *
+ * The cost of the apostrophe is visible and worth stating plainly: a note
+ * reading `-2h, see email` exports as `'-2h, see email`, and the apostrophe is
+ * in the cell. The alternative is a spreadsheet that runs a client's text, and
+ * quoting does not help — `"=1+1"` is a quoted CSV field and still an
+ * evaluated cell.
  */
 export function csvField(value: string): string {
-  const text = csvTextPrefix(value);
+  const text = startsCsvFormula(value) ? `'${value}` : value;
   if (!needsCsvQuoting(text)) return text;
   const doubled = text.replaceAll(CSV_QUOTE, CSV_QUOTE + CSV_QUOTE);
   return `${CSV_QUOTE}${doubled}${CSV_QUOTE}`;
@@ -139,7 +130,7 @@ export function csvField(value: string): string {
  * No line ending. A row is a row; `csvDocument` is what puts them in a file.
  */
 export function csvRow(fields: readonly string[]): string {
-  return fields.map((field) => csvField(field)).join(CSV_SEPARATOR);
+  return fields.map(csvField).join(CSV_SEPARATOR);
 }
 
 /**
