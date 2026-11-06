@@ -38,6 +38,15 @@ export type TimeLogQuery = {
 export const TIME_LOG_PATH = "/time/entries";
 
 /**
+ * Where the same filters produce a CSV file instead of a page.
+ *
+ * A route under the log rather than a param on it — `?format=csv` would make
+ * every link on the page one typo away from a download, and the page's own
+ * `metadata` and `dynamic` settings belong to a page rather than to a file.
+ */
+export const TIME_EXPORT_PATH = `${TIME_LOG_PATH}/export`;
+
+/**
  * The param names, written once so the parser, the links and the filter
  * form's input names cannot disagree.
  *
@@ -222,4 +231,16 @@ export function logEntryFilter(query: TimeLogQuery): TimeEntryFilter {
     clientId: query.clientId,
     billable: filteredBillable(query.billable),
   };
+}
+
+/**
+ * The CSV export of exactly what the log is showing.
+ *
+ * The same params as `timeLogHref`, pointed at the route that answers with a
+ * file. That is the whole contract of the export link: what a reader
+ * downloads is what is on their screen, because both addresses are built from
+ * one query and read by one parser.
+ */
+export function timeLogExportHref(query: TimeLogQuery): string {
+  return withLogParams(TIME_EXPORT_PATH, query);
 }
