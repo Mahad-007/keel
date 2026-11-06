@@ -188,6 +188,22 @@ describe("searchParamsRecord", () => {
     expect(record).toEqual({ project: "" });
   });
 
+  it("records a param named after something every object answers to", () => {
+    const record = searchParamsRecord(
+      new URLSearchParams("constructor=a&toString=b"),
+    );
+
+    expect(record.constructor).toBe("a");
+    expect(record.toString).toBe("b");
+  });
+
+  it("records a param called __proto__ rather than obeying it", () => {
+    const record = searchParamsRecord(new URLSearchParams("__proto__=x"));
+
+    expect(Object.hasOwn(record, "__proto__")).toBe(true);
+    expect(record["__proto__"]).toBe("x");
+  });
+
   it("keeps a value a reader typed a space into", () => {
     const record = searchParamsRecord(new URLSearchParams("from=%202026"));
 
