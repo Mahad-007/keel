@@ -159,3 +159,27 @@ export function timeLogCsv(entries: readonly ExportableEntry[]): string {
     ...entries.map((entry) => timeEntryExportRow(entry)),
   ]);
 }
+
+/**
+ * What the export link is called when it is read aloud rather than looked at.
+ *
+ * The visible words are "Export CSV", which is all the room there is in a row
+ * of header links and all a reader scanning the page needs. The accessible
+ * name says how much is in it, because that is the question the link actually
+ * raises: a reader who has set four filters is about to download something,
+ * and "these 24 entries" is the confirmation that the filters are what the
+ * file will hold.
+ *
+ * The count rather than the hours: it is the number of rows the file will
+ * have, and the figures are already in the line above it.
+ *
+ * A log with nothing in it gets a sentence it can live without, because the
+ * page does not offer the link at all — an export of no rows is a header row,
+ * and a reader who downloads one learns nothing the empty page has not
+ * already said.
+ */
+export function exportLinkName(entries: number): string {
+  if (entries === 0) return "Export this log as CSV";
+  const rows = entries === 1 ? "this one entry" : `these ${entries} entries`;
+  return `Export ${rows} as CSV`;
+}

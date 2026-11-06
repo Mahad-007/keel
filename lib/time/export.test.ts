@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   exportFlag,
+  exportLinkName,
   exportHours,
   TIME_EXPORT_COLUMNS,
   timeEntryExportRow,
@@ -175,5 +176,19 @@ describe("timeLogCsv", () => {
 
     expect(file).toContain("'=1+1");
     expect(file).not.toContain(",=1+1");
+  });
+});
+
+describe("exportLinkName", () => {
+  it("says how many rows the file will hold", () => {
+    expect(exportLinkName(24)).toBe("Export these 24 entries as CSV");
+  });
+
+  it("does not say one entries", () => {
+    expect(exportLinkName(1)).toBe("Export this one entry as CSV");
+  });
+
+  it("has something to say about a log the page will not offer", () => {
+    expect(exportLinkName(0)).toBe("Export this log as CSV");
   });
 });
