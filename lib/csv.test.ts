@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  attachmentDisposition,
   csvDocument,
   csvField,
   csvRow,
@@ -219,5 +220,25 @@ describe("downloadFilename", () => {
     expect(downloadFilename("..")).toBe(FALLBACK_FILENAME);
     expect(downloadFilename("")).toBe(FALLBACK_FILENAME);
     expect(downloadFilename("   ")).toBe(FALLBACK_FILENAME);
+  });
+});
+
+describe("attachmentDisposition", () => {
+  it("asks the browser to save the file under the name", () => {
+    expect(attachmentDisposition("keel-time-all-time.csv")).toBe(
+      'attachment; filename="keel-time-all-time.csv"',
+    );
+  });
+
+  it("cannot be made to hold a second parameter", () => {
+    expect(attachmentDisposition('x.csv"; filename*=utf-8\'\'y')).toBe(
+      'attachment; filename="x.csv-filename-utf-8-y"',
+    );
+  });
+
+  it("names the fallback when the name cleans away to nothing", () => {
+    expect(attachmentDisposition("...")).toBe(
+      'attachment; filename="export.csv"',
+    );
   });
 });
