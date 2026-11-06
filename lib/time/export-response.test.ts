@@ -101,6 +101,12 @@ describe("timeLogCsvResponse", () => {
     expect(body).toContain("2025-01-01");
   });
 
+  it("keeps a filtered ledger out of every cache", () => {
+    const response = timeLogCsvResponse([entry()], OCTOBER);
+
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+  });
+
   it("answers 200, because an empty log is not a missing one", () => {
     expect(timeLogCsvResponse([], OCTOBER).status).toBe(200);
   });

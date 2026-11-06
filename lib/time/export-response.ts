@@ -26,6 +26,13 @@ import type { TimeLogQuery } from "./log-query";
  * bytes as UTF-8, and a formatter whose output started with an invisible
  * character would make every test of it skip one.
  *
+ * `no-store` rather than a short max-age. The file is one studio's ledger
+ * narrowed to one question, the URL that produced it is a GET anybody can
+ * replay, and a copy of it sitting in a shared cache is a copy nobody knows
+ * is there. It also means pressing Export twice after changing a filter
+ * downloads what was asked for the second time rather than what a cache kept
+ * from the first.
+ *
  * The query comes along only to name the file. Nothing is re-filtered here —
  * the entries are what the route already asked the data layer for, and a
  * second filter on this side could disagree with the first.
@@ -38,6 +45,7 @@ export function timeLogCsvResponse(
     headers: {
       "Content-Type": CSV_MEDIA_TYPE,
       "Content-Disposition": attachmentDisposition(timeLogFilename(query)),
+      "Cache-Control": "no-store",
     },
   });
 }
