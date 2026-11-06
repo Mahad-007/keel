@@ -5,8 +5,10 @@ import { PROJECT_SORT_COLUMNS, SORT_DIRECTIONS } from "./sort";
 import {
   DEFAULT_PROJECTS_QUERY,
   PROJECTS_PATH,
+  firstParam,
   parseProjectsQuery,
   projectsHref,
+  searchParamsRecord,
   withSortColumn,
   withStatus,
 } from "./query";
@@ -152,5 +154,43 @@ describe("withSortColumn", () => {
     expect(withSortColumn(withSortColumn(query, "updated"), "updated")).toEqual(
       query,
     );
+  });
+});
+
+describe("searchParamsRecord", () => {
+  it("reads each param as the page would", () => {
+    const record = searchParamsRecord(
+      new URLSearchParams("from=2026-10-01&billable=chargeable"),
+    );
+
+    expect(record).toEqual({
+      from: "2026-10-01",
+      billable: "chargeable",
+    });
+  });
+
+  it("is empty for a URL with no query at all", () => {
+    expect(searchParamsRecord(new URLSearchParams(""))).toEqual({});
+  });
+
+  it("keeps a repeated param in the order it appeared", () => {
+    const record = searchParamsRecord(
+      new URLSearchParams("project=a&project=b&project=c"),
+    );
+
+    expect(record.project).toEqual(["a", "b", "c"]);
+    expect(firstParam(record.project)).toBe("a");
+  });
+
+  it("keeps an empty value, which is not the same as an absent one", () => {
+    const record = searchParamsRecord(new URLSearchParams("project="));
+
+    expect(record).toEqual({ project: "" });
+  });
+
+  it("keeps a value a reader typed a space into", () => {
+    const record = searchParamsRecord(new URLSearchParams("from=%202026"));
+
+    expect(record.from).toBe(" 2026");
   });
 });
