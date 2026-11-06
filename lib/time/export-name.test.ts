@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { ALL_TIME_PART, rangeNamePart } from "./export-name";
+import { downloadFilename } from "@/lib/csv";
+
+import {
+  ANY_BILLING,
+  CHARGEABLE_TIME,
+  FREE_TIME,
+} from "./billable";
+import {
+  billingNamePart,
+  rangeNamePart,
+  timeLogFilename,
+  ALL_TIME_PART,
+} from "./export-name";
 import { ALL_DATES } from "./range";
 
 describe("rangeNamePart", () => {
@@ -40,5 +52,60 @@ describe("rangeNamePart", () => {
       /^[a-z0-9-]+$/,
     );
     expect(rangeNamePart(ALL_DATES)).toMatch(/^[a-z0-9-]+$/);
+  });
+});
+
+describe("billingNamePart", () => {
+  it("names each half of the filter in words a reader would use", () => {
+    expect(billingNamePart(CHARGEABLE_TIME)).toBe("chargeable");
+    expect(billingNamePart(FREE_TIME)).toBe("not-chargeable");
+  });
+
+  it("says nothing when both halves are in the file", () => {
+    expect(billingNamePart(ANY_BILLING)).toBeNull();
+  });
+});
+
+describe("timeLogFilename", () => {
+  it("names an unfiltered export", () => {
+    expect(timeLogFilename({ range: ALL_DATES, billable: ANY_BILLING })).toBe(
+      "keel-time-all-time.csv",
+    );
+  });
+
+  it("names a month of chargeable time", () => {
+    expect(
+      timeLogFilename({
+        range: { from: "2026-10-01", to: "2026-10-31" },
+        billable: CHARGEABLE_TIME,
+      }),
+    ).toBe("keel-time-2026-10-01-to-2026-10-31-chargeable.csv");
+  });
+
+  it("leaves the billing state out when it narrows nothing", () => {
+    expect(
+      timeLogFilename({
+        range: { from: "2026-10-01", to: "2026-10-31" },
+        billable: ANY_BILLING,
+      }),
+    ).toBe("keel-time-2026-10-01-to-2026-10-31.csv");
+  });
+
+  it("names the time given away since a day", () => {
+    expect(
+      timeLogFilename({
+        range: { from: "2026-10-01", to: null },
+        billable: FREE_TIME,
+      }),
+    ).toBe("keel-time-from-2026-10-01-not-chargeable.csv");
+  });
+
+  it("holds nothing a filename has to be cleaned of", () => {
+    const name = timeLogFilename({
+      range: { from: "2026-10-01", to: "2026-10-31" },
+      billable: FREE_TIME,
+    });
+
+    expect(name).toBe(downloadFilename(name));
   });
 });
