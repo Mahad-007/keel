@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  csvDocument,
   csvField,
   csvRow,
   needsCsvQuoting,
@@ -151,5 +152,30 @@ describe("csvRow", () => {
 
   it("does not end the row", () => {
     expect(csvRow(["90"])).toBe("90");
+  });
+});
+
+describe("csvDocument", () => {
+  it("ends every row with CRLF, the last one included", () => {
+    expect(csvDocument([["a"], ["b"]])).toBe("a\r\nb\r\n");
+  });
+
+  it("is empty for no rows at all", () => {
+    expect(csvDocument([])).toBe("");
+  });
+
+  it("keeps a quoted field's own line break out of the row count", () => {
+    const file = csvDocument([
+      ["Note"],
+      ["Two calls\nand an email"],
+      ["One call"],
+    ]);
+
+    expect(file).toBe('Note\r\n"Two calls\nand an email"\r\nOne call\r\n');
+    expect(file.split("\r\n")).toHaveLength(4);
+  });
+
+  it("escapes each row independently", () => {
+    expect(csvDocument([["a,b"], ["c"]])).toBe('"a,b"\r\nc\r\n');
   });
 });
