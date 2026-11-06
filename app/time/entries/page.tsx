@@ -23,6 +23,7 @@ import { backwardsEnds } from "@/lib/time/range";
 import { TIMESHEET_PATH } from "@/lib/time/week-query";
 
 import { NoMatchingTime, NoTimeLogged } from "./empty-log";
+import { ExportLink } from "./export-link";
 import { FilterForm } from "./filter-form";
 import { LogTable } from "./log-table";
 import { RangePresets } from "./range-presets";
@@ -107,6 +108,7 @@ export default async function TimeLogPage({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-4">
+          <ExportLink query={query} entries={entries.length} />
           {filtered ? (
             <Link
               href={TIME_LOG_PATH}
