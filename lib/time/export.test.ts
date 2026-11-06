@@ -1,6 +1,26 @@
 import { describe, expect, it } from "vitest";
 
-import { exportFlag, exportHours, TIME_EXPORT_COLUMNS } from "./export";
+import {
+  exportFlag,
+  exportHours,
+  TIME_EXPORT_COLUMNS,
+  timeEntryExportRow,
+  type ExportableEntry,
+} from "./export";
+
+/** One logged stretch of work, with only what a test cares about spelled out. */
+function entry(partial: Partial<ExportableEntry> = {}): ExportableEntry {
+  return {
+    workedOn: "2026-10-16",
+    clientName: "Harbour Co",
+    projectName: "Site rebuild",
+    minutes: 90,
+    billable: true,
+    billedInvoiceId: null,
+    note: "Two calls and the brief",
+    ...partial,
+  };
+}
 
 describe("TIME_EXPORT_COLUMNS", () => {
   it("leads with the date and ends with the note", () => {
@@ -45,5 +65,53 @@ describe("exportFlag", () => {
   it("says Yes and No rather than true and false", () => {
     expect(exportFlag(true)).toBe("Yes");
     expect(exportFlag(false)).toBe("No");
+  });
+});
+
+describe("timeEntryExportRow", () => {
+  it("writes the columns the header names, in that order", () => {
+    expect(timeEntryExportRow(entry())).toEqual([
+      "2026-10-16",
+      "Harbour Co",
+      "Site rebuild",
+      "90",
+      "1.50",
+      "Yes",
+      "No",
+      "Two calls and the brief",
+    ]);
+  });
+
+  it("is as wide as the header row", () => {
+    expect(timeEntryExportRow(entry())).toHaveLength(
+      TIME_EXPORT_COLUMNS.length,
+    );
+  });
+
+  it("hands the stored date over untouched", () => {
+    expect(timeEntryExportRow(entry({ workedOn: "2026-01-04" }))[0]).toBe(
+      "2026-01-04",
+    );
+  });
+
+  it("says No in the chargeable column for time given away", () => {
+    expect(timeEntryExportRow(entry({ billable: false }))[5]).toBe("No");
+  });
+
+  it("says Yes in the billed column once an invoice has it", () => {
+    const row = timeEntryExportRow(entry({ billedInvoiceId: "inv_abc" }));
+
+    expect(row[6]).toBe("Yes");
+    expect(row).not.toContain("inv_abc");
+  });
+
+  it("leaves the note cell empty rather than writing the row's words", () => {
+    expect(timeEntryExportRow(entry({ note: null })).at(-1)).toBe("");
+  });
+
+  it("hands a note's commas, quotes and breaks over unescaped", () => {
+    const note = 'Design, build\nand "hand over"';
+
+    expect(timeEntryExportRow(entry({ note })).at(-1)).toBe(note);
   });
 });
