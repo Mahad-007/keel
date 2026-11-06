@@ -25,6 +25,7 @@
  * holds is tested here and what the format does to it is tested there.
  */
 
+import { csvDocument } from "@/lib/csv";
 import { MINUTES_PER_HOUR } from "@/lib/minutes";
 
 import { isBilled, isChargeable } from "./billing";
@@ -137,4 +138,24 @@ export function timeEntryExportRow(entry: ExportableEntry): string[] {
     exportFlag(isBilled(entry)),
     entry.note ?? "",
   ];
+}
+
+/**
+ * The whole file: the header row, then one row per entry.
+ *
+ * The order is the query's — newest first, the same order the log is read in —
+ * rather than oldest first or sorted by project. A file that came out in a
+ * different order from the page it was exported from is one somebody has to
+ * check against the page row by row, and anybody who wants it by project has a
+ * spreadsheet that sorts.
+ *
+ * The header row is always written, so an export of a filter that matched
+ * nothing is a file with its columns in it rather than an empty one. Opening
+ * zero bytes tells a reader nothing about whether the export worked.
+ */
+export function timeLogCsv(entries: readonly ExportableEntry[]): string {
+  return csvDocument([
+    TIME_EXPORT_COLUMNS,
+    ...entries.map((entry) => timeEntryExportRow(entry)),
+  ]);
 }
