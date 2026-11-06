@@ -5,6 +5,7 @@ import {
   exportHours,
   TIME_EXPORT_COLUMNS,
   timeEntryExportRow,
+  timeLogCsv,
   type ExportableEntry,
 } from "./export";
 
@@ -113,5 +114,66 @@ describe("timeEntryExportRow", () => {
     const note = 'Design, build\nand "hand over"';
 
     expect(timeEntryExportRow(entry({ note })).at(-1)).toBe(note);
+  });
+});
+
+describe("timeLogCsv", () => {
+  it("writes the header row even when nothing matched", () => {
+    expect(timeLogCsv([])).toBe(
+      "Date,Client,Project,Minutes,Hours,Chargeable,Billed,Note\r\n",
+    );
+  });
+
+  it("writes one row per entry under the header", () => {
+    const file = timeLogCsv([
+      entry({ workedOn: "2026-10-17", minutes: 30, note: null }),
+      entry({ workedOn: "2026-10-16", minutes: 90, note: null }),
+    ]);
+
+    expect(file.split("\r\n")).toEqual([
+      "Date,Client,Project,Minutes,Hours,Chargeable,Billed,Note",
+      "2026-10-17,Harbour Co,Site rebuild,30,0.50,Yes,No,",
+      "2026-10-16,Harbour Co,Site rebuild,90,1.50,Yes,No,",
+      "",
+    ]);
+  });
+
+  it("keeps the order the entries arrived in", () => {
+    const file = timeLogCsv([
+      entry({ workedOn: "2026-10-17" }),
+      entry({ workedOn: "2026-10-16" }),
+      entry({ workedOn: "2026-10-18" }),
+    ]);
+
+    expect(file.indexOf("2026-10-17")).toBeLessThan(file.indexOf("2026-10-16"));
+    expect(file.indexOf("2026-10-16")).toBeLessThan(file.indexOf("2026-10-18"));
+  });
+
+  it("escapes a note that holds a comma and a quote", () => {
+    const file = timeLogCsv([entry({ note: 'Design, build, "hand over"' })]);
+
+    expect(file).toContain('"Design, build, ""hand over"""');
+  });
+
+  it("escapes a client whose name holds a comma", () => {
+    const file = timeLogCsv([entry({ clientName: "Harbour Co, Ltd" })]);
+
+    expect(file).toContain('"Harbour Co, Ltd"');
+  });
+
+  it("keeps a note's own line break out of the row count", () => {
+    const file = timeLogCsv([
+      entry({ note: "Two calls\nand an email" }),
+      entry({ note: null }),
+    ]);
+
+    expect(file.split("\r\n")).toHaveLength(4);
+  });
+
+  it("holds a note that starts a formula as text", () => {
+    const file = timeLogCsv([entry({ note: "=1+1" })]);
+
+    expect(file).toContain("'=1+1");
+    expect(file).not.toContain(",=1+1");
   });
 });
