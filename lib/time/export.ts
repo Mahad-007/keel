@@ -27,6 +27,8 @@
 
 import { MINUTES_PER_HOUR } from "@/lib/minutes";
 
+import { isBilled, isChargeable } from "./billing";
+
 /**
  * The header row, which is also the order of every row under it.
  *
@@ -99,4 +101,40 @@ export function exportHours(minutes: number): string {
  */
 export function exportFlag(value: boolean): string {
   return value ? "Yes" : "No";
+}
+
+/**
+ * One entry as a row of plain strings, in the order the header names.
+ *
+ * The strings are raw: a note holding a comma, a quote or a line break goes
+ * through untouched, and `csvRow` is what makes it survive the file. Escaping
+ * here as well would double it.
+ *
+ * `workedOn` goes out exactly as stored. It is already the `YYYY-MM-DD` a
+ * spreadsheet parses as a date and sorts correctly, and formatting it for a
+ * reader — `Oct 16, 2026` — produces a column that sorts alphabetically, which
+ * puts April before January.
+ *
+ * The two flags go through the same predicates the rows on screen use, so an
+ * entry marked not chargeable in the log cannot export as chargeable. `Billed`
+ * is a yes or a no rather than the invoice's id: until Phase 6 there is no
+ * invoice number worth printing, and an id a reader cannot look up is a column
+ * of noise.
+ *
+ * A missing note is an empty cell. The log writes "No note" in the gap because
+ * a person scanning a list needs the absence pointed out; a sheet does not —
+ * filtering a column for blanks is how the same question gets asked there, and
+ * it finds nothing if the blanks hold two words.
+ */
+export function timeEntryExportRow(entry: ExportableEntry): string[] {
+  return [
+    entry.workedOn,
+    entry.clientName,
+    entry.projectName,
+    String(entry.minutes),
+    exportHours(entry.minutes),
+    exportFlag(isChargeable(entry)),
+    exportFlag(isBilled(entry)),
+    entry.note ?? "",
+  ];
 }
