@@ -59,3 +59,23 @@ export function needsCsvQuoting(value: string): boolean {
   if (MUST_QUOTE.test(value)) return true;
   return value !== value.trim();
 }
+
+/**
+ * One field, ready to sit in a row: quoted if it has to be, with any quote
+ * inside it doubled.
+ *
+ * Doubling is the whole of the escaping the format has. `Called it "the
+ * rebuild"` becomes `"Called it ""the rebuild"""`, which looks wrong written
+ * down and is exactly right: the outer pair delimit the field and each inner
+ * pair is one quote.
+ *
+ * Line breaks are kept rather than flattened to a space. A note is sometimes
+ * the three things an afternoon went on, written one to a line, and a quoted
+ * field is allowed to hold them — the row still ends where the row ends. A
+ * reader that cannot handle that is not reading CSV.
+ */
+export function csvField(value: string): string {
+  if (!needsCsvQuoting(value)) return value;
+  const doubled = value.replaceAll(CSV_QUOTE, CSV_QUOTE + CSV_QUOTE);
+  return `${CSV_QUOTE}${doubled}${CSV_QUOTE}`;
+}
