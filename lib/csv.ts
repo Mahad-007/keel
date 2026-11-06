@@ -141,3 +141,21 @@ export function csvField(value: string): string {
 export function csvRow(fields: readonly string[]): string {
   return fields.map((field) => csvField(field)).join(CSV_SEPARATOR);
 }
+
+/**
+ * Rows into a file: each record escaped, each ended with CRLF.
+ *
+ * Every row is terminated, the last one included. RFC 4180 allows either, and
+ * terminating all of them is what makes the file a clean set of lines — `wc
+ * -l` counts what a reader counts, two exports concatenate without welding
+ * the last row of one to the first of the other, and a diff of two exports
+ * shows the rows that changed rather than one long last line.
+ *
+ * No rows is an empty string rather than a lone newline, which is the honest
+ * answer: a file with nothing in it. Whether an export should ever be empty is
+ * the caller's question — the time log's answer is its header row, which is
+ * one row rather than none.
+ */
+export function csvDocument(rows: readonly (readonly string[])[]): string {
+  return rows.map((row) => `${csvRow(row)}${CSV_ROW_END}`).join("");
+}
