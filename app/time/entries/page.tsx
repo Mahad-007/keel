@@ -108,7 +108,16 @@ export default async function TimeLogPage({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-4">
-          <ExportLink query={query} entries={entries.length} />
+          {/*
+            Nothing to export is nothing to offer. The file would be its
+            header row, which tells a reader less than the empty state below
+            already does — and a download that arrives holding no work reads
+            as an export that failed rather than as a filter that matched
+            nothing.
+          */}
+          {entries.length > 0 ? (
+            <ExportLink query={query} entries={entries.length} />
+          ) : null}
           {filtered ? (
             <Link
               href={TIME_LOG_PATH}
