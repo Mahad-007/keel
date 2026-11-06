@@ -4,6 +4,8 @@ import {
   csvDocument,
   csvField,
   csvRow,
+  downloadFilename,
+  FALLBACK_FILENAME,
   needsCsvQuoting,
   startsCsvFormula,
 } from "./csv";
@@ -177,5 +179,45 @@ describe("csvDocument", () => {
 
   it("escapes each row independently", () => {
     expect(csvDocument([["a,b"], ["c"]])).toBe('"a,b"\r\nc\r\n');
+  });
+});
+
+describe("downloadFilename", () => {
+  it("leaves a name built of dates and words alone", () => {
+    expect(downloadFilename("keel-time-2026-10-01-to-2026-10-31.csv")).toBe(
+      "keel-time-2026-10-01-to-2026-10-31.csv",
+    );
+  });
+
+  it("replaces a quote that would end the header parameter", () => {
+    expect(downloadFilename('a"b.csv')).toBe("a-b.csv");
+  });
+
+  it("replaces a CRLF that would end the header", () => {
+    expect(downloadFilename("a\r\nSet-Cookie: x=1.csv")).toBe(
+      "a-Set-Cookie-x-1.csv",
+    );
+  });
+
+  it("replaces path separators", () => {
+    expect(downloadFilename("../../etc/passwd")).toBe("etc-passwd");
+  });
+
+  it("collapses a run of refused characters into one hyphen", () => {
+    expect(downloadFilename("a   b.csv")).toBe("a-b.csv");
+  });
+
+  it("will not name a hidden file", () => {
+    expect(downloadFilename(".csv")).toBe("csv");
+  });
+
+  it("will not name a file that reads as an argument", () => {
+    expect(downloadFilename("-f.csv")).toBe("f.csv");
+  });
+
+  it("falls back when nothing usable is left", () => {
+    expect(downloadFilename("..")).toBe(FALLBACK_FILENAME);
+    expect(downloadFilename("")).toBe(FALLBACK_FILENAME);
+    expect(downloadFilename("   ")).toBe(FALLBACK_FILENAME);
   });
 });
