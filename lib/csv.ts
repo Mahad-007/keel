@@ -61,6 +61,47 @@ export function needsCsvQuoting(value: string): boolean {
 }
 
 /**
+ * The characters a spreadsheet reads as the start of a formula rather than as
+ * text.
+ *
+ * `=` and `+` are the two everybody knows. `-` is there because `-1+1` is
+ * arithmetic to Excel, and `@` because it introduces a function name. A
+ * leading tab or carriage return is on the list because the old DDE path
+ * skipped them before looking for the sign, so `\t=cmd|…` was the way round a
+ * guard that only checked the first character.
+ */
+const FORMULA_START = /^[=+\-@\t\r]/;
+
+/**
+ * Whether a field would be read as a formula by the thing most likely to open
+ * this file.
+ *
+ * Not a CSV question at all — the RFC has nothing to say about it, and a field
+ * reading `=1+1` round-trips perfectly. It is a question about the consumer:
+ * open the file in Excel or Sheets and that cell is evaluated, and a note
+ * reading `=HYPERLINK(...)` or worse was typed by somebody who could type it
+ * into this app's notes field.
+ */
+export function startsCsvFormula(value: string): boolean {
+  return FORMULA_START.test(value);
+}
+
+/**
+ * What a field is held as text by: an apostrophe in front of it.
+ *
+ * The cost is visible and worth stating plainly — a note reading `-2h, see
+ * email` exports as `'-2h, see email`, and the apostrophe is in the cell. The
+ * alternative is a spreadsheet that runs a client's text, and quoting does not
+ * help: `"=1+1"` is a quoted CSV field and still an evaluated cell.
+ *
+ * Only the first character is looked at, because only the first character
+ * starts a formula. `See =1+1 in the brief` is text wherever it is opened.
+ */
+export function csvTextPrefix(value: string): string {
+  return startsCsvFormula(value) ? `'${value}` : value;
+}
+
+/**
  * One field, ready to sit in a row: quoted if it has to be, with any quote
  * inside it doubled.
  *
@@ -73,9 +114,16 @@ export function needsCsvQuoting(value: string): boolean {
  * the three things an afternoon went on, written one to a line, and a quoted
  * field is allowed to hold them — the row still ends where the row ends. A
  * reader that cannot handle that is not reading CSV.
+ *
+ * The formula guard goes on first, so a field that starts with a sign is held
+ * as text whether or not it also needed quoting. Every field goes through it
+ * rather than only the free-text ones: a caller that had to decide which of
+ * its columns were safe is a caller that will one day add a column and decide
+ * wrong.
  */
 export function csvField(value: string): string {
-  if (!needsCsvQuoting(value)) return value;
-  const doubled = value.replaceAll(CSV_QUOTE, CSV_QUOTE + CSV_QUOTE);
+  const text = csvTextPrefix(value);
+  if (!needsCsvQuoting(text)) return text;
+  const doubled = text.replaceAll(CSV_QUOTE, CSV_QUOTE + CSV_QUOTE);
   return `${CSV_QUOTE}${doubled}${CSV_QUOTE}`;
 }
