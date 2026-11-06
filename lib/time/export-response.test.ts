@@ -107,6 +107,15 @@ describe("timeLogCsvResponse", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
   });
 
+  it("refuses to let a note decide what the file is", () => {
+    const response = timeLogCsvResponse(
+      [entry({ note: "<html><body>not a spreadsheet" })],
+      OCTOBER,
+    );
+
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+  });
+
   it("answers 200, because an empty log is not a missing one", () => {
     expect(timeLogCsvResponse([], OCTOBER).status).toBe(200);
   });

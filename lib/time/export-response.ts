@@ -26,6 +26,11 @@ import type { TimeLogQuery } from "./log-query";
  * bytes as UTF-8, and a formatter whose output started with an invisible
  * character would make every test of it skip one.
  *
+ * `nosniff` because a note is free text and a browser that ignores the stated
+ * type and guesses from the content is a browser that can decide a file of
+ * commas is HTML. The attachment disposition makes that unlikely rather than
+ * impossible, and the header costs one line.
+ *
  * `no-store` rather than a short max-age. The file is one studio's ledger
  * narrowed to one question, the URL that produced it is a GET anybody can
  * replay, and a copy of it sitting in a shared cache is a copy nobody knows
@@ -46,6 +51,7 @@ export function timeLogCsvResponse(
       "Content-Type": CSV_MEDIA_TYPE,
       "Content-Disposition": attachmentDisposition(timeLogFilename(query)),
       "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }
