@@ -127,3 +127,17 @@ export function csvField(value: string): string {
   const doubled = text.replaceAll(CSV_QUOTE, CSV_QUOTE + CSV_QUOTE);
   return `${CSV_QUOTE}${doubled}${CSV_QUOTE}`;
 }
+
+/**
+ * One record: every field escaped, joined by the separator.
+ *
+ * It takes the fields already stringified, which is deliberate. How a duration
+ * or a flag reads in a spreadsheet is a decision about the export rather than
+ * about the format — whether minutes go out as `90` or `1h 30m` changes
+ * whether a column can be summed — and this module has no business making it.
+ *
+ * No line ending. A row is a row; `csvDocument` is what puts them in a file.
+ */
+export function csvRow(fields: readonly string[]): string {
+  return fields.map((field) => csvField(field)).join(CSV_SEPARATOR);
+}
