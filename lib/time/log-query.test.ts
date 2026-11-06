@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 
+import { searchParamsRecord } from "@/lib/projects/query";
+
 import { ANY_BILLING, CHARGEABLE_TIME, FREE_TIME } from "./billable";
 import {
   isFilteredLog,
   logEntryFilter,
   parseIdParam,
   parseTimeLogQuery,
+  TIME_EXPORT_PATH,
+  TIME_LOG_PATH,
+  timeLogExportHref,
   timeLogHref,
   UNFILTERED_LOG,
   withClient,
@@ -143,6 +148,50 @@ describe("timeLogHref", () => {
     expect(
       timeLogHref({ ...UNFILTERED_LOG, projectId: "prj a&b" }),
     ).toBe("/time/entries?project=prj+a%26b");
+  });
+});
+
+describe("timeLogExportHref", () => {
+  it("is the bare export path when nothing is filtered", () => {
+    expect(timeLogExportHref(UNFILTERED_LOG)).toBe("/time/entries/export");
+  });
+
+  it("carries the same filters as the page's own href", () => {
+    const query: TimeLogQuery = {
+      range: { from: "2026-10-01", to: "2026-10-31" },
+      projectId: "prj_abc",
+      clientId: "cli_xyz",
+      billable: FREE_TIME,
+    };
+
+    expect(timeLogExportHref(query)).toBe(
+      `${TIME_EXPORT_PATH}?${timeLogHref(query).split("?")[1]}`,
+    );
+  });
+
+  it("parses back to the query it was built from", () => {
+    const query: TimeLogQuery = {
+      range: { from: null, to: "2026-10-31" },
+      projectId: null,
+      clientId: "cli_xyz",
+      billable: CHARGEABLE_TIME,
+    };
+    const search = new URL(
+      timeLogExportHref(query),
+      "https://keel.test",
+    ).searchParams;
+
+    expect(parseTimeLogQuery(searchParamsRecord(search))).toEqual(query);
+  });
+
+  it("escapes an id that would otherwise break the URL", () => {
+    expect(timeLogExportHref({ ...UNFILTERED_LOG, projectId: "prj a&b" })).toBe(
+      "/time/entries/export?project=prj+a%26b",
+    );
+  });
+
+  it("sits under the log rather than beside it", () => {
+    expect(TIME_EXPORT_PATH.startsWith(`${TIME_LOG_PATH}/`)).toBe(true);
   });
 });
 
