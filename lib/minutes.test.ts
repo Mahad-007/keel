@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { formatMinutes, hoursInput, parseHours } from "./minutes";
+import {
+  decimalHours,
+  formatMinutes,
+  hoursInput,
+  parseHours,
+} from "./minutes";
 
 describe("formatMinutes", () => {
   it("writes under an hour as minutes alone", () => {
@@ -107,5 +112,32 @@ describe("hoursInput", () => {
 
   it("keeps a negative, which only a hand-edited row can hold", () => {
     expect(hoursInput(-90)).toBe("-1.5");
+  });
+});
+
+describe("decimalHours", () => {
+  it("writes a whole hour to two places", () => {
+    expect(decimalHours(60)).toBe("1.00");
+  });
+
+  it("writes a half hour as a half", () => {
+    expect(decimalHours(90)).toBe("1.50");
+  });
+
+  it("rounds a third of an hour to the places it has", () => {
+    expect(decimalHours(20)).toBe("0.33");
+  });
+
+  it("writes no time at all as zero", () => {
+    expect(decimalHours(0)).toBe("0.00");
+  });
+
+  it("keeps a long week in hours a reader recognises", () => {
+    expect(decimalHours(2415)).toBe("40.25");
+  });
+
+  it("is always two places wide, however round the figure", () => {
+    expect(decimalHours(120)).toBe("2.00");
+    expect(decimalHours(1)).toBe("0.02");
   });
 });

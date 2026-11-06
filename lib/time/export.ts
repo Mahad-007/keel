@@ -26,7 +26,7 @@
  */
 
 import { csvDocument } from "@/lib/csv";
-import { MINUTES_PER_HOUR } from "@/lib/minutes";
+import { decimalHours } from "@/lib/minutes";
 
 import { isBilled, isChargeable } from "./billing";
 import type { ListedTimeEntry } from "./entry";
@@ -83,24 +83,6 @@ export type ExportableEntry = Pick<
 };
 
 /**
- * Minutes as the decimal hours an invoice is written in: `90` becomes `1.50`.
- *
- * Two decimal places, because that is how an hourly figure is quoted and
- * multiplied — and because the column beside it holds the minutes exactly. A
- * twenty-minute entry exports as `0.33`, which is a third of an hour rounded,
- * and anyone adding the hours column of a long export will find it a few
- * minutes short of the minutes column. That is the trade: the Hours column is
- * for reading and for a rate, the Minutes column is for summing, and the
- * header says which is which.
- *
- * `toFixed` rather than `hoursInput`'s four places and trimmed zeros. That one
- * exists to round-trip through a form field; this one lines up in a column.
- */
-export function exportHours(minutes: number): string {
-  return (minutes / MINUTES_PER_HOUR).toFixed(2);
-}
-
-/**
  * A flag as a word: `Yes` or `No`.
  *
  * Not `TRUE`, which a spreadsheet turns into a boolean and will happily add
@@ -140,7 +122,7 @@ export function timeEntryExportRow(entry: ExportableEntry): string[] {
     entry.clientName,
     entry.projectName,
     String(entry.minutes),
-    exportHours(entry.minutes),
+    decimalHours(entry.minutes),
     exportFlag(isChargeable(entry)),
     exportFlag(isBilled(entry)),
     entry.note ?? "",

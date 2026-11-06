@@ -85,3 +85,24 @@ export function hoursInput(minutes: number): string {
   const hours = (minutes / MINUTES_PER_HOUR).toFixed(4);
   return hours.replace(/\.?0+$/, "");
 }
+
+/**
+ * Minutes as the decimal hours a spreadsheet column is written in: `90`
+ * becomes `1.50`, `20` becomes `0.33`.
+ *
+ * The third reading of a duration, and the three are deliberately different.
+ * `formatMinutes` is for a person reading a page — `1h 30m`. `hoursInput` is
+ * for a form field that has to round-trip — `1.5`, trailing zeros trimmed.
+ * This one is for a column of figures that gets multiplied by a rate: fixed
+ * two places so the decimal points line up, and always written out, so `2`
+ * hours and `2.5` hours are the same width.
+ *
+ * Two places is where an hourly figure is quoted, and it is lossy on purpose:
+ * twenty minutes is a third of an hour, so a long column of these adds up a
+ * few minutes short of the same column in minutes. That is why the exported
+ * figure is never the only one — the minutes go beside it, and they are the
+ * column to sum.
+ */
+export function decimalHours(minutes: number): string {
+  return (minutes / MINUTES_PER_HOUR).toFixed(2);
+}
