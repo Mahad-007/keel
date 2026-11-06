@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { downloadFilename } from "@/lib/csv";
+import { downloadFilename } from "@/lib/download";
 
 import {
   ANY_BILLING,

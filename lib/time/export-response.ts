@@ -8,11 +8,8 @@
  * actually receives is settled here.
  */
 
-import {
-  attachmentDisposition,
-  CSV_MEDIA_TYPE,
-  UTF8_BOM,
-} from "@/lib/csv";
+import { CSV_MEDIA_TYPE, UTF8_BOM } from "@/lib/csv";
+import { attachmentDisposition } from "@/lib/download";
 
 import { timeLogCsv, type ExportableEntry } from "./export";
 import { timeLogFilename } from "./export-name";
