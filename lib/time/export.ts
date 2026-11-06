@@ -29,6 +29,7 @@ import { csvDocument } from "@/lib/csv";
 import { MINUTES_PER_HOUR } from "@/lib/minutes";
 
 import { isBilled, isChargeable } from "./billing";
+import type { ListedTimeEntry } from "./entry";
 
 /**
  * The header row, which is also the order of every row under it.
@@ -59,20 +60,26 @@ export const TIME_EXPORT_COLUMNS = [
  * What exporting one entry needs of it, which is what the log's own query
  * already hands back.
  *
- * Written as the fields rather than as `TimeEntryWithNames` so the formatter
- * can be tested without building a joined row — and so that the day a column
- * is added to the table, nothing here changes unless the export wants it.
+ * Written as fields rather than as `TimeEntryWithNames` so the formatter can
+ * be tested without building a joined row — and so that the day a column is
+ * added to the table, nothing here changes unless the export wants it.
+ *
+ * The five columns of the entry itself are taken from `ListedTimeEntry` rather
+ * than restated, because they are the same five a row of the log reads and the
+ * same ones `isChargeable` and `isBilled` are asked about below. Two
+ * declarations of what a time entry is would compile happily while drifting:
+ * structural typing means the day Phase 6 adds a field to the billing rules,
+ * a copy here would simply not have it.
+ *
+ * The two names are not from that type, and could not be — they come off the
+ * joins, which is the whole reason a log across engagements needs them.
  */
-export type ExportableEntry = {
-  /** The calendar date the work was done on: `YYYY-MM-DD`. */
-  readonly workedOn: string;
+export type ExportableEntry = Pick<
+  ListedTimeEntry,
+  "workedOn" | "minutes" | "note" | "billable" | "billedInvoiceId"
+> & {
   readonly clientName: string;
   readonly projectName: string;
-  readonly minutes: number;
-  readonly billable: boolean;
-  readonly billedInvoiceId: string | null;
-  /** What was done, in a person's words, or null when they did not say. */
-  readonly note: string | null;
 };
 
 /**
@@ -156,7 +163,7 @@ export function timeEntryExportRow(entry: ExportableEntry): string[] {
 export function timeLogCsv(entries: readonly ExportableEntry[]): string {
   return csvDocument([
     TIME_EXPORT_COLUMNS,
-    ...entries.map((entry) => timeEntryExportRow(entry)),
+    ...entries.map(timeEntryExportRow),
   ]);
 }
 
