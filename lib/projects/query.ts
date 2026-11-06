@@ -154,23 +154,16 @@ export function withSortColumn(
  */
 export function searchParamsRecord(params: URLSearchParams): SearchParams {
   /*
-    No prototype, and own-property checks rather than `=== undefined`. The keys
-    are whatever is in the query string, and `{}` already answers to
-    `constructor` and `toString` — so `?constructor=a` would be read as a
-    repeated param and recorded as `[Object, "a"]`, and `?__proto__=x` would
-    replace the record's prototype instead of being recorded at all. Neither
-    is a param this app reads, which is exactly why it would sit here unnoticed
-    until one of them was.
+    No prototype on the record. The keys are whatever is in the query string,
+    and `{}` already answers to `constructor` and `toString` — so `?__proto__=x`
+    on a plain object would replace the record's prototype instead of being
+    recorded at all. Neither is a param this app reads, which is exactly why it
+    would sit here unnoticed until one of them was.
   */
   const record: Record<string, string | string[]> = Object.create(null);
-  params.forEach((value, key) => {
-    if (!Object.hasOwn(record, key)) {
-      record[key] = value;
-      return;
-    }
-    const seen = record[key];
-    if (Array.isArray(seen)) seen.push(value);
-    else record[key] = [seen, value];
-  });
+  for (const key of new Set(params.keys())) {
+    const values = params.getAll(key);
+    record[key] = values.length === 1 ? values[0] : values;
+  }
   return record;
 }
