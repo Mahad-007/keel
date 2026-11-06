@@ -135,3 +135,30 @@ export function withSortColumn(
 ): ProjectsQuery {
   return { ...query, sort: sortByColumn(query.sort, column) };
 }
+
+/**
+ * A URL's query string as the record Next hands a page.
+ *
+ * A route handler is given a `Request` rather than parsed params, so the CSV
+ * export has a `URLSearchParams` where the log page has a record. Converting
+ * is what lets both of them read their filters through the same parser —
+ * otherwise the export grows a second reading of `?from=`, and the file a
+ * reader downloads can quietly cover a different stretch of days from the page
+ * they downloaded it from.
+ *
+ * A repeated param comes back as an array in the order it appeared, which is
+ * the shape Next produces and what `firstParam` already knows how to narrow.
+ * `Object.fromEntries` would be shorter and keeps the *last* value of a
+ * repeated param, so `?project=a&project=b` would filter on `b` here and on
+ * `a` on the page.
+ */
+export function searchParamsRecord(params: URLSearchParams): SearchParams {
+  const record: Record<string, string | string[]> = {};
+  params.forEach((value, key) => {
+    const seen = record[key];
+    if (seen === undefined) record[key] = value;
+    else if (Array.isArray(seen)) seen.push(value);
+    else record[key] = [seen, value];
+  });
+  return record;
+}
