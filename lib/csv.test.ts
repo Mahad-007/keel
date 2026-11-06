@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { csvField, needsCsvQuoting, startsCsvFormula } from "./csv";
+import {
+  csvField,
+  csvRow,
+  needsCsvQuoting,
+  startsCsvFormula,
+} from "./csv";
 
 describe("needsCsvQuoting", () => {
   it("leaves ordinary text unquoted", () => {
@@ -116,5 +121,35 @@ describe("csvField with a formula in it", () => {
 
   it("still quotes a carriage return the prefix pushed along", () => {
     expect(csvField("\r=cmd")).toBe("\"'\r=cmd\"");
+  });
+});
+
+describe("csvRow", () => {
+  it("joins the fields with commas", () => {
+    expect(csvRow(["2026-10-16", "Harbour Co", "90"])).toBe(
+      "2026-10-16,Harbour Co,90",
+    );
+  });
+
+  it("escapes each field as it goes", () => {
+    expect(csvRow(["Harbour Co, Ltd", 'the "rebuild"'])).toBe(
+      '"Harbour Co, Ltd","the ""rebuild"""',
+    );
+  });
+
+  it("writes an empty field as nothing between two commas", () => {
+    expect(csvRow(["90", "", "Yes"])).toBe("90,,Yes");
+  });
+
+  it("writes a row of one field as that field", () => {
+    expect(csvRow(["Note"])).toBe("Note");
+  });
+
+  it("writes a row of no fields as an empty line", () => {
+    expect(csvRow([])).toBe("");
+  });
+
+  it("does not end the row", () => {
+    expect(csvRow(["90"])).toBe("90");
   });
 });
