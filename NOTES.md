@@ -581,3 +581,57 @@ redundant — but how reliably it does so varies by reader and by mode, and
 trading a sentence that is certainly complete for one that depends on the
 headers being announced is not a trade to make blind. Worth revisiting the
 first time this is heard on a real screen reader.
+
+## Day 029 ran twice, for the reason Days 013, 020, 025 and 026 did
+
+Day 029 — the CSV export of the filtered time log — was built on 2026-11-06 in
+47 commits (`5776f24..6afa35a`). That run ended before the workflow ticked the
+box, so 2026-11-07 picked Day 029 again and found the milestone delivered and
+`npm run verify` green: `lib/csv.ts` escaping the format, `lib/time/export.ts`
+laying out the columns, `lib/download.ts` holding the filename to an allowlist,
+`lib/time/export-response.ts` assembling the response, and
+`app/time/entries/export/route.ts` answering with the file.
+
+So 2026-11-07 audited rather than rebuilt, as the earlier repeats did. It is
+short on purpose and nothing is missing.
+
+## What the Day 029 audit changed
+
+Review found one thing, and it was in the link rather than the file:
+
+- `ExportLink`'s `aria-label` **replaced** the visible "Export CSV" with
+  "Export these 24 entries as CSV" instead of extending it. That fails WCAG
+  2.5.3 in the way that actually bites: somebody driving the page by voice says
+  the words they can see and nothing happens, because the name the browser
+  matches against no longer contains them. `exportLinkName` now writes the
+  label first — `Export CSV, these 24 entries` — which is the order
+  `submitAriaLabel` already uses for the same reason, and the component takes
+  its visible text from the same `EXPORT_LINK_LABEL` so the two cannot drift
+  apart again. An empty log gets `undefined` rather than a sentence, so the
+  link falls back to its visible text; the page does not render it at all
+  there.
+
+Two gaps in the end-to-end test, both about the file disagreeing with the page
+it was exported from:
+
+- The integration test read a real file back for the client, range and billing
+  filters but never for the **project** filter, which is the one a reader
+  reaches the export through from a project's time tab. A dropped `project`
+  param would have handed over a wider ledger than the page showed, silently.
+- `exportLog` handed `parseTimeLogQuery` a record of params directly, skipping
+  `searchParamsRecord` — the one step between the URL a browser sends and the
+  filters the page reads. The export was tested against every shape of params
+  except the real one. It now starts from a query string, which also makes room
+  for the case that motivated the null-prototype record: `?project=a&project=b`
+  has to narrow the file to `a`, the way `firstParam` narrows the page.
+
+The security pass found nothing above its confidence bar. The two controls it
+traced in full are worth naming, because they are the ones a later export —
+Day 073's invoice CSV, Day 118's JSON dump — will be tempted to re-implement:
+`downloadFilename`'s allowlist makes a quote, a semicolon or a CRLF
+unrepresentable in `Content-Disposition` rather than merely unlikely, and
+`csvField` applies the formula guard to every column before deciding on quotes,
+so a note is text in a spreadsheet whatever it starts with. Both are defence in
+depth — `parseRangeEnd` and `parseBillableFilter` have already closed the
+filename's inputs to dates and three literals — and neither is load-bearing
+alone.
