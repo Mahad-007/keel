@@ -149,26 +149,35 @@ export function timeLogCsv(entries: readonly ExportableEntry[]): string {
   ]);
 }
 
+/** The words on the export link, which every reading of it starts with. */
+export const EXPORT_LINK_LABEL = "Export CSV";
+
 /**
  * What the export link is called when it is read aloud rather than looked at.
  *
- * The visible words are "Export CSV", which is all the room there is in a row
- * of header links and all a reader scanning the page needs. The accessible
- * name says how much is in it, because that is the question the link actually
- * raises: a reader who has set four filters is about to download something,
- * and "these 24 entries" is the confirmation that the filters are what the
- * file will hold.
+ * The visible words are the label above, which is all the room there is in a
+ * row of header links and all a reader scanning the page needs. The accessible
+ * name adds how much is in the file, because that is the question the link
+ * actually raises: a reader who has set four filters is about to download
+ * something, and "these 24 entries" is the confirmation that the filters are
+ * what the file will hold.
+ *
+ * It *adds* rather than replaces, and the order is not a style choice. An
+ * accessible name that dropped the visible words would leave somebody driving
+ * the page by voice saying "Export CSV" at a link of that name and having
+ * nothing happen — the same reason `submitAriaLabel` writes the label before
+ * the row's subject.
  *
  * The count rather than the hours: it is the number of rows the file will
  * have, and the figures are already in the line above it.
  *
- * A log with nothing in it gets a sentence it can live without, because the
- * page does not offer the link at all — an export of no rows is a header row,
- * and a reader who downloads one learns nothing the empty page has not
- * already said.
+ * Undefined when there is nothing to export, so the link falls back to its
+ * visible text — the page does not offer the link at all in that case, and a
+ * name describing a file of no rows would be inventing a reading of a control
+ * nobody is given.
  */
-export function exportLinkName(entries: number): string {
-  if (entries === 0) return "Export this log as CSV";
+export function exportLinkName(entries: number): string | undefined {
+  if (entries === 0) return undefined;
   const rows = entries === 1 ? "this one entry" : `these ${entries} entries`;
-  return `Export ${rows} as CSV`;
+  return `${EXPORT_LINK_LABEL}, ${rows}`;
 }

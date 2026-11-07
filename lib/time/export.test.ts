@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  EXPORT_LINK_LABEL,
   exportFlag,
   exportLinkName,
   TIME_EXPORT_COLUMNS,
@@ -154,14 +155,22 @@ describe("timeLogCsv", () => {
 
 describe("exportLinkName", () => {
   it("says how many rows the file will hold", () => {
-    expect(exportLinkName(24)).toBe("Export these 24 entries as CSV");
+    expect(exportLinkName(24)).toBe("Export CSV, these 24 entries");
   });
 
   it("does not say one entries", () => {
-    expect(exportLinkName(1)).toBe("Export this one entry as CSV");
+    expect(exportLinkName(1)).toBe("Export CSV, this one entry");
   });
 
-  it("has something to say about a log the page will not offer", () => {
-    expect(exportLinkName(0)).toBe("Export this log as CSV");
+  it("starts with the words on the link, so voice control reaches it", () => {
+    for (const count of [1, 2, 24]) {
+      expect(exportLinkName(count)).toMatch(
+        new RegExp(`^${EXPORT_LINK_LABEL}`),
+      );
+    }
+  });
+
+  it("leaves a log the page will not offer to its visible text", () => {
+    expect(exportLinkName(0)).toBeUndefined();
   });
 });
