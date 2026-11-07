@@ -1,4 +1,4 @@
-import { exportLinkName } from "@/lib/time/export";
+import { EXPORT_LINK_LABEL, exportLinkName } from "@/lib/time/export";
 import { timeLogExportHref, type TimeLogQuery } from "@/lib/time/log-query";
 
 /**
@@ -13,6 +13,9 @@ import { timeLogExportHref, type TimeLogQuery } from "@/lib/time/log-query";
  * No `download` attribute either. The response says `Content-Disposition:
  * attachment`, which is the server making the decision for every way of
  * reaching the URL rather than only for presses on this link.
+ *
+ * The visible words come from the same constant the accessible name is built
+ * from, so the name cannot stop beginning with what the link says.
  *
  * It sits in the header beside the way back out of the filters, because that
  * is where a reader looks once the list says what they wanted it to say.
@@ -32,7 +35,7 @@ export function ExportLink({
       aria-label={exportLinkName(entries)}
       className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
     >
-      Export CSV
+      {EXPORT_LINK_LABEL}
     </a>
   );
 }
