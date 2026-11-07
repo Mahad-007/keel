@@ -177,6 +177,16 @@ describe("the time log export", () => {
     expect(body[0][2]).toBe("Brand, refreshed");
   });
 
+  it("exports one project's time and nothing from its neighbours", async () => {
+    const { body } = await exportLog({ project: siteId });
+
+    expect(body).toHaveLength(2);
+    expect(body.map((row) => row[2])).toEqual([
+      "Site rebuild",
+      "Site rebuild",
+    ]);
+  });
+
   it("exports the rows the date range admits, newest first", async () => {
     const { body } = await exportLog({ from: "2026-10-01", to: "2026-10-31" });
 
