@@ -9,9 +9,15 @@ import {
 } from "@/lib/data/time-entries";
 import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
+import { searchParamsRecord } from "@/lib/projects/query";
+
 import { TIME_EXPORT_COLUMNS } from "./export";
 import { timeLogCsvResponse } from "./export-response";
-import { logEntryFilter, parseTimeLogQuery } from "./log-query";
+import {
+  logEntryFilter,
+  parseTimeLogQuery,
+  TIME_EXPORT_PATH,
+} from "./log-query";
 
 /**
  * The export from one end to the other: a query string, two tables, and the
@@ -86,9 +92,18 @@ let siteId: string;
 let pellId: string;
 let brandId: string;
 
-/** The route's own three lines, against the test database. */
-async function exportLog(params: Record<string, string>) {
-  const query = parseTimeLogQuery(params);
+/**
+ * The route's own three lines, against the test database.
+ *
+ * It starts from a query string rather than from a record of params, because
+ * that is what the route starts from: a reader arrives with a URL, and
+ * `searchParamsRecord` is the step that turns it into what the page's parser
+ * reads. Handing the parser a record directly would test the export against
+ * every URL except the one shape a browser sends.
+ */
+async function exportLog(search: string) {
+  const url = new URL(`https://keel.test${TIME_EXPORT_PATH}?${search}`);
+  const query = parseTimeLogQuery(searchParamsRecord(url.searchParams));
   const entries = await listFilteredTimeEntries(logEntryFilter(query), db);
   const response = timeLogCsvResponse(entries, query);
   const rows = readCsv(await response.text());
@@ -143,14 +158,14 @@ beforeEach(async () => {
 
 describe("the time log export", () => {
   it("writes the header row and one row per entry", async () => {
-    const { header, body } = await exportLog({});
+    const { header, body } = await exportLog("");
 
     expect(header).toEqual([...TIME_EXPORT_COLUMNS]);
     expect(body).toHaveLength(3);
   });
 
   it("gives every row the columns the header promises", async () => {
-    const { body } = await exportLog({});
+    const { body } = await exportLog("");
 
     for (const row of body) {
       expect(row).toHaveLength(TIME_EXPORT_COLUMNS.length);
@@ -158,27 +173,27 @@ describe("the time log export", () => {
   });
 
   it("reads a note's comma and quotes back exactly as typed", async () => {
-    const { body } = await exportLog({ from: "2026-10-16" });
+    const { body } = await exportLog("from=2026-10-16");
 
     expect(body[0].at(-1)).toBe('Two calls, and the "rebuild" brief');
   });
 
   it("reads a note's line break back without splitting the row", async () => {
-    const { body } = await exportLog({ to: "2026-10-02", from: "2026-10-02" });
+    const { body } = await exportLog("to=2026-10-02&from=2026-10-02");
 
     expect(body).toHaveLength(1);
     expect(body[0].at(-1)).toBe("Fixed the header\nand the footer");
   });
 
   it("reads a client's own comma back as one field", async () => {
-    const { body } = await exportLog({ client: pellId });
+    const { body } = await exportLog(`client=${pellId}`);
 
     expect(body[0][1]).toBe("Pell & Sons, Ltd");
     expect(body[0][2]).toBe("Brand, refreshed");
   });
 
   it("exports one project's time and nothing from its neighbours", async () => {
-    const { body } = await exportLog({ project: siteId });
+    const { body } = await exportLog(`project=${siteId}`);
 
     expect(body).toHaveLength(2);
     expect(body.map((row) => row[2])).toEqual([
@@ -188,31 +203,27 @@ describe("the time log export", () => {
   });
 
   it("exports the rows the date range admits, newest first", async () => {
-    const { body } = await exportLog({ from: "2026-10-01", to: "2026-10-31" });
+    const { body } = await exportLog("from=2026-10-01&to=2026-10-31");
 
     expect(body.map((row) => row[0])).toEqual(["2026-10-16", "2026-10-02"]);
   });
 
   it("exports one client's time and names the file after the days", async () => {
-    const { body, filename } = await exportLog({
-      client: harbourId,
-      from: "2026-10-01",
-      to: "2026-10-31",
-    });
+    const { body, filename } = await exportLog(`client=${harbourId}&from=2026-10-01&to=2026-10-31`);
 
     expect(body).toHaveLength(2);
     expect(filename).toContain("keel-time-2026-10-01-to-2026-10-31.csv");
   });
 
   it("exports only chargeable time when that is the filter", async () => {
-    const { body, filename } = await exportLog({ billable: "chargeable" });
+    const { body, filename } = await exportLog("billable=chargeable");
 
     expect(body.map((row) => row[5])).toEqual(["Yes", "Yes"]);
     expect(filename).toContain("chargeable.csv");
   });
 
   it("exports the time given away when that is the filter", async () => {
-    const { body } = await exportLog({ billable: "free" });
+    const { body } = await exportLog("billable=free");
 
     expect(body).toHaveLength(1);
     expect(body[0][3]).toBe("30");
@@ -220,30 +231,27 @@ describe("the time log export", () => {
   });
 
   it("says in the row that an invoice has the time", async () => {
-    const { body } = await exportLog({ project: brandId });
+    const { body } = await exportLog(`project=${brandId}`);
 
     expect(body[0][6]).toBe("Yes");
     expect(body[0].join(",")).not.toContain("inv_001");
   });
 
   it("writes minutes and hours of the same duration", async () => {
-    const { body } = await exportLog({ from: "2026-10-16" });
+    const { body } = await exportLog("from=2026-10-16");
 
     expect(body[0][3]).toBe("90");
     expect(body[0][4]).toBe("1.50");
   });
 
   it("leaves the note cell empty for an entry without one", async () => {
-    const { body } = await exportLog({ project: brandId });
+    const { body } = await exportLog(`project=${brandId}`);
 
     expect(body[0].at(-1)).toBe("");
   });
 
   it("answers a filter that matched nothing with the header alone", async () => {
-    const { header, body } = await exportLog({
-      from: "2027-01-01",
-      to: "2027-01-31",
-    });
+    const { header, body } = await exportLog("from=2027-01-01&to=2027-01-31");
 
     expect(header).toEqual([...TIME_EXPORT_COLUMNS]);
     expect(body).toHaveLength(0);
