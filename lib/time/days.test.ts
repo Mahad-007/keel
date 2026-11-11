@@ -344,3 +344,11 @@ describe("the line above a time list", () => {
     expect(describeTimeList(days, 0)).toContain("1h 30m in total");
   });
 });
+
+describe("what the minutes sum will accept", () => {
+  it("adds up rows carrying nothing but minutes", () => {
+    // The billable flag is read by `billableMinutes` before it filters, never
+    // by the addition, so a caller with hours to add need not invent one.
+    expect(totalMinutes([{ minutes: 90 }, { minutes: 45 }])).toBe(135);
+  });
+});
