@@ -340,7 +340,7 @@ export function describeProblem(
 ): string {
   switch (problem.reason) {
     case "negative":
-      return `This records ${formatMinutes(entry.minutes)}, which takes time off every total this project appears in rather than adding to it. No form here accepts a duration below zero, so the row was written straight to the database.`;
+      return `This records ${formatMinutes(entry.minutes)}, which takes time off every total it appears in rather than adding to it. No form here accepts a duration below zero, so the row was written straight to the database.`;
     case "overlong":
       return `${formatMinutes(entry.minutes)} as one stretch is past the ${IMPLAUSIBLE_ENTRY_HOURS} hours a working day plausibly runs to. It may be right — a launch night, a shoot, a deadline — but it is also what a duration typed in the wrong unit looks like, and that is sixty times too big in every figure this time feeds.`;
     case "overlapping":

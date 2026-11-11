@@ -297,6 +297,9 @@ describe("why one entry is flagged, in a sentence", () => {
     });
     expect(said).toContain("-1h");
     expect(said).toContain("written straight to the database");
+    // Not "this project": the same sentence is read on the cross-project log,
+    // where the row names its own engagement beside it.
+    expect(said).not.toContain("this project");
   });
 
   it("names the stretch and the threshold it passed", () => {
