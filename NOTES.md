@@ -635,3 +635,139 @@ so a note is text in a spreadsheet whatever it starts with. Both are defence in
 depth — `parseRangeEnd` and `parseBillableFilter` have already closed the
 filename's inputs to dates and three literals — and neither is load-bearing
 alone.
+
+## What "overlapping" can mean, given what a time entry holds
+
+Day 030 was asked to flag entries that look implausible — "over 12h,
+overlapping, negative". Two of those three are properties of one row. The
+third is not available: `time_entries` holds a calendar day and a duration and
+**no time of day**, deliberately (`lib/db/schema.ts` says why), so no pair of
+entries in this database can be shown to overlap. Two hours on Tuesday and
+three hours on Tuesday are compatible with any arrangement of the day.
+
+What *is* available is the day's capacity. A day with more minutes logged
+against it than a day has cannot have happened as written, whichever of the
+entries on it is the wrong one — so that is what the flag is, and the sentence
+says exactly that rather than naming a pair: "The entries shown for Oct 19,
+2026 come to 25h, which is more than one day holds — so some of them must cover
+the same hours."
+
+It also means the check is only as strong as the list it is given, which is why
+`dayTotals` is documented as the caller's day rather than the calendar's. On a
+project's own time list it is that project's hours, and it takes two
+thirteen-hour entries on one project to trip. On `/time/entries` it is every
+engagement somebody touched, so 8h + 8h + 10h across three projects is caught
+there and nowhere else. Both pages flag; only the project page can offer the
+fix, because correcting an entry means picking a line of *that* project's
+scope and a log row would need four scope lists to render one picker.
+
+If a later milestone gives an entry a start time — nothing on the roadmap
+asks for one — this becomes a real interval overlap and the day-capacity check
+stays as the weaker claim underneath it.
+
+## Why twelve hours flags and twenty-four refuses
+
+`MAX_ENTRY_MINUTES` is twenty-four hours and the log form refuses past it. That
+is arithmetic: an entry is a stretch of work on one calendar day. Twelve hours
+is a judgement about how long a person works, and people do work longer —
+a launch night, a shoot, a deadline — so refusing it would be a tool arguing
+with somebody who was there. The whole module flags and nothing in it stops a
+write, and the count above each list says so in as many words: the flagged
+hours are logged and counted like any others, so the figures above include
+them. A reader who assumed otherwise would read every burn figure on the page
+as though the questionable hours were not in them.
+
+## Why the fix is a prefilled editor rather than a one-press write
+
+"Offer a fix" could have been a button that writes the corrected figure. It is
+instead a button that opens the existing editor with the figure already in the
+duration box, for three reasons that each cost nothing:
+
+- The write is `writeTimeEntryEdit`, unchanged. No second endpoint, no second
+  set of refusals, no second place that can disagree with `parseLogTimeForm`
+  about what a duration is. The day's diff contains no `"use server"` at all.
+- The suggestion is a *guess*. The reader sees the day, the note and the
+  attribution before committing it, and can type what the afternoon really was
+  instead — which is the only honest thing to offer, since the guess is wrong
+  whenever the long stretch was real.
+- Nothing had to be built to announce it. A one-press correction unmounts its
+  own button on success (the flag it was offered for is gone), which is the
+  focus-and-live-region bug the Day 025 audit catalogued five times over.
+
+Two consequences worth knowing. `RowMode` gained a third value, `correct`,
+because the two openings of one form differ in what the boxes start with and a
+reader who presses Edit must find the row exactly as it reads — a prefill that
+rewrote the duration under somebody correcting a note is the one thing an edit
+form must never do. And `closeRow` sends the cursor to the row's Edit button
+rather than back to the offer when a correction *lands*, because by then the
+caveat the offer sat under has gone with the flag.
+
+## The encrypted-capture counts, corrected again at Day 030
+
+Day 025 wrote down **sixteen** captures and **seventeen** references, and said
+the gap between them was the thing to watch rather than either number. That
+reading has stopped working, and not because anything regressed:
+
+```
+rm -rf .next && npm run build
+grep -rho 'encryptActionBoundArgs)("[0-9a-f]*"' .next/server/chunks/ssr/*.js | wc -l   # 17
+python3 -c "import json,collections;m=json.load(open('.next/server/server-reference-manifest.json'));c=collections.Counter();[c.update(v['workers']) for v in m['node'].values()];print(sorted(c.items()))"
+```
+
+Seventeen captures and seventeen references for `app/projects/[id]/page` — but
+the capture grep counts every page's chunks, and the project page is no longer
+the only page with a closure. Day 027 put one in `app/time/page`, which is the
+seventeenth capture. So the project page still has sixteen closures and
+seventeen references, the extra one still being Day 010's bare
+`transitionProjectAction`, and the gap is still one.
+
+**Read the gap per page, not in total.** The reference manifest can be split by
+worker, which the command above does; the capture grep cannot be, so a day that
+adds a closure anywhere moves it. A second bare export on the project page
+would take its own gap to two, and that is the thing the check is for.
+
+### What the hand security pass covered
+
+The skill could not run, for the Day 023 reason: it diffs against
+`origin/HEAD`, which this checkout does not set. The pass was done over the
+day's surface, which is narrow by construction:
+
+- **No new write and no new endpoint.** The correction press calls `openRow` in
+  the browser and nothing else; the save is the existing closure in
+  `time-list.tsx`, with the project and the offered scope list captured
+  encrypted.
+- **The prefilled duration is not trusted.** It is produced in the browser, so
+  it arrives as an ordinary form field and goes through `loggedMinutes` like
+  anything typed — bounded at a minute and a day, with the negative and the
+  zero refused. Nothing server-side reads `suggestedMinutes`.
+- **Detection is read-only.** No query was added. It runs over rows each page
+  had already read, and no new column crosses to the client: `time-rows.tsx`
+  was already given `minutes` and `workedOn`.
+- **The sentences are built from integers and a validated date.** The one that
+  embeds free text is `correctTimeLabel`, which carries `entryName` — including
+  the note — into an `aria-label`, where JSX escapes it exactly as it already
+  escapes the note in the row above.
+- **Nothing here is quadratic.** `flagImplausibleEntries` totals the days in
+  one pass and then walks the entries once.
+
+As everywhere else, all of this says which page made the call and not who was
+holding it. Phase 8 answers the second question from the session.
+
+### Left alone deliberately
+
+- **The weekly timesheet does not flag.** `/time` is a grid of per-project
+  cells with a column total per day, and a day over twenty-four hours is
+  already visible there as a figure a reader can add up — but the cell is
+  several entries at once, so a caveat in it could not say which. Flagging it
+  properly means deciding what a flagged *cell* is, and Day 027's editor lives
+  in exactly those cells. It belongs to a day that has a reason to touch them.
+- **A long stretch with minutes on the end gets no offer.** `13h` is `13m`
+  with the unit slipped; `13h 10m` is not, because nothing in the slip would
+  have produced the ten minutes. So the guess is narrower than the flag that
+  raises it, and those rows get the caveat and the Edit button. Widening it
+  would mean inventing a figure the reader did not type.
+- **The export does not carry the flags.** `lib/time/export.ts` lays out the
+  columns a spreadsheet gets, and a "looks wrong" column would be this app's
+  opinion travelling into somebody else's workbook with no sentence beside it
+  to say the hours are still counted. Day 073's invoice CSV is where a second
+  export is designed; if a flag belongs in a file it belongs there too.
