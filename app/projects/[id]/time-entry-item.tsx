@@ -8,7 +8,13 @@ import {
   type EntryAttribution,
   type ListedTimeEntry,
 } from "@/lib/time/entry";
+import {
+  IMPLAUSIBLE_MARK,
+  NO_PROBLEMS,
+  type EntryProblem,
+} from "@/lib/time/implausible";
 
+import { TimeEntryCaveat } from "./time-caveat";
 import { TimeRow } from "./time-row";
 
 /**
@@ -32,12 +38,26 @@ import { TimeRow } from "./time-row";
 export function TimeEntryItem({
   entry,
   where,
+  problems = NO_PROBLEMS,
+  offer,
   controls,
   prompt,
 }: {
   entry: ListedTimeEntry;
   /** Where the work went, resolved against the scope list the page read. */
   where: EntryAttribution;
+  /**
+   * What looks implausible about this entry, which is nothing for nearly every
+   * row. Given one, the row carries a mark and the sentences go underneath it.
+   */
+  problems?: readonly EntryProblem[];
+  /**
+   * The press offering a corrected figure, where there is one worth offering.
+   * It sits with the caveats rather than with the controls: it is an answer to
+   * what they say, and a reader who has not read them has no reason to press
+   * it.
+   */
+  offer?: ReactNode;
   /**
    * What can be done to this entry — omitted where a time list is being read
    * rather than worked on, and on a row an invoice has billed.
@@ -51,7 +71,14 @@ export function TimeEntryItem({
    */
   prompt?: ReactNode;
 }) {
+  /*
+    The flag goes last among the marks, after the two about what the time is
+    worth. Those are facts about the entry that were decided when it was
+    logged; this is a reading of it made by the page, and it is the one with a
+    sentence underneath explaining itself.
+  */
   const marks = entryMarks(entry);
+  if (problems.length > 0) marks.push(IMPLAUSIBLE_MARK);
 
   return (
     <TimeRow>
@@ -103,6 +130,12 @@ export function TimeEntryItem({
         which is why the note block keeps the whole width it can get.
       */}
       {controls}
+      {/*
+        Full width, under the row and above any question being asked about it:
+        a reader deciding whether to delete an entry should have read why it
+        was flagged first.
+      */}
+      <TimeEntryCaveat entry={entry} problems={problems} offer={offer} />
       {prompt}
     </TimeRow>
   );
