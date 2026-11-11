@@ -112,10 +112,10 @@ describe("applying the offered correction", () => {
     );
   });
 
-  it("can leave a day's own flag standing after one row is corrected", async () => {
-    // Two thirteen-hour entries on one day: correcting one clears both the
-    // overlong flag on it and the overlap the pair caused, because the day no
-    // longer adds up to more than a day.
+  it("clears a day's overlap along with the row that caused it", async () => {
+    // Two thirteen-hour entries overfill one day. Correcting either takes the
+    // day back under twenty-four hours, so the entry left behind keeps its own
+    // flag and loses the one it only had through its neighbour.
     await createTimeEntry(
       { projectId, minutes: 13 * 60, workedOn: "2026-10-17" },
       db,
@@ -132,5 +132,43 @@ describe("applying the offered correction", () => {
     );
     expect(flagged).toHaveLength(1);
     expect(flagged[0].problems).toEqual([{ reason: "overlong" }]);
+  });
+
+  it("leaves a day's own flag standing when one fix is not enough", async () => {
+    // Three thirteen-hour entries. Correcting one leaves 26h on the day, so
+    // every entry on it stays flagged for the overlap — including the one just
+    // corrected, which is now thirteen honest minutes on an impossible day.
+    // That is the reason the offer is per entry and the day's flag is not.
+    await createTimeEntry(
+      { projectId, minutes: 13 * 60, workedOn: "2026-10-17" },
+      db,
+    );
+    await createTimeEntry(
+      { projectId, minutes: 13 * 60, workedOn: "2026-10-17" },
+      db,
+    );
+    const third = await createTimeEntry(
+      { projectId, minutes: 13 * 60, workedOn: "2026-10-17" },
+      db,
+    );
+
+    const corrected = await applyTheOffer(third.id);
+
+    const flagged = flagImplausibleEntries(
+      await listTimeEntries(projectId, db),
+    );
+    expect(flagged).toHaveLength(3);
+    expect(
+      flagged.every(({ problems }) =>
+        problems.some((problem) => problem.reason === "overlapping"),
+      ),
+    ).toBe(true);
+
+    const [stillFlagged] = flagged.filter(
+      ({ entry }) => entry.id === corrected.id,
+    );
+    expect(stillFlagged.problems).toEqual([
+      { reason: "overlapping", dayMinutes: 26 * 60 + 13 },
+    ]);
   });
 });
