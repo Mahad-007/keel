@@ -2,7 +2,7 @@ import { initialFormState } from "@/lib/forms/state";
 import { formatMinutes, MINUTES_PER_HOUR } from "@/lib/minutes";
 
 import { timeEntryFormFields, type EditTimeState } from "./edit";
-import type { ListedTimeEntry } from "./entry";
+import { canChangeEntry, type ListedTimeEntry } from "./entry";
 import type { LogTimeFormFields } from "./form";
 import {
   negativeEntry,
@@ -188,4 +188,23 @@ export function describeOpenedCorrection(
   minutes: number,
 ): string {
   return `The duration box holds ${formatMinutes(minutes)} rather than the ${formatMinutes(storedMinutes)} on the record — the figure this entry most likely should have been. Save to apply it, type what it really was if this guess is wrong, or cancel to leave the entry as it stands.`;
+}
+
+/**
+ * The correction a row actually gets offered, which is the guess above and one
+ * more condition: the entry has to be one this list can still change.
+ *
+ * A billed entry keeps its caveat and loses its offer, the same rule its Edit
+ * and Delete buttons follow. Offering a press that the write will refuse is
+ * worse than offering nothing — the caveat is still true and still worth
+ * reading, and the note under the list already explains why the row has no
+ * controls.
+ *
+ * Asked as one question so a row does not have to remember to ask two, and so
+ * the answer is the figure the button needs rather than a flag it would then
+ * have to look the figure up for.
+ */
+export function offeredCorrection(entry: ListedTimeEntry): number | null {
+  if (!canChangeEntry(entry)) return null;
+  return suggestedMinutes(entry);
 }
