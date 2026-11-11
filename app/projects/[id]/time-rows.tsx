@@ -27,7 +27,10 @@ import {
   type AttributableDeliverable,
 } from "@/lib/time/attribution";
 import { isChargeable } from "@/lib/time/billing";
-import { correctTimeButtonId } from "@/lib/time/correct";
+import {
+  correctTimeButtonId,
+  offeredCorrection,
+} from "@/lib/time/correct";
 import { describeTimeList, groupTimeByDay, totalMinutes } from "@/lib/time/days";
 import {
   EDIT_TIME_STILL_SAVING,
@@ -47,6 +50,8 @@ import {
 import {
   describeImplausibleEntries,
   flagImplausibleEntries,
+  NO_PROBLEMS,
+  problemsByEntry,
 } from "@/lib/time/implausible";
 import {
   DELETE_TIME_NO_ANSWER,
@@ -59,6 +64,7 @@ import {
   type TimeWriteResult,
 } from "@/lib/time/remove";
 
+import { CorrectTimeOffer } from "./correct-time-offer";
 import { DeleteTimePrompt } from "./delete-time-prompt";
 import { EditTimeForm } from "./edit-time-form";
 import { TimeDayGroup } from "./time-day";
@@ -294,6 +300,7 @@ export function TimeRows({
     row goes rather than a round trip later.
   */
   const flagged = flagImplausibleEntries(rows);
+  const problems = problemsByEntry(flagged);
 
   /** One entry named the way its controls and its confirmations name it. */
   function named(entry: ListedTimeEntry): string {
@@ -592,21 +599,41 @@ export function TimeRows({
       )}
       {days.map((day) => (
         <TimeDayGroup key={day.workedOn} day={day}>
-          {day.entries.map((entry) =>
-            rowMode(open, entry.id) === "edit" ? (
+          {day.entries.map((entry) => {
+            const mode = rowMode(open, entry.id);
+            /*
+              The figure this row would be offered, which is also what the
+              editor opens holding once the offer has been pressed. Asked once
+              per row rather than in both places, so the button cannot name a
+              duration the form then does not use.
+            */
+            const suggested = offeredCorrection(entry);
+
+            return mode !== null && editsRow(mode) ? (
               /*
                 The editor replaces the row rather than appearing beside it. A
                 row showing both would be the same five values twice over, and
                 the reader would have to work out which copy they are changing.
               */
               <TimeRow key={entry.id} align="start">
+                {/*
+                  Keyed on the opening rather than on the row. `useActionState`
+                  reads its initial state once, so a form that stayed mounted
+                  while the mode changed under it would keep the boxes it
+                  started with — nothing on the page can do that today, since
+                  the offer and the Edit button are both replaced by the form
+                  they open, and a key costs nothing against the day one of
+                  them is not.
+                */}
                 <EditTimeForm
+                  key={mode}
                   entry={entry}
                   name={named(entry)}
                   options={editAttributionOptions(entry, options)}
+                  suggestedMinutes={mode === "correct" ? suggested : null}
                   save={save}
-                  onSaved={(notice) => closeRow(entry.id, "edit", notice)}
-                  onCancel={() => closeRow(entry.id, "edit", null)}
+                  onSaved={(notice) => closeRow(entry.id, mode, notice)}
+                  onCancel={() => closeRow(entry.id, mode, null)}
                 />
               </TimeRow>
             ) : (
@@ -614,6 +641,23 @@ export function TimeRows({
                 key={entry.id}
                 entry={entry}
                 where={entryAttribution(entry, deliverables)}
+                problems={problems.get(entry.id) ?? NO_PROBLEMS}
+                offer={
+                  /*
+                    Only where there is a figure worth offering: an overfull
+                    day says nothing about which of its entries is wrong, and a
+                    billed row has no press that could succeed. Both keep their
+                    caveat, which is the part that was worth saying.
+                  */
+                  suggested === null ? undefined : (
+                    <CorrectTimeOffer
+                      id={entry.id}
+                      name={named(entry)}
+                      minutes={suggested}
+                      onCorrect={() => openRow(entry.id, "correct")}
+                    />
+                  )
+                }
                 controls={
                   /*
                     A billed row has no controls at all rather than controls
@@ -632,7 +676,7 @@ export function TimeRows({
                   ) : null
                 }
                 prompt={
-                  rowMode(open, entry.id) === "confirm" ? (
+                  mode === "confirm" ? (
                     <DeleteTimePrompt
                       id={entry.id}
                       name={named(entry)}
@@ -643,8 +687,8 @@ export function TimeRows({
                   ) : null
                 }
               />
-            ),
-          )}
+            );
+          })}
         </TimeDayGroup>
       ))}
       {/*
