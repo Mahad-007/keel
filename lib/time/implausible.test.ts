@@ -7,8 +7,10 @@ import {
   flagImplausibleEntries,
   IMPLAUSIBLE_ENTRY_MINUTES,
   negativeEntry,
+  NO_PROBLEMS,
   overfullDay,
   overlongEntry,
+  problemsByEntry,
   type SuspectEntry,
 } from "./implausible";
 
@@ -256,5 +258,30 @@ describe("the entries in a set that look wrong", () => {
 
   it("flags nothing in an empty list", () => {
     expect(flagImplausibleEntries([])).toEqual([]);
+  });
+});
+
+describe("the flags keyed by the entry they are about", () => {
+  it("finds a flagged entry by its id", () => {
+    const flagged = flagImplausibleEntries([
+      entry({ id: "tme_1", minutes: 90 }),
+      entry({ id: "tme_2", minutes: -60 }),
+    ]);
+    expect(problemsByEntry(flagged).get("tme_2")).toEqual([
+      { reason: "negative" },
+    ]);
+  });
+
+  it("holds nothing for an entry with nothing wrong with it", () => {
+    const flagged = flagImplausibleEntries([entry({ id: "tme_1" })]);
+    expect(problemsByEntry(flagged).get("tme_1")).toBeUndefined();
+  });
+
+  it("is empty for a list with nothing to question", () => {
+    expect(problemsByEntry([]).size).toBe(0);
+  });
+
+  it("has an empty list of problems for a row to fall back on", () => {
+    expect(NO_PROBLEMS).toEqual([]);
   });
 });
