@@ -8,7 +8,7 @@ import {
   type KeyboardEvent,
 } from "react";
 
-import { AlertNote, fieldId } from "@/components/form";
+import { AlertNote, CaveatNote, fieldId } from "@/components/form";
 import {
   closedRow,
   editsRow,
@@ -26,8 +26,8 @@ import {
   deliverableOptions,
   type AttributableDeliverable,
 } from "@/lib/time/attribution";
-import { correctTimeButtonId } from "@/lib/time/correct";
 import { isChargeable } from "@/lib/time/billing";
+import { correctTimeButtonId } from "@/lib/time/correct";
 import { describeTimeList, groupTimeByDay, totalMinutes } from "@/lib/time/days";
 import {
   EDIT_TIME_STILL_SAVING,
@@ -44,6 +44,10 @@ import {
   entryName,
   type ListedTimeEntry,
 } from "@/lib/time/entry";
+import {
+  describeImplausibleEntries,
+  flagImplausibleEntries,
+} from "@/lib/time/implausible";
 import {
   DELETE_TIME_NO_ANSWER,
   deletedTimeAnnouncement,
@@ -282,6 +286,14 @@ export function TimeRows({
     explains the rows with nothing beside them.
   */
   const changeable = rows.filter(canChangeEntry).length;
+  /*
+    What looks implausible, read off the rows on screen rather than off the
+    server's list — the same reason the day totals are. A deletion shortens the
+    list a beat before the server agrees to it, and an entry taken off an
+    overfull day should stop its neighbours being questioned at the moment the
+    row goes rather than a round trip later.
+  */
+  const flagged = flagImplausibleEntries(rows);
 
   /** One entry named the way its controls and its confirmations name it. */
   function named(entry: ListedTimeEntry): string {
@@ -537,6 +549,7 @@ export function TimeRows({
   }
 
   const anyBilled = changeable < rows.length;
+  const implausible = describeImplausibleEntries(flagged.length);
 
   return (
     <div onKeyDown={leaveOnEscape}>
@@ -565,6 +578,17 @@ export function TimeRows({
       </p>
       {problem === null ? null : (
         <AlertNote className="mt-4">{problem}</AlertNote>
+      )}
+      {/*
+        Above the list rather than only beside the rows, because the rows are
+        where a reader finds a flag and this is how they learn there is one to
+        find: a project with a hundred entries and two questionable ones is two
+        amber boxes somewhere down a long page. It also says the plain thing
+        the caveats below cannot keep repeating — that every one of these hours
+        is counted like any other.
+      */}
+      {implausible === null ? null : (
+        <CaveatNote className="mt-4">{implausible}</CaveatNote>
       )}
       {days.map((day) => (
         <TimeDayGroup key={day.workedOn} day={day}>
