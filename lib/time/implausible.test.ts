@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   dayTotals,
   DAY_CAPACITY_MINUTES,
+  describeProblem,
   entryProblems,
   flagImplausibleEntries,
   IMPLAUSIBLE_ENTRY_MINUTES,
+  IMPLAUSIBLE_MARK,
   negativeEntry,
   NO_PROBLEMS,
   overfullDay,
@@ -283,5 +285,45 @@ describe("the flags keyed by the entry they are about", () => {
 
   it("has an empty list of problems for a row to fall back on", () => {
     expect(NO_PROBLEMS).toEqual([]);
+  });
+});
+
+describe("why one entry is flagged, in a sentence", () => {
+  it("names the duration a negative entry subtracts", () => {
+    const said = describeProblem({ minutes: -60, workedOn: "2026-10-17" }, {
+      reason: "negative",
+    });
+    expect(said).toContain("-1h");
+    expect(said).toContain("written straight to the database");
+  });
+
+  it("names the stretch and the threshold it passed", () => {
+    const said = describeProblem({ minutes: 13 * 60, workedOn: "2026-10-17" }, {
+      reason: "overlong",
+    });
+    expect(said).toContain("13h");
+    expect(said).toContain("12 hours");
+  });
+
+  it("allows that a long stretch may be right", () => {
+    // Nothing here has been refused, and the sentence must not read as one.
+    const said = describeProblem({ minutes: 14 * 60, workedOn: "2026-10-17" }, {
+      reason: "overlong",
+    });
+    expect(said).toContain("may be right");
+  });
+
+  it("names the day and what it comes to for an overfull one", () => {
+    const said = describeProblem({ minutes: 90, workedOn: "2026-10-17" }, {
+      reason: "overlapping",
+      dayMinutes: 26 * 60,
+    });
+    expect(said).toContain("Oct 17, 2026");
+    expect(said).toContain("26h");
+    expect(said).toContain("cover the same hours");
+  });
+
+  it("marks a flagged row without claiming it is invalid", () => {
+    expect(IMPLAUSIBLE_MARK).toBe("Looks wrong");
   });
 });
