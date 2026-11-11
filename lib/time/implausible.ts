@@ -1,4 +1,5 @@
-import { MINUTES_PER_HOUR } from "@/lib/minutes";
+import { formatDate } from "@/lib/dates";
+import { formatMinutes, MINUTES_PER_HOUR } from "@/lib/minutes";
 
 import { totalMinutes } from "./days";
 
@@ -41,6 +42,9 @@ import { totalMinutes } from "./days";
  * wrong, and both are worth a second look.
  */
 export const IMPLAUSIBLE_ENTRY_MINUTES = 12 * MINUTES_PER_HOUR;
+
+/** The same threshold in hours, for the sentence that has to name it. */
+const IMPLAUSIBLE_ENTRY_HOURS = IMPLAUSIBLE_ENTRY_MINUTES / MINUTES_PER_HOUR;
 
 /**
  * What one day holds: twenty-four hours.
@@ -293,3 +297,50 @@ export function problemsByEntry<T extends SuspectEntry>(
  * row would otherwise have avoided.
  */
 export const NO_PROBLEMS: readonly EntryProblem[] = [];
+
+/**
+ * What a flagged row says where the chargeable and billed marks go.
+ *
+ * Two words, because it sits at the end of a line that already carries the
+ * attribution and possibly two other marks. The explanation is a sentence and
+ * it goes underneath, where there is room for it: a mark is how a reader
+ * scanning a column of durations finds the row, and the sentence is what tells
+ * them what to do about it.
+ *
+ * "Looks wrong" rather than "Invalid" or "Error", which would both be claims
+ * this module cannot make. Nothing here has been refused and every figure it
+ * flags is something somebody could have meant.
+ */
+export const IMPLAUSIBLE_MARK = "Looks wrong";
+
+/**
+ * Why one entry is flagged, in a sentence.
+ *
+ * Each names the figure, because the figure is the explanation: a reader who
+ * typed `13h` for `13m` recognises their own mistake the moment the number is
+ * read back to them, and a caveat that only says "this looks wrong" leaves
+ * them hunting for which part of the row is meant.
+ *
+ * None of them is an instruction, which is where these part company with the
+ * refusal sentences elsewhere in `lib/time/`. A refusal has to say what to
+ * type instead, because nothing was written. These are about rows that are on
+ * the record and may well be right, so they say what was noticed and stop —
+ * the offer of a correction is `correct.ts`, and it is offered rather than
+ * prescribed.
+ *
+ * Exhaustive by its type, so a reason added above is a compile error here
+ * rather than a flag with nothing to say for itself.
+ */
+export function describeProblem(
+  entry: Pick<SuspectEntry, "minutes" | "workedOn">,
+  problem: EntryProblem,
+): string {
+  switch (problem.reason) {
+    case "negative":
+      return `This records ${formatMinutes(entry.minutes)}, which takes time off every total this project appears in rather than adding to it. No form here accepts a duration below zero, so the row was written straight to the database.`;
+    case "overlong":
+      return `${formatMinutes(entry.minutes)} as one stretch is past the ${IMPLAUSIBLE_ENTRY_HOURS} hours a working day plausibly runs to. It may be right — a launch night, a shoot, a deadline — but it is also what a duration typed in the wrong unit looks like, and that is sixty times too big in every figure this time feeds.`;
+    case "overlapping":
+      return `${formatDate(entry.workedOn)} has ${formatMinutes(problem.dayMinutes)} logged against it, which is more than the day holds — so some of the entries on it must cover the same hours.`;
+  }
+}
