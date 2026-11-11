@@ -171,3 +171,51 @@ export function dayTotals(
 export function overfullDay(minutes: number): boolean {
   return minutes > DAY_CAPACITY_MINUTES;
 }
+
+/**
+ * One thing that looks wrong with one entry.
+ *
+ * A union rather than a bare reason, because the overlap carries a figure the
+ * entry itself does not hold: the sentence about it has to name what the day
+ * comes to, and that is a fact about every entry on the day rather than about
+ * this one. Carried on the problem rather than looked up again when the
+ * sentence is written, so the figure in the words is the figure the flag was
+ * raised from.
+ */
+export type EntryProblem =
+  | { readonly reason: "negative" }
+  | { readonly reason: "overlong" }
+  | {
+      readonly reason: "overlapping";
+      /** What the day the entry is filed under comes to, in whole minutes. */
+      readonly dayMinutes: number;
+    };
+
+/**
+ * Everything that looks wrong with one entry, given what its day comes to.
+ *
+ * The entry's own problem first, then the day's, which is the order a reader
+ * can act in: the duration on this row is something they can correct, and the
+ * day being overfull is a fact about several rows that may well be fixed by
+ * correcting this one.
+ *
+ * Both can be true at once. A thirteen-hour entry on a day that already held
+ * eighteen is two separate things worth saying — the figure is implausible,
+ * and the day it is on is impossible — and collapsing them would drop the
+ * half the reader has not noticed.
+ *
+ * An empty array is the usual answer and a real one: nothing looks wrong with
+ * this entry, which is what nearly every entry in a time list deserves.
+ */
+export function entryProblems(
+  entry: Pick<SuspectEntry, "minutes">,
+  dayMinutes: number,
+): EntryProblem[] {
+  const problems: EntryProblem[] = [];
+  if (negativeEntry(entry)) problems.push({ reason: "negative" });
+  if (overlongEntry(entry)) problems.push({ reason: "overlong" });
+  if (overfullDay(dayMinutes)) {
+    problems.push({ reason: "overlapping", dayMinutes });
+  }
+  return problems;
+}
