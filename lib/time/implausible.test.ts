@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  dayTotals,
   IMPLAUSIBLE_ENTRY_MINUTES,
   negativeEntry,
   overlongEntry,
+  type SuspectEntry,
 } from "./implausible";
+
+function entry(fields: Partial<SuspectEntry> = {}): SuspectEntry {
+  return { id: "tme_1", minutes: 90, workedOn: "2026-10-17", ...fields };
+}
 
 describe("an entry recording less than no time", () => {
   it("flags a duration below zero", () => {
@@ -49,5 +55,49 @@ describe("one stretch longer than a stretch plausibly is", () => {
   it("does not flag a negative duration as a long one", () => {
     // So the two flags cannot both be true of one entry.
     expect(overlongEntry({ minutes: -900 })).toBe(false);
+  });
+});
+
+describe("how many minutes each day holds", () => {
+  it("adds up the entries filed under one day", () => {
+    const totals = dayTotals([
+      entry({ minutes: 90 }),
+      entry({ minutes: 45 }),
+    ]);
+    expect(totals.get("2026-10-17")).toBe(135);
+  });
+
+  it("keeps the days apart", () => {
+    const totals = dayTotals([
+      entry({ workedOn: "2026-10-17", minutes: 90 }),
+      entry({ workedOn: "2026-10-18", minutes: 45 }),
+    ]);
+    expect([...totals]).toEqual([
+      ["2026-10-17", 90],
+      ["2026-10-18", 45],
+    ]);
+  });
+
+  it("gathers entries sharing a day that are not next to each other", () => {
+    const totals = dayTotals([
+      entry({ workedOn: "2026-10-17", minutes: 90 }),
+      entry({ workedOn: "2026-10-18", minutes: 45 }),
+      entry({ workedOn: "2026-10-17", minutes: 30 }),
+    ]);
+    expect(totals.get("2026-10-17")).toBe(120);
+  });
+
+  it("holds no days at all for no entries", () => {
+    expect(dayTotals([]).size).toBe(0);
+  });
+
+  it("lets a negative entry pull its day down", () => {
+    // Which is exactly what makes one worth flagging: the day it is on reads
+    // as shorter than it was.
+    const totals = dayTotals([
+      entry({ minutes: 480 }),
+      entry({ minutes: -60 }),
+    ]);
+    expect(totals.get("2026-10-17")).toBe(420);
   });
 });
