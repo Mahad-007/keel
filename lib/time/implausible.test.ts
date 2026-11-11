@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   dayTotals,
   DAY_CAPACITY_MINUTES,
+  describeImplausibleEntries,
   describeProblem,
   entryProblems,
   flagImplausibleEntries,
@@ -325,5 +326,29 @@ describe("why one entry is flagged, in a sentence", () => {
 
   it("marks a flagged row without claiming it is invalid", () => {
     expect(IMPLAUSIBLE_MARK).toBe("Looks wrong");
+  });
+});
+
+describe("the line above a flagged list", () => {
+  it("says nothing at all when nothing is flagged", () => {
+    expect(describeImplausibleEntries(0)).toBeNull();
+  });
+
+  it("counts one entry in the singular", () => {
+    expect(describeImplausibleEntries(1)).toContain("One entry");
+  });
+
+  it("counts several", () => {
+    expect(describeImplausibleEntries(3)).toContain("3 entries");
+  });
+
+  it("says the flagged time is still counted", () => {
+    // Otherwise every figure above it is read as though these hours were held
+    // back, which they are not.
+    expect(describeImplausibleEntries(2)).toContain("the figures above include");
+  });
+
+  it("says nothing for a count below zero", () => {
+    expect(describeImplausibleEntries(-1)).toBeNull();
   });
 });
