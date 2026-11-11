@@ -154,3 +154,20 @@ export function dayTotals(
     [...byDay].map(([workedOn, day]) => [workedOn, totalMinutes(day)]),
   );
 }
+
+/**
+ * Whether a day holds more minutes than a day has.
+ *
+ * Strictly past twenty-four hours, so a day logged as exactly full is not
+ * flagged. It is a figure nobody arrives at by accident — three entries that
+ * happen to total 1440 is a coincidence, and somebody who worked a clear
+ * twenty-four hours has had a day worth remembering rather than a day worth
+ * querying.
+ *
+ * This is the one check in the module that proves something. An entry past
+ * twelve hours might be true; a day past twenty-four cannot be, whichever of
+ * the entries on it is the wrong one.
+ */
+export function overfullDay(minutes: number): boolean {
+  return minutes > DAY_CAPACITY_MINUTES;
+}
