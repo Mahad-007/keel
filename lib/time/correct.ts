@@ -123,3 +123,69 @@ export function correctTimeState(
     saved: null,
   };
 }
+
+/**
+ * The id the offer beside a flagged row is known by.
+ *
+ * Derived from the entry rather than generated, for the reason the edit and
+ * delete buttons' ids are: the cursor has to come back to it when the editor
+ * it opened closes, and by then the button is being rendered again for the
+ * first time, so there is no ref to have kept.
+ *
+ * Prefixed the same way as its two neighbours, so a page holding both a scope
+ * list and a time list cannot have two rows claim one id.
+ */
+export function correctTimeButtonId(id: string): string {
+  return `time-${id}-correct`;
+}
+
+/**
+ * What the offer says: the figure it would put in the box.
+ *
+ * The figure rather than "Fix this", because the figure is the whole offer. A
+ * reader can tell at a glance whether `13m` is what they meant, and a button
+ * that only says "Fix" asks them to press it to find out what it would do —
+ * which, on something that changes an hour on an invoice, is the wrong way
+ * round.
+ */
+export function correctTimeText(minutes: number): string {
+  return `Correct it to ${formatMinutes(minutes)}`;
+}
+
+/**
+ * The same button's accessible name, which has to say which row it is on.
+ *
+ * A flagged list can hold three of these and they would otherwise be three
+ * controls reading "Correct it to 13m" with nothing to tell them apart.
+ *
+ * The visible text comes first and in full, which is not decoration: a reader
+ * driving the page by voice says the words they can see, and a name that
+ * replaced them rather than extending them would leave the button unreachable.
+ * The same ordering `submitAriaLabel` and `exportLinkName` use, for the same
+ * reason.
+ */
+export function correctTimeLabel(name: string, minutes: number): string {
+  return `${correctTimeText(minutes)}, instead of ${name}`;
+}
+
+/**
+ * What the editor says about why it opened holding something the row does not.
+ *
+ * Needed because the box has been changed by the page rather than by the
+ * reader, which is the one thing an edit form is otherwise forbidden from
+ * doing. Without a sentence saying so, a reader who pressed the offer to see
+ * what it meant and then saved out of habit would have written a figure they
+ * never typed.
+ *
+ * It names both ends — what is in the box and what is on the record — so the
+ * decision can be made without closing the form to go and look. And it names
+ * all three ways out, because the middle one is the one a guess deserves: the
+ * suggestion is a guess, and the reader is the only one who knows what the
+ * afternoon actually was.
+ */
+export function describeOpenedCorrection(
+  storedMinutes: number,
+  minutes: number,
+): string {
+  return `The duration box holds ${formatMinutes(minutes)} rather than the ${formatMinutes(storedMinutes)} on the record — the figure this entry most likely should have been. Save to apply it, type what it really was if this guess is wrong, or cancel to leave the entry as it stands.`;
+}
