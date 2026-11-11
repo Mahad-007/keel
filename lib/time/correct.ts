@@ -177,17 +177,24 @@ export function correctTimeLabel(name: string, minutes: number): string {
  * what it meant and then saved out of habit would have written a figure they
  * never typed.
  *
- * It names both ends — what is in the box and what is on the record — so the
- * decision can be made without closing the form to go and look. And it names
- * all three ways out, because the middle one is the one a guess deserves: the
- * suggestion is a guess, and the reader is the only one who knows what the
- * afternoon actually was.
+ * It names both ends — what the box was filled with and what is on the
+ * record — so the decision can be made without closing the form to go and
+ * look. And it names all three ways out, because the middle one is the one a
+ * guess deserves: the suggestion is a guess, and the reader is the only one
+ * who knows what the afternoon actually was.
+ *
+ * Written about the opening rather than about the box as it stands now, which
+ * is the only tense it can honestly use. The sentence is fixed when the form
+ * opens, and the box is not: the reader types in it, and a refused save fills
+ * it back from what was submitted. A note claiming the box "holds" a figure
+ * would be false the moment either happened, about the one field it exists to
+ * explain.
  */
 export function describeOpenedCorrection(
   storedMinutes: number,
   minutes: number,
 ): string {
-  return `The duration box holds ${formatMinutes(minutes)} rather than the ${formatMinutes(storedMinutes)} on the record — the figure this entry most likely should have been. Save to apply it, type what it really was if this guess is wrong, or cancel to leave the entry as it stands.`;
+  return `This opened with ${formatMinutes(minutes)} in the duration box rather than the ${formatMinutes(storedMinutes)} on the record — the figure this entry most likely should have been. Save to apply it, type what it really was if the guess is wrong, or cancel to leave the entry as it stands.`;
 }
 
 /**

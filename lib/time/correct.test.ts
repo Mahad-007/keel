@@ -139,6 +139,14 @@ describe("the words around the offer", () => {
       "type what it really was",
     );
   });
+
+  it("speaks about the opening rather than about the box as it stands", () => {
+    // The sentence is fixed when the form opens; the box is not — the reader
+    // types in it, and a refused save fills it back from the submission.
+    const said = describeOpenedCorrection(13 * 60, 13);
+    expect(said).toContain("This opened with");
+    expect(said).not.toContain("box holds");
+  });
 });
 
 describe("the correction a row actually gets offered", () => {
