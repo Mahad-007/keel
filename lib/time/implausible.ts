@@ -263,3 +263,33 @@ export function flagImplausibleEntries<T extends SuspectEntry>(
   }
   return flagged;
 }
+
+/**
+ * The flags keyed by the entry they are about, for a list rendering rows.
+ *
+ * A row cannot search the flagged list for itself without the list doing that
+ * search once per row, and a time list is the one place in this app that can
+ * hold hundreds of them. The map is built once beside the list and asked once
+ * per row.
+ *
+ * Built from the flagged entries rather than from the raw ones, so there is
+ * one detection pass behind both the count above a list and the caveats
+ * inside it. Two passes could not disagree today, and the point of having one
+ * is that they still cannot if the rules grow.
+ */
+export function problemsByEntry<T extends SuspectEntry>(
+  flagged: readonly FlaggedEntry<T>[],
+): Map<string, readonly EntryProblem[]> {
+  return new Map(flagged.map(({ entry, problems }) => [entry.id, problems]));
+}
+
+/**
+ * What one row's caveat reads from, which is an empty list for nearly every
+ * row.
+ *
+ * A shared constant rather than a fresh array per row, because the usual
+ * answer is "nothing is wrong with this entry" and a new empty array on every
+ * render of every row is a new prop value — which is a re-render a memoised
+ * row would otherwise have avoided.
+ */
+export const NO_PROBLEMS: readonly EntryProblem[] = [];
