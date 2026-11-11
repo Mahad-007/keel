@@ -371,3 +371,28 @@ export function describeImplausibleEntries(count: number): string | null {
       : `${count} entries on this project look wrong.`;
   return `${counted} Every one of them is logged and counted like any other, so the figures above include them — each says below what was noticed about it.`;
 }
+
+/**
+ * The same line over a log that crosses engagements, where a correction cannot
+ * be made.
+ *
+ * Its own sentence rather than a parameter on the one above, because the two
+ * differ in both halves. "On this project" is wrong over a log filtered to a
+ * client and four engagements, and the instruction at the end is the opposite
+ * one: the project page offers a figure and applies it, and this page has no
+ * editor at all — a log row would need four scope lists to render one
+ * attribution picker, which is the reason `LogRow` carries no controls.
+ *
+ * It is also the page where the overlap check means what it says. A day here
+ * is the whole of somebody's day across every engagement they touched, so a
+ * sheet totalling thirty hours is caught here and nowhere else.
+ */
+export function describeImplausibleLog(count: number): string | null {
+  if (count <= 0) return null;
+
+  const counted =
+    count === 1
+      ? "One of the entries shown looks wrong."
+      : `${count} of the entries shown look wrong.`;
+  return `${counted} Each says underneath what was noticed about it, and they are counted in the figures above like any others. A correction is made from the project the entry belongs to.`;
+}
