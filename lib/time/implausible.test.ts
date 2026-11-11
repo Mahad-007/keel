@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   dayTotals,
+  DAY_CAPACITY_MINUTES,
   IMPLAUSIBLE_ENTRY_MINUTES,
   negativeEntry,
+  overfullDay,
   overlongEntry,
   type SuspectEntry,
 } from "./implausible";
@@ -99,5 +101,30 @@ describe("how many minutes each day holds", () => {
       entry({ minutes: -60 }),
     ]);
     expect(totals.get("2026-10-17")).toBe(420);
+  });
+});
+
+describe("a day holding more than a day has", () => {
+  it("flags twenty-six hours", () => {
+    expect(overfullDay(26 * 60)).toBe(true);
+  });
+
+  it("leaves a day logged as exactly full alone", () => {
+    // Nobody arrives at 1440 by accident, and a clear twenty-four hours is a
+    // day worth remembering rather than one worth querying.
+    expect(overfullDay(DAY_CAPACITY_MINUTES)).toBe(false);
+  });
+
+  it("flags the first minute past a full day", () => {
+    expect(overfullDay(DAY_CAPACITY_MINUTES + 1)).toBe(true);
+  });
+
+  it("leaves an ordinary day alone", () => {
+    expect(overfullDay(7 * 60)).toBe(false);
+  });
+
+  it("leaves a day a negative entry has pulled below zero alone", () => {
+    // The entry is flagged on its own account; the day is not the complaint.
+    expect(overfullDay(-120)).toBe(false);
   });
 });
