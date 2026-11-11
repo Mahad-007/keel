@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   correctedTimeFields,
+  correctTimeButtonId,
+  correctTimeLabel,
   correctTimeState,
+  correctTimeText,
+  describeOpenedCorrection,
   suggestedMinutes,
 } from "./correct";
 import { editTimeState } from "./edit";
@@ -94,5 +98,44 @@ describe("the editor's boxes as a correction opens them", () => {
     expect(state.errors).toEqual({});
     expect(state.formError).toBeNull();
     expect(state.saved).toBeNull();
+  });
+});
+
+describe("the words around the offer", () => {
+  it("names the entry in the button's id", () => {
+    expect(correctTimeButtonId("tme_1")).toBe("time-tme_1-correct");
+  });
+
+  it("puts the figure in what the button says", () => {
+    expect(correctTimeText(13)).toBe("Correct it to 13m");
+  });
+
+  it("writes an hour and a half readably", () => {
+    expect(correctTimeText(90)).toBe("Correct it to 1h 30m");
+  });
+
+  it("keeps the visible words at the front of the accessible name", () => {
+    // Otherwise somebody driving the page by voice says what they can see and
+    // nothing happens — WCAG 2.5.3, and the Day 029 lesson.
+    const label = correctTimeLabel("13h on Oct 17, 2026", 13);
+    expect(label.startsWith(correctTimeText(13))).toBe(true);
+  });
+
+  it("says which row the offer is on", () => {
+    expect(correctTimeLabel("13h on Oct 17, 2026", 13)).toContain(
+      "13h on Oct 17, 2026",
+    );
+  });
+
+  it("names both figures in the editor's note", () => {
+    const said = describeOpenedCorrection(13 * 60, 13);
+    expect(said).toContain("13m");
+    expect(said).toContain("13h");
+  });
+
+  it("offers typing what it really was as well as saving the guess", () => {
+    expect(describeOpenedCorrection(13 * 60, 13)).toContain(
+      "type what it really was",
+    );
   });
 });
