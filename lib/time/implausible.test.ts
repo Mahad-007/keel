@@ -4,6 +4,7 @@ import {
   dayTotals,
   DAY_CAPACITY_MINUTES,
   describeImplausibleEntries,
+  describeImplausibleLog,
   describeProblem,
   entryProblems,
   flagImplausibleEntries,
@@ -353,5 +354,29 @@ describe("the line above a flagged list", () => {
 
   it("says nothing for a count below zero", () => {
     expect(describeImplausibleEntries(-1)).toBeNull();
+  });
+});
+
+describe("the line over a log that crosses engagements", () => {
+  it("says nothing when nothing is flagged", () => {
+    expect(describeImplausibleLog(0)).toBeNull();
+  });
+
+  it("counts one in the singular", () => {
+    expect(describeImplausibleLog(1)).toContain("One of the entries shown");
+  });
+
+  it("counts several", () => {
+    expect(describeImplausibleLog(4)).toContain("4 of the entries shown");
+  });
+
+  it("does not claim the entries belong to one project", () => {
+    expect(describeImplausibleLog(2)).not.toContain("this project");
+  });
+
+  it("points at the project page, which is where a fix can be made", () => {
+    expect(describeImplausibleLog(2)).toContain(
+      "the project the entry belongs to",
+    );
   });
 });
