@@ -4,6 +4,7 @@ import {
   dayTotals,
   DAY_CAPACITY_MINUTES,
   entryProblems,
+  flagImplausibleEntries,
   IMPLAUSIBLE_ENTRY_MINUTES,
   negativeEntry,
   overfullDay,
@@ -174,5 +175,86 @@ describe("everything that looks wrong with one entry", () => {
     expect(entryProblems({ minutes: -2000 }, 0)).toEqual([
       { reason: "negative" },
     ]);
+  });
+});
+
+describe("the entries in a set that look wrong", () => {
+  it("leaves an ordinary list unflagged", () => {
+    const entries = [
+      entry({ id: "tme_1", minutes: 90 }),
+      entry({ id: "tme_2", minutes: 150 }),
+    ];
+    expect(flagImplausibleEntries(entries)).toEqual([]);
+  });
+
+  it("returns only the entries with something wrong with them", () => {
+    const flagged = flagImplausibleEntries([
+      entry({ id: "tme_1", minutes: 90 }),
+      entry({ id: "tme_2", minutes: 13 * 60, workedOn: "2026-10-18" }),
+      entry({ id: "tme_3", minutes: 45 }),
+    ]);
+    expect(flagged.map(({ entry: one }) => one.id)).toEqual(["tme_2"]);
+  });
+
+  it("hands the whole row back so the caller can name it", () => {
+    const one = entry({ id: "tme_2", minutes: -60 });
+    expect(flagImplausibleEntries([one])[0].entry).toBe(one);
+  });
+
+  it("keeps the order it was given", () => {
+    const flagged = flagImplausibleEntries([
+      entry({ id: "tme_late", minutes: -30, workedOn: "2026-10-19" }),
+      entry({ id: "tme_early", minutes: -30, workedOn: "2026-10-17" }),
+    ]);
+    expect(flagged.map(({ entry: one }) => one.id)).toEqual([
+      "tme_late",
+      "tme_early",
+    ]);
+  });
+
+  it("flags every entry on an overfull day, not just the longest", () => {
+    // Nothing in the data says which of them is the wrong one, and claiming
+    // otherwise would send a reader to correct whichever row looked biggest.
+    const flagged = flagImplausibleEntries([
+      entry({ id: "tme_1", minutes: 14 * 60 }),
+      entry({ id: "tme_2", minutes: 11 * 60 }),
+    ]);
+    expect(flagged.map(({ entry: one }) => one.id)).toEqual([
+      "tme_1",
+      "tme_2",
+    ]);
+    expect(flagged[1].problems).toEqual([
+      { reason: "overlapping", dayMinutes: 25 * 60 },
+    ]);
+  });
+
+  it("leaves a neighbouring day out of an overfull day's reckoning", () => {
+    const flagged = flagImplausibleEntries([
+      entry({ id: "tme_1", minutes: 13 * 60, workedOn: "2026-10-17" }),
+      entry({ id: "tme_2", minutes: 13 * 60, workedOn: "2026-10-18" }),
+    ]);
+    expect(flagged.map(({ problems }) => problems)).toEqual([
+      [{ reason: "overlong" }],
+      [{ reason: "overlong" }],
+    ]);
+  });
+
+  it("lets a negative entry keep its own day from reading as overfull", () => {
+    // Which is honest: a day whose figures include a negative one is not a
+    // day with too many hours in it, it is a day with a bad row in it.
+    const flagged = flagImplausibleEntries([
+      entry({ id: "tme_1", minutes: 25 * 60 }),
+      entry({ id: "tme_2", minutes: -120 }),
+    ]);
+    expect(flagged.map(({ entry: one, problems }) => [one.id, problems])).toEqual(
+      [
+        ["tme_1", [{ reason: "overlong" }]],
+        ["tme_2", [{ reason: "negative" }]],
+      ],
+    );
+  });
+
+  it("flags nothing in an empty list", () => {
+    expect(flagImplausibleEntries([])).toEqual([]);
   });
 });
