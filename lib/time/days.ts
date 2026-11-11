@@ -45,9 +45,22 @@ export type LoggedEntry = MeasuredEntry & {
  * by hand, and a second place that adds up minutes is a second place that can
  * read the billable flag differently.
  */
-export type MeasuredEntry = {
-  readonly minutes: number;
+export type MeasuredEntry = TimedEntry & {
   readonly billable: boolean;
+};
+
+/**
+ * What adding minutes up needs, which is the minutes and nothing else.
+ *
+ * Narrower than `MeasuredEntry` because a sum does not read the billable flag:
+ * `billableMinutes` filters first and then calls `totalMinutes`, so the flag
+ * is consulted before the addition rather than during it. Separated so that
+ * callers with something to total and no opinion about invoicing — Day 030's
+ * day totals, which are a question about hours in a day — go through the same
+ * arithmetic rather than writing a second one.
+ */
+export type TimedEntry = {
+  readonly minutes: number;
 };
 
 /**
@@ -93,7 +106,7 @@ export type TimeDay<T extends LoggedEntry = LoggedEntry> = {
  * day with no entries is not in the list at all, but a filtered list can hand
  * this an empty array and zero is what it has logged.
  */
-export function totalMinutes(entries: readonly MeasuredEntry[]): number {
+export function totalMinutes(entries: readonly TimedEntry[]): number {
   return entries.reduce((sum, entry) => sum + entry.minutes, 0);
 }
 
