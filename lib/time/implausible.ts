@@ -103,3 +103,19 @@ export type ImplausibleReason = "negative" | "overlong" | "overlapping";
 export function negativeEntry(entry: Pick<SuspectEntry, "minutes">): boolean {
   return entry.minutes < 0;
 }
+
+/**
+ * Whether one stretch of work is longer than a stretch of work plausibly is.
+ *
+ * Strictly past the threshold, so a twelve-hour entry is not flagged. Twelve
+ * hours is a day somebody had, and it is a round figure that gets typed on
+ * purpose — flagging it would put a caveat on the honest long day as well as
+ * on the typo, which is how a flag stops being read.
+ *
+ * A negative duration is not caught here. It is a flag of its own, and the
+ * comparison is the right way round for that to be true: `-900` is not longer
+ * than twelve hours, so an entry cannot come back flagged as both.
+ */
+export function overlongEntry(entry: Pick<SuspectEntry, "minutes">): boolean {
+  return entry.minutes > IMPLAUSIBLE_ENTRY_MINUTES;
+}
