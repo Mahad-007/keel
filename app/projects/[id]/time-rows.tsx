@@ -11,6 +11,7 @@ import {
 import { AlertNote, fieldId } from "@/components/form";
 import {
   closedRow,
+  editsRow,
   NO_OPEN_ROW,
   openedRow,
   openRowStillThere,
@@ -424,6 +425,10 @@ export function TimeRows({
    * is why a press that does nothing is the better answer here than one that
    * throws the edit away.
    *
+   * Either opening of the editor, because the two are the same form with the
+   * same save in flight — a reader looking at one cannot tell which press
+   * opened it, and a correction left mid-save would lose the same work.
+   *
    * Only the editor that is open, and only while its own save is out. An
    * answer can outlive its form — the row it was editing leaves the list, so
    * `openRowStillThere` drops it and the form is unmounted with the request
@@ -433,7 +438,8 @@ export function TimeRows({
    * opens, whose own save has not been sent.
    */
   function holdsOpenRow(): boolean {
-    return open?.mode === "edit" && savesInFlight.current.has(open.id);
+    if (open === null || !editsRow(open.mode)) return false;
+    return savesInFlight.current.has(open.id);
   }
 
   /**
