@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   dayTotals,
   DAY_CAPACITY_MINUTES,
+  entryProblems,
   IMPLAUSIBLE_ENTRY_MINUTES,
   negativeEntry,
   overfullDay,
@@ -126,5 +127,52 @@ describe("a day holding more than a day has", () => {
   it("leaves a day a negative entry has pulled below zero alone", () => {
     // The entry is flagged on its own account; the day is not the complaint.
     expect(overfullDay(-120)).toBe(false);
+  });
+});
+
+describe("everything that looks wrong with one entry", () => {
+  it("finds nothing wrong with an ordinary entry on an ordinary day", () => {
+    expect(entryProblems({ minutes: 90 }, 420)).toEqual([]);
+  });
+
+  it("reports a negative duration", () => {
+    expect(entryProblems({ minutes: -60 }, 360)).toEqual([
+      { reason: "negative" },
+    ]);
+  });
+
+  it("reports a stretch past twelve hours", () => {
+    expect(entryProblems({ minutes: 13 * 60 }, 13 * 60)).toEqual([
+      { reason: "overlong" },
+    ]);
+  });
+
+  it("reports an overfull day, naming what it comes to", () => {
+    expect(entryProblems({ minutes: 90 }, 26 * 60)).toEqual([
+      { reason: "overlapping", dayMinutes: 26 * 60 },
+    ]);
+  });
+
+  it("reports both when a long entry sits on an impossible day", () => {
+    // Two separate things worth saying: this figure is implausible, and the
+    // day it is on cannot have happened.
+    expect(entryProblems({ minutes: 13 * 60 }, 31 * 60)).toEqual([
+      { reason: "overlong" },
+      { reason: "overlapping", dayMinutes: 31 * 60 },
+    ]);
+  });
+
+  it("puts the entry's own problem before the day's", () => {
+    const problems = entryProblems({ minutes: -60 }, 25 * 60);
+    expect(problems.map((problem) => problem.reason)).toEqual([
+      "negative",
+      "overlapping",
+    ]);
+  });
+
+  it("never reports a negative entry as a long one as well", () => {
+    expect(entryProblems({ minutes: -2000 }, 0)).toEqual([
+      { reason: "negative" },
+    ]);
   });
 });
