@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   closedRow,
+  editsRow,
   NO_OPEN_ROW,
   openedRow,
   openRowStillThere,
@@ -118,5 +119,19 @@ describe("withdrawing what a press said", () => {
 
   it("has nothing to take back from an empty live region", () => {
     expect(withdrawAnnouncement(null, 4)).toBeNull();
+  });
+});
+
+describe("the modes that unfold a row into a form", () => {
+  it("counts a plain edit", () => {
+    expect(editsRow("edit")).toBe(true);
+  });
+
+  it("counts an editor opened on a correction", () => {
+    expect(editsRow("correct")).toBe(true);
+  });
+
+  it("does not count the deletion step", () => {
+    expect(editsRow("confirm")).toBe(false);
   });
 });
