@@ -1,5 +1,9 @@
+import { initialFormState } from "@/lib/forms/state";
 import { formatMinutes, MINUTES_PER_HOUR } from "@/lib/minutes";
 
+import { timeEntryFormFields, type EditTimeState } from "./edit";
+import type { ListedTimeEntry } from "./entry";
+import type { LogTimeFormFields } from "./form";
 import {
   negativeEntry,
   overlongEntry,
@@ -78,4 +82,44 @@ export function suggestedMinutes(
   }
 
   return null;
+}
+
+/**
+ * The editor's boxes as they open on a correction: the stored entry with the
+ * suggested duration in place of the one on the record.
+ *
+ * Only the duration moves. The day, the attribution, the note and the
+ * chargeable box open holding what the row holds, because none of them is what
+ * was flagged and a correction that quietly reset four fields to fix one would
+ * be a worse mistake than the one it came to fix.
+ *
+ * The suggestion goes in as `formatMinutes` writes it, for the reason
+ * `timeEntryFormFields` gives: `13m` is unambiguous in the box as well as to
+ * the parser, where a bare `13` is thirteen minutes to this field and thirteen
+ * of something else to a reader correcting it again.
+ */
+export function correctedTimeFields(
+  entry: ListedTimeEntry,
+  minutes: number,
+): LogTimeFormFields {
+  return { ...timeEntryFormFields(entry), duration: formatMinutes(minutes) };
+}
+
+/**
+ * What the editor starts from when it was opened by the offer rather than by
+ * Edit.
+ *
+ * An ordinary untouched form state: nothing is wrong with it, nothing has been
+ * submitted, and it has saved nothing. The only difference from `editTimeState`
+ * is the figure in one box — which is the whole of the offer, and the reason
+ * the two openings are different modes of the row rather than one.
+ */
+export function correctTimeState(
+  entry: ListedTimeEntry,
+  minutes: number,
+): EditTimeState {
+  return {
+    ...initialFormState(correctedTimeFields(entry, minutes)),
+    saved: null,
+  };
 }
