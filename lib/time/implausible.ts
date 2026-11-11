@@ -89,3 +89,17 @@ export type SuspectEntry = {
  * instructions.
  */
 export type ImplausibleReason = "negative" | "overlong" | "overlapping";
+
+/**
+ * Whether an entry records less than no time.
+ *
+ * Zero is left out, deliberately. The column's rule is that minutes are never
+ * zero and the form says so — "that rounds to no time at all" — but a row
+ * holding zero is a row that counts for nothing in every total, which is the
+ * same as not being there. A negative one is worse than not being there: it
+ * subtracts, so a day with one in it reads as shorter than it was and an
+ * engagement with one in it looks cheaper than it was.
+ */
+export function negativeEntry(entry: Pick<SuspectEntry, "minutes">): boolean {
+  return entry.minutes < 0;
+}
