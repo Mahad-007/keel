@@ -18,10 +18,31 @@
  */
 
 /**
- * The two things a row can be open for: a form that edits it, or the step that
- * asks whether to delete it.
+ * The three things a row can be open for: a form that edits it, the step that
+ * asks whether to delete it, or that same form opened holding a correction the
+ * page has offered.
+ *
+ * `correct` is an editor rather than a fourth kind of thing, and it is a mode
+ * of its own because the difference is in what the boxes start with. A reader
+ * who presses Edit must find the row exactly as it reads — a prefill that
+ * rewrote the duration under them would be the one thing an edit form must
+ * never do — and a reader who presses the offer beside a flagged row must find
+ * the suggested figure already in the box. The same component, two openings,
+ * so the state has to say which.
  */
-export type RowMode = "edit" | "confirm";
+export type RowMode = "edit" | "confirm" | "correct";
+
+/**
+ * Whether a mode is one of the two that unfold the row into a form.
+ *
+ * Asked wherever the rule is about editing rather than about which opening it
+ * was: a save in flight holds the list open the same way whichever press
+ * started it, and a reader cannot tell the two forms apart once they are
+ * looking at one.
+ */
+export function editsRow(mode: RowMode): boolean {
+  return mode === "edit" || mode === "correct";
+}
 
 /** The open row, or null when the list is just a list. */
 export type OpenRow = {
