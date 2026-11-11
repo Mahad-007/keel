@@ -173,14 +173,6 @@ export default async function TimeLogPage({
       ) : null}
 
       {/*
-        Three outcomes, and they are not the same page. Rows are rows; a studio
-        that has logged nothing needs telling what the log is for; and filters
-        that hid everything need the way back out. Deciding between the last
-        two on whether anything is filtered rather than on a second count keeps
-        the explanation for the case that is actually that — and a total of
-        zero from a second query could disagree with the rows on screen.
-      */}
-      {/*
         Above the table, because the rows are where a flag is found and this is
         how a reader learns there is one to find — a filtered log can be
         hundreds of rows long. Below the filter notes, which are about what is
@@ -190,6 +182,14 @@ export default async function TimeLogPage({
         <CaveatNote className="mt-4">{implausible}</CaveatNote>
       )}
 
+      {/*
+        Three outcomes, and they are not the same page. Rows are rows; a studio
+        that has logged nothing needs telling what the log is for; and filters
+        that hid everything need the way back out. Deciding between the last
+        two on whether anything is filtered rather than on a second count keeps
+        the explanation for the case that is actually that — and a total of
+        zero from a second query could disagree with the rows on screen.
+      */}
       {entries.length > 0 ? (
         <LogTable
           entries={entries}
