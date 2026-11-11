@@ -142,7 +142,10 @@ export function overlongEntry(entry: Pick<SuspectEntry, "minutes">): boolean {
  * project's day, and the filtered log across four engagements makes it the
  * whole of somebody's Tuesday. The second is the stronger reading of the
  * overlap check and the first is the one the project page can act on, and the
- * function is the same either way.
+ * function is the same either way. It is also why the sentence the overlap
+ * produces says "the entries shown" rather than naming the day outright — on
+ * a project page the figure is that project's, and a sentence claiming it was
+ * the whole day would be wrong on the page that flags the most.
  */
 export function dayTotals(
   entries: readonly Pick<SuspectEntry, "minutes" | "workedOn">[],
@@ -341,7 +344,7 @@ export function describeProblem(
     case "overlong":
       return `${formatMinutes(entry.minutes)} as one stretch is past the ${IMPLAUSIBLE_ENTRY_HOURS} hours a working day plausibly runs to. It may be right — a launch night, a shoot, a deadline — but it is also what a duration typed in the wrong unit looks like, and that is sixty times too big in every figure this time feeds.`;
     case "overlapping":
-      return `${formatDate(entry.workedOn)} has ${formatMinutes(problem.dayMinutes)} logged against it, which is more than the day holds — so some of the entries on it must cover the same hours.`;
+      return `The entries shown for ${formatDate(entry.workedOn)} come to ${formatMinutes(problem.dayMinutes)}, which is more than one day holds — so some of them must cover the same hours.`;
   }
 }
 

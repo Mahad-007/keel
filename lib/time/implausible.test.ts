@@ -322,6 +322,9 @@ describe("why one entry is flagged, in a sentence", () => {
     expect(said).toContain("Oct 17, 2026");
     expect(said).toContain("26h");
     expect(said).toContain("cover the same hours");
+    // "The entries shown", not "Oct 17 has": on a project page the figure is
+    // that project's day rather than the whole of it.
+    expect(said).toContain("The entries shown for Oct 17, 2026");
   });
 
   it("marks a flagged row without claiming it is invalid", () => {
