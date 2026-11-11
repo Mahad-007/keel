@@ -1,5 +1,7 @@
 import { MINUTES_PER_HOUR } from "@/lib/minutes";
 
+import { totalMinutes } from "./days";
+
 /**
  * Entries that cannot be right, found by looking at them together.
  *
@@ -118,4 +120,37 @@ export function negativeEntry(entry: Pick<SuspectEntry, "minutes">): boolean {
  */
 export function overlongEntry(entry: Pick<SuspectEntry, "minutes">): boolean {
   return entry.minutes > IMPLAUSIBLE_ENTRY_MINUTES;
+}
+
+/**
+ * How many minutes each day in a set of entries holds.
+ *
+ * Keyed by the day rather than returned as a list, because the flagging below
+ * walks the entries and asks about the day each one is on — a list would have
+ * to be searched once per entry, which is quadratic on a project with a year
+ * of time against it.
+ *
+ * Summed through `totalMinutes`, the one piece of addition every figure in
+ * this app goes through, so a day that looks overfull here holds the same
+ * number the heading above it prints.
+ *
+ * What a "day" means is the caller's: a project's own list makes this that
+ * project's day, and the filtered log across four engagements makes it the
+ * whole of somebody's Tuesday. The second is the stronger reading of the
+ * overlap check and the first is the one the project page can act on, and the
+ * function is the same either way.
+ */
+export function dayTotals(
+  entries: readonly Pick<SuspectEntry, "minutes" | "workedOn">[],
+): Map<string, number> {
+  const byDay = new Map<string, { readonly minutes: number }[]>();
+  for (const entry of entries) {
+    const day = byDay.get(entry.workedOn);
+    if (day === undefined) byDay.set(entry.workedOn, [entry]);
+    else day.push(entry);
+  }
+
+  return new Map(
+    [...byDay].map(([workedOn, day]) => [workedOn, totalMinutes(day)]),
+  );
 }
