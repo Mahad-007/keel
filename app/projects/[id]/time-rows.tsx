@@ -26,6 +26,7 @@ import {
   deliverableOptions,
   type AttributableDeliverable,
 } from "@/lib/time/attribution";
+import { correctTimeButtonId } from "@/lib/time/correct";
 import { isChargeable } from "@/lib/time/billing";
 import { describeTimeList, groupTimeByDay, totalMinutes } from "@/lib/time/days";
 import {
@@ -475,10 +476,25 @@ export function TimeRows({
     if (rowMode(openNow.current, id) !== mode) return;
 
     setOpen((was) => closedRow(was, id));
-    // Back to the control that opened it, which is where the reader was before
-    // the row unfolded and the only place that still makes sense afterwards.
+    /*
+      Back to the control that opened it, which is where the reader was before
+      the row unfolded and the only place that still makes sense afterwards.
+
+      With one exception, and it is the one the correction creates: a landed
+      correction takes its own offer away, because the flag it was offered for
+      has been fixed and the caveat the button sat under is gone. Sending the
+      cursor there would send it to a node that is no longer in the document,
+      and the browser answers that by dropping the focus to the top of the
+      page. The row's Edit button is still there, and it is the nearest thing
+      to where the reader was. A correction that was cancelled rather than
+      saved leaves the offer exactly where it was.
+    */
     moveFocusTo.current =
-      mode === "edit" ? editTimeButtonId(id) : deleteTimeButtonId(id);
+      mode === "confirm"
+        ? deleteTimeButtonId(id)
+        : mode === "correct" && notice === null
+          ? correctTimeButtonId(id)
+          : editTimeButtonId(id);
   }
 
   /**
