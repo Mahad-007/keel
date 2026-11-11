@@ -6,6 +6,11 @@ import { listProjectsWithClient } from "@/lib/data/projects";
 import { listFilteredTimeEntries } from "@/lib/data/time-entries";
 import { utcCalendarDate } from "@/lib/dates";
 import { PROJECTS_PATH } from "@/lib/projects/query";
+import {
+  describeImplausibleLog,
+  flagImplausibleEntries,
+  problemsByEntry,
+} from "@/lib/time/implausible";
 import { describeLog, describeLogScope, summarizeLog } from "@/lib/time/log";
 import {
   clientFilterOptions,
@@ -87,6 +92,18 @@ export default async function TimeLogPage({
   const filtered = isFilteredLog(query);
   const backwards = backwardsEnds(query.range);
 
+  /*
+    What looks implausible, over the whole filtered log rather than one project
+    at a time. This is the page where that matters: a day here is every
+    engagement somebody touched, so eight hours against three projects is the
+    thirty-hour Tuesday no single project's own list can see.
+
+    Read off the rows the table is about to render, so the count above it and
+    the caveats inside it cannot disagree.
+  */
+  const flagged = flagImplausibleEntries(entries);
+  const implausible = describeImplausibleLog(flagged.length);
+
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-12 font-sans">
       <header className="flex items-start justify-between gap-6 border-b border-zinc-200 pb-4 dark:border-zinc-800">
@@ -163,8 +180,22 @@ export default async function TimeLogPage({
         the explanation for the case that is actually that — and a total of
         zero from a second query could disagree with the rows on screen.
       */}
+      {/*
+        Above the table, because the rows are where a flag is found and this is
+        how a reader learns there is one to find — a filtered log can be
+        hundreds of rows long. Below the filter notes, which are about what is
+        being shown rather than about what is in it.
+      */}
+      {implausible === null ? null : (
+        <CaveatNote className="mt-4">{implausible}</CaveatNote>
+      )}
+
       {entries.length > 0 ? (
-        <LogTable entries={entries} query={query} />
+        <LogTable
+          entries={entries}
+          query={query}
+          problems={problemsByEntry(flagged)}
+        />
       ) : filtered ? (
         <NoMatchingTime clearHref={TIME_LOG_PATH} />
       ) : (

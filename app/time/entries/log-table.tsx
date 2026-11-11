@@ -1,5 +1,6 @@
 import type { TimeEntryWithNames } from "@/lib/data/time-entries";
 import { groupTimeByDay } from "@/lib/time/days";
+import { NO_PROBLEMS, type EntryProblem } from "@/lib/time/implausible";
 import type { TimeLogQuery } from "@/lib/time/log-query";
 
 import { LogDay } from "./log-day";
@@ -25,10 +26,19 @@ const COLUMNS = ["Duration", "Project", "Client", "What was done"] as const;
 export function LogTable({
   entries,
   query,
+  problems,
 }: {
   entries: readonly TimeEntryWithNames[];
   /** The filters in force, so a row's narrowing links keep the rest of them. */
   query: TimeLogQuery;
+  /**
+   * What looks implausible, keyed by entry. Detected by the page rather than
+   * here, so the count in the line above the table and the caveats inside it
+   * come from one reading of the same rows — and so the day a row is judged
+   * against is the whole of the log's day rather than the table's own idea of
+   * one.
+   */
+  problems: ReadonlyMap<string, readonly EntryProblem[]>;
 }) {
   const days = groupTimeByDay(entries);
 
@@ -52,7 +62,13 @@ export function LogTable({
       {days.map((day) => (
         <LogDay key={day.workedOn} day={day} columns={COLUMNS.length}>
           {day.entries.map((entry) => (
-            <LogRow key={entry.id} entry={entry} query={query} />
+            <LogRow
+              key={entry.id}
+              entry={entry}
+              query={query}
+              problems={problems.get(entry.id) ?? NO_PROBLEMS}
+              columns={COLUMNS.length}
+            />
           ))}
         </LogDay>
       ))}
