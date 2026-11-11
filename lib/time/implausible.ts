@@ -344,3 +344,27 @@ export function describeProblem(
       return `${formatDate(entry.workedOn)} has ${formatMinutes(problem.dayMinutes)} logged against it, which is more than the day holds — so some of the entries on it must cover the same hours.`;
   }
 }
+
+/**
+ * The line above a flagged list: how many entries look wrong, and what that
+ * does and does not mean.
+ *
+ * Null when there is nothing to say, which is the usual answer and the one
+ * that keeps the whole panel off an ordinary project's page. A heading over an
+ * empty list reads as a page that failed to load its contents.
+ *
+ * The second clause is the one worth arguing for. Everything in this list is
+ * on the record and counts towards every figure the project has — nothing has
+ * been refused and nothing has been held back — and a reader who assumed
+ * otherwise would read the burn figures below as though the flagged hours were
+ * not in them. Saying so costs a clause and buys the rest of the page.
+ */
+export function describeImplausibleEntries(count: number): string | null {
+  if (count <= 0) return null;
+
+  const counted =
+    count === 1
+      ? "One entry on this project looks wrong."
+      : `${count} entries on this project look wrong.`;
+  return `${counted} Every one of them is logged and counted like any other, so the figures above include them — each says below what was noticed about it.`;
+}
