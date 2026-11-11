@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import {
   CaveatNote,
@@ -134,16 +134,28 @@ export function EditTimeForm({
   }
 
   /*
-    Which opening this is, decided once. `useActionState` reads its second
-    argument on the first render only, so a form that stayed mounted across a
-    change of opening would keep the state it started with — which is why the
-    list gives the two openings different keys rather than relying on this.
+    Which opening this is, captured once — on the same render, and for the same
+    reason, as the form state below it.
+
+    `useActionState` reads its initial state on the first render only, so the
+    boxes are fixed from then on. Both the suggestion and the stored figure it
+    is offered against can move under an open form, though: an edit from
+    another tab, a revalidation that arrives while the reader is typing. A note
+    that went on following the props would then explain a correction this form
+    is not holding — or disappear while the box it was explaining is still
+    filled in.
   */
+  const [opened] = useState(() =>
+    suggestedMinutes === null
+      ? null
+      : { suggested: suggestedMinutes, storedMinutes: entry.minutes },
+  );
+
   const [state, formAction, saving] = useActionState(
     attempt,
-    suggestedMinutes === null
+    opened === null
       ? editTimeState(entry)
-      : correctTimeState(entry, suggestedMinutes),
+      : correctTimeState(entry, opened.suggested),
   );
 
   // Scoped to this row: the log line at the top of the tab renders the same
@@ -188,9 +200,9 @@ export function EditTimeForm({
         summary, so a refused save is read first, and above the fields, because
         it is about the first of them.
       */}
-      {suggestedMinutes === null ? null : (
+      {opened === null ? null : (
         <CaveatNote>
-          {describeOpenedCorrection(entry.minutes, suggestedMinutes)}
+          {describeOpenedCorrection(opened.storedMinutes, opened.suggested)}
         </CaveatNote>
       )}
       <LogTimeFields state={state} options={options} scope={entry.id} />
