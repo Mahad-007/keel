@@ -46,7 +46,7 @@ as an atomic commit and what does not.
 - [x] **Day 027** — Bulk time entry from the timesheet grid, writing many entries in one transaction.
 - [x] **Day 028** — Time filtering by date range, project, client, and billable flag, driven entirely by URL search params.
 - [x] **Day 029** — CSV export of filtered time entries, generated server-side with correct escaping and a tested formatter.
-- [ ] **Day 030** — Idle-time correction: flag entries that look implausible (over 12h, overlapping, negative) and offer a fix, with the detection logic pure and tested.
+- [x] **Day 030** — Idle-time correction: flag entries that look implausible (over 12h, overlapping, negative) and offer a fix, with the detection logic pure and tested.
 
 ## Phase 4 — The wedge: scope creep detection (31–45)
 
