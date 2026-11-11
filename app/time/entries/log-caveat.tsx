@@ -40,8 +40,16 @@ export function LogCaveat({
   return (
     <tr>
       <td colSpan={columns} className="pb-2.5">
-        {problems.map((problem) => (
-          <CaveatNote key={problem.reason}>
+        {problems.map((problem, index) => (
+          /*
+            Spaced from each other but not from the cell's own padding, which
+            is why the first one carries no margin. Two amber boxes flush
+            together read as one box with a line through it.
+          */
+          <CaveatNote
+            key={problem.reason}
+            className={index === 0 ? undefined : "mt-1.5"}
+          >
             {describeProblem(entry, problem)}
           </CaveatNote>
         ))}
