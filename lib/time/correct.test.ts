@@ -7,6 +7,7 @@ import {
   correctTimeState,
   correctTimeText,
   describeOpenedCorrection,
+  offeredCorrection,
   suggestedMinutes,
 } from "./correct";
 import { editTimeState } from "./edit";
@@ -137,5 +138,22 @@ describe("the words around the offer", () => {
     expect(describeOpenedCorrection(13 * 60, 13)).toContain(
       "type what it really was",
     );
+  });
+});
+
+describe("the correction a row actually gets offered", () => {
+  it("offers the guess on an entry the list can change", () => {
+    expect(offeredCorrection(ENTRY)).toBe(13);
+  });
+
+  it("offers nothing on an entry an invoice has billed", () => {
+    // The caveat stays; the press would only be refused.
+    expect(
+      offeredCorrection({ ...ENTRY, billedInvoiceId: "inv_1" }),
+    ).toBeNull();
+  });
+
+  it("offers nothing where there is no guess to make", () => {
+    expect(offeredCorrection({ ...ENTRY, minutes: 90 })).toBeNull();
   });
 });
