@@ -3,12 +3,17 @@
 import { useActionState, useEffect } from "react";
 
 import {
+  CaveatNote,
   fieldId,
   FormSummary,
   SubmitButton,
   useFirstErrorFocus,
 } from "@/components/form";
 import type { DeliverableOption } from "@/lib/time/attribution";
+import {
+  correctTimeState,
+  describeOpenedCorrection,
+} from "@/lib/time/correct";
 import {
   cancelTimeEditLabel,
   EDIT_TIME_FIELD_NAMES,
@@ -43,6 +48,7 @@ export function EditTimeForm({
   entry,
   name,
   options,
+  suggestedMinutes = null,
   save,
   onSaved,
   onCancel,
@@ -52,6 +58,15 @@ export function EditTimeForm({
   name: string;
   /** The deliverables this project has, for the attribution picker. */
   options: readonly DeliverableOption[];
+  /**
+   * The figure the duration box opens holding, when this form was opened by
+   * the offer beside a flagged row rather than by Edit.
+   *
+   * Null for an ordinary edit, and that is the important half: a reader who
+   * pressed Edit must find every box holding exactly what the row reads, or
+   * somebody correcting a note would save a duration they never typed.
+   */
+  suggestedMinutes?: number | null;
   /**
    * The write, with the project and its scope list already captured by the
    * page that served the list. The entry is named by the hidden field below
@@ -118,9 +133,17 @@ export function EditTimeForm({
     return state;
   }
 
+  /*
+    Which opening this is, decided once. `useActionState` reads its second
+    argument on the first render only, so a form that stayed mounted across a
+    change of opening would keep the state it started with — which is why the
+    list gives the two openings different keys rather than relying on this.
+  */
   const [state, formAction, saving] = useActionState(
     attempt,
-    editTimeState(entry),
+    suggestedMinutes === null
+      ? editTimeState(entry)
+      : correctTimeState(entry, suggestedMinutes),
   );
 
   // Scoped to this row: the log line at the top of the tab renders the same
@@ -159,6 +182,17 @@ export function EditTimeForm({
       */}
       <input type="hidden" name={EDIT_TIME_FIELD_NAMES.id} value={entry.id} />
       <FormSummary state={state} />
+      {/*
+        Said whenever the page put something in a box the reader did not type,
+        which is the one liberty an edit form must not take silently. Under the
+        summary, so a refused save is read first, and above the fields, because
+        it is about the first of them.
+      */}
+      {suggestedMinutes === null ? null : (
+        <CaveatNote>
+          {describeOpenedCorrection(entry.minutes, suggestedMinutes)}
+        </CaveatNote>
+      )}
       <LogTimeFields state={state} options={options} scope={entry.id} />
       <div className="flex flex-wrap items-center gap-3">
         <SubmitButton pendingLabel="Saving…">Save changes</SubmitButton>
