@@ -6,6 +6,19 @@ import {
 } from "@/lib/time/implausible";
 
 /**
+ * The rule under one entry of the log, which is a shared string because two
+ * different `<tr>`s carry it.
+ *
+ * An unflagged entry draws its own, and a flagged one hands it to the caveat
+ * underneath — otherwise the rule falls between a row and its own explanation,
+ * grouping the sentence with the entry below it. `last:border-b-0` has to
+ * travel with it for the same reason: whichever `<tr>` ends the day is the one
+ * that must not draw a second rule over the day's own.
+ */
+export const LOG_ROW_RULE =
+  "border-b border-zinc-100 last:border-b-0 dark:border-zinc-900";
+
+/**
  * Why one row of the log looks wrong, in a row of its own underneath it.
  *
  * A row rather than a cell inside the row the sentence is about: the note
@@ -38,7 +51,7 @@ export function LogCaveat({
   if (problems.length === 0) return null;
 
   return (
-    <tr>
+    <tr className={LOG_ROW_RULE}>
       <td colSpan={columns} className="pb-2.5">
         {problems.map((problem, index) => (
           /*

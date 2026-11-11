@@ -15,7 +15,7 @@ import {
   type TimeLogQuery,
 } from "@/lib/time/log-query";
 
-import { LogCaveat } from "./log-caveat";
+import { LogCaveat, LOG_ROW_RULE } from "./log-caveat";
 
 /** Shared by the two cells that narrow the log, so they cannot drift apart. */
 const NARROWING_LINK =
@@ -68,7 +68,11 @@ export function LogRow({
 
   return (
     <>
-      <tr className="border-b border-zinc-100 last:border-b-0 dark:border-zinc-900">
+      {/*
+        The rule goes to the caveat when there is one, so it falls under the
+        sentence rather than between the entry and its own explanation.
+      */}
+      <tr className={problems.length === 0 ? LOG_ROW_RULE : undefined}>
         <td className="w-20 py-2 pr-4 text-right align-baseline text-sm font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
           {formatMinutes(entry.minutes)}
         </td>
