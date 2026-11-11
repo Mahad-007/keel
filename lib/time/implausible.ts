@@ -219,3 +219,47 @@ export function entryProblems(
   }
   return problems;
 }
+
+/**
+ * One entry and what looks wrong with it.
+ *
+ * The whole entry rather than its id, generic over the row, so a caller that
+ * passed four columns gets four back and a page that passed whole rows can
+ * name the entry in the sentence without looking it up again. The same
+ * arrangement `TimeDay<T>` uses, for the same reason.
+ */
+export type FlaggedEntry<T extends SuspectEntry> = {
+  readonly entry: T;
+  /** At least one — an entry with nothing wrong with it is not flagged. */
+  readonly problems: readonly EntryProblem[];
+};
+
+/**
+ * The entries in a set that look wrong, each with what is wrong with it.
+ *
+ * Only the flagged ones, so the length is the count a reader is told and an
+ * empty array means a list with nothing to question. Returning every entry
+ * with a possibly-empty problem list would make every caller filter, and the
+ * one that forgot would render a caveat on every row.
+ *
+ * In the order they arrived, which is the caller's — the data layer's newest
+ * first on a project page. Nothing here sorts: a flag belongs beside the row
+ * it is about, and a list that re-ordered its input would not line up with
+ * the list on screen.
+ *
+ * The day totals are worked out once over the whole set rather than per
+ * entry, which is what keeps a project with a year of time against it from
+ * doing quadratic work to draw one page.
+ */
+export function flagImplausibleEntries<T extends SuspectEntry>(
+  entries: readonly T[],
+): FlaggedEntry<T>[] {
+  const totals = dayTotals(entries);
+
+  const flagged: FlaggedEntry<T>[] = [];
+  for (const entry of entries) {
+    const problems = entryProblems(entry, totals.get(entry.workedOn) ?? 0);
+    if (problems.length > 0) flagged.push({ entry, problems });
+  }
+  return flagged;
+}
