@@ -66,6 +66,20 @@ describe("resolveRate", () => {
     ).toEqual({ cents: 12500, source: "client" });
   });
 
+  it("lets an override of nothing beat a client who bills plenty", () => {
+    expect(resolveRate({ rateCents: 0 }, { defaultRateCents: 12500 })).toEqual({
+      cents: 0,
+      source: "project",
+    });
+  });
+
+  it("keeps a project overridden to nothing apart from an unpriced one", () => {
+    const overridden = resolveRate({ rateCents: 0 }, { defaultRateCents: 0 });
+    const unpriced = resolveRate({ rateCents: null }, { defaultRateCents: 0 });
+    expect(overridden.cents).toBe(unpriced.cents);
+    expect(overridden.source).not.toBe(unpriced.source);
+  });
+
   it("comes to nothing when neither row sets a rate", () => {
     expect(resolveRate({ rateCents: null }, { defaultRateCents: 0 })).toEqual(
       UNRATED,
