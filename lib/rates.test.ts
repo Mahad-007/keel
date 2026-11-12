@@ -192,6 +192,10 @@ describe("burnedCents on a hand-edited row", () => {
     expect(isNegativeRate(backwards)).toBe(true);
   });
 
+  it("rounds an exact half cent of burn upwards", () => {
+    expect(burnedCents(11, { cents: 2250, source: "client" })).toBe(413);
+  });
+
   it("rounds a fractional minute to the cent", () => {
     const rate = { cents: 15000, source: "project" } as const;
     expect(burnedCents(30.5, rate)).toBe(7625);

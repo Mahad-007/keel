@@ -46,6 +46,11 @@ describe("costOfMinutes", () => {
   it("still carries a loss big enough to show", () => {
     expect(costOfMinutes(-60, 10000)).toBe(-10000);
   });
+
+  it("rounds an exact half cent up rather than a hair down", () => {
+    expect(costOfMinutes(11, 1350)).toBe(248);
+    expect(costOfMinutes(21, 1450)).toBe(508);
+  });
 });
 
 describe("centsToInput", () => {
