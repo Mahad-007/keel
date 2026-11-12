@@ -146,4 +146,16 @@ describe("burnedCents", () => {
   it("burns nothing for no time at all", () => {
     expect(burnedCents(0, rate)).toBe(0);
   });
+
+  it("rounds a third of an hour to the nearest cent", () => {
+    expect(burnedCents(20, { cents: 10000, source: "client" })).toBe(3333);
+    expect(burnedCents(20, { cents: 10001, source: "client" })).toBe(3334);
+  });
+
+  it("adds up the minutes, not the rounded amounts", () => {
+    const third = { cents: 10000, source: "client" } as const;
+    const separately = 3 * burnedCents(20, third);
+    expect(separately).toBe(9999);
+    expect(burnedCents(60, third)).toBe(10000);
+  });
 });
