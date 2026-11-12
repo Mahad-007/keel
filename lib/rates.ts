@@ -50,3 +50,22 @@ export type RateDefault = {
   /** Default billing rate in cents per hour. Zero means none was set. */
   readonly defaultRateCents: number;
 };
+
+/**
+ * Where the rate a figure was worked out at came from.
+ *
+ * Carried beside the amount because the amount alone cannot be acted on. Two
+ * projects can both burn at $150 an hour, one because somebody typed it on the
+ * project and one because the client bills at it, and a reader who wants to
+ * change the number has to go to a different form in each case. More
+ * importantly, zero has two meanings: a project deliberately overridden to
+ * nothing is not the same as a project nobody has set a rate for anywhere, and
+ * a burn summary that said "$0.00 burned" for both would be hiding a missing
+ * rate behind a figure that looks like a measurement.
+ *
+ * Order is resolution order: the project is asked first, the client second,
+ * and `none` is what is left when neither answers.
+ */
+export const RATE_SOURCES = ["project", "client", "none"] as const;
+
+export type RateSource = (typeof RATE_SOURCES)[number];
