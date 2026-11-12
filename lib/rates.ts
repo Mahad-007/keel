@@ -195,3 +195,20 @@ export function resolveRate(
 export function hasRate(rate: EffectiveRate): boolean {
   return rate.cents > 0;
 }
+
+/**
+ * Whether this rate is below zero, which no form in the app can produce.
+ *
+ * `hasRate` already refuses it, but refusing is not the same as explaining:
+ * the two reasons a rate cannot bill want different sentences and different
+ * actions. "No rate is set for this project" is a form to go and fill in; "the
+ * rate on this project is minus $150 an hour" is a row somebody has to repair,
+ * and the figures beside it are not wrong so much as inverted.
+ *
+ * Kept as a question about the rate rather than about the source, because
+ * either row can hold one and the sentence is the same in both cases — the
+ * source then says which form to open.
+ */
+export function isNegativeRate(rate: EffectiveRate): boolean {
+  return rate.cents < 0;
+}
