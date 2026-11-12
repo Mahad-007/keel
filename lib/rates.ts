@@ -236,6 +236,13 @@ export function isNegativeRate(rate: EffectiveRate): boolean {
  * below zero — only reachable from a hand-edited row — likewise produce a
  * negative burn rather than being clamped, because a total that quietly
  * repaired its inputs would disagree with the list the reader is looking at.
+ *
+ * It takes minutes rather than a list of entries, and the caller has to total
+ * them first: twenty minutes converted three times comes to a cent less than
+ * the hour it is, and a summary built entry by entry would not match the same
+ * hours billed as one line. Minutes are integers, so the total is exact — that
+ * is the reason the unit is minutes, and converting once is how the reason
+ * gets used.
  */
 export function burnedCents(minutes: number, rate: EffectiveRate): number {
   return costOfMinutes(minutes, rate.cents);

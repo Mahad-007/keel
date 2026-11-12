@@ -198,3 +198,35 @@ describe("burnedCents on a hand-edited row", () => {
     expect(burnedCents(0.001, rate)).toBe(0);
   });
 });
+
+describe("resolving and burning together", () => {
+  const minutes = 20 * 60;
+
+  it("burns a project's own override", () => {
+    const rate = resolveRate({ rateCents: 20000 }, { defaultRateCents: 12500 });
+    expect(burnedCents(minutes, rate)).toBe(4_000_00);
+  });
+
+  it("burns an inheriting project at its client's default", () => {
+    const rate = resolveRate({ rateCents: null }, { defaultRateCents: 12500 });
+    expect(burnedCents(minutes, rate)).toBe(2_500_00);
+  });
+
+  it("burns an unpriced project at nothing, and says why", () => {
+    const rate = resolveRate({ rateCents: null }, { defaultRateCents: 0 });
+    expect(burnedCents(minutes, rate)).toBe(0);
+    expect(rate.source).toBe("none");
+    expect(hasRate(rate)).toBe(false);
+  });
+
+  it("does not bill an inheriting project at its own NULL", () => {
+    const inheriting = resolveRate(
+      { rateCents: null },
+      { defaultRateCents: 12500 },
+    );
+    const unpriced = resolveRate({ rateCents: null }, { defaultRateCents: 0 });
+    expect(burnedCents(minutes, inheriting)).toBeGreaterThan(
+      burnedCents(minutes, unpriced),
+    );
+  });
+});
