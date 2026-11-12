@@ -1,3 +1,5 @@
+import { costOfMinutes } from "@/lib/money";
+
 /**
  * What an hour on a project is worth, and what the hours logged against it
  * have therefore cost.
@@ -211,4 +213,30 @@ export function hasRate(rate: EffectiveRate): boolean {
  */
 export function isNegativeRate(rate: EffectiveRate): boolean {
   return rate.cents < 0;
+}
+
+/**
+ * What `minutes` of work came to at this rate, in whole cents — the burn.
+ *
+ * The conversion the whole phase is built on, and the only place in the app
+ * where minutes become money. Through `costOfMinutes` rather than the division
+ * written out again, so the rounding is the same arithmetic an invoice line
+ * will use: an hour and a third at $150 is $200.00 here and $200.00 there, and
+ * a burn figure that disagreed with the invoice it predicts would be worse
+ * than no burn figure.
+ *
+ * The resolved rate rather than a loose number of cents, so a caller cannot
+ * reach this function without having gone through the resolution — passing a
+ * project's `rateCents` straight in is exactly the bug that bills an
+ * inheriting project at nothing, and the types now refuse it.
+ *
+ * Both degenerate rates come out as something a reader can act on rather than
+ * being refused. No rate burns nothing, which is why `hasRate` exists to be
+ * asked first; a negative rate burns backwards, which is visible. Minutes
+ * below zero — only reachable from a hand-edited row — likewise produce a
+ * negative burn rather than being clamped, because a total that quietly
+ * repaired its inputs would disagree with the list the reader is looking at.
+ */
+export function burnedCents(minutes: number, rate: EffectiveRate): number {
+  return costOfMinutes(minutes, rate.cents);
 }
