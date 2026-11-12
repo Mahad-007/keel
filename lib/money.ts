@@ -47,9 +47,19 @@ export function withoutNegativeZero(value: number): number {
  * arithmetic rather than always a shade under it, and never `-0`: an amount
  * that rounds away to nothing is nothing, and "-$0.00" on an invoice line is
  * not a number anybody agreed to.
+ *
+ * Multiplied before it is divided, which is not the same arithmetic in binary
+ * floating point. Dividing first makes the intermediate value inexact and it
+ * lands a hair under: eleven minutes at $13.50 an hour is exactly 247.5 cents,
+ * but `(11 / 60) * 1350` is 247.49999999999997 and rounds to 247. Two integers
+ * multiplied are exact, so this order rounds the true half-cent upwards like
+ * every other half-cent in the file — and it is the order `impliedRateCents`
+ * already divides in, which is the inverse of this calculation.
  */
 export function costOfMinutes(minutes: number, rateCents: number): number {
-  return withoutNegativeZero(Math.round((minutes / MINUTES_PER_HOUR) * rateCents));
+  return withoutNegativeZero(
+    Math.round((minutes * rateCents) / MINUTES_PER_HOUR),
+  );
 }
 
 /**
