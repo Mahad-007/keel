@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  burnedCents,
   clientRate,
   hasRate,
   isNegativeRate,
@@ -123,5 +124,26 @@ describe("isNegativeRate", () => {
 
   it("says nothing about a rate that bills", () => {
     expect(isNegativeRate({ cents: 15000, source: "project" })).toBe(false);
+  });
+});
+
+describe("burnedCents", () => {
+  const rate = { cents: 15000, source: "project" } as const;
+
+  it("burns a whole hour at the rate", () => {
+    expect(burnedCents(60, rate)).toBe(15000);
+  });
+
+  it("burns part of an hour in proportion", () => {
+    expect(burnedCents(30, rate)).toBe(7500);
+    expect(burnedCents(90, rate)).toBe(22500);
+  });
+
+  it("burns a day of work at the rate", () => {
+    expect(burnedCents(480, rate)).toBe(120000);
+  });
+
+  it("burns nothing for no time at all", () => {
+    expect(burnedCents(0, rate)).toBe(0);
   });
 });
