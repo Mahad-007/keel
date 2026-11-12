@@ -38,9 +38,16 @@ export function withoutNegativeZero(value: number): number {
   return value === 0 ? 0 : value;
 }
 
-/** Cost of `minutes` worked at `rateCents` per hour, rounded to the cent. */
+/**
+ * Cost of `minutes` worked at `rateCents` per hour, rounded to the cent.
+ *
+ * Rounded rather than truncated, so the figure is the nearest cent to the
+ * arithmetic rather than always a shade under it, and never `-0`: an amount
+ * that rounds away to nothing is nothing, and "-$0.00" on an invoice line is
+ * not a number anybody agreed to.
+ */
 export function costOfMinutes(minutes: number, rateCents: number): number {
-  return Math.round((minutes / 60) * rateCents);
+  return withoutNegativeZero(Math.round((minutes / 60) * rateCents));
 }
 
 /**
