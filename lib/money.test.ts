@@ -36,6 +36,16 @@ describe("costOfMinutes", () => {
     expect(costOfMinutes(30, 10000)).toBe(5000);
     expect(costOfMinutes(20, 10000)).toBe(3333);
   });
+
+  it("keeps the sign off an amount that rounds away to nothing", () => {
+    expect(Object.is(costOfMinutes(-30, 0), 0)).toBe(true);
+    expect(Object.is(costOfMinutes(-1, 1), 0)).toBe(true);
+    expect(formatCents(costOfMinutes(-1, 1))).toBe("$0.00");
+  });
+
+  it("still carries a loss big enough to show", () => {
+    expect(costOfMinutes(-60, 10000)).toBe(-10000);
+  });
 });
 
 describe("centsToInput", () => {
