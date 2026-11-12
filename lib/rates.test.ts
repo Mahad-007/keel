@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   clientRate,
   hasRate,
+  isNegativeRate,
   projectRate,
   resolveRate,
   UNRATED,
@@ -107,5 +108,20 @@ describe("hasRate", () => {
 
   it("refuses a rate below zero rather than billing backwards", () => {
     expect(hasRate({ cents: -15000, source: "project" })).toBe(false);
+  });
+});
+
+describe("isNegativeRate", () => {
+  it("picks out the rate that bills backwards", () => {
+    expect(isNegativeRate({ cents: -1, source: "client" })).toBe(true);
+  });
+
+  it("leaves a rate of nothing to hasRate to explain", () => {
+    expect(isNegativeRate(UNRATED)).toBe(false);
+    expect(isNegativeRate({ cents: 0, source: "project" })).toBe(false);
+  });
+
+  it("says nothing about a rate that bills", () => {
+    expect(isNegativeRate({ cents: 15000, source: "project" })).toBe(false);
   });
 });
