@@ -176,3 +176,25 @@ describe("burnedCents with nothing to bill at", () => {
     expect(Object.is(burnedCents(-30, UNRATED), 0)).toBe(true);
   });
 });
+
+describe("burnedCents on a hand-edited row", () => {
+  it("burns backwards at a negative rate rather than hiding it", () => {
+    expect(burnedCents(60, { cents: -15000, source: "project" })).toBe(-15000);
+  });
+
+  it("burns backwards for minutes below zero", () => {
+    expect(burnedCents(-60, { cents: 15000, source: "project" })).toBe(-15000);
+  });
+
+  it("does not let two wrong signs cancel into a plausible figure", () => {
+    const backwards = { cents: -15000, source: "project" } as const;
+    expect(burnedCents(-60, backwards)).toBe(15000);
+    expect(isNegativeRate(backwards)).toBe(true);
+  });
+
+  it("rounds a fractional minute to the cent", () => {
+    const rate = { cents: 15000, source: "project" } as const;
+    expect(burnedCents(30.5, rate)).toBe(7625);
+    expect(burnedCents(0.001, rate)).toBe(0);
+  });
+});
