@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clientRate, projectRate } from "./rates";
+import { clientRate, projectRate, resolveRate, UNRATED } from "./rates";
 
 describe("projectRate", () => {
   it("takes the override as the rate, and says the project set it", () => {
@@ -50,5 +50,26 @@ describe("clientRate", () => {
       cents: -12500,
       source: "client",
     });
+  });
+});
+
+describe("resolveRate", () => {
+  it("prefers the project's override to the client's default", () => {
+    expect(
+      resolveRate({ rateCents: 20000 }, { defaultRateCents: 12500 }),
+    ).toEqual({ cents: 20000, source: "project" });
+  });
+
+  it("falls back to the client's default with no override", () => {
+    expect(
+      resolveRate({ rateCents: null }, { defaultRateCents: 12500 }),
+    ).toEqual({ cents: 12500, source: "client" });
+  });
+
+  it("comes to nothing when neither row sets a rate", () => {
+    expect(resolveRate({ rateCents: null }, { defaultRateCents: 0 })).toEqual(
+      UNRATED,
+    );
+    expect(resolveRate({ rateCents: null }, null)).toEqual(UNRATED);
   });
 });
