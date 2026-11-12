@@ -159,3 +159,20 @@ describe("burnedCents", () => {
     expect(burnedCents(60, third)).toBe(10000);
   });
 });
+
+describe("burnedCents with nothing to bill at", () => {
+  it("burns nothing however long the work took", () => {
+    expect(burnedCents(4800, UNRATED)).toBe(0);
+    expect(burnedCents(4800, { cents: 0, source: "project" })).toBe(0);
+  });
+
+  it("is the figure hasRate exists to caveat", () => {
+    const rate = UNRATED;
+    expect(burnedCents(4800, rate)).toBe(0);
+    expect(hasRate(rate)).toBe(false);
+  });
+
+  it("keeps the sign off a corrected entry at no rate", () => {
+    expect(Object.is(burnedCents(-30, UNRATED), 0)).toBe(true);
+  });
+});
