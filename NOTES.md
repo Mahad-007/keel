@@ -771,3 +771,89 @@ holding it. Phase 8 answers the second question from the session.
   opinion travelling into somebody else's workbook with no sentence beside it
   to say the hours are still counted. Day 073's invoice CSV is where a second
   export is designed; if a flag belongs in a file it belongs there too.
+
+## Why a project's NULL and a client's zero read differently (Day 031)
+
+`lib/rates.ts` resolves a rate in the order the roadmap states — override, else
+client default, else zero — but the two rungs disagree about what their
+column's emptiest value means, and the disagreement is deliberate.
+
+`projects.rate_cents` is nullable, so a project can say two distinct things:
+NULL is "ask the client" and zero is "this project does not bill by the hour".
+Both are answers somebody typed, and `lib/projects/detail.ts` has been printing
+them as different sentences since Day 010. So `projectRate` returns null for
+NULL and a rate of zero, sourced to the project, for zero.
+
+`clients.default_rate_cents` is `NOT NULL DEFAULT 0`, so a client has no way to
+make that distinction: zero is what every client row starts life holding.
+Reading it as a decision would price every client created before anyone thought
+about rates at nothing an hour — silently, for ever, with a burn figure of
+$0.00 that looks like a measurement. So `clientRate` reads zero as "nobody has
+said" and answers null.
+
+It costs one thing worth naming: a client who genuinely bills at nothing cannot
+say so on their own row and has to say it per project. That is the right way
+round, because the project override *can* express it and nothing resolves to a
+rate nobody typed. If a later milestone wants it on the client, the column has
+to become nullable first — the reading cannot be fixed in this file.
+
+## Why the resolved rate carries where it came from
+
+`EffectiveRate` is an amount *and* a source, because the amount alone cannot be
+acted on. Two projects both burning at $150 an hour need different forms opened
+to change it, and more importantly zero has three routes: overridden to
+nothing, inherited from a client who has no default, or a project nobody has
+priced. A burn summary that printed "$0.00 burned, 0% of the contract consumed"
+for all three would be reporting a missing rate as good news, which is the
+exact failure the whole scope-creep phase exists to avoid.
+
+`hasRate` is the question a page asks before presenting a burn figure as a
+measurement, and it is `> 0` rather than `!== 0` so a negative rate is refused
+by it too. `isNegativeRate` is separate because the two unusable rates want
+different sentences: one is a form to fill in, the other is a hand-edited row
+whose figures come out inverted.
+
+## Where minutes become money, and the cent at stake
+
+`burnedCents` takes a resolved rate rather than a loose number of cents, so no
+caller can reach the conversion without having gone through the resolution —
+passing a project's own `rateCents` straight in is exactly the bug that bills
+an inheriting project at nothing, and the types now refuse it.
+
+It takes whole minutes and the caller has to total them first. Twenty minutes
+converted three times at $100 an hour comes to $99.99; the hour it is comes to
+$100.00. Minutes are integers, so the total is exact, and converting once is
+how that property gets used. Any later summary that adds up per-entry amounts
+instead will disagree with the invoice by a cent per rounding.
+
+The conversion itself is `costOfMinutes` in `lib/money.ts`, unchanged in
+meaning and corrected in arithmetic: it now multiplies before it divides. Eleven
+minutes at $13.50 an hour is exactly 247.5 cents, but `(11 / 60) * 1350` is
+247.49999999999997 and rounded *down* — a half-cent tie going the wrong way at
+every rate that lands on one. Two integers multiplied are exact, and it is the
+order `impliedRateCents` has always divided in, which is the inverse of this
+calculation. `withoutNegativeZero` moved out of `lib/scope.ts` into
+`lib/money.ts` at the same time, because an amount that rounds away to nothing
+printing as "-$0.00" is a problem of the unit and not of the scope arithmetic.
+
+### Left alone deliberately
+
+- **Nothing reads the client's default yet.** `getProjectWithClient` joins the
+  client for its name and archived date, not its rate, so `resolveRate` has no
+  caller in `app/` today. Day 032 puts the burn summary on the project page and
+  is the milestone that should decide what that read looks like — adding a
+  column to the join now would be a data-layer change with no page behind it.
+- **No words for the three sources.** "At $150/hr, the client's default" is a
+  sentence, and the page that needs it is Day 032's. This file stays numbers
+  in, numbers out, like `lib/scope.ts` beside it.
+- **No burn over a list of entries.** `burnedCents(totalMinutes(entries), rate)`
+  is the call, and it is one line at the caller. A helper here would have to
+  decide whether a burn counts non-chargeable time, which is a question about
+  what the summary means rather than about what an hour is worth.
+- **Negative rates are carried, not clamped.** Nothing in the app writes one.
+  A project burning backwards is the visible symptom that sends somebody to the
+  row, where a repaired figure would look fine and stay wrong.
+- **Day 049 will revisit all of it.** Accepted change orders raise the
+  effective contract value, not the rate, so the resolution here should survive
+  it — but the burn figures built on it are named in that milestone and the
+  roadmap says so.
