@@ -155,3 +155,24 @@ export function clientRate(client: RateDefault | null): EffectiveRate | null {
   if (client === null || client.defaultRateCents === 0) return null;
   return { cents: client.defaultRateCents, source: "client" };
 }
+
+/**
+ * What a project's hours are actually worth: its override, else its client's
+ * default, else nothing.
+ *
+ * The chain every burn figure in the app starts from, written as a chain —
+ * the two rungs answer for themselves and this says only what order they are
+ * asked in. A condition written out here instead would be a third opinion
+ * about what a NULL and a zero mean, and the three would drift.
+ *
+ * `UNRATED` rather than a rate of zero built on the spot, so a project with no
+ * rate anywhere is the same value wherever it is resolved. The figures that
+ * come out of it are zero either way; the source is what a page needs, and it
+ * says `none` rather than naming a row that did not answer.
+ */
+export function resolveRate(
+  project: RateOverride,
+  client: RateDefault | null,
+): EffectiveRate {
+  return projectRate(project) ?? clientRate(client) ?? UNRATED;
+}
