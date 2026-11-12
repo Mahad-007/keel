@@ -1,3 +1,5 @@
+import { MINUTES_PER_HOUR } from "@/lib/minutes";
+
 /**
  * Money is integer cents everywhere in the codebase. Floats never touch a
  * currency value — `0.1 + 0.2` problems in an invoice total are not
@@ -47,7 +49,7 @@ export function withoutNegativeZero(value: number): number {
  * not a number anybody agreed to.
  */
 export function costOfMinutes(minutes: number, rateCents: number): number {
-  return withoutNegativeZero(Math.round((minutes / 60) * rateCents));
+  return withoutNegativeZero(Math.round((minutes / MINUTES_PER_HOUR) * rateCents));
 }
 
 /**
