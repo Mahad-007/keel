@@ -104,3 +104,22 @@ export const UNRATED: EffectiveRate = Object.freeze({
   cents: 0,
   source: "none",
 });
+
+/**
+ * The project's own answer about its rate, or null if it has not got one.
+ *
+ * Null for NULL, which is the whole reason the column is nullable: a project
+ * with no override is not a project that bills at nothing, it is a project
+ * that has not been asked. Returning a rate of zero here would be the single
+ * most expensive bug available in this file — every engagement that had never
+ * had a rate typed on it would burn nothing, for ever, silently.
+ *
+ * A zero override *is* an answer, and comes back as one: somebody opened the
+ * form and said this project does not bill by the hour. The source says the
+ * project said so, which is what lets a page print "overridden to nothing"
+ * rather than "no rate set".
+ */
+export function projectRate(project: RateOverride): EffectiveRate | null {
+  if (project.rateCents === null) return null;
+  return { cents: project.rateCents, source: "project" };
+}
