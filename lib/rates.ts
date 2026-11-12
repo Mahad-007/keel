@@ -176,3 +176,22 @@ export function resolveRate(
 ): EffectiveRate {
   return projectRate(project) ?? clientRate(client) ?? UNRATED;
 }
+
+/**
+ * Whether this rate can actually turn hours into money.
+ *
+ * Above zero, not merely non-zero. A rate of nothing produces a burn of
+ * nothing however many hours go into it, which is a true figure and a useless
+ * one: a page that showed "0% of the contract consumed" after a month of work
+ * would be reporting a missing rate as good news. A rate below zero is worse
+ * and is the same answer here — it bills, but backwards, and no figure built
+ * on it should be presented as a measurement.
+ *
+ * Named rather than written out at each caller because the comparison is about
+ * to be made by the burn summary, the health classifier and the projection,
+ * and three places deciding separately whether zero counts is three places
+ * that can disagree on the page at once.
+ */
+export function hasRate(rate: EffectiveRate): boolean {
+  return rate.cents > 0;
+}
