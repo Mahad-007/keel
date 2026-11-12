@@ -123,3 +123,35 @@ export function projectRate(project: RateOverride): EffectiveRate | null {
   if (project.rateCents === null) return null;
   return { cents: project.rateCents, source: "project" };
 }
+
+/**
+ * The client's answer about their default rate, or null if they have not got
+ * one.
+ *
+ * Zero is read as "nobody has said" rather than as "this client bills at
+ * nothing", which is the opposite of the reading a zero override gets a few
+ * lines above. The asymmetry is in the schema and not in this file: the
+ * project's column is nullable, so a project can say nothing and can say zero,
+ * and the client's is a not-null zero default, so a client has no way to
+ * distinguish the two. Zero is what every client row starts life holding, and
+ * treating it as a decision would mean every client created before anyone
+ * thought about rates had decided to work for free.
+ *
+ * It costs one thing, and it is worth naming: a client who genuinely does bill
+ * at nothing cannot say so on their own row, and has to say it per project.
+ * That is the right way round — the project override can express it, and
+ * nothing silently resolves to a rate that nobody typed.
+ *
+ * A null client is accepted and answers null, for callers holding a project
+ * read without its client — the edit form, a list that joined nothing. The
+ * resolution then falls through to "none", which is honest about what is
+ * known: the source says no rate was found, not that none exists.
+ *
+ * A default below zero is carried, like a negative override: nothing in the
+ * app writes one, and a project burning backwards is the visible symptom that
+ * sends somebody to the row.
+ */
+export function clientRate(client: RateDefault | null): EffectiveRate | null {
+  if (client === null || client.defaultRateCents === 0) return null;
+  return { cents: client.defaultRateCents, source: "client" };
+}
