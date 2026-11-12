@@ -69,3 +69,38 @@ export type RateDefault = {
 export const RATE_SOURCES = ["project", "client", "none"] as const;
 
 export type RateSource = (typeof RATE_SOURCES)[number];
+
+/**
+ * A resolved rate: what an hour is worth, and which row said so.
+ *
+ * The pair travels together everywhere a rate does. Splitting them would mean
+ * every caller that wants to explain a figure has to resolve the rate twice —
+ * once for the number and once for the provenance — and the two calls would
+ * eventually be made with different arguments.
+ *
+ * `cents` is cents per hour, the unit both columns are stored in, and it is
+ * what it was read as rather than what it ought to be: a negative override is
+ * reported as a negative rate. Repairing it here would mean a project billing
+ * at a figure no form shows, and the one row that needs a person to look at it
+ * would be the one row that looked fine.
+ */
+export type EffectiveRate = {
+  /** Cents per hour. Zero when nothing anywhere set a rate. */
+  readonly cents: number;
+  /** Which row the amount came from. */
+  readonly source: RateSource;
+};
+
+/**
+ * The answer when no rate has been set anywhere: nothing an hour, from
+ * nowhere.
+ *
+ * Frozen and shared rather than built per call, so a caller cannot mutate
+ * the rate every unrated project in a list is holding. The readonly fields
+ * say the same thing to the compiler; this says it to a page that got the
+ * object through a boundary the types did not survive.
+ */
+export const UNRATED: EffectiveRate = Object.freeze({
+  cents: 0,
+  source: "none",
+});
