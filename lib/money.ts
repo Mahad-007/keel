@@ -20,6 +20,24 @@ export function parseCents(input: string): number {
   return Math.round(Number(cleaned) * 100);
 }
 
+/**
+ * Negative zero, written as zero.
+ *
+ * Rounding a quantity that is a shade below zero lands on `-0`, and JavaScript
+ * keeps the sign: `Intl.NumberFormat` renders it as "-0" and `formatCents` as
+ * "-$0.00". Both read as a broken page rather than as a number, and neither
+ * says anything true that plain zero does not — the input was below zero by
+ * less than the unit it is being reported in.
+ *
+ * Here rather than privately in `lib/scope.ts`, where it was first written,
+ * because the problem belongs to the unit rather than to the calculation: any
+ * figure rounded to the cent can land on it, and so can every rate and burn
+ * figure built on one.
+ */
+export function withoutNegativeZero(value: number): number {
+  return value === 0 ? 0 : value;
+}
+
 /** Cost of `minutes` worked at `rateCents` per hour, rounded to the cent. */
 export function costOfMinutes(minutes: number, rateCents: number): number {
   return Math.round((minutes / 60) * rateCents);
