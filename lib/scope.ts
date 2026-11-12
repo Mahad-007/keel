@@ -1,6 +1,7 @@
 import { isEstimated } from "@/lib/deliverables/list";
 import type { DeliverableStatus } from "@/lib/deliverables/status";
 import { MINUTES_PER_HOUR } from "@/lib/minutes";
+import { withoutNegativeZero } from "@/lib/money";
 
 /**
  * What a project's scope adds up to.
@@ -152,24 +153,6 @@ export function remainingEstimatedMinutes(lines: readonly ScopeLine[]): number {
  */
 export function deliveredEstimatedMinutes(lines: readonly ScopeLine[]): number {
   return totalEstimatedMinutes(lines.filter(isDelivered));
-}
-
-/**
- * Negative zero, written as zero.
- *
- * Rounding a quantity that is a shade below zero lands on `-0`, and JavaScript
- * keeps the sign: `Intl.NumberFormat` renders it as "-0" and `formatCents` as
- * "-$0.00". Both read as a broken page rather than as a number, and neither
- * says anything true that plain zero does not — the input was below zero by
- * less than the unit being reported in.
- *
- * Only the two rounded figures in this file need it, and both are reachable
- * only from a hand-edited row. One helper rather than the comparison written
- * out twice, so the next rounded figure added here does not have to rediscover
- * the problem.
- */
-function withoutNegativeZero(value: number): number {
-  return value === 0 ? 0 : value;
 }
 
 /**
