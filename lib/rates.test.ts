@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { clientRate, projectRate, resolveRate, UNRATED } from "./rates";
+import {
+  clientRate,
+  hasRate,
+  projectRate,
+  resolveRate,
+  UNRATED,
+} from "./rates";
 
 describe("projectRate", () => {
   it("takes the override as the rate, and says the project set it", () => {
@@ -85,5 +91,21 @@ describe("resolveRate", () => {
       UNRATED,
     );
     expect(resolveRate({ rateCents: null }, null)).toEqual(UNRATED);
+  });
+});
+
+describe("hasRate", () => {
+  it("accepts a rate there is money in", () => {
+    expect(hasRate({ cents: 1, source: "client" })).toBe(true);
+    expect(hasRate({ cents: 15000, source: "project" })).toBe(true);
+  });
+
+  it("refuses a rate of nothing, however it was arrived at", () => {
+    expect(hasRate(UNRATED)).toBe(false);
+    expect(hasRate({ cents: 0, source: "project" })).toBe(false);
+  });
+
+  it("refuses a rate below zero rather than billing backwards", () => {
+    expect(hasRate({ cents: -15000, source: "project" })).toBe(false);
   });
 });
