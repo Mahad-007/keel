@@ -50,7 +50,7 @@ as an atomic commit and what does not.
 
 ## Phase 4 — The wedge: scope creep detection (31–45)
 
-- [ ] **Day 031** — `lib/rates.ts`: resolve a project's effective rate (override, else client default, else zero) and convert minutes to burned cents. Pure and tested.
+- [x] **Day 031** — `lib/rates.ts`: resolve a project's effective rate (override, else client default, else zero) and convert minutes to burned cents. Pure and tested.
 - [ ] **Day 032** — Burn summary on the project page: contracted, burned, remaining, and percentage consumed.
 - [ ] **Day 033** — `lib/scope-creep.ts`: classify a project `healthy` / `watch` / `over` from burn versus contract and completion versus estimate, including the case that matters most — high burn with low completion. Pure, exhaustively tested.
 - [ ] **Day 034** — Scope health banner on the project page explaining *why* a project is flagged, in a sentence, not a coloured dot.
