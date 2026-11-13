@@ -247,3 +247,39 @@ export function isNegativeRate(rate: EffectiveRate): boolean {
 export function burnedCents(minutes: number, rate: EffectiveRate): number {
   return costOfMinutes(minutes, rate.cents);
 }
+
+/**
+ * A row that carries both halves of the resolution at once: a project's
+ * override and its client's default, joined.
+ *
+ * The shape every page actually holds. `ProjectWithClient` is one row with the
+ * client's columns alongside the project's, because a page that needed the
+ * client's rate separately would be a second query for one integer — so the
+ * two arguments `resolveRate` wants arrive flattened into one object, and
+ * every caller would otherwise rebuild the client half from a field on the
+ * project.
+ *
+ * Structural, like the two shapes it is made of, so it can be satisfied by a
+ * literal in a test and by a projected query result as readily as by the join.
+ */
+export type JoinedRate = RateOverride & {
+  /** The client's default hourly rate in cents, as the join carried it. */
+  readonly clientDefaultRateCents: number;
+};
+
+/**
+ * The effective rate of a project read together with its client.
+ *
+ * One line, and it exists so that line is written once. Every page that holds
+ * a joined row and wants a rate would otherwise spell out
+ * `{ defaultRateCents: project.clientDefaultRateCents }` itself, and the
+ * failure mode of spelling it out is passing the project twice or forgetting
+ * the client half — which resolves to `none` and burns every inheriting
+ * project at nothing, silently.
+ *
+ * Through `resolveRate` rather than repeating the chain, so there stays
+ * exactly one place in the app that decides what a NULL override means.
+ */
+export function resolveJoinedRate(row: JoinedRate): EffectiveRate {
+  return resolveRate(row, { defaultRateCents: row.clientDefaultRateCents });
+}

@@ -6,6 +6,7 @@ import {
   hasRate,
   isNegativeRate,
   projectRate,
+  resolveJoinedRate,
   resolveRate,
   UNRATED,
 } from "./rates";
@@ -232,5 +233,31 @@ describe("resolving and burning together", () => {
     expect(burnedCents(minutes, inheriting)).toBeGreaterThan(
       burnedCents(minutes, unpriced),
     );
+  });
+});
+
+describe("resolveJoinedRate", () => {
+  it("takes the project's override off a joined row", () => {
+    expect(
+      resolveJoinedRate({ rateCents: 15_000, clientDefaultRateCents: 18_000 }),
+    ).toEqual({ cents: 15_000, source: "project" });
+  });
+
+  it("falls through to the client's default on the same row", () => {
+    expect(
+      resolveJoinedRate({ rateCents: null, clientDefaultRateCents: 18_000 }),
+    ).toEqual({ cents: 18_000, source: "client" });
+  });
+
+  it("is unrated when neither half of the row says anything", () => {
+    expect(
+      resolveJoinedRate({ rateCents: null, clientDefaultRateCents: 0 }),
+    ).toBe(UNRATED);
+  });
+
+  it("keeps an override of nothing from reaching the client's default", () => {
+    expect(
+      resolveJoinedRate({ rateCents: 0, clientDefaultRateCents: 18_000 }),
+    ).toEqual({ cents: 0, source: "project" });
   });
 });
