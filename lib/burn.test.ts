@@ -7,6 +7,7 @@ import {
   consumedShare,
   overspentCents,
   remainingContractCents,
+  remainingMinutesAtRate,
   summariseBurn,
 } from "./burn";
 
@@ -238,5 +239,35 @@ describe("summariseBurn on a rate nothing in the app can produce", () => {
     });
 
     expect(burn.burnedCents).toBe(248);
+  });
+});
+
+describe("remainingMinutesAtRate", () => {
+  it("turns what is left into the hours it still pays for", () => {
+    expect(remainingMinutesAtRate(200_000, AT_150)).toBe(800);
+  });
+
+  it("floors rather than rounds, so it never offers an unfunded minute", () => {
+    expect(remainingMinutesAtRate(15_099, AT_150)).toBe(60);
+  });
+
+  it("pays for nothing more once the contract is exactly spent", () => {
+    expect(remainingMinutesAtRate(0, AT_150)).toBe(0);
+  });
+
+  it("has no answer when no rate is set", () => {
+    expect(remainingMinutesAtRate(200_000, UNRATED)).toBeNull();
+  });
+
+  it("has no answer at a rate of nothing, which would buy forever", () => {
+    expect(
+      remainingMinutesAtRate(200_000, { cents: 0, source: "project" }),
+    ).toBeNull();
+  });
+
+  it("has no answer at a rate below zero", () => {
+    expect(
+      remainingMinutesAtRate(200_000, { cents: -15_000, source: "project" }),
+    ).toBeNull();
   });
 });
