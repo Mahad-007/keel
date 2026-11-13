@@ -7,6 +7,7 @@ import type { LoggedTotals } from "@/lib/time/rollup";
 import {
   BURN_NOT_VALUED_LABEL,
   burnedFigure,
+  burnFigures,
   consumedFigure,
   contractedFigure,
   describeBurned,
@@ -394,5 +395,40 @@ describe("consumedFigure", () => {
 
   it("states no share when there is no price to take one of", () => {
     expect(consumedFigure(burn(1_200, 0)).value).toBe(NO_PRICE_TO_SHARE_LABEL);
+  });
+});
+
+describe("burnFigures", () => {
+  it("reads price, burn, remainder, share, in that order", () => {
+    expect(burnFigures(burn(1_200, 500_000)).map((f) => f.label)).toEqual([
+      "Contracted",
+      "Burned",
+      "Remaining",
+      "Consumed",
+    ]);
+  });
+
+  it("drops the two comparisons when there is no price to compare to", () => {
+    expect(burnFigures(burn(1_200, 0)).map((f) => f.label)).toEqual([
+      "Contracted",
+      "Burned",
+    ]);
+  });
+
+  it("keeps the burn without a price, because the hours were still spent", () => {
+    const [, burned] = burnFigures(burn(1_200, 0));
+
+    expect(burned.value).toBe("$3,000.00");
+  });
+
+  it("drops the comparisons against a price below zero as well", () => {
+    expect(burnFigures(burn(1_200, -500_000))).toHaveLength(2);
+  });
+
+  it("gives every figure a label a client would recognise", () => {
+    for (const figure of burnFigures(burn(1_200, 500_000))) {
+      expect(figure.label).toMatch(/^[A-Z][a-z]+$/);
+      expect(figure.value).not.toBe("");
+    }
   });
 });
