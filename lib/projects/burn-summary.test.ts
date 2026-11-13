@@ -5,7 +5,10 @@ import { UNRATED, type EffectiveRate } from "@/lib/rates";
 import type { LoggedTotals } from "@/lib/time/rollup";
 
 import {
+  BURN_NOT_VALUED_LABEL,
+  burnedFigure,
   contractedFigure,
+  describeBurned,
   describeRateBasis,
   describeWriteOff,
   hasBurnToShow,
@@ -148,5 +151,70 @@ describe("describeWriteOff", () => {
 
     expect(note).toContain("5h not chargeable");
     expect(note).not.toContain("$");
+  });
+});
+
+describe("burnedFigure", () => {
+  it("values the hours and shows the amount", () => {
+    const figure = burnedFigure(burn(1_200, 500_000));
+
+    expect(figure.label).toBe("Burned");
+    expect(figure.value).toBe("$3,000.00");
+  });
+
+  it("says None yet for a project nobody has logged against", () => {
+    const figure = burnedFigure(burn(0, 500_000));
+
+    expect(figure.value).toBe("None yet");
+    expect(figure.note).toMatch(/Nothing has been logged/);
+  });
+
+  it("refuses to price hours at nothing when no rate is set", () => {
+    const figure = burnedFigure(burn(4_800, 500_000, UNRATED));
+
+    expect(figure.value).toBe(BURN_NOT_VALUED_LABEL);
+    expect(figure.value).not.toContain("$0.00");
+  });
+
+  it("asks for hours before it asks for a rate", () => {
+    expect(burnedFigure(burn(0, 500_000, UNRATED)).value).toBe("None yet");
+  });
+
+  it("shows a deliberate rate of nothing as an amount, not as a gap", () => {
+    const figure = burnedFigure(
+      burn(1_200, 500_000, { cents: 0, source: "project" }),
+    );
+
+    expect(figure.value).toBe("$0.00");
+  });
+});
+
+describe("describeBurned", () => {
+  it("writes out the hours, the entries and the rate behind the figure", () => {
+    const note = describeBurned(
+      burn(2_400, 500_000, AT_150, { entryCount: 12 }),
+    );
+
+    expect(note).toBe(
+      "40h across 12 entries, at $150.00/hr, the rate set on this project.",
+    );
+  });
+
+  it("states the hours even when there is no rate to value them at", () => {
+    const note = describeBurned(
+      burn(4_800, 500_000, UNRATED, { entryCount: 9 }),
+    );
+
+    expect(note).toContain("80h across 9 entries");
+    expect(note).toContain("no rate is set");
+  });
+
+  it("adds the write-off as a second sentence, not as a qualification", () => {
+    const note = describeBurned(
+      burn(1_200, 500_000, AT_150, { billableMinutes: 900 }),
+    );
+
+    expect(note).toContain("at $150.00/hr");
+    expect(note).toContain("Includes 5h not chargeable");
   });
 });
