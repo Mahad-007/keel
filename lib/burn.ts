@@ -1,4 +1,5 @@
-import type { EffectiveRate } from "@/lib/rates";
+import { burnedCents, type EffectiveRate } from "@/lib/rates";
+import type { LoggedTotals } from "@/lib/time/rollup";
 
 /**
  * What a project has consumed of what it was agreed for.
@@ -149,4 +150,55 @@ export function overspentCents(
   burnedCents: number,
 ): number {
   return Math.max(0, burnedCents - contractedCents);
+}
+
+/**
+ * The whole burn for one project: its price, its hours, and its rate.
+ *
+ * Three arguments from three tables, which is exactly why the comparison is
+ * never made by hand. One call, and every figure in the result is consistent
+ * with the others by construction — the remainder is the difference of the two
+ * amounts above it, and the share is their quotient, so a panel cannot show a
+ * remainder worked out from one burn figure and a percentage worked out from
+ * another.
+ *
+ * The rate is handed in already resolved rather than as a project and a
+ * client, so there is exactly one place in the app that decides what an hour
+ * is worth, and it is `resolveRate`. Taking the two rows here would be a
+ * second opinion about what a NULL override means, and the two would drift —
+ * the expensive direction of that drift being a project that inherits its
+ * client's rate and burns nothing.
+ *
+ * Both money figures go through `burnedCents`, so the rounding is the
+ * arithmetic an invoice line will use. Rounded separately rather than the
+ * chargeable half being subtracted from the whole, which costs nothing here —
+ * `remainingContractCents` is the figure that has to reconcile, and it is
+ * built from the whole burn rather than from the parts.
+ *
+ * Every minute logged goes into the burn, chargeable or not. Deciding not to
+ * charge for an afternoon does not give the afternoon back: the work happened,
+ * it cost what it cost, and a fixed-price engagement that writes off a third
+ * of its hours has still spent them. The chargeable figure is carried beside
+ * it so the write-off can be named, which is the honest way round — a burn
+ * figure that quietly dropped the absorbed hours would make a project look
+ * healthier the more of its time somebody gave away.
+ */
+export function summariseBurn(
+  totals: LoggedTotals,
+  contractedCents: number,
+  rate: EffectiveRate,
+): BurnSummary {
+  const burned = burnedCents(totals.loggedMinutes, rate);
+
+  return {
+    contractedCents,
+    rate,
+    entryCount: totals.entryCount,
+    loggedMinutes: totals.loggedMinutes,
+    billableMinutes: totals.billableMinutes,
+    burnedCents: burned,
+    chargeableCents: burnedCents(totals.billableMinutes, rate),
+    remainingCents: remainingContractCents(contractedCents, burned),
+    consumedShare: consumedShare(contractedCents, burned),
+  };
 }
