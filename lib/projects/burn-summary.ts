@@ -566,3 +566,26 @@ export function burnProblems(summary: BurnSummary): string[] {
   if (inverted !== null) problems.push(inverted);
   return problems;
 }
+
+/**
+ * What the whole panel is and is not, said once underneath it.
+ *
+ * Two readings it would otherwise invite, and both of them would be taken by
+ * somebody acting on the figure. The first is that this is money: it is not,
+ * it is time multiplied by a rate, and nothing in Keel yet knows what has been
+ * invoiced or paid — a burn of $7,500.00 is what the work has consumed of the
+ * agreement, not a debt anybody owes. The second is that it is an invoice
+ * preview: it is not, because it counts the hours somebody has already decided
+ * to absorb, and it counts them on purpose.
+ *
+ * It ends by saying where the entries are, the way the scope summary's closing
+ * sentence points at the Time tab. A reader who has just been told the figure
+ * is a product of hours should be told in the same breath which tab has the
+ * hours.
+ *
+ * One sentence under the figures rather than a caveat on each, the same
+ * arrangement the other two panels keep: the rows carry what is specific to
+ * them and this is true of all of them.
+ */
+export const BURN_IS_TIME_AT_A_RATE =
+  "This is time valued at a rate, not money invoiced or received — Keel does not yet know what has been billed. Every logged minute counts towards it, including anything marked not chargeable, because deciding not to charge for an hour does not give the hour back. The Time tab has the entries behind it.";
