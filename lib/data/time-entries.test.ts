@@ -399,6 +399,35 @@ describe("projectTimeTotals", () => {
     });
   });
 
+  it("is three zeroes for a project nothing has been logged against", async () => {
+    expect(await projectTimeTotals(projectId, db)).toEqual({
+      entryCount: 0,
+      loggedMinutes: 0,
+      billableMinutes: 0,
+    });
+  });
+
+  it("counts only this project's time, not another engagement's", async () => {
+    const otherClient = await createClient({ name: "Other Co" }, db);
+    const other = await createProject(
+      { clientId: otherClient.id, name: "Elsewhere" },
+      db,
+    );
+    await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-14" },
+      db,
+    );
+    await createTimeEntry(
+      { projectId: other.id, minutes: 600, workedOn: "2026-10-14" },
+      db,
+    );
+
+    expect(await projectTimeTotals(projectId, db)).toMatchObject({
+      entryCount: 1,
+      loggedMinutes: 60,
+    });
+  });
+
   it("keeps time somebody has written off out of the chargeable half", async () => {
     await createTimeEntry(
       { projectId, minutes: 120, workedOn: "2026-10-14" },
