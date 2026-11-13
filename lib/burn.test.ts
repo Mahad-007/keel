@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { consumedShare, remainingContractCents } from "./burn";
+import {
+  consumedShare,
+  overspentCents,
+  remainingContractCents,
+} from "./burn";
 
 describe("remainingContractCents", () => {
   it("takes the burn off the contract value", () => {
@@ -51,5 +55,27 @@ describe("consumedShare", () => {
 
   it("leaves the fraction unrounded for the formatter to read", () => {
     expect(consumedShare(300_000, 1_000)).toBeCloseTo(0.003_333, 6);
+  });
+});
+
+describe("overspentCents", () => {
+  it("is how far past the contract value the burn has gone", () => {
+    expect(overspentCents(500_000, 840_000)).toBe(340_000);
+  });
+
+  it("is nothing while the burn is still inside the contract", () => {
+    expect(overspentCents(500_000, 180_000)).toBe(0);
+  });
+
+  it("is nothing when the burn lands exactly on the contract", () => {
+    expect(overspentCents(500_000, 500_000)).toBe(0);
+  });
+
+  it("is one cent over at one cent over, with no rounding to hide it", () => {
+    expect(overspentCents(500_000, 500_001)).toBe(1);
+  });
+
+  it("reads a burn against no price as entirely overspend", () => {
+    expect(overspentCents(0, 120_000)).toBe(120_000);
   });
 });
