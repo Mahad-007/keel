@@ -7,6 +7,7 @@ import type { LoggedTotals } from "@/lib/time/rollup";
 import {
   BURN_NOT_VALUED_LABEL,
   burnedFigure,
+  consumedFigure,
   contractedFigure,
   describeBurned,
   describeConsumed,
@@ -16,6 +17,7 @@ import {
   hasBurnToShow,
   hasPriceToMeasureAgainst,
   hasValuedBurn,
+  NO_PRICE_TO_SHARE_LABEL,
   remainingFigure,
 } from "./burn-summary";
 
@@ -353,5 +355,44 @@ describe("describeConsumed", () => {
     expect(describeConsumed(burn(0, 500_000))).toBe(
       "$0.00 of the $5,000.00 agreed.",
     );
+  });
+});
+
+describe("consumedFigure", () => {
+  it("shows the share of the contract the hours have eaten", () => {
+    expect(consumedFigure(burn(1_200, 500_000))).toMatchObject({
+      label: "Consumed",
+      value: "60%",
+    });
+  });
+
+  it("shows nothing consumed before anything is logged", () => {
+    expect(consumedFigure(burn(0, 500_000)).value).toBe("0%");
+  });
+
+  it("goes past a hundred rather than capping, which is the point", () => {
+    expect(consumedFigure(burn(3_000, 500_000)).value).toBe("150%");
+  });
+
+  it("refuses to round a project a hair over back to exactly spent", () => {
+    expect(consumedFigure(burn(2_001, 500_000)).value).toBe("more than 100%");
+  });
+
+  it("refuses to round a project a hair under up to finished", () => {
+    expect(consumedFigure(burn(1_999, 500_000)).value).toBe("more than 99%");
+  });
+
+  it("says less than 1% rather than nought for a first afternoon", () => {
+    expect(consumedFigure(burn(1, 5_000_000)).value).toBe("less than 1%");
+  });
+
+  it("states no share when no rate could value the hours", () => {
+    expect(consumedFigure(burn(1_200, 500_000, UNRATED)).value).toBe(
+      BURN_NOT_VALUED_LABEL,
+    );
+  });
+
+  it("states no share when there is no price to take one of", () => {
+    expect(consumedFigure(burn(1_200, 0)).value).toBe(NO_PRICE_TO_SHARE_LABEL);
   });
 });
