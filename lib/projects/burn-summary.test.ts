@@ -14,6 +14,7 @@ import {
   describeWriteOff,
   hasBurnToShow,
   hasPriceToMeasureAgainst,
+  hasValuedBurn,
 } from "./burn-summary";
 
 /** The common case: a rate set on the project itself. */
@@ -276,5 +277,25 @@ describe("describeRemaining", () => {
     expect(note).toBe(
       "No rate is set, so there is no saying how much more work this pays for.",
     );
+  });
+});
+
+describe("hasValuedBurn", () => {
+  it("is a measurement when a rate valued the hours", () => {
+    expect(hasValuedBurn(burn(1_200, 500_000))).toBe(true);
+  });
+
+  it("is a gap when hours were logged and no rate could value them", () => {
+    expect(hasValuedBurn(burn(1_200, 500_000, UNRATED))).toBe(false);
+  });
+
+  it("is a measurement with no hours, whatever the rate situation", () => {
+    expect(hasValuedBurn(burn(0, 500_000, UNRATED))).toBe(true);
+  });
+
+  it("counts a rate deliberately overridden to nothing as valued", () => {
+    expect(
+      hasValuedBurn(burn(1_200, 500_000, { cents: 0, source: "project" })),
+    ).toBe(true);
   });
 });

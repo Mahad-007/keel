@@ -60,6 +60,29 @@ export function hasBurnToShow(summary: BurnSummary): boolean {
 }
 
 /**
+ * Whether the burn figure is a measurement rather than a gap.
+ *
+ * The dangerous combination this panel can reach: hours logged, and no rate
+ * anywhere to value them. The arithmetic comes out at nought burned, which
+ * makes the remainder the whole contract and the share nought percent — three
+ * figures all saying the engagement has barely started, about a project that
+ * may have eaten its budget twice over. Of the four, only the burn figure
+ * names the gap; the other two would state amounts.
+ *
+ * So the two derived figures ask this before they say anything. Not whether
+ * there is a rate — a project nobody has logged against has burned nothing
+ * whatever its rate is, and that nought is a measurement, so the whole
+ * contract really is still there.
+ *
+ * A rate deliberately overridden to nothing counts as valued. Somebody said
+ * this project does not bill by the hour, so nought burned is what they meant
+ * and the contract really is untouched by the hours.
+ */
+export function hasValuedBurn(summary: BurnSummary): boolean {
+  return summary.rate.source !== "none" || summary.loggedMinutes === 0;
+}
+
+/**
  * Whether there is a price for the burn to be measured against.
  *
  * Asked of the share rather than of the amount, so the two cannot come apart:
