@@ -1,4 +1,8 @@
 import type { BurnSummary } from "@/lib/burn";
+import { formatCents } from "@/lib/money";
+
+import { hasContractValue, NO_CONTRACT_VALUE_LABEL } from "./detail";
+import type { PanelFigure } from "./figure";
 
 /**
  * The words a burn summary is read in.
@@ -44,4 +48,47 @@ import type { BurnSummary } from "@/lib/burn";
  */
 export function hasBurnToShow(summary: BurnSummary): boolean {
   return summary.entryCount > 0 || summary.contractedCents !== 0;
+}
+
+/**
+ * Why there is nothing for the figures below to be measured against, when
+ * there is not.
+ *
+ * The one thing a reader can do about it: the price is a field on the edit
+ * form, and until it is filled in the remaining figure and the percentage are
+ * both about half a comparison. Said once here rather than repeated under
+ * each of them, because it is one missing fact rather than three.
+ *
+ * Null when a price is set, which is almost always. An amount somebody agreed
+ * needs no explanation — it is the one figure on this panel that was typed in
+ * rather than derived.
+ */
+export function describeContracted(summary: BurnSummary): string | null {
+  if (hasContractValue(summary.contractedCents)) return null;
+  return "No contract value is set on this project, so there is nothing for the hours to be measured against. It is a field on the edit form.";
+}
+
+/**
+ * What the engagement was agreed for, as the first line of the panel.
+ *
+ * First, because every figure under it is a part of it or a judgement on it,
+ * and none of them means anything until a reader knows what the agreement
+ * was. It is also the only figure here that somebody typed in — the other
+ * three are arithmetic over it — and a panel of derived numbers should open
+ * with the one that was agreed.
+ *
+ * "Contracted" rather than "Contract value", which is what the header calls
+ * it. The header is stating a fact about the project; this is one of four
+ * figures in a column, and the shorter word keeps it reading as a quantity
+ * beside "Burned" and "Remaining" rather than as a repeat of the heading
+ * above it.
+ */
+export function contractedFigure(summary: BurnSummary): PanelFigure {
+  return {
+    label: "Contracted",
+    value: hasContractValue(summary.contractedCents)
+      ? formatCents(summary.contractedCents)
+      : NO_CONTRACT_VALUE_LABEL,
+    note: describeContracted(summary),
+  };
 }
