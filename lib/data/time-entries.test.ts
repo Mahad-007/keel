@@ -22,6 +22,7 @@ import {
   listTimeEntriesForDeliverable,
   listTimeEntriesInRange,
   markTimeEntryBilled,
+  projectTimeTotals,
   updateTimeEntry,
 } from "./time-entries";
 
@@ -377,6 +378,42 @@ describe("listTimeEntries", () => {
     ).rejects.toThrow();
 
     expect(await listTimeEntries(projectId, db)).toEqual([]);
+  });
+});
+
+describe("projectTimeTotals", () => {
+  it("adds the minutes up and counts the entries they came from", async () => {
+    await createTimeEntry(
+      { projectId, minutes: 90, workedOn: "2026-10-14" },
+      db,
+    );
+    await createTimeEntry(
+      { projectId, minutes: 45, workedOn: "2026-10-15" },
+      db,
+    );
+
+    expect(await projectTimeTotals(projectId, db)).toEqual({
+      entryCount: 2,
+      loggedMinutes: 135,
+      billableMinutes: 135,
+    });
+  });
+
+  it("keeps time somebody has written off out of the chargeable half", async () => {
+    await createTimeEntry(
+      { projectId, minutes: 120, workedOn: "2026-10-14" },
+      db,
+    );
+    await createTimeEntry(
+      { projectId, minutes: 30, workedOn: "2026-10-15", billable: false },
+      db,
+    );
+
+    expect(await projectTimeTotals(projectId, db)).toEqual({
+      entryCount: 2,
+      loggedMinutes: 150,
+      billableMinutes: 120,
+    });
   });
 });
 
