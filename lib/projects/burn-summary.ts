@@ -56,6 +56,26 @@ export function hasBurnToShow(summary: BurnSummary): boolean {
 }
 
 /**
+ * Whether there is a price for the burn to be measured against.
+ *
+ * Asked of the share rather than of the amount, so the two cannot come apart:
+ * the remainder and the percentage are the two figures that need a price, and
+ * `consumedShare` is already null for both of the prices that cannot carry one
+ * — the zero that nobody filled in and the below-zero that somebody typed into
+ * the database. A second `> 0` written out here would be a third opinion about
+ * which prices count, and it would be the one the page believed.
+ *
+ * It decides whether those two rows are drawn at all rather than what they
+ * say. Two rows reading "No price set" under a row that has just said the same
+ * thing is a panel repeating itself three times about one empty field — so the
+ * contracted figure says it once and the comparisons wait until there is
+ * something to compare.
+ */
+export function hasPriceToMeasureAgainst(summary: BurnSummary): boolean {
+  return summary.consumedShare !== null;
+}
+
+/**
  * Why there is nothing for the figures below to be measured against, when
  * there is not.
  *

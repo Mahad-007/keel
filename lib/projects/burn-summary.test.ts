@@ -12,6 +12,7 @@ import {
   describeRateBasis,
   describeWriteOff,
   hasBurnToShow,
+  hasPriceToMeasureAgainst,
 } from "./burn-summary";
 
 /** The common case: a rate set on the project itself. */
@@ -216,5 +217,23 @@ describe("describeBurned", () => {
 
     expect(note).toContain("at $150.00/hr");
     expect(note).toContain("Includes 5h not chargeable");
+  });
+});
+
+describe("hasPriceToMeasureAgainst", () => {
+  it("has a price to compare against once one is agreed", () => {
+    expect(hasPriceToMeasureAgainst(burn(1_200, 500_000))).toBe(true);
+  });
+
+  it("has none when the contract value is the column's default zero", () => {
+    expect(hasPriceToMeasureAgainst(burn(1_200, 0))).toBe(false);
+  });
+
+  it("has none when the contract value is below zero", () => {
+    expect(hasPriceToMeasureAgainst(burn(1_200, -500_000))).toBe(false);
+  });
+
+  it("has a price even before anything has been logged against it", () => {
+    expect(hasPriceToMeasureAgainst(burn(0, 500_000))).toBe(true);
   });
 });
