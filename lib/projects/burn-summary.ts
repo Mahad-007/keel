@@ -1,4 +1,8 @@
-import type { BurnSummary } from "@/lib/burn";
+import {
+  overspentCents,
+  remainingMinutesAtRate,
+  type BurnSummary,
+} from "@/lib/burn";
 import { formatCents } from "@/lib/money";
 import type { EffectiveRate, RateSource } from "@/lib/rates";
 import { formatMinutes } from "@/lib/minutes";
@@ -278,4 +282,48 @@ function burnedValue(summary: BurnSummary): string {
   if (summary.loggedMinutes === 0) return NOTHING_LOGGED_LABEL;
   if (summary.rate.source === "none") return BURN_NOT_VALUED_LABEL;
   return formatCents(summary.burnedCents);
+}
+
+/**
+ * What is left of the contract value, in the terms somebody acts on.
+ *
+ * Four sentences, as flat guards in the order the news gets worse, because the
+ * figure above means four different things and only one of them is "there is
+ * budget left".
+ *
+ * Over the contract, the amount is said again as a positive number after the
+ * word "over". The value above it carries a minus sign, which is correct and
+ * is not what a reader repeats out loud — and the sentence after it is the
+ * only place the consequence gets stated: hours logged from here are hours
+ * nobody is paying for, which is a decision to make rather than a figure to
+ * note.
+ *
+ * Exactly spent gets its own sentence, for the reason `ON_THE_ESTIMATE_LABEL`
+ * exists: it happens more often than the arithmetic suggests, because round
+ * contracts meet round rates, and "$0.00 left" is a true figure that reads as
+ * a rendering fault.
+ *
+ * With budget left the sentence is in hours rather than in money. The amount
+ * is already the value above it, and saying it twice tells a reader nothing
+ * they cannot see — what they actually want is how much more work it pays for,
+ * which is the one thing on this panel that is about next week rather than
+ * about last month.
+ *
+ * Without a rate there are no hours to convert into, and the sentence says so
+ * rather than restating the amount. The burn figure above has already said
+ * which form to open.
+ */
+export function describeRemaining(summary: BurnSummary): string {
+  const over = overspentCents(summary.contractedCents, summary.burnedCents);
+  if (over > 0) {
+    return `${formatCents(over)} over the contract value. Hours logged from here are hours the agreement does not pay for.`;
+  }
+  if (summary.remainingCents === 0) {
+    return "The contract value is spent to the cent. The next hour logged is the first the agreement does not pay for.";
+  }
+  const minutes = remainingMinutesAtRate(summary.remainingCents, summary.rate);
+  if (minutes === null) {
+    return "No rate is set, so there is no saying how much more work this pays for.";
+  }
+  return `About ${formatMinutes(minutes)} more at ${formatCents(summary.rate.cents)}/hr, if the rate holds and nothing more is written off.`;
 }
