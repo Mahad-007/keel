@@ -156,3 +156,23 @@ describe("summariseBurn with no rate set anywhere", () => {
     );
   });
 });
+
+describe("summariseBurn with no contract value", () => {
+  it("has no share to report, rather than reporting everything consumed", () => {
+    expect(summariseBurn(logged(1_200), 0, AT_150).consumedShare).toBeNull();
+  });
+
+  it("still values the hours, which is the half it does know", () => {
+    const burn = summariseBurn(logged(1_200), 0, AT_150);
+
+    expect(burn.burnedCents).toBe(300_000);
+    expect(burn.remainingCents).toBe(-300_000);
+  });
+
+  it("has no share to report against a price below zero either", () => {
+    const burn = summariseBurn(logged(1_200), -500_000, AT_150);
+
+    expect(burn.consumedShare).toBeNull();
+    expect(burn.remainingCents).toBe(-800_000);
+  });
+});
