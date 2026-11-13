@@ -1,7 +1,10 @@
 import type { BurnSummary } from "@/lib/burn";
 import { formatCents } from "@/lib/money";
 import type { EffectiveRate, RateSource } from "@/lib/rates";
+import { formatMinutes } from "@/lib/minutes";
 import { notChargeablePhrase } from "@/lib/time/days";
+
+import { entriesPhrase, NOTHING_LOGGED_LABEL } from "./time-rollup";
 
 import { hasContractValue, NO_CONTRACT_VALUE_LABEL } from "./detail";
 import type { PanelFigure } from "./figure";
@@ -167,4 +170,92 @@ export function describeWriteOff(summary: BurnSummary): string | null {
     return `Includes ${phrase}, which is burned all the same — deciding not to charge for an hour does not give the hour back.`;
   }
   return `Includes ${phrase}, worth ${formatCents(absorbed)} of the burn — deciding not to charge for it does not give the time back.`;
+}
+
+/**
+ * What the burn figure says when the hours cannot be priced.
+ *
+ * Not `$0.00`. A project with eighty hours on it and no rate anywhere has
+ * burned an unknown amount, and nought is the one answer that is certainly
+ * wrong — it would put the project at the healthy end of every list for the
+ * sole reason that nobody had filled a rate in, which is the most expensive
+ * reading this panel could offer.
+ *
+ * It says what is missing rather than that something is. "No rate set" is a
+ * form to go and open; "Unknown" is a shrug.
+ */
+export const BURN_NOT_VALUED_LABEL = "No rate set";
+
+/**
+ * The working behind the burn: how many hours, from how many entries, at what
+ * rate and on whose authority.
+ *
+ * A burn figure is a product of two numbers neither of which is on this panel,
+ * so without the working it is a figure a reader either trusts blindly or
+ * ignores — and this one is too consequential for either. "40h across 12
+ * entries, at $150.00/hr, the client's default rate" is a sentence somebody
+ * can check; "$6,000.00" is one they can only believe.
+ *
+ * With no rate anywhere the sentence says so and stops short of an amount. The
+ * hours are a fact and they are still worth stating — they are the half of the
+ * calculation that is known, and they are what makes the missing rate urgent
+ * rather than tidy-up work.
+ *
+ * The write-off follows rather than being folded in, because it is a second
+ * thing to know rather than a qualification of the first. A reader who does
+ * not care whether any of it was chargeable has already finished the sentence
+ * they came for.
+ */
+export function describeBurned(summary: BurnSummary): string {
+  if (summary.loggedMinutes === 0) {
+    return "Nothing has been logged against this project yet, so nothing has been burned.";
+  }
+  const hours = `${formatMinutes(summary.loggedMinutes)} across ${entriesPhrase(
+    summary.entryCount,
+  )}`;
+  const working =
+    summary.rate.source === "none"
+      ? `${hours}, and ${describeRateBasis(summary.rate)} — the hours are recorded, what they came to is not.`
+      : `${hours}, at ${describeRateBasis(summary.rate)}.`;
+  const absorbed = describeWriteOff(summary);
+  return absorbed === null ? working : `${working} ${absorbed}`;
+}
+
+/**
+ * What the hours logged against this project have cost, as a line of the
+ * panel.
+ *
+ * Second, directly under the price, because the whole panel is the comparison
+ * between these two and the two figures a reader subtracts should be next to
+ * each other.
+ *
+ * "Burned" rather than "Spent" or "Cost". It is the word the industry uses for
+ * exactly this — value consumed out of a fixed budget — and it carries the
+ * right implication, which is that the amount is gone whether or not anything
+ * was delivered for it.
+ *
+ * Nothing logged says "None yet" rather than `$0.00`, the same two words the
+ * rollup uses for the same absence: a project nobody has worked on has not
+ * burned nothing, it has not started.
+ */
+export function burnedFigure(summary: BurnSummary): PanelFigure {
+  return {
+    label: "Burned",
+    value: burnedValue(summary),
+    note: describeBurned(summary),
+  };
+}
+
+/**
+ * The amount, or the words that stand in for one.
+ *
+ * Decided by the hours first and the rate second, which is the order the two
+ * absences matter in: a project nobody has logged against needs no rate to
+ * explain its nought, and saying "No rate set" against no hours would send a
+ * reader to fix a field that is not yet holding anything back.
+ */
+function burnedValue(summary: BurnSummary): string {
+  if (summary.loggedMinutes === 0) return NOTHING_LOGGED_LABEL;
+  if (summary.rate.source === "none") return BURN_NOT_VALUED_LABEL;
+  return formatCents(summary.burnedCents);
 }
