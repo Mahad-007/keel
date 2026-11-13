@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import type { Database } from "@/lib/db";
@@ -426,6 +427,23 @@ describe("projectTimeTotals", () => {
       entryCount: 1,
       loggedMinutes: 60,
     });
+  });
+
+  it("reads a flag that is neither 0 nor 1 the way the pages do", async () => {
+    const entry = await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-14" },
+      db,
+    );
+    await db.run(
+      sql`update time_entries set billable = 2 where id = ${entry.id}`,
+    );
+
+    const totals = await projectTimeTotals(projectId, db);
+
+    expect(totals.loggedMinutes).toBe(60);
+    // `isChargeable` is strictly `=== true` and Drizzle reads 2 back as false,
+    // so the SQL must not count it either.
+    expect(totals.billableMinutes).toBe(0);
   });
 
   it("keeps time somebody has written off out of the chargeable half", async () => {

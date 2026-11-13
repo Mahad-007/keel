@@ -339,6 +339,14 @@ export async function listTimeEntries(
  * which an entry could be logged, is how a page comes to show more chargeable
  * minutes than it has logged.
  *
+ * It compares the flag against 1 rather than letting SQLite decide what is
+ * truthy, because `isChargeable` is strictly `=== true` and Drizzle reads the
+ * column back the same way. The column is plain INTEGER, so a hand-edited row
+ * can hold 2 — which SQLite calls true and both of those call false, and the
+ * entry would then be chargeable to the burn summary and written off on the
+ * Time tab. Two panels disagreeing about one row is exactly what sharing
+ * `LoggedTotals` is meant to prevent.
+ *
  * Counted and summed, rather than counted alone, because the count is the
  * working behind the total — "twelve hours" is one thing as a single entry
  * somebody typed wrong and another as nineteen afternoons.
@@ -351,7 +359,7 @@ export async function projectTimeTotals(
     .select({
       entryCount: count(),
       loggedMinutes: sql<number>`coalesce(sum(${timeEntries.minutes}), 0)`,
-      billableMinutes: sql<number>`coalesce(sum(case when ${timeEntries.billable} then ${timeEntries.minutes} else 0 end), 0)`,
+      billableMinutes: sql<number>`coalesce(sum(case when ${timeEntries.billable} = 1 then ${timeEntries.minutes} else 0 end), 0)`,
     })
     .from(timeEntries)
     .where(eq(timeEntries.projectId, projectId));
