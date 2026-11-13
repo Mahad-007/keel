@@ -176,3 +176,35 @@ describe("summariseBurn with no contract value", () => {
     expect(burn.remainingCents).toBe(-800_000);
   });
 });
+
+describe("summariseBurn with time written off", () => {
+  it("burns every logged minute and charges only the chargeable ones", () => {
+    const burn = summariseBurn(
+      logged(1_200, { billableMinutes: 900 }),
+      500_000,
+      AT_150,
+    );
+
+    expect(burn.burnedCents).toBe(300_000);
+    expect(burn.chargeableCents).toBe(225_000);
+  });
+
+  it("does not let a write-off make the project look healthier", () => {
+    const charged = summariseBurn(logged(1_200), 500_000, AT_150);
+    const absorbed = summariseBurn(
+      logged(1_200, { billableMinutes: 0 }),
+      500_000,
+      AT_150,
+    );
+
+    expect(absorbed.burnedCents).toBe(charged.burnedCents);
+    expect(absorbed.remainingCents).toBe(charged.remainingCents);
+    expect(absorbed.chargeableCents).toBe(0);
+  });
+
+  it("charges the whole burn when nothing has been written off", () => {
+    const burn = summariseBurn(logged(1_200), 500_000, AT_150);
+
+    expect(burn.chargeableCents).toBe(burn.burnedCents);
+  });
+});
