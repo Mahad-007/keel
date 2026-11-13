@@ -4,7 +4,11 @@ import { summariseBurn, type BurnSummary } from "@/lib/burn";
 import { UNRATED, type EffectiveRate } from "@/lib/rates";
 import type { LoggedTotals } from "@/lib/time/rollup";
 
-import { contractedFigure, hasBurnToShow } from "./burn-summary";
+import {
+  contractedFigure,
+  describeRateBasis,
+  hasBurnToShow,
+} from "./burn-summary";
 
 /** The common case: a rate set on the project itself. */
 const AT_150: EffectiveRate = { cents: 15_000, source: "project" };
@@ -79,5 +83,32 @@ describe("contractedFigure", () => {
 
     expect(figure.value).toBe("-$5,000.00");
     expect(figure.note).toBeNull();
+  });
+});
+
+describe("describeRateBasis", () => {
+  it("names the project as the authority for its own override", () => {
+    expect(describeRateBasis(AT_150)).toBe(
+      "$150.00/hr, the rate set on this project",
+    );
+  });
+
+  it("names the client when the project inherits their default", () => {
+    expect(describeRateBasis({ cents: 18_000, source: "client" })).toBe(
+      "$180.00/hr, the client's default rate",
+    );
+  });
+
+  it("leaves the amount out when there is no rate anywhere", () => {
+    const clause = describeRateBasis(UNRATED);
+
+    expect(clause).toBe("no rate is set on this project or its client");
+    expect(clause).not.toContain("$");
+  });
+
+  it("keeps the amount and the authority for an override of nothing", () => {
+    expect(describeRateBasis({ cents: 0, source: "project" })).toBe(
+      "$0.00/hr, the rate set on this project",
+    );
   });
 });
