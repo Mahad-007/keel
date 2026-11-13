@@ -13,6 +13,7 @@ import {
   contractedFigure,
   describeBurned,
   describeConsumed,
+  describeNegativeRate,
   describeRateBasis,
   describeRemaining,
   describeWriteOff,
@@ -459,5 +460,42 @@ describe("burnProblems", () => {
     expect(
       burnProblems(burn(1_200, 500_000, { cents: 0, source: "project" })),
     ).toEqual([]);
+  });
+});
+
+describe("describeNegativeRate", () => {
+  it("says nothing about a rate somebody could have typed", () => {
+    expect(describeNegativeRate(AT_150)).toBeNull();
+    expect(describeNegativeRate(UNRATED)).toBeNull();
+    expect(describeNegativeRate({ cents: 0, source: "project" })).toBeNull();
+  });
+
+  it("names the amount and the row that holds it", () => {
+    const problem = describeNegativeRate({
+      cents: -15_000,
+      source: "client",
+    });
+
+    expect(problem).toContain("-$150.00/hr");
+    expect(problem).toContain("the client's default rate");
+  });
+
+  it("says the row was edited directly, not that the page is broken", () => {
+    const problem = describeNegativeRate({
+      cents: -15_000,
+      source: "project",
+    });
+
+    expect(problem).toContain("no form in the app will accept");
+    expect(problem).toContain("sign inverted");
+  });
+
+  it("reaches the panel's caveats through burnProblems", () => {
+    const problems = burnProblems(
+      burn(1_200, 500_000, { cents: -15_000, source: "project" }),
+    );
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("-$150.00/hr");
   });
 });
