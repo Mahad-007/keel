@@ -7,6 +7,7 @@ import type { LoggedTotals } from "@/lib/time/rollup";
 import {
   contractedFigure,
   describeRateBasis,
+  describeWriteOff,
   hasBurnToShow,
 } from "./burn-summary";
 
@@ -110,5 +111,42 @@ describe("describeRateBasis", () => {
     expect(describeRateBasis({ cents: 0, source: "project" })).toBe(
       "$0.00/hr, the rate set on this project",
     );
+  });
+});
+
+describe("describeWriteOff", () => {
+  it("says nothing when every logged minute is chargeable", () => {
+    expect(describeWriteOff(burn(1_200, 500_000))).toBeNull();
+  });
+
+  it("names the hours absorbed and what absorbing them cost", () => {
+    const note = describeWriteOff(
+      burn(1_200, 500_000, AT_150, { billableMinutes: 900 }),
+    );
+
+    expect(note).toContain("5h not chargeable");
+    expect(note).toContain("$750.00");
+  });
+
+  it("prices the write-off at the rate, not at nothing", () => {
+    const note = describeWriteOff(
+      burn(
+        120,
+        500_000,
+        { cents: 20_000, source: "client" },
+        { billableMinutes: 60 },
+      ),
+    );
+
+    expect(note).toContain("$200.00");
+  });
+
+  it("leaves the amount out when no rate can value the hours", () => {
+    const note = describeWriteOff(
+      burn(1_200, 500_000, UNRATED, { billableMinutes: 900 }),
+    );
+
+    expect(note).toContain("5h not chargeable");
+    expect(note).not.toContain("$");
   });
 });
