@@ -105,3 +105,17 @@ export function describeRateOverride(rateCents: number | null): string {
 export function hasContractValue(contractValueCents: number): boolean {
   return contractValueCents !== 0;
 }
+
+/**
+ * What an unset contract value is called, wherever one is shown.
+ *
+ * "Not set" rather than `$0.00`, because the column defaults to zero and the
+ * amount would be a number the business never agreed to — next to a real
+ * figure in a list it reads as free work.
+ *
+ * A constant rather than two spellings, because the header and the burn
+ * summary now show the same absence a few inches apart. A reader who saw "Not
+ * set" in one and "No price agreed" in the other would reasonably wonder
+ * which project each was about.
+ */
+export const NO_CONTRACT_VALUE_LABEL = "Not set";

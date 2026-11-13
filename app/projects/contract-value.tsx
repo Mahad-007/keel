@@ -1,4 +1,5 @@
 import { formatCents } from "@/lib/money";
+import { NO_CONTRACT_VALUE_LABEL } from "@/lib/projects/detail";
 
 /**
  * What a project was contracted for, or that nobody has said yet.
@@ -14,7 +15,11 @@ import { formatCents } from "@/lib/money";
  */
 export function ContractValue({ cents }: { cents: number }) {
   if (cents === 0) {
-    return <span className="text-zinc-400 dark:text-zinc-600">Not set</span>;
+    return (
+      <span className="text-zinc-400 dark:text-zinc-600">
+        {NO_CONTRACT_VALUE_LABEL}
+      </span>
+    );
   }
   return <>{formatCents(cents)}</>;
 }
