@@ -208,3 +208,35 @@ describe("summariseBurn with time written off", () => {
     expect(burn.chargeableCents).toBe(burn.burnedCents);
   });
 });
+
+describe("summariseBurn on a rate nothing in the app can produce", () => {
+  it("burns backwards at a negative rate rather than repairing it", () => {
+    const burn = summariseBurn(logged(1_200), 500_000, {
+      cents: -15_000,
+      source: "project",
+    });
+
+    expect(burn.burnedCents).toBe(-300_000);
+    expect(burn.remainingCents).toBe(800_000);
+    expect(burn.consumedShare).toBe(-0.6);
+  });
+
+  it("distinguishes a rate overridden to nothing from no rate at all", () => {
+    const overridden = summariseBurn(logged(1_200), 500_000, {
+      cents: 0,
+      source: "project",
+    });
+
+    expect(overridden.burnedCents).toBe(0);
+    expect(overridden.rate.source).toBe("project");
+  });
+
+  it("rounds the burn to the cent the way an invoice line will", () => {
+    const burn = summariseBurn(logged(11), 500_000, {
+      cents: 1_350,
+      source: "client",
+    });
+
+    expect(burn.burnedCents).toBe(248);
+  });
+});
