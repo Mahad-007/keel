@@ -461,3 +461,29 @@ function consumedValue(summary: BurnSummary): string {
   if (summary.consumedShare === null) return NO_PRICE_TO_SHARE_LABEL;
   return formatSharePercent(summary.consumedShare);
 }
+
+/**
+ * The whole burn summary, in the order it is read.
+ *
+ * The price first, because it is what was agreed and everything under it is a
+ * reading of it. Then the burn, which is the other half of the comparison, so
+ * the two amounts a reader subtracts sit next to each other. Then the
+ * subtraction, then the division — the two conclusions, in the order of how
+ * much they commit to.
+ *
+ * One array rather than four calls from the panel, so the order is a decision
+ * made once in the place that explains it, and a figure added later cannot
+ * land in a different position on a different screen.
+ *
+ * With no price the last two drop out. Both of them are comparisons against a
+ * number nobody has filled in, and both would have to say so — three rows
+ * running "Not set", "No price set", "No price set" is a panel repeating
+ * itself about one empty field. The contracted row says it once, with the
+ * sentence that says where the field is, and the burn is still shown because
+ * the hours were still spent.
+ */
+export function burnFigures(summary: BurnSummary): PanelFigure[] {
+  const figures = [contractedFigure(summary), burnedFigure(summary)];
+  if (!hasPriceToMeasureAgainst(summary)) return figures;
+  return [...figures, remainingFigure(summary), consumedFigure(summary)];
+}
