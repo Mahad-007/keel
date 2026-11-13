@@ -1,4 +1,15 @@
-import { and, desc, eq, getTableColumns, gte, isNull, lte, type SQL } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  getTableColumns,
+  gte,
+  isNull,
+  lte,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 
 import { db, type Database } from "@/lib/db";
 import {
@@ -9,6 +20,7 @@ import {
 } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
 import { editRefusedByInvoice, isBilled } from "@/lib/time/billing";
+import type { LoggedTotals } from "@/lib/time/rollup";
 
 import {
   deliverableProject,
@@ -298,6 +310,57 @@ export async function listTimeEntries(
     .from(timeEntries)
     .where(eq(timeEntries.projectId, projectId))
     .orderBy(...NEWEST_FIRST);
+}
+
+/**
+ * What one project's time comes to, totalled in SQL rather than in JavaScript.
+ *
+ * The burn summary wants three integers and nothing else: how many entries,
+ * how many minutes, and how many of those minutes are meant to be charged
+ * for. Reading every row to add them up is the obvious way and it is the wrong
+ * one — an engagement that has run for a year is thousands of rows crossing a
+ * wire so that one page can print two figures, and the page does not show a
+ * single one of them.
+ *
+ * `LoggedTotals` rather than a shape of this file's own, because that is
+ * exactly what `loggedTotals` produces from a list of entries: the same three
+ * fields, with the same meanings, so a caller holding the rows and a caller
+ * holding only the totals are holding the same kind of thing. Two shapes would
+ * drift, and the burn summary would end up reading one and the rollup the
+ * other.
+ *
+ * Both sums are guarded with `coalesce`, because `SUM` over no rows is NULL in
+ * SQLite rather than nought. A project nobody has logged against comes back as
+ * three zeroes, which is the right answer and is what the figures above it are
+ * written to read.
+ *
+ * The chargeable half is a `CASE` inside the sum rather than a second query
+ * with a `WHERE`: two round trips for one row, and a window between them in
+ * which an entry could be logged, is how a page comes to show more chargeable
+ * minutes than it has logged.
+ *
+ * Counted and summed, rather than counted alone, because the count is the
+ * working behind the total — "twelve hours" is one thing as a single entry
+ * somebody typed wrong and another as nineteen afternoons.
+ */
+export async function projectTimeTotals(
+  projectId: string,
+  database: Database = db,
+): Promise<LoggedTotals> {
+  const [row] = await database
+    .select({
+      entryCount: count(),
+      loggedMinutes: sql<number>`coalesce(sum(${timeEntries.minutes}), 0)`,
+      billableMinutes: sql<number>`coalesce(sum(case when ${timeEntries.billable} then ${timeEntries.minutes} else 0 end), 0)`,
+    })
+    .from(timeEntries)
+    .where(eq(timeEntries.projectId, projectId));
+
+  return {
+    entryCount: Number(row?.entryCount ?? 0),
+    loggedMinutes: Number(row?.loggedMinutes ?? 0),
+    billableMinutes: Number(row?.billableMinutes ?? 0),
+  };
 }
 
 /**
