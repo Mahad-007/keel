@@ -8,6 +8,7 @@ import {
   BURN_NOT_VALUED_LABEL,
   burnedFigure,
   burnFigures,
+  burnProblems,
   consumedFigure,
   contractedFigure,
   describeBurned,
@@ -19,6 +20,7 @@ import {
   hasPriceToMeasureAgainst,
   hasValuedBurn,
   NO_PRICE_TO_SHARE_LABEL,
+  NO_RATE_TO_BURN_AT,
   remainingFigure,
 } from "./burn-summary";
 
@@ -430,5 +432,32 @@ describe("burnFigures", () => {
       expect(figure.label).toMatch(/^[A-Z][a-z]+$/);
       expect(figure.value).not.toBe("");
     }
+  });
+});
+
+describe("burnProblems", () => {
+  it("has nothing to say about an ordinary project", () => {
+    expect(burnProblems(burn(1_200, 500_000))).toEqual([]);
+  });
+
+  it("flags hours that no rate anywhere can value", () => {
+    expect(burnProblems(burn(1_200, 500_000, UNRATED))).toEqual([
+      NO_RATE_TO_BURN_AT,
+    ]);
+  });
+
+  it("names both forms a rate could be set on", () => {
+    expect(NO_RATE_TO_BURN_AT).toContain("override on this project");
+    expect(NO_RATE_TO_BURN_AT).toContain("default rate on the client");
+  });
+
+  it("says nothing about a missing rate before anything is logged", () => {
+    expect(burnProblems(burn(0, 500_000, UNRATED))).toEqual([]);
+  });
+
+  it("says nothing about a rate deliberately set to nothing", () => {
+    expect(
+      burnProblems(burn(1_200, 500_000, { cents: 0, source: "project" })),
+    ).toEqual([]);
   });
 });
