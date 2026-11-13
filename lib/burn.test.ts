@@ -133,3 +133,26 @@ describe("summariseBurn", () => {
     expect(burn.consumedShare).toBe(0);
   });
 });
+
+describe("summariseBurn with no rate set anywhere", () => {
+  it("burns nothing however many hours went in", () => {
+    const burn = summariseBurn(logged(4_800), 500_000, UNRATED);
+
+    expect(burn.burnedCents).toBe(0);
+    expect(burn.remainingCents).toBe(500_000);
+  });
+
+  it("carries the hours, so the zero can be told from an idle project", () => {
+    const burn = summariseBurn(logged(4_800, { entryCount: 40 }), 500_000, UNRATED);
+
+    expect(burn.loggedMinutes).toBe(4_800);
+    expect(burn.entryCount).toBe(40);
+    expect(burn.rate.source).toBe("none");
+  });
+
+  it("reports the whole contract as unconsumed rather than as unknown", () => {
+    expect(summariseBurn(logged(4_800), 500_000, UNRATED).consumedShare).toBe(
+      0,
+    );
+  });
+});
