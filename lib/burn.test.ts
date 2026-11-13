@@ -1,10 +1,30 @@
 import { describe, expect, it } from "vitest";
 
+import { UNRATED, type EffectiveRate } from "./rates";
+import type { LoggedTotals } from "./time/rollup";
+
 import {
   consumedShare,
   overspentCents,
   remainingContractCents,
+  summariseBurn,
 } from "./burn";
+
+/** A rate set on the project itself, which is the common case in these tests. */
+const AT_150: EffectiveRate = { cents: 15_000, source: "project" };
+
+/** Logged totals with the chargeable half defaulting to all of it. */
+function logged(
+  loggedMinutes: number,
+  partial: Partial<LoggedTotals> = {},
+): LoggedTotals {
+  return {
+    entryCount: 1,
+    loggedMinutes,
+    billableMinutes: loggedMinutes,
+    ...partial,
+  };
+}
 
 describe("remainingContractCents", () => {
   it("takes the burn off the contract value", () => {
@@ -77,5 +97,39 @@ describe("overspentCents", () => {
 
   it("reads a burn against no price as entirely overspend", () => {
     expect(overspentCents(0, 120_000)).toBe(120_000);
+  });
+});
+
+describe("summariseBurn", () => {
+  it("values the hours at the rate and sets them against the price", () => {
+    const burn = summariseBurn(logged(1_200), 500_000, AT_150);
+
+    expect(burn.burnedCents).toBe(300_000);
+    expect(burn.remainingCents).toBe(200_000);
+    expect(burn.consumedShare).toBe(0.6);
+  });
+
+  it("echoes the price, the rate and the minutes it worked from", () => {
+    const burn = summariseBurn(
+      logged(90, { entryCount: 3 }),
+      500_000,
+      AT_150,
+    );
+
+    expect(burn).toMatchObject({
+      contractedCents: 500_000,
+      rate: AT_150,
+      entryCount: 3,
+      loggedMinutes: 90,
+      billableMinutes: 90,
+    });
+  });
+
+  it("burns nothing for a project nobody has logged against", () => {
+    const burn = summariseBurn(logged(0, { entryCount: 0 }), 500_000, AT_150);
+
+    expect(burn.burnedCents).toBe(0);
+    expect(burn.remainingCents).toBe(500_000);
+    expect(burn.consumedShare).toBe(0);
   });
 });
