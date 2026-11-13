@@ -3,6 +3,7 @@ import { formatMinutes } from "@/lib/minutes";
 import { formatCents } from "@/lib/money";
 import type { ScopeSummary } from "@/lib/scope";
 
+import { hasContractValue } from "./detail";
 import type { PanelFigure } from "./figure";
 
 /**
@@ -458,28 +459,12 @@ export function describeImpliedRate(summary: ScopeSummary): string {
   if (summary.impliedRateCents === null) {
     return "Nothing on the list is estimated, so there are no hours to divide the contract value by.";
   }
-  if (!hasContractValue(summary)) {
+  if (!hasContractValue(summary.contractValueCents)) {
     return "No contract value is set on this project, so there is no rate to work out — the estimate is here, the price is not.";
   }
   return `${formatCents(summary.contractValueCents)} over ${hoursPhrase(summary.estimatedHours)} estimated. It moves whenever an estimate does, so it is a figure to read rather than a rate to bill at.`;
 }
 
-/**
- * Whether the project has a price on it at all.
- *
- * Zero cents is the column's default, so it means "nobody has said" far more
- * often than it means "agreed at no charge" — which is the reading the project
- * list and the page header already take, and the reason the header prints
- * "Not set" rather than an amount.
- *
- * One predicate, consulted by the figure and by the sentence under it, because
- * these two cannot be allowed to disagree: a row reading "$0.00/hr" above a
- * note saying no contract value is set would leave a reader with nothing to
- * believe.
- */
-function hasContractValue(summary: ScopeSummary): boolean {
-  return summary.contractValueCents !== 0;
-}
 
 /**
  * What the contract works out to an hour, as a line of the panel.
@@ -517,7 +502,7 @@ export function impliedRateFigure(summary: ScopeSummary): PanelFigure {
  */
 function impliedRateValue(summary: ScopeSummary): string {
   const rate = summary.impliedRateCents;
-  if (rate === null || !hasContractValue(summary)) return "No rate yet";
+  if (rate === null || !hasContractValue(summary.contractValueCents)) return "No rate yet";
   return `${formatCents(rate)}/hr`;
 }
 

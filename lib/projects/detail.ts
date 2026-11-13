@@ -83,3 +83,25 @@ export function describeRateOverride(rateCents: number | null): string {
   }
   return `${formatCents(rateCents)}/hr, overriding the client's default.`;
 }
+
+/**
+ * Whether a project has a price on it at all.
+ *
+ * Zero cents is what the column defaults to, so it means "nobody has said"
+ * far more often than it means "agreed at no charge" — which is the reading
+ * the project list, the page header and the scope summary all already take.
+ *
+ * One predicate rather than a `=== 0` written out wherever the question comes
+ * up. Three panels now divide by this number or subtract it from something,
+ * and three of them deciding separately whether zero counts is three figures
+ * that can contradict each other on one screen: a row reading "$0.00/hr"
+ * above a note saying no contract value is set leaves a reader with nothing
+ * to believe.
+ *
+ * A value below zero counts as set, oddly enough. Only a hand-edited row
+ * holds one, and it is a price somebody has to go and fix rather than a field
+ * nobody has filled in — the figures built on it say so themselves.
+ */
+export function hasContractValue(contractValueCents: number): boolean {
+  return contractValueCents !== 0;
+}

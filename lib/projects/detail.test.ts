@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   describeRateOverride,
+  hasContractValue,
   parseProjectTabParam,
   projectEditPath,
   projectPath,
@@ -97,5 +98,19 @@ describe("describeRateOverride", () => {
 
   it("never renders a rate the project does not have", () => {
     expect(describeRateOverride(null)).not.toContain("$");
+  });
+});
+
+describe("hasContractValue", () => {
+  it("counts an amount somebody agreed as a price", () => {
+    expect(hasContractValue(500_000)).toBe(true);
+  });
+
+  it("reads the column's default of zero as nobody having said", () => {
+    expect(hasContractValue(0)).toBe(false);
+  });
+
+  it("counts a value below zero as set, so the figures can say it is wrong", () => {
+    expect(hasContractValue(-500_000)).toBe(true);
   });
 });
