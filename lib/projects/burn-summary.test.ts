@@ -20,6 +20,7 @@ import {
   hasBurnToShow,
   hasPriceToMeasureAgainst,
   hasValuedBurn,
+  NEGATIVE_CONTRACT_VALUE,
   NO_PRICE_TO_SHARE_LABEL,
   NO_RATE_TO_BURN_AT,
   remainingFigure,
@@ -497,5 +498,30 @@ describe("describeNegativeRate", () => {
 
     expect(problems).toHaveLength(1);
     expect(problems[0]).toContain("-$150.00/hr");
+  });
+});
+
+describe("burnProblems over a bad contract value", () => {
+  it("flags a price below zero", () => {
+    expect(burnProblems(burn(1_200, -500_000))).toEqual([
+      NEGATIVE_CONTRACT_VALUE,
+    ]);
+  });
+
+  it("says nothing about a price nobody has filled in", () => {
+    expect(burnProblems(burn(1_200, 0))).toEqual([]);
+  });
+
+  it("stacks the price and the rate as separate problems", () => {
+    expect(burnProblems(burn(1_200, -500_000, UNRATED))).toEqual([
+      NEGATIVE_CONTRACT_VALUE,
+      NO_RATE_TO_BURN_AT,
+    ]);
+  });
+
+  it("puts the price first, which is the row above the rate's", () => {
+    const [first] = burnProblems(burn(1_200, -500_000, UNRATED));
+
+    expect(first).toBe(NEGATIVE_CONTRACT_VALUE);
   });
 });
