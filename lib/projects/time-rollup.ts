@@ -780,9 +780,15 @@ export const NO_SCOPE_TO_ROLL_UP =
  * depends on what the project was agreed for, which these figures do not
  * read.
  *
+ * Keel does work that out now, which is why the sentence ends by saying
+ * where. The overview tab values these same hours at the project's rate and
+ * sets them against the contract, and a reader who has just been told this
+ * panel cannot price an overrun should be told in the same breath which tab
+ * can — the same arrangement `SCOPE_FROM_ESTIMATES` has, pointing here.
+ *
  * One sentence under the figures rather than a caveat on each, the same
  * arrangement the scope summary keeps: the rows carry what is specific to
  * them and this is true of all of them.
  */
 export const ROLLUP_IS_HOURS_ONLY =
-  "These are hours against hours. An estimate is a guess made before the work started, so a line past it is somewhere to look rather than something to answer for — and what an overrun costs depends on what the project was agreed for, which these figures do not read.";
+  "These are hours against hours. An estimate is a guess made before the work started, so a line past it is somewhere to look rather than something to answer for — and what an overrun costs depends on what the project was agreed for, which these figures do not read. The Overview tab values these hours at the project's rate and sets them against the contract.";

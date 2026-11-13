@@ -23,6 +23,7 @@ import {
   NO_ESTIMATE_TO_COMPARE,
   NOTHING_LOGGED_LABEL,
   ON_THE_ESTIMATE_LABEL,
+  ROLLUP_IS_HOURS_ONLY,
 } from "./time-rollup";
 
 import {
@@ -924,5 +925,16 @@ describe("entriesPhrase", () => {
 
   it("counts none in the plural, which is how English reads it", () => {
     expect(entriesPhrase(0)).toBe("0 entries");
+  });
+});
+
+describe("ROLLUP_IS_HOURS_ONLY", () => {
+  it("says the panel cannot price an overrun", () => {
+    expect(ROLLUP_IS_HOURS_ONLY).toContain("hours against hours");
+  });
+
+  it("names the tab that does price one, rather than leaving a dead end", () => {
+    expect(ROLLUP_IS_HOURS_ONLY).toContain("Overview tab");
+    expect(ROLLUP_IS_HOURS_ONLY).toContain("contract");
   });
 });
