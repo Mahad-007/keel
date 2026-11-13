@@ -280,6 +280,26 @@ describe("describeRemaining", () => {
     );
   });
 
+  it("tells an override of nothing from a rate nobody set", () => {
+    const overridden = describeRemaining(
+      burn(1_200, 500_000, { cents: 0, source: "project" }),
+    );
+
+    expect(overridden).toBe(
+      "The hours are valued at $0.00/hr, the rate set on this project, so no amount of work consumes the contract.",
+    );
+    expect(overridden).not.toContain("No rate is set");
+  });
+
+  it("says a rate below zero makes the figure grow as work goes on", () => {
+    const inverted = describeRemaining(
+      burn(1_200, 500_000, { cents: -15_000, source: "project" }),
+    );
+
+    expect(inverted).toContain("below zero");
+    expect(inverted).toContain("grows as the work goes on");
+  });
+
   it("has no hours to offer when no rate is set", () => {
     const note = describeRemaining(burn(1_200, 500_000, UNRATED));
 

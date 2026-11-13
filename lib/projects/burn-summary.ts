@@ -336,6 +336,14 @@ function burnedValue(summary: BurnSummary): string {
  * Without a rate there are no hours to convert into, and the sentence says so
  * rather than restating the amount. The burn figure above has already said
  * which form to open.
+ *
+ * Three ways to have no hours to convert into, and they are not one sentence.
+ * `remainingMinutesAtRate` refuses a missing rate, a rate of nothing and a
+ * rate below zero alike, and collapsing them would undo the distinction the
+ * rest of this file is built on: a project deliberately overridden to bill
+ * nothing is not a project nobody has set a rate for, and saying "no rate is
+ * set" under a burn note that has just said "$0.00/hr, the rate set on this
+ * project" is the panel contradicting itself an inch apart.
  */
 export function describeRemaining(summary: BurnSummary): string {
   const over = overspentCents(summary.contractedCents, summary.burnedCents);
@@ -347,7 +355,13 @@ export function describeRemaining(summary: BurnSummary): string {
   }
   const minutes = remainingMinutesAtRate(summary.remainingCents, summary.rate);
   if (minutes === null) {
-    return "No rate is set, so there is no saying how much more work this pays for.";
+    if (summary.rate.source === "none") {
+      return "No rate is set, so there is no saying how much more work this pays for.";
+    }
+    if (isNegativeRate(summary.rate)) {
+      return "The rate is below zero, so this figure grows as the work goes on rather than shrinking. The caveat above says which row to fix.";
+    }
+    return `The hours are valued at ${describeRateBasis(summary.rate)}, so no amount of work consumes the contract.`;
   }
   return `About ${formatMinutes(minutes)} more at ${formatCents(summary.rate.cents)}/hr, if the rate holds and nothing more is written off.`;
 }
