@@ -4,7 +4,7 @@ import {
   type BurnSummary,
 } from "@/lib/burn";
 import { formatCents } from "@/lib/money";
-import type { EffectiveRate, RateSource } from "@/lib/rates";
+import { isNegativeRate, type EffectiveRate, type RateSource } from "@/lib/rates";
 import { formatMinutes } from "@/lib/minutes";
 import { notChargeablePhrase } from "@/lib/time/days";
 
@@ -505,6 +505,30 @@ export const NO_RATE_TO_BURN_AT =
   "No rate is set on this project or on its client, so the hours logged against it cannot be valued. Set an override on this project, or a default rate on the client, and the figures below start working.";
 
 /**
+ * Why every figure on the panel has its sign the wrong way round, when it
+ * does.
+ *
+ * A rate below zero is the one input that inverts the whole summary rather
+ * than merely emptying part of it: the burn is negative, so the remainder
+ * grows past the contract value and the share goes below nought. Each figure
+ * is arithmetically correct and all four are nonsense, and `lib/burn.ts`
+ * deliberately does not repair them — a panel that quietly fixed its inputs
+ * would disagree with the rate the edit form shows.
+ *
+ * It names which row holds the rate, because the fix is on one of two
+ * different pages and the sentence is the same either way.
+ *
+ * No form in the app will accept one, so a project holding one was edited
+ * straight in the database. Saying so is the useful half: a reader who knows
+ * the figures are inverted still has to be told that the cause is a row rather
+ * than a bug in the page.
+ */
+export function describeNegativeRate(rate: EffectiveRate): string | null {
+  if (!isNegativeRate(rate)) return null;
+  return `The hours are valued at ${formatCents(rate.cents)}/hr — ${RATE_SOURCE_PHRASE[rate.source]} — which no form in the app will accept, so the row was edited directly. Every figure below has its sign inverted: as it stands, this project earns money by working less.`;
+}
+
+/**
  * Everything wrong with this burn that a reader needs told, in the order they
  * would meet it.
  *
@@ -518,5 +542,7 @@ export const NO_RATE_TO_BURN_AT =
 export function burnProblems(summary: BurnSummary): string[] {
   const problems: string[] = [];
   if (!hasValuedBurn(summary)) problems.push(NO_RATE_TO_BURN_AT);
+  const inverted = describeNegativeRate(summary.rate);
+  if (inverted !== null) problems.push(inverted);
   return problems;
 }
