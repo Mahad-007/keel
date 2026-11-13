@@ -1,4 +1,5 @@
-import { burnedCents, type EffectiveRate } from "@/lib/rates";
+import { MINUTES_PER_HOUR } from "@/lib/minutes";
+import { burnedCents, hasRate, type EffectiveRate } from "@/lib/rates";
 import type { LoggedTotals } from "@/lib/time/rollup";
 
 /**
@@ -201,4 +202,38 @@ export function summariseBurn(
     remainingCents: remainingContractCents(contractedCents, burned),
     consumedShare: consumedShare(contractedCents, burned),
   };
+}
+
+/**
+ * How much more work the unburned part of the contract pays for, in whole
+ * minutes — the inverse of `burnedCents`.
+ *
+ * Money is what the agreement is in and time is what gets spent, so a
+ * remainder in cents is a figure somebody then has to divide in their head
+ * before it tells them anything. "$2,000.00 left" is an accounting fact;
+ * "13h 20m left at this rate" is a decision about next week.
+ *
+ * Floored rather than rounded, which is the one place in this file the
+ * arithmetic is deliberately pessimistic. The figure is what the budget can
+ * still afford, and rounding up offers a minute there is no money for. Half a
+ * cent is not worth arguing about; a figure that is never an overstatement is
+ * worth having.
+ *
+ * Null when the rate cannot divide: no rate anywhere, a rate overridden to
+ * nothing — which really does buy unlimited hours, and "infinity" is not a
+ * figure to print — and a negative rate, where the answer comes back with its
+ * sign flipped and means nothing at all. `hasRate` is the same predicate the
+ * burn figure asks before it values anything.
+ *
+ * A remainder at or below zero is divided anyway and answers nought or less.
+ * The caller asking "how much longer can we go" has already established there
+ * is something left; a project that is over has an overrun to report instead,
+ * and that figure is in cents because that is the number somebody has to find.
+ */
+export function remainingMinutesAtRate(
+  remainingCents: number,
+  rate: EffectiveRate,
+): number | null {
+  if (!hasRate(rate)) return null;
+  return Math.floor((remainingCents * MINUTES_PER_HOUR) / rate.cents);
 }
