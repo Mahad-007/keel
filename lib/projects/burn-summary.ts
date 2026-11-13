@@ -12,6 +12,7 @@ import { entriesPhrase, NOTHING_LOGGED_LABEL } from "./time-rollup";
 
 import { hasContractValue, NO_CONTRACT_VALUE_LABEL } from "./detail";
 import type { PanelFigure } from "./figure";
+import { formatSharePercent } from "./scope-summary";
 
 /**
  * The words a burn summary is read in.
@@ -405,4 +406,58 @@ export function describeConsumed(summary: BurnSummary): string {
   return `${formatCents(summary.burnedCents)} of the ${formatCents(
     summary.contractedCents,
   )} agreed.`;
+}
+
+/**
+ * What the share says when there is no price to take a share of.
+ *
+ * `burnFigures` keeps this row out of a panel with no contract value, so the
+ * words are not ordinarily reachable. They exist because the alternative is a
+ * branch that throws or a percentage of zero, and a figure function that
+ * cannot answer for every summary it is typed to accept is one a later caller
+ * will discover the hard way — a portfolio table drawing rows unconditionally
+ * is exactly the caller Day 039 adds.
+ */
+export const NO_PRICE_TO_SHARE_LABEL = "No price set";
+
+/**
+ * How much of the contract the hours have eaten, as the last line of the
+ * panel.
+ *
+ * Last, because it is the conclusion: the three figures above are amounts, and
+ * this is the one that says whether they are good or bad news. It is also the
+ * figure that travels — a percentage is what gets said in a meeting, and the
+ * amounts are what somebody checks it against afterwards.
+ *
+ * `formatSharePercent` rather than a percentage worked out here, so the three
+ * panels on this project round a share the same way. It is the function that
+ * writes "less than 1%" rather than nought and "more than 100%" rather than
+ * exactly a hundred, and both of those matter more here than they did on the
+ * scope tab: "100% consumed" on a project that has gone a hair over says the
+ * budget is exactly spent, and the reader stops looking.
+ *
+ * Unclamped, so a project at 168% says so. That is the figure this whole phase
+ * was built to surface, and no rounding or capping stands between it and the
+ * reader.
+ */
+export function consumedFigure(summary: BurnSummary): PanelFigure {
+  return {
+    label: "Consumed",
+    value: consumedValue(summary),
+    note: describeConsumed(summary),
+  };
+}
+
+/**
+ * The percentage, or the words that stand in for one.
+ *
+ * The rate is asked about before the price, matching the order the burn figure
+ * decides in: a share worked out from a burn that no rate could value would be
+ * nought percent of a contract that may be gone, which is the one answer on
+ * this panel that could lose somebody money.
+ */
+function consumedValue(summary: BurnSummary): string {
+  if (!hasValuedBurn(summary)) return BURN_NOT_VALUED_LABEL;
+  if (summary.consumedShare === null) return NO_PRICE_TO_SHARE_LABEL;
+  return formatSharePercent(summary.consumedShare);
 }
