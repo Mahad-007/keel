@@ -1,6 +1,7 @@
 import type { BurnSummary } from "@/lib/burn";
 import { formatCents } from "@/lib/money";
 import type { EffectiveRate, RateSource } from "@/lib/rates";
+import { notChargeablePhrase } from "@/lib/time/days";
 
 import { hasContractValue, NO_CONTRACT_VALUE_LABEL } from "./detail";
 import type { PanelFigure } from "./figure";
@@ -130,4 +131,40 @@ const RATE_SOURCE_PHRASE: Record<RateSource, string> = {
 export function describeRateBasis(rate: EffectiveRate): string {
   if (rate.source === "none") return RATE_SOURCE_PHRASE.none;
   return `${formatCents(rate.cents)}/hr, ${RATE_SOURCE_PHRASE[rate.source]}`;
+}
+
+/**
+ * The part of the burn somebody has already decided to absorb, or nothing
+ * when none of it is.
+ *
+ * The one clarification the burn figure genuinely needs. Every logged minute
+ * is in it, chargeable or not, because the work happened and it cost what it
+ * cost — but a reader comparing this panel against an invoice will find the
+ * invoice smaller, and the difference is this. Saying so is what stops the
+ * burn figure looking like a mistake.
+ *
+ * It says the minutes and the money, because the two are different arguments.
+ * The hours are what was given away; the amount is what it cost to give away,
+ * and against a contract value the amount is the half that matters.
+ *
+ * The amount is left out when the rate cannot value it. Nought cents of
+ * absorbed time is not a write-off worth no money, it is a write-off nobody
+ * can price — and `$0.00` beside five hours would read as the reassurance it
+ * is not.
+ *
+ * `notChargeablePhrase` rather than the subtraction written out again, so the
+ * hours here and the hours in the day heading that produced them are worded
+ * by one rule.
+ */
+export function describeWriteOff(summary: BurnSummary): string | null {
+  const phrase = notChargeablePhrase(
+    summary.loggedMinutes,
+    summary.billableMinutes,
+  );
+  if (phrase === null) return null;
+  const absorbed = summary.burnedCents - summary.chargeableCents;
+  if (absorbed === 0) {
+    return `Includes ${phrase}, which is burned all the same — deciding not to charge for an hour does not give the hour back.`;
+  }
+  return `Includes ${phrase}, worth ${formatCents(absorbed)} of the burn — deciding not to charge for it does not give the time back.`;
 }
