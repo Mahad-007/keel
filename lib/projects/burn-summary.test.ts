@@ -10,6 +10,7 @@ import {
   contractedFigure,
   describeBurned,
   describeRateBasis,
+  describeRemaining,
   describeWriteOff,
   hasBurnToShow,
   hasPriceToMeasureAgainst,
@@ -235,5 +236,45 @@ describe("hasPriceToMeasureAgainst", () => {
 
   it("has a price even before anything has been logged against it", () => {
     expect(hasPriceToMeasureAgainst(burn(0, 500_000))).toBe(true);
+  });
+});
+
+describe("describeRemaining", () => {
+  it("says how much more work the budget pays for", () => {
+    expect(describeRemaining(burn(1_200, 500_000))).toBe(
+      "About 13h 20m more at $150.00/hr, if the rate holds and nothing more is written off.",
+    );
+  });
+
+  it("says nothing about the amount, which is the figure above it", () => {
+    expect(describeRemaining(burn(1_200, 500_000))).not.toContain("$2,000.00");
+  });
+
+  it("gives the exactly-spent contract its own sentence", () => {
+    const note = describeRemaining(burn(2_000, 500_000));
+
+    expect(note).toContain("spent to the cent");
+    expect(note).not.toContain("$0.00");
+  });
+
+  it("repeats the overrun as a positive amount after the word over", () => {
+    const note = describeRemaining(burn(3_000, 500_000));
+
+    expect(note).toContain("$2,500.00 over the contract value");
+    expect(note).not.toContain("-$");
+  });
+
+  it("states the consequence of being over, not just the figure", () => {
+    expect(describeRemaining(burn(3_000, 500_000))).toContain(
+      "the agreement does not pay for",
+    );
+  });
+
+  it("has no hours to offer when no rate is set", () => {
+    const note = describeRemaining(burn(1_200, 500_000, UNRATED));
+
+    expect(note).toBe(
+      "No rate is set, so there is no saying how much more work this pays for.",
+    );
   });
 });
