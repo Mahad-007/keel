@@ -487,3 +487,36 @@ export function burnFigures(summary: BurnSummary): PanelFigure[] {
   if (!hasPriceToMeasureAgainst(summary)) return figures;
   return [...figures, remainingFigure(summary), consumedFigure(summary)];
 }
+
+/**
+ * What to say when the hours have no rate to be valued at.
+ *
+ * The one gap on this panel that makes it useless rather than incomplete, so
+ * it is said above the figures rather than under one of them: two of the four
+ * rows have already declined to state an amount, and a reader who has not been
+ * told why will read the panel as broken rather than as waiting.
+ *
+ * It names both places a rate can come from, because either fixes it and they
+ * are on different pages. The project's override is the narrower answer and
+ * comes first; the client's default is the one worth setting if every project
+ * for them bills the same.
+ */
+export const NO_RATE_TO_BURN_AT =
+  "No rate is set on this project or on its client, so the hours logged against it cannot be valued. Set an override on this project, or a default rate on the client, and the figures below start working.";
+
+/**
+ * Everything wrong with this burn that a reader needs told, in the order they
+ * would meet it.
+ *
+ * An array rather than one sentence, the same arrangement the rollup keeps:
+ * two things wrong are two things to fix, and running them together would make
+ * one paragraph of two unrelated problems. Almost always empty.
+ *
+ * Gathered here rather than in the component because deciding what counts as a
+ * problem is a rule about the data, and the panel's job is to set the type.
+ */
+export function burnProblems(summary: BurnSummary): string[] {
+  const problems: string[] = [];
+  if (!hasValuedBurn(summary)) problems.push(NO_RATE_TO_BURN_AT);
+  return problems;
+}
