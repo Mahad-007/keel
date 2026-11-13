@@ -9,6 +9,7 @@ import {
   burnedFigure,
   contractedFigure,
   describeBurned,
+  describeConsumed,
   describeRateBasis,
   describeRemaining,
   describeWriteOff,
@@ -325,5 +326,32 @@ describe("remainingFigure", () => {
 
   it("still shows the whole contract when there are no hours to price", () => {
     expect(remainingFigure(burn(0, 500_000, UNRATED)).value).toBe("$5,000.00");
+  });
+});
+
+describe("describeConsumed", () => {
+  it("writes out the two amounts the share was divided from", () => {
+    expect(describeConsumed(burn(1_200, 500_000))).toBe(
+      "$3,000.00 of the $5,000.00 agreed.",
+    );
+  });
+
+  it("keeps the working readable past the whole contract", () => {
+    expect(describeConsumed(burn(3_000, 500_000))).toBe(
+      "$7,500.00 of the $5,000.00 agreed.",
+    );
+  });
+
+  it("says which half is missing when no rate could value the hours", () => {
+    const note = describeConsumed(burn(1_200, 500_000, UNRATED));
+
+    expect(note).toContain("No rate is set");
+    expect(note).not.toContain("$0.00");
+  });
+
+  it("works out a share of nothing burned against a real price", () => {
+    expect(describeConsumed(burn(0, 500_000))).toBe(
+      "$0.00 of the $5,000.00 agreed.",
+    );
   });
 });
