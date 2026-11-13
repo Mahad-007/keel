@@ -592,6 +592,22 @@ describe("getProjectWithClient", () => {
     });
   });
 
+  it("carries the client's default rate, which the override defers to", async () => {
+    const billing = await createClient(
+      { name: "Rate Co", defaultRateCents: 18_000 },
+      db,
+    );
+    const project = await createProject(
+      { clientId: billing.id, name: "Inherits the rate" },
+      db,
+    );
+
+    const row = await getProjectWithClient(project.id, db);
+
+    expect(row?.rateCents).toBeNull();
+    expect(row?.clientDefaultRateCents).toBe(18_000);
+  });
+
   it("returns null for an id no project has", async () => {
     expect(await getProjectWithClient("prj_nope", db)).toBeNull();
   });
