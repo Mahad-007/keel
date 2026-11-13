@@ -86,3 +86,38 @@ export function remainingContractCents(
 ): number {
   return contractedCents - burnedCents;
 }
+
+/**
+ * How much of the contract the burn has consumed, as a fraction.
+ *
+ * Unrounded and unclamped, like `deliveredShare` and `loggedShare` before it:
+ * the rounding belongs to the formatter, which can say "less than 1%" where
+ * this says 0.004, and the bound belongs nowhere at all. A share of 1.68 is a
+ * project that has burned two thirds more than it was sold for, and it is the
+ * single most useful number in the app — a figure capped at 1.0 would report
+ * it as a project that has just finished its budget.
+ *
+ * Null, not zero, when there is no price to take a share of:
+ *
+ *   - **No contract value.** Zero cents is what the column defaults to, so it
+ *     means "nobody has said" far more often than "agreed at no charge" — the
+ *     reading the header and the scope summary already take. Dividing by it
+ *     gives infinity, and a project showing "∞% consumed" because somebody
+ *     has not filled in a field yet is a page reporting its own gap as the
+ *     client's problem.
+ *   - **A contract value below zero.** Only a hand-edited row gets there, and
+ *     dividing by it flips the sign: an engagement that has burned half its
+ *     value would read as minus fifty percent consumed, which is a figure
+ *     with no honest reading at all.
+ *
+ * The same rule, and the same reasoning, as `impliedRateCents` applies to a
+ * non-positive estimate. A share that cannot be taken is reported as absent
+ * rather than as nought, because nought is a measurement and this is a gap.
+ */
+export function consumedShare(
+  contractedCents: number,
+  burnedCents: number,
+): number | null {
+  if (contractedCents <= 0) return null;
+  return burnedCents / contractedCents;
+}
