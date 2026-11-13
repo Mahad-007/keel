@@ -17,6 +17,7 @@ function project(
     clientId: "cli_harbour",
     clientName: "Harbour Co",
     clientArchivedAt: null,
+    clientDefaultRateCents: 0,
     status: "active",
     contractValueCents: 0,
     rateCents: null,

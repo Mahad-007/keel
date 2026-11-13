@@ -277,10 +277,20 @@ export async function deleteProject(
  * their projects: the engagement still happened, and the list has to be able to
  * say the client is off the books rather than quietly showing a live-looking
  * name.
+ *
+ * `clientDefaultRateCents` rides along for the same reason in the other
+ * direction: what an hour on this project is worth is the project's override
+ * *else* the client's default, so a page that has the project row and not the
+ * client's rate cannot value a single logged minute. Fetching the client
+ * separately to find out would be a second round trip for one integer the
+ * join already has in hand — and a burn figure worked out from the override
+ * alone is the expensive bug `lib/rates.ts` exists to prevent.
  */
 export type ProjectWithClient = Project & {
   clientName: string;
   clientArchivedAt: string | null;
+  /** The client's default hourly rate in cents, which the override defers to. */
+  clientDefaultRateCents: number;
 };
 
 /**
@@ -305,6 +315,7 @@ export async function getProjectWithClient(
       ...getTableColumns(projects),
       clientName: clients.name,
       clientArchivedAt: clients.archivedAt,
+      clientDefaultRateCents: clients.defaultRateCents,
     })
     .from(projects)
     .innerJoin(clients, eq(clients.id, projects.clientId))
@@ -353,6 +364,7 @@ export async function listProjectsWithClient(
       ...getTableColumns(projects),
       clientName: clients.name,
       clientArchivedAt: clients.archivedAt,
+      clientDefaultRateCents: clients.defaultRateCents,
     })
     .from(projects)
     .innerJoin(clients, eq(clients.id, projects.clientId))

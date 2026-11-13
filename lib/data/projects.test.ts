@@ -588,6 +588,7 @@ describe("getProjectWithClient", () => {
       ...project,
       clientName: "Anvil Co",
       clientArchivedAt: null,
+      clientDefaultRateCents: 0,
     });
   });
 
@@ -649,6 +650,7 @@ describe("listProjectsWithClient", () => {
       ...project,
       clientName: "Anvil Co",
       clientArchivedAt: null,
+      clientDefaultRateCents: 0,
     });
   });
 
