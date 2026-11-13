@@ -9,6 +9,7 @@ import {
   describeRollupTable,
   describeUnmatchedTime,
   describeVariance,
+  entriesPhrase,
   hasScopeToRollUp,
   hasTimeToRollUp,
   estimatedFigure,
@@ -909,5 +910,19 @@ describe("the working behind the project comparison when there is none", () => {
       }),
     );
     expect(figure.note).toContain("Put an estimate on the deliverables");
+  });
+});
+
+describe("entriesPhrase", () => {
+  it("counts one entry in the singular", () => {
+    expect(entriesPhrase(1)).toBe("1 entry");
+  });
+
+  it("counts several in the plural", () => {
+    expect(entriesPhrase(19)).toBe("19 entries");
+  });
+
+  it("counts none in the plural, which is how English reads it", () => {
+    expect(entriesPhrase(0)).toBe("0 entries");
   });
 });

@@ -315,8 +315,12 @@ export function rollupRow(line: DeliverableRollup): RollupRow {
  * came from one entry somebody mistyped and another if it came from nineteen
  * afternoons. A count beside every row would be a column of small numbers
  * nobody scans.
+ *
+ * Shared with the burn summary, which puts the same count behind a figure in
+ * money rather than in hours and wants the same noun for it. The alternative
+ * is two panels on one project disagreeing about what to call an entry.
  */
-function entriesPhrase(count: number): string {
+export function entriesPhrase(count: number): string {
   return `${count} ${count === 1 ? "entry" : "entries"}`;
 }
 
