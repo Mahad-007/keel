@@ -378,3 +378,31 @@ export function remainingFigure(summary: BurnSummary): PanelFigure {
     note: describeRemaining(summary),
   };
 }
+
+/**
+ * The working behind the percentage: the two amounts it was divided from.
+ *
+ * Both of them are already on the panel, which is the point — the sentence is
+ * a reconciliation rather than new information, and a reader who finds "60%"
+ * surprising can see in one line which half of the division surprised them.
+ * The same reasoning the implied rate's note follows, and the same shape:
+ * "$3,000.00 of the $5,000.00 agreed".
+ *
+ * A share is the figure on this panel most likely to be repeated out loud, and
+ * a figure repeated out loud needs to be checkable. "You have burned 112% of
+ * this contract" is a sentence that starts a difficult conversation, and the
+ * person saying it should be able to show the two numbers it came from without
+ * leaving the panel.
+ *
+ * With no rate to value the hours there is no share, and the sentence says
+ * which half is missing rather than restating the absence. The time is known;
+ * what it is worth is not.
+ */
+export function describeConsumed(summary: BurnSummary): string {
+  if (!hasValuedBurn(summary)) {
+    return "No rate is set, so the hours cannot be turned into a share of the contract. The time is recorded; what it has consumed is not.";
+  }
+  return `${formatCents(summary.burnedCents)} of the ${formatCents(
+    summary.contractedCents,
+  )} agreed.`;
+}
