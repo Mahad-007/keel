@@ -1,5 +1,6 @@
 import type { BurnSummary } from "@/lib/burn";
 import { formatCents } from "@/lib/money";
+import type { EffectiveRate, RateSource } from "@/lib/rates";
 
 import { hasContractValue, NO_CONTRACT_VALUE_LABEL } from "./detail";
 import type { PanelFigure } from "./figure";
@@ -91,4 +92,42 @@ export function contractedFigure(summary: BurnSummary): PanelFigure {
       : NO_CONTRACT_VALUE_LABEL,
     note: describeContracted(summary),
   };
+}
+
+/**
+ * Which row said what an hour is worth, as a clause.
+ *
+ * The provenance is half of what makes a burn figure actionable. A reader who
+ * thinks the rate is wrong has to know which form to open, and the two forms
+ * are a long way apart — the project's override is on this project's edit
+ * page, the client's default is on the client's. "$150.00/hr" alone sends
+ * them hunting.
+ *
+ * A record over every source rather than a chain of conditions, so adding a
+ * fourth place a rate could come from is a compile error here rather than a
+ * sentence that quietly stops mentioning it.
+ */
+const RATE_SOURCE_PHRASE: Record<RateSource, string> = {
+  project: "the rate set on this project",
+  client: "the client's default rate",
+  none: "no rate is set on this project or its client",
+};
+
+/**
+ * What the hours were valued at and on whose authority, as a clause for the
+ * middle of a sentence.
+ *
+ * With no rate anywhere the amount is left out altogether. "$0.00/hr, no rate
+ * is set" would be two readings of the same gap, one of them dressed as a
+ * measurement — and the figure it is explaining is already a zero that needs
+ * no help looking like one.
+ *
+ * A rate overridden to nothing keeps its amount and its provenance, because
+ * that is a decision somebody made and the clause is how a reader tells it
+ * from the gap: "$0.00/hr, the rate set on this project" is a sentence about a
+ * project that does not bill by the hour.
+ */
+export function describeRateBasis(rate: EffectiveRate): string {
+  if (rate.source === "none") return RATE_SOURCE_PHRASE.none;
+  return `${formatCents(rate.cents)}/hr, ${RATE_SOURCE_PHRASE[rate.source]}`;
 }
