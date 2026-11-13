@@ -1,13 +1,17 @@
 import type { ReactNode } from "react";
 
+import { summariseBurn } from "@/lib/burn";
 import type { ProjectWithClient } from "@/lib/data/projects";
 import type { ProjectStatusEvent } from "@/lib/db/schema";
 import { formatDate } from "@/lib/dates";
 import { describeRateOverride } from "@/lib/projects/detail";
 import type { DuplicateFormState } from "@/lib/projects/duplicate-form";
+import { resolveJoinedRate } from "@/lib/rates";
+import type { LoggedTotals } from "@/lib/time/rollup";
 
 import { writeDuplicatedProject } from "./duplicate-writes";
 
+import { BurnPanel } from "./burn-panel";
 import { DuplicateSection } from "./duplicate-section";
 import { StatusHistory } from "./status-history";
 import { StatusSection } from "./status-section";
@@ -35,20 +39,44 @@ function Fact({ term, children }: { term: string; children: ReactNode }) {
  *
  * The header already carries the three facts that matter at a glance — client,
  * status, contract value — so this is deliberately the rest: the rate the work
- * bills at, when the row was set up and last touched, the status trail, where
- * the status is moved on from, and where the whole thing is copied.
+ * bills at, when the row was set up and last touched, what the hours have
+ * burned of the contract, the status trail, where the status is moved on from,
+ * and where the whole thing is copied.
  */
 export function OverviewPanel({
   project,
   statusEvents,
   deliverableCount,
+  timeTotals,
 }: {
   project: ProjectWithClient;
   /** The project's status trail, newest first. */
   statusEvents: readonly ProjectStatusEvent[];
   /** How many deliverables a copy of this project would carry over. */
   deliverableCount: number;
+  /**
+   * What this project's time entries come to: the three figures the burn is
+   * built from.
+   *
+   * Totalled in SQL by the page rather than read row by row here, because the
+   * burn needs two sums and no entry — a year of rows crossing a wire so that
+   * four figures can be printed is a cost paid on every page load.
+   */
+  timeTotals: LoggedTotals;
 }) {
+  /*
+    Built here rather than by the page, the same arrangement the time tab
+    keeps with its rollup: the page reads rows and this panel decides what they
+    add up to. Three numbers from three places, and the rate goes through
+    `resolveJoinedRate` so that the override, the client's default and the gap
+    between them are decided in the one file that explains the difference.
+  */
+  const burn = summariseBurn(
+    timeTotals,
+    project.contractValueCents,
+    resolveJoinedRate(project),
+  );
+
   /*
     The project is captured here rather than bound onto the write, for the same
     reason the scope tab's presses are: `.bind` serialises what it carries in
@@ -71,6 +99,13 @@ export function OverviewPanel({
         <Fact term="Set up">{formatDate(project.createdAt)}</Fact>
         <Fact term="Last changed">{formatDate(project.updatedAt)}</Fact>
       </dl>
+      {/*
+        Directly under the record, because the rate it values the hours at is
+        the row above it and a reader who finds the burn surprising looks
+        upwards first. Above the history, which is the same order the rest of
+        the tab keeps: what is true now, then what has happened.
+      */}
+      <BurnPanel summary={burn} />
       {/*
         History before the controls, for the same reason the archive sits at
         the bottom of a client form: a reader arrives wanting to know what has
