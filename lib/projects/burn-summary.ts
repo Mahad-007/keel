@@ -350,3 +350,31 @@ export function describeRemaining(summary: BurnSummary): string {
   }
   return `About ${formatMinutes(minutes)} more at ${formatCents(summary.rate.cents)}/hr, if the rate holds and nothing more is written off.`;
 }
+
+/**
+ * What is left of the contract value, as a line of the panel.
+ *
+ * Third, because it is the subtraction of the two figures above it and a
+ * reader should meet it having already seen both halves. It is also the figure
+ * somebody came for: "how much room is left" is the question a burn summary
+ * gets opened to answer.
+ *
+ * Signed rather than clamped, so a project that has gone over says so in the
+ * column as well as in the sentence. "-$2,500.00" is a figure a reader stops
+ * at; "$0.00" is one they read as a budget that has just run out, which is a
+ * materially better situation than the one they are in.
+ *
+ * Where the burn could not be priced the figure declines to state an amount.
+ * The subtraction would come out at the whole contract value, which is the
+ * most reassuring thing this panel could say about the project it is least
+ * able to describe.
+ */
+export function remainingFigure(summary: BurnSummary): PanelFigure {
+  return {
+    label: "Remaining",
+    value: hasValuedBurn(summary)
+      ? formatCents(summary.remainingCents)
+      : BURN_NOT_VALUED_LABEL,
+    note: describeRemaining(summary),
+  };
+}

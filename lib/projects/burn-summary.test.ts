@@ -15,6 +15,7 @@ import {
   hasBurnToShow,
   hasPriceToMeasureAgainst,
   hasValuedBurn,
+  remainingFigure,
 } from "./burn-summary";
 
 /** The common case: a rate set on the project itself. */
@@ -297,5 +298,32 @@ describe("hasValuedBurn", () => {
     expect(
       hasValuedBurn(burn(1_200, 500_000, { cents: 0, source: "project" })),
     ).toBe(true);
+  });
+});
+
+describe("remainingFigure", () => {
+  it("shows what is left of the contract value", () => {
+    expect(remainingFigure(burn(1_200, 500_000))).toMatchObject({
+      label: "Remaining",
+      value: "$2,000.00",
+    });
+  });
+
+  it("shows the whole contract before anything has been logged", () => {
+    expect(remainingFigure(burn(0, 500_000)).value).toBe("$5,000.00");
+  });
+
+  it("keeps the minus sign once the project has gone over", () => {
+    expect(remainingFigure(burn(3_000, 500_000)).value).toBe("-$2,500.00");
+  });
+
+  it("states no amount when the burn could not be priced", () => {
+    expect(remainingFigure(burn(1_200, 500_000, UNRATED)).value).toBe(
+      BURN_NOT_VALUED_LABEL,
+    );
+  });
+
+  it("still shows the whole contract when there are no hours to price", () => {
+    expect(remainingFigure(burn(0, 500_000, UNRATED)).value).toBe("$5,000.00");
   });
 });
