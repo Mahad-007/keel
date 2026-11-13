@@ -61,3 +61,28 @@ export type BurnSummary = {
   /** Burned over contracted, unrounded and unclamped, or null with no price. */
   readonly consumedShare: number | null;
 };
+
+/**
+ * What is left of the contract after the hours logged so far, in cents.
+ *
+ * Contracted minus burned, and it is allowed to go below zero. That is the
+ * whole point: a project that has burned more than it was sold for is the
+ * thing this phase was built to catch, and clamping the figure at nought
+ * would turn the one project that needs attention into the one project that
+ * looks finished. "Minus $3,400.00" is a sentence somebody acts on; "$0.00"
+ * is a sentence they scroll past.
+ *
+ * Both figures are whole cents, so the difference is exact and there is no
+ * rounding to be careful about — the only arithmetic in this file that is not
+ * approximate, which is why the two percentages either side of it are the
+ * figures to be suspicious of rather than this one.
+ *
+ * It takes the two amounts rather than a summary, so the summary can be built
+ * out of it rather than having to exist before it does.
+ */
+export function remainingContractCents(
+  contractedCents: number,
+  burnedCents: number,
+): number {
+  return contractedCents - burnedCents;
+}
