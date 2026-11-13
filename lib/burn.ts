@@ -121,3 +121,32 @@ export function consumedShare(
   if (contractedCents <= 0) return null;
   return burnedCents / contractedCents;
 }
+
+/**
+ * How far past the contract the burn has gone, in cents, and nought when it
+ * has not gone past at all.
+ *
+ * The same subtraction as `remainingContractCents` with its sign flipped and
+ * its floor at nought, which sounds like the clamping that function refuses.
+ * It is the opposite: that figure is what is *left*, and a left-over that
+ * stopped at nought would hide the overrun. This figure is the *overrun*, and
+ * a project still inside its budget has not got one — "minus $3,400.00 over"
+ * is not a sentence, and a note that printed it would read as an overrun on a
+ * project that is fine.
+ *
+ * Two functions rather than one with a sign for the reader to interpret,
+ * because the two end up in different sentences: a figures column wants the
+ * remainder with its sign, and the sentence under it wants the amount to put
+ * after the word "over".
+ *
+ * No opinion about whether a contract value was set. A project with no price
+ * and six hours logged comes back as six hours' worth of overspend, which is
+ * arithmetically true and useless to say out loud — the words module asks
+ * whether there is a price before it asks this.
+ */
+export function overspentCents(
+  contractedCents: number,
+  burnedCents: number,
+): number {
+  return Math.max(0, burnedCents - contractedCents);
+}
