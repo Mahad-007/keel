@@ -489,6 +489,21 @@ export function burnFigures(summary: BurnSummary): PanelFigure[] {
 }
 
 /**
+ * What to say when the price itself is below zero.
+ *
+ * The rarest thing wrong with a project and the one that empties the panel
+ * most completely: `consumedShare` refuses a price below nought, so the
+ * remainder and the share are both gone and the two figures left are a
+ * negative amount and a burn with nothing to be measured against.
+ *
+ * Said above the figures because it is about the first of them, and the
+ * contracted row cannot explain itself — a reader looking at "-$5,000.00"
+ * needs to be told it is a typo in a column rather than a credit note.
+ */
+export const NEGATIVE_CONTRACT_VALUE =
+  "The contract value on this project is below zero, which the edit form will not accept — the row was edited directly. Until it is fixed there is nothing for the hours to be measured against.";
+
+/**
  * What to say when the hours have no rate to be valued at.
  *
  * The one gap on this panel that makes it useless rather than incomplete, so
@@ -532,6 +547,10 @@ export function describeNegativeRate(rate: EffectiveRate): string | null {
  * Everything wrong with this burn that a reader needs told, in the order they
  * would meet it.
  *
+ * In the order of the rows they are about: the price first, then the rate the
+ * hours were valued at. A reader works down the column, and a caveat about the
+ * fourth figure found above the first is a sentence they have to hold on to.
+ *
  * An array rather than one sentence, the same arrangement the rollup keeps:
  * two things wrong are two things to fix, and running them together would make
  * one paragraph of two unrelated problems. Almost always empty.
@@ -541,6 +560,7 @@ export function describeNegativeRate(rate: EffectiveRate): string | null {
  */
 export function burnProblems(summary: BurnSummary): string[] {
   const problems: string[] = [];
+  if (summary.contractedCents < 0) problems.push(NEGATIVE_CONTRACT_VALUE);
   if (!hasValuedBurn(summary)) problems.push(NO_RATE_TO_BURN_AT);
   const inverted = describeNegativeRate(summary.rate);
   if (inverted !== null) problems.push(inverted);
