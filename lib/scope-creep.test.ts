@@ -4,6 +4,7 @@ import {
   AHEAD_OF_DELIVERY_GAP,
   classifyConsumedShare,
   classifyCreepGap,
+  classifyScopeCreep,
   creepBlindSpots,
   creepGap,
   creepReasons,
@@ -410,5 +411,49 @@ describe("creepReasons on a project whose scope is all delivered", () => {
         readings({ consumedShare: 1.6, deliveredShare: 1, scopeDelivered: true }),
       ),
     ).toEqual(["contract-overspent", "burn-far-ahead-of-delivery"]);
+  });
+});
+
+describe("classifyScopeCreep", () => {
+  it("is healthy on a project tracking its budget", () => {
+    expect(classifyScopeCreep(readings())).toBe("healthy");
+  });
+
+  it("is healthy on a project nobody has logged against yet", () => {
+    expect(
+      classifyScopeCreep(readings({ consumedShare: 0, deliveredShare: 0 })),
+    ).toBe("healthy");
+  });
+
+  it("is watch on a contract nearly spent", () => {
+    expect(
+      classifyScopeCreep(readings({ consumedShare: 0.85, deliveredShare: 0.8 })),
+    ).toBe("watch");
+  });
+
+  it("is over on a contract burned past its value", () => {
+    expect(
+      classifyScopeCreep(readings({ consumedShare: 1.2, deliveredShare: 1 })),
+    ).toBe("over");
+  });
+
+  it("is over on high burn against low completion", () => {
+    expect(
+      classifyScopeCreep(readings({ consumedShare: 0.6, deliveredShare: 0.1 })),
+    ).toBe("over");
+  });
+
+  it("is watch on a quarter of the contract ahead of the work", () => {
+    expect(
+      classifyScopeCreep(readings({ consumedShare: 0.45, deliveredShare: 0.2 })),
+    ).toBe("watch");
+  });
+
+  it("is healthy on a project delivered inside its budget", () => {
+    expect(
+      classifyScopeCreep(
+        readings({ consumedShare: 0.9, deliveredShare: 1, scopeDelivered: true }),
+      ),
+    ).toBe("healthy");
   });
 });
