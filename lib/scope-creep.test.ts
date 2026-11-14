@@ -6,8 +6,10 @@ import {
   classifyConsumedShare,
   classifyCreepGap,
   classifyScopeCreep,
+  CREEP_BLIND_SPOTS,
   creepBlindSpots,
   creepGap,
+  CREEP_REASONS,
   creepReasons,
   type CreepReadings,
   FAR_AHEAD_OF_DELIVERY_GAP,
@@ -1016,6 +1018,54 @@ describe("readCreepGap", () => {
         const reading = readings({ consumedShare, deliveredShare });
         expect(assessScopeCreep(reading).gap).toBe(readCreepGap(reading));
       }
+    }
+  });
+});
+
+describe("every code this file can report", () => {
+  /** One set of readings per blind spot, each missing exactly that thing. */
+  const missing: Record<string, CreepReadings> = {
+    "no-contract-value": readings({ consumedShare: null }),
+    "burn-not-valued": readings({ consumedShare: 0, burnValued: false }),
+    "burn-below-zero": readings({ consumedShare: -0.2 }),
+    "scope-not-estimated": readings({ deliveredShare: null }),
+    "scope-estimates-invalid": readings({ negativeEstimateCount: 1 }),
+    "scope-partly-estimated": readings({ unestimatedCount: 1 }),
+    "scope-too-coarse": readings({ lineCount: 1 }),
+  };
+
+  it("has a reading that produces each blind spot", () => {
+    for (const spot of CREEP_BLIND_SPOTS) {
+      expect(creepBlindSpots(missing[spot])).toContain(spot);
+    }
+  });
+
+  /** One set of readings per reason, each flagged by exactly that comparison. */
+  const flagged: Record<string, CreepReadings> = {
+    "contract-overspent": readings({ consumedShare: 1.1, deliveredShare: 1 }),
+    "burn-far-ahead-of-delivery": readings({
+      consumedShare: 0.6,
+      deliveredShare: 0,
+    }),
+    "contract-nearly-spent": readings({
+      consumedShare: 0.85,
+      deliveredShare: 0.8,
+    }),
+    "burn-ahead-of-delivery": readings({
+      consumedShare: 0.45,
+      deliveredShare: 0.15,
+    }),
+  };
+
+  it("has a reading that produces each reason", () => {
+    for (const reason of CREEP_REASONS) {
+      expect(creepReasons(flagged[reason])).toContain(reason);
+    }
+  });
+
+  it("gives every reason a verdict worse than healthy", () => {
+    for (const reason of CREEP_REASONS) {
+      expect(REASON_HEALTH[reason]).not.toBe("healthy");
     }
   });
 });
