@@ -295,9 +295,9 @@ describe("creepReasons on the contract axis", () => {
   });
 
   it("flags a contract nearly spent", () => {
-    expect(creepReasons(readings({ consumedShare: 0.85 }))).toEqual([
+    expect(creepReasons(readings({ consumedShare: 0.85 }))).toContain(
       "contract-nearly-spent",
-    ]);
+    );
   });
 
   it("does not call a nearly-spent contract overspent as well", () => {

@@ -430,6 +430,11 @@ export type CreepReason = (typeof CREEP_REASONS)[number];
  * sentence should have been told the worst thing. The rest follow in the same
  * order for the same reason.
  *
+ * The gap is taken from the consumed share this function has already read
+ * rather than from the one in the readings, so the two axes agree about what
+ * the burn was: a share thrown out as unreadable cannot come back in through
+ * the subtraction and flag a project on a figure the money axis refused.
+ *
  * Both axes are read through the same thresholds the two classifiers use, so a
  * verdict and the reasons under it can never disagree — `classifyScopeCreep`
  * is built out of this function rather than beside it, which is what makes
@@ -448,7 +453,11 @@ export function creepReasons(
 
   const reasons: CreepReason[] = [];
   const money = classifyConsumedShare(consumed);
+  const creep = classifyCreepGap(creepGap(consumed, readings.deliveredShare));
+
   if (money === "over") reasons.push("contract-overspent");
+  if (creep === "over") reasons.push("burn-far-ahead-of-delivery");
   if (money === "watch") reasons.push("contract-nearly-spent");
+  if (creep === "watch") reasons.push("burn-ahead-of-delivery");
   return reasons;
 }
