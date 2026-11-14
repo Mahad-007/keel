@@ -336,9 +336,9 @@ export function readConsumedShare(readings: CreepReadings): number | null {
  * opinion about either. A code is also what a test can assert on without
  * pinning prose.
  *
- * `scope-not-estimated` is the only one of the four that does not stop a
- * verdict being reached. The others each take the money axis away, which is
- * every axis there is.
+ * The two about the scope are the only ones that do not stop a verdict being
+ * reached: they cost the delivery axis and leave the money. The other two each
+ * take the money axis away, which is every axis there is.
  */
 export const CREEP_BLIND_SPOTS = [
   /** No contract value, so the burn has nothing to be a share of. */
@@ -349,6 +349,8 @@ export const CREEP_BLIND_SPOTS = [
   "burn-below-zero",
   /** Nothing estimated, so completion cannot be measured at all. */
   "scope-not-estimated",
+  /** A delivered share outside nought to one, which negative estimates make. */
+  "scope-estimates-invalid",
 ] as const;
 
 /** One thing a verdict could not see. */
