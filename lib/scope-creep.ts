@@ -570,3 +570,31 @@ export type CreepAssessment = {
   /** Consumed less delivered, or null without both. */
   readonly gap: number | null;
 };
+
+/**
+ * Assess one project: two shares in, a verdict and its working out.
+ *
+ * One call rather than five, so everything on a banner came from one reading
+ * of one project. The individual functions stay exported because they are
+ * worth testing separately and because a portfolio ranking wants only the
+ * verdict, but nothing that shows a reader more than one of these figures
+ * should be calling them one at a time.
+ *
+ * The gap is taken from the share as read, matching `creepReasons`, so the
+ * figure under the verdict is the figure the verdict used. A project whose
+ * burn could not be valued therefore has no gap either — the subtraction is
+ * available, and what it would produce is a tidy-looking number built on a
+ * burn of nought that nobody measured.
+ */
+export function assessScopeCreep(readings: CreepReadings): CreepAssessment {
+  const consumedShare = readConsumedShare(readings);
+
+  return {
+    health: classifyScopeCreep(readings),
+    reasons: creepReasons(readings),
+    blindSpots: creepBlindSpots(readings),
+    consumedShare,
+    deliveredShare: readings.deliveredShare,
+    gap: creepGap(consumedShare, readings.deliveredShare),
+  };
+}
