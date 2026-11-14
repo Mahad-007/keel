@@ -421,3 +421,34 @@ export const CREEP_REASONS = [
 
 /** One comparison that flagged a project. */
 export type CreepReason = (typeof CREEP_REASONS)[number];
+
+/**
+ * Every comparison that flagged this project, worst first.
+ *
+ * Worst first rather than axis by axis, because the first reason is the
+ * headline: Day 034's banner leads with it, and a reader who stops after one
+ * sentence should have been told the worst thing. The rest follow in the same
+ * order for the same reason.
+ *
+ * Both axes are read through the same thresholds the two classifiers use, so a
+ * verdict and the reasons under it can never disagree — `classifyScopeCreep`
+ * is built out of this function rather than beside it, which is what makes
+ * that guarantee structural rather than a thing to test for.
+ *
+ * Empty when there is nothing to flag, which covers both a project going well
+ * and one that cannot be read at all. Those two are told apart by
+ * `creepBlindSpots`, not by this: a reason is a comparison that came out
+ * badly, and a comparison nobody could make did not come out at all.
+ */
+export function creepReasons(
+  readings: CreepReadings,
+): readonly CreepReason[] {
+  const consumed = readConsumedShare(readings);
+  if (consumed === null) return [];
+
+  const reasons: CreepReason[] = [];
+  const money = classifyConsumedShare(consumed);
+  if (money === "over") reasons.push("contract-overspent");
+  if (money === "watch") reasons.push("contract-nearly-spent");
+  return reasons;
+}
