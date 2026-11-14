@@ -393,3 +393,70 @@ describe("the classifier over a scope list only half sized", () => {
     expect(assessment.health).toBe("healthy");
   });
 });
+
+describe("the classifier over a line delivered with no estimate", () => {
+  it("refuses a completion figure with no bound in either direction", async () => {
+    const project = await createProject(
+      { clientId, name: "Unsized delivery", contractValueCents: 1_000_000 },
+      db,
+    );
+    const unsized = await createDeliverable(
+      { projectId: project.id, title: "Discovery" },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Build", estimatedMinutes: 1_800 },
+      db,
+    );
+    await setDeliverableStatus(unsized.id, unsized.status, "done", db);
+    // Thirty hours at $200 — $6,000 of the $10,000 — against a list that
+    // reads nothing delivered because the delivered line was never sized.
+    await createTimeEntry(
+      { projectId: project.id, minutes: 1_800, workedOn: "2026-11-02" },
+      db,
+    );
+
+    const assessment = assessScopeCreep(await readingsFor(project.id));
+
+    expect(assessment.deliveredShare).toBeNull();
+    expect(assessment.blindSpots).toEqual(["scope-delivery-unsized"]);
+    expect(assessment.health).toBe("healthy");
+    expect(assessment.reasons).toEqual([]);
+  });
+
+  it("flags a gap the best case already shows, over nine sized lines of ten", async () => {
+    const project = await createProject(
+      { clientId, name: "Mostly sized", contractValueCents: 1_000_000 },
+      db,
+    );
+    const first = await createDeliverable(
+      { projectId: project.id, title: "Line one", estimatedMinutes: 300 },
+      db,
+    );
+    for (let index = 2; index <= 9; index += 1) {
+      await createDeliverable(
+        {
+          projectId: project.id,
+          title: `Line ${index}`,
+          estimatedMinutes: 300,
+        },
+        db,
+      );
+    }
+    await createDeliverable({ projectId: project.id, title: "Line ten" }, db);
+    await setDeliverableStatus(first.id, first.status, "done", db);
+    // Thirty-five hours at $200 — 70% of the contract — for one of nine sized
+    // lines delivered, which even at its best case is half a contract ahead.
+    await createTimeEntry(
+      { projectId: project.id, minutes: 2_100, workedOn: "2026-11-02" },
+      db,
+    );
+
+    const assessment = assessScopeCreep(await readingsFor(project.id));
+
+    expect(assessment.deliveredShare).toBeCloseTo(1 / 9);
+    expect(assessment.health).toBe("over");
+    expect(assessment.reasons).toEqual(["burn-far-ahead-of-delivery"]);
+    expect(assessment.blindSpots).toEqual(["scope-partly-estimated"]);
+  });
+});
