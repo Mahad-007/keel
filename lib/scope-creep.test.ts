@@ -14,6 +14,7 @@ import {
   NEARLY_SPENT_SHARE,
   OVERSPENT_SHARE,
   readConsumedShare,
+  REASON_HEALTH,
   SCOPE_HEALTH,
   worstHealth,
 } from "./scope-creep";
@@ -499,5 +500,34 @@ describe("classifyScopeCreep where the burn cannot be read", () => {
     expect(
       classifyScopeCreep(readings({ consumedShare: 0.2, deliveredShare: null })),
     ).toBe("healthy");
+  });
+});
+
+describe("classifyScopeCreep against its reasons", () => {
+  const shares = [0, 0.2, 0.5, 0.79, 0.8, 0.99, 1, 1.5];
+
+  it("is the worst of the reasons it reports, over every pair of shares", () => {
+    for (const consumedShare of shares) {
+      for (const deliveredShare of shares) {
+        const reading = readings({ consumedShare, deliveredShare });
+        const reasons = creepReasons(reading);
+        const expected =
+          reasons.length === 0
+            ? "healthy"
+            : reasons.map((reason) => REASON_HEALTH[reason]).reduce(worstHealth);
+        expect(classifyScopeCreep(reading)).toBe(expected);
+      }
+    }
+  });
+
+  it("reports at least one reason for every verdict that is not healthy", () => {
+    for (const consumedShare of shares) {
+      for (const deliveredShare of shares) {
+        const reading = readings({ consumedShare, deliveredShare });
+        const health = classifyScopeCreep(reading);
+        if (health === null || health === "healthy") continue;
+        expect(creepReasons(reading).length).toBeGreaterThan(0);
+      }
+    }
   });
 });
