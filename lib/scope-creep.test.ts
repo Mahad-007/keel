@@ -693,3 +693,41 @@ describe("classifyScopeCreep as the work gets delivered", () => {
     ).toBe("healthy");
   });
 });
+
+/**
+ * The verdicts read as a table of projects somebody might actually have, which
+ * is the one test here that can be checked against intuition rather than
+ * against the thresholds. If a row of this ever reads wrong, the thresholds are
+ * wrong — not the row.
+ */
+describe("classifyScopeCreep over projects somebody might have", () => {
+  const projects: ReadonlyArray<{
+    readonly name: string;
+    readonly consumedShare: number;
+    readonly deliveredShare: number;
+    readonly health: ScopeHealth;
+  }> = [
+    { name: "just started", consumedShare: 0.05, deliveredShare: 0, health: "healthy" },
+    { name: "halfway, in step", consumedShare: 0.5, deliveredShare: 0.5, health: "healthy" },
+    { name: "two thirds spent, half done", consumedShare: 0.66, deliveredShare: 0.5, health: "healthy" },
+    { name: "a third spent, nothing shippable", consumedShare: 0.3, deliveredShare: 0, health: "watch" },
+    { name: "half spent, nothing shippable", consumedShare: 0.5, deliveredShare: 0, health: "over" },
+    { name: "most spent, a tenth done", consumedShare: 0.6, deliveredShare: 0.1, health: "over" },
+    { name: "nearly spent, nearly done", consumedShare: 0.9, deliveredShare: 0.85, health: "watch" },
+    { name: "spent to the cent, all done", consumedShare: 1, deliveredShare: 1, health: "over" },
+    { name: "two thirds over", consumedShare: 1.68, deliveredShare: 0.9, health: "over" },
+  ];
+
+  for (const project of projects) {
+    it(`calls a project ${project.name} ${project.health}`, () => {
+      expect(
+        classifyScopeCreep(
+          readings({
+            consumedShare: project.consumedShare,
+            deliveredShare: project.deliveredShare,
+          }),
+        ),
+      ).toBe(project.health);
+    });
+  }
+});
