@@ -353,3 +353,39 @@ export const CREEP_BLIND_SPOTS = [
 
 /** One thing a verdict could not see. */
 export type CreepBlindSpot = (typeof CREEP_BLIND_SPOTS)[number];
+
+/**
+ * Everything this verdict could not see, in the order a reader would meet it.
+ *
+ * The money first, because without it there is no verdict at all; the
+ * estimates after, because they only cost the second axis.
+ *
+ * At most one of the three money gaps is reported, and the order is the order
+ * of what to do about it. A project with no price and no rate has two fields
+ * missing, and listing both would be true and useless — the price is the one
+ * that makes the panel empty, and a reader who fills it in will be told about
+ * the rate next. A negative burn is only reachable past the other two, so it
+ * is reported last of the three.
+ *
+ * `scope-not-estimated` stacks with any of them, because it is a different
+ * form on a different tab. A project with no contract value and no estimates
+ * genuinely has two things to fix, and the verdict is missing both axes rather
+ * than one.
+ *
+ * An empty array is the ordinary answer: most projects have a price, a rate
+ * and some sized deliverables, and for those the verdict stands on its own.
+ */
+export function creepBlindSpots(
+  readings: CreepReadings,
+): readonly CreepBlindSpot[] {
+  const spots: CreepBlindSpot[] = [];
+  if (readings.consumedShare === null) {
+    spots.push("no-contract-value");
+  } else if (!readings.burnValued) {
+    spots.push("burn-not-valued");
+  } else if (readings.consumedShare < 0) {
+    spots.push("burn-below-zero");
+  }
+  if (readings.deliveredShare === null) spots.push("scope-not-estimated");
+  return spots;
+}
