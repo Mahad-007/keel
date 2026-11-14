@@ -21,6 +21,16 @@
  * Both figures look survivable; together they are the end of the engagement's
  * margin. Catching that while the money is still there is the entire wedge.
  *
+ * What it counts as completion is worth saying plainly, because it is the
+ * narrower half of the comparison: a deliverable is done or it is not, and work
+ * in progress earns nothing. `lib/scope.ts` makes that choice and explains it
+ * — half credit for a started line is a number nobody supplied — and this file
+ * inherits it, which means the delivery axis reads a project as pessimistically
+ * as the scope list allows. That is the right direction for a flag to err in,
+ * but only where nought delivered is a measurement. Where it is nought by
+ * construction, `readDeliveredShare` refuses it rather than flagging a project
+ * for the shape of its scope list.
+ *
  * Pure arithmetic over plain numbers, like the three files above it. Nothing
  * here reads a row, formats a figure, or writes a sentence — Day 034's banner
  * turns these verdicts into words, and it can do that because the rule that
@@ -350,9 +360,11 @@ export function readConsumedShare(readings: CreepReadings): number | null {
  * opinion about either. A code is also what a test can assert on without
  * pinning prose.
  *
- * The two about the scope are the only ones that do not stop a verdict being
- * reached: they cost the delivery axis and leave the money. The other two each
- * take the money axis away, which is every axis there is.
+ * Two groups, and the grouping is what matters more than the count. The three
+ * about the money each take the money axis away, which is every axis there is,
+ * so a verdict is withheld. The four about the scope cost only the delivery
+ * axis and leave the money to speak — which it can, and should: a contract
+ * burned in full is burned in full whether or not anybody sized the work.
  */
 export const CREEP_BLIND_SPOTS = [
   /** No contract value, so the burn has nothing to be a share of. */
