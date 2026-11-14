@@ -54,3 +54,20 @@ export const SCOPE_HEALTH = ["healthy", "watch", "over"] as const;
  * their order can never disagree.
  */
 export type ScopeHealth = (typeof SCOPE_HEALTH)[number];
+
+/**
+ * How bad a verdict is, as a number to compare.
+ *
+ * The position in `SCOPE_HEALTH`, so the one place the order is written down
+ * is the array that declares the states. A record mapping each state to a
+ * figure would be a second statement of the same order, and the two would be
+ * free to disagree.
+ *
+ * Exported because a ranking is the obvious thing to want from a classifier —
+ * a portfolio sorted worst-first is the whole point of having one — and
+ * because the combination rule below needs it. Nothing reads the figure
+ * itself: it has no units and no meaning beyond being larger for worse.
+ */
+export function healthSeverity(health: ScopeHealth): number {
+  return SCOPE_HEALTH.indexOf(health);
+}
