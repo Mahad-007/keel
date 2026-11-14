@@ -497,3 +497,39 @@ export const REASON_HEALTH: Record<CreepReason, ScopeHealth> = {
   "contract-nearly-spent": "watch",
   "burn-ahead-of-delivery": "watch",
 };
+
+/**
+ * The verdict: `healthy`, `watch`, `over`, or none at all.
+ *
+ * The worst of the reasons, which is the whole rule. A project with no reasons
+ * is `healthy` — not because nothing was checked, but because both comparisons
+ * were made and both came out fine.
+ *
+ * Null when the burn could not be read. That is the decision this function
+ * exists to get right: the alternative is `healthy`, and `healthy` on a
+ * project with no rate set is the most expensive sentence this codebase could
+ * produce — eighty hours, no price on them, and a classifier saying the
+ * engagement is fine. Null is a verdict withheld, and a banner that has to say
+ * "this cannot be assessed, here is the field to fill in" is a banner that
+ * sends somebody to fix it.
+ *
+ * It asks `readConsumedShare` rather than inspecting the readings, so what
+ * counts as an unreadable burn is decided in one place and the verdict and
+ * the reasons withhold themselves together.
+ *
+ * Note which absence does *not* withhold a verdict: missing estimates. The
+ * money axis stands on its own — a contract burned in full is burned in full
+ * whether or not anybody sized the work — and refusing to say so until the
+ * deliverables are estimated would hide the plainest fact in the app behind a
+ * form nobody has filled in. What is lost is the second axis, and
+ * `creepBlindSpots` says so.
+ */
+export function classifyScopeCreep(
+  readings: CreepReadings,
+): ScopeHealth | null {
+  if (readConsumedShare(readings) === null) return null;
+  return creepReasons(readings).reduce<ScopeHealth>(
+    (worst, reason) => worstHealth(worst, REASON_HEALTH[reason]),
+    "healthy",
+  );
+}
