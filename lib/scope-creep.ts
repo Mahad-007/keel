@@ -389,3 +389,35 @@ export function creepBlindSpots(
   if (readings.deliveredShare === null) spots.push("scope-not-estimated");
   return spots;
 }
+
+/**
+ * The reasons a project is flagged, each naming the comparison that flagged
+ * it.
+ *
+ * A verdict on its own is a coloured dot. "Over" tells somebody to worry;
+ * "over, because 60% of the contract has bought 10% of the work" tells them
+ * what to do, and tells them which of the two figures to argue with if they
+ * think it is wrong. Every non-healthy verdict in this file carries at least
+ * one of these, and the reason is what Day 034 turns into its sentence.
+ *
+ * Codes rather than sentences, for the reason the blind spots are: the words
+ * belong to whatever is reading them, and a code is what a test can assert on
+ * without pinning prose that will be rewritten.
+ *
+ * Four, which is the two axes at their two thresholds each. They are not
+ * mutually exclusive — a project can be past its contract *and* have run a
+ * long way ahead of its delivery, and those are two separate things to say.
+ */
+export const CREEP_REASONS = [
+  /** The burn has reached or passed the contract value. */
+  "contract-overspent",
+  /** The burn has run half the contract ahead of the delivered work. */
+  "burn-far-ahead-of-delivery",
+  /** The burn has reached four fifths of the contract. */
+  "contract-nearly-spent",
+  /** The burn has run a quarter of the contract ahead of the work. */
+  "burn-ahead-of-delivery",
+] as const;
+
+/** One comparison that flagged a project. */
+export type CreepReason = (typeof CREEP_REASONS)[number];
