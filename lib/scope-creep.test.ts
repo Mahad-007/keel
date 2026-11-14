@@ -457,3 +457,47 @@ describe("classifyScopeCreep", () => {
     ).toBe("healthy");
   });
 });
+
+describe("classifyScopeCreep where the burn cannot be read", () => {
+  it("withholds a verdict with no contract value", () => {
+    expect(classifyScopeCreep(readings({ consumedShare: null }))).toBeNull();
+  });
+
+  it("withholds a verdict on hours with no rate anywhere", () => {
+    expect(
+      classifyScopeCreep(readings({ consumedShare: 0, burnValued: false })),
+    ).toBeNull();
+  });
+
+  it("withholds a verdict on a burn below zero", () => {
+    expect(classifyScopeCreep(readings({ consumedShare: -0.3 }))).toBeNull();
+  });
+
+  it("never calls an unreadable burn healthy", () => {
+    for (const unreadable of [
+      readings({ consumedShare: null }),
+      readings({ consumedShare: 0, burnValued: false }),
+      readings({ consumedShare: -0.3 }),
+    ]) {
+      expect(classifyScopeCreep(unreadable)).not.toBe("healthy");
+    }
+  });
+
+  it("still says the contract is overspent with nothing estimated", () => {
+    expect(
+      classifyScopeCreep(readings({ consumedShare: 1.4, deliveredShare: null })),
+    ).toBe("over");
+  });
+
+  it("still says a contract is nearly spent with nothing estimated", () => {
+    expect(
+      classifyScopeCreep(readings({ consumedShare: 0.9, deliveredShare: null })),
+    ).toBe("watch");
+  });
+
+  it("is healthy on an unestimated project with plenty of budget left", () => {
+    expect(
+      classifyScopeCreep(readings({ consumedShare: 0.2, deliveredShare: null })),
+    ).toBe("healthy");
+  });
+});
