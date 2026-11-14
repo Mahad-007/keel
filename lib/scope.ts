@@ -124,6 +124,32 @@ export function isDelivered(line: ScopeLine): boolean {
 }
 
 /**
+ * How many lines of the scope list are marked done without an estimate on
+ * them.
+ *
+ * `unestimatedCount` says how much of the list the totals do not speak for.
+ * This says something narrower and sharper: how much of the *delivered* work
+ * they do not speak for, which is the half that decides which way the
+ * delivered share is wrong.
+ *
+ * An unsized line still open is missing from both halves of the share, so the
+ * share is the best case — true completion can only be lower, never higher. An
+ * unsized line that is *done* is missing from both halves of a share it should
+ * have raised, so the share is now an understatement and there is no bound on
+ * it in either direction. Those two want opposite things done about them, and
+ * nothing else in the summary tells them apart.
+ *
+ * Here rather than in the classifier that needs it, beside the count it
+ * refines, because it is a fact about a scope list rather than a judgement
+ * about a project.
+ */
+export function unestimatedDeliveredCount(lines: readonly ScopeLine[]): number {
+  return lines.filter(
+    (line) => isDelivered(line) && !isEstimated(line.estimatedMinutes),
+  ).length;
+}
+
+/**
  * What the scope list says is still to do, in whole minutes.
  *
  * The estimate of every line not marked done — including the ones in
