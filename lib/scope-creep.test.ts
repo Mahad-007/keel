@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { healthSeverity, SCOPE_HEALTH, worstHealth } from "./scope-creep";
+import {
+  classifyConsumedShare,
+  healthSeverity,
+  OVERSPENT_SHARE,
+  SCOPE_HEALTH,
+  worstHealth,
+} from "./scope-creep";
 
 describe("SCOPE_HEALTH", () => {
   it("lists the three verdicts", () => {
@@ -50,5 +56,24 @@ describe("worstHealth", () => {
     const backwards = [...states].reverse().reduce(worstHealth);
     expect(forwards).toBe(backwards);
     expect(forwards).toBe("over");
+  });
+});
+
+describe("classifyConsumedShare", () => {
+  it("is healthy with barely any of the contract burned", () => {
+    expect(classifyConsumedShare(0)).toBe("healthy");
+    expect(classifyConsumedShare(0.12)).toBe("healthy");
+  });
+
+  it("is over once the whole contract is burned", () => {
+    expect(classifyConsumedShare(OVERSPENT_SHARE)).toBe("over");
+  });
+
+  it("is over well past the contract", () => {
+    expect(classifyConsumedShare(1.68)).toBe("over");
+  });
+
+  it("is watch a hair under the contract", () => {
+    expect(classifyConsumedShare(0.999)).toBe("watch");
   });
 });
