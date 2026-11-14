@@ -792,3 +792,31 @@ describe("a project whose estimates put the delivered share out of range", () =>
     expect(creepReasons(over)).toEqual(["contract-overspent"]);
   });
 });
+
+describe("readDeliveredShare over a list with a negative estimate", () => {
+  /** Ten hours done, twenty open, and a line of minus four hours. */
+  const corrupted = readings({
+    deliveredShare: 10 / 16,
+    negativeEstimateCount: 1,
+  });
+
+  it("refuses a share whose denominator is wrong but whose value is not", () => {
+    expect(readDeliveredShare(corrupted)).toBeNull();
+  });
+
+  it("names the estimates rather than the share", () => {
+    expect(creepBlindSpots(corrupted)).toEqual(["scope-estimates-invalid"]);
+  });
+
+  it("leaves the money axis to speak for itself", () => {
+    const over = { ...corrupted, consumedShare: 1.1 };
+    expect(classifyScopeCreep(over)).toBe("over");
+    expect(creepReasons(over)).toEqual(["contract-overspent"]);
+  });
+
+  it("does not flag the gap on a share it refused", () => {
+    const burning = { ...corrupted, consumedShare: 0.7 };
+    expect(creepReasons(burning)).toEqual([]);
+    expect(assessScopeCreep(burning).gap).toBeNull();
+  });
+});
