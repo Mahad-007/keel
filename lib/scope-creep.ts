@@ -355,6 +355,14 @@ export function readConsumedShare(readings: CreepReadings): number | null {
  * `creepBlindSpots` names it, which sends somebody to the scope list where the
  * bad estimate is.
  *
+ * The count is asked before the range, because the range only catches the
+ * negatives that happen to push the quotient out of bounds. A done line of ten
+ * hours against an open line of twenty and another of minus four reads 0.63
+ * delivered — inside the range, plainly wrong, and three percentage points of
+ * reassurance that nobody can account for. `negativeEstimateCount` is the
+ * cause and the quotient is one of its symptoms, so both throw the share out
+ * and the count is checked first.
+ *
  * Exactly one is kept, and exactly nought: a list fully delivered reads one,
  * and a list with nothing done reads nought. Both are ordinary readings of an
  * ordinary project.
@@ -362,6 +370,7 @@ export function readConsumedShare(readings: CreepReadings): number | null {
 export function readDeliveredShare(readings: CreepReadings): number | null {
   const share = readings.deliveredShare;
   if (share === null) return null;
+  if (readings.negativeEstimateCount > 0) return null;
   if (share < 0 || share > 1) return null;
   return share;
 }
