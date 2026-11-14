@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { summariseBurn } from "@/lib/burn";
@@ -9,6 +10,7 @@ import {
 } from "@/lib/data/deliverables";
 import { createProject, getProjectWithClient } from "@/lib/data/projects";
 import { createTimeEntry, projectTimeTotals } from "@/lib/data/time-entries";
+import { deliverables } from "@/lib/db/schema";
 import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 import { hasValuedBurn } from "@/lib/projects/burn-summary";
@@ -268,5 +270,40 @@ describe("the classifier over rows with a field unfilled", () => {
     expect(assessment.health).toBe("healthy");
     expect(assessment.consumedShare).toBe(0);
     expect(assessment.deliveredShare).toBe(0);
+  });
+});
+
+describe("the classifier over a scope list edited straight in the database", () => {
+  it("reads the delivery axis off nothing when an estimate is negative", async () => {
+    const project = await createProject(
+      { clientId, name: "Hand-edited", contractValueCents: 1_000_000 },
+      db,
+    );
+    const done = await createDeliverable(
+      { projectId: project.id, title: "Shipped", estimatedMinutes: 2_100 },
+      db,
+    );
+    const open = await createDeliverable(
+      { projectId: project.id, title: "Still open", estimatedMinutes: 600 },
+      db,
+    );
+    await setDeliverableStatus(done.id, done.status, "done", db);
+    // No form in the app accepts this; the column does.
+    await db
+      .update(deliverables)
+      .set({ estimatedMinutes: -600 })
+      .where(eq(deliverables.id, open.id));
+    // Forty-five hours at $200 — $9,000 of the $10,000 agreed.
+    await createTimeEntry(
+      { projectId: project.id, minutes: 2_700, workedOn: "2026-11-02" },
+      db,
+    );
+
+    const assessment = assessScopeCreep(await readingsFor(project.id));
+
+    expect(assessment.deliveredShare).toBeNull();
+    expect(assessment.blindSpots).toEqual(["scope-estimates-invalid"]);
+    expect(assessment.health).toBe("watch");
+    expect(assessment.reasons).toEqual(["contract-nearly-spent"]);
   });
 });
