@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  AHEAD_OF_DELIVERY_GAP,
   classifyConsumedShare,
+  classifyCreepGap,
   creepGap,
+  FAR_AHEAD_OF_DELIVERY_GAP,
   healthSeverity,
   NEARLY_SPENT_SHARE,
   OVERSPENT_SHARE,
@@ -131,5 +134,39 @@ describe("creepGap", () => {
 
   it("has nothing to say with neither", () => {
     expect(creepGap(null, null)).toBeNull();
+  });
+});
+
+describe("classifyCreepGap", () => {
+  it("is healthy with the money and the work in step", () => {
+    expect(classifyCreepGap(0)).toBe("healthy");
+  });
+
+  it("is over half the contract ahead of the delivery", () => {
+    expect(classifyCreepGap(FAR_AHEAD_OF_DELIVERY_GAP)).toBe("over");
+  });
+
+  it("is over far past that", () => {
+    expect(classifyCreepGap(0.9)).toBe("over");
+  });
+
+  it("is watch a hair under the far-ahead gap", () => {
+    expect(classifyCreepGap(FAR_AHEAD_OF_DELIVERY_GAP - 0.001)).toBe("watch");
+  });
+
+  it("is watch exactly a quarter ahead", () => {
+    expect(classifyCreepGap(AHEAD_OF_DELIVERY_GAP)).toBe("watch");
+  });
+
+  it("is healthy a hair under a quarter ahead", () => {
+    expect(classifyCreepGap(AHEAD_OF_DELIVERY_GAP - 0.001)).toBe("healthy");
+  });
+
+  it("is healthy when the work is ahead of the money", () => {
+    expect(classifyCreepGap(-0.6)).toBe("healthy");
+  });
+
+  it("has no opinion when the gap could not be read", () => {
+    expect(classifyCreepGap(null)).toBe("healthy");
   });
 });
