@@ -571,3 +571,57 @@ describe("assessScopeCreep", () => {
     });
   });
 });
+
+describe("assessScopeCreep where something is missing", () => {
+  it("withholds every figure that depends on a price", () => {
+    expect(assessScopeCreep(readings({ consumedShare: null }))).toEqual({
+      health: null,
+      reasons: [],
+      blindSpots: ["no-contract-value"],
+      consumedShare: null,
+      deliveredShare: 0.5,
+      gap: null,
+    });
+  });
+
+  it("withholds the share an unvalued burn would have divided out to", () => {
+    expect(
+      assessScopeCreep(readings({ consumedShare: 0, burnValued: false })),
+    ).toEqual({
+      health: null,
+      reasons: [],
+      blindSpots: ["burn-not-valued"],
+      consumedShare: null,
+      deliveredShare: 0.5,
+      gap: null,
+    });
+  });
+
+  it("keeps the money axis when nothing has been estimated", () => {
+    expect(
+      assessScopeCreep(readings({ consumedShare: 0.9, deliveredShare: null })),
+    ).toEqual({
+      health: "watch",
+      reasons: ["contract-nearly-spent"],
+      blindSpots: ["scope-not-estimated"],
+      consumedShare: 0.9,
+      deliveredShare: null,
+      gap: null,
+    });
+  });
+
+  it("assesses a project delivered inside its budget as healthy", () => {
+    expect(
+      assessScopeCreep(
+        readings({ consumedShare: 0.875, deliveredShare: 1, scopeDelivered: true }),
+      ),
+    ).toEqual({
+      health: "healthy",
+      reasons: [],
+      blindSpots: [],
+      consumedShare: 0.875,
+      deliveredShare: 1,
+      gap: -0.125,
+    });
+  });
+});
