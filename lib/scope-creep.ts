@@ -291,3 +291,33 @@ export type CreepReadings = {
   /** Whether every line of the agreed scope is marked done. */
   readonly scopeDelivered: boolean;
 };
+
+/**
+ * The consumed share, once the two readings that look like measurements and
+ * are not have been thrown out.
+ *
+ * `consumedShare` already refuses the prices it cannot divide by. What it
+ * cannot refuse is a burn that came out wrong, and there are two of those —
+ * both of which arrive as a perfectly well-formed fraction:
+ *
+ *   - **Hours logged with no rate anywhere.** The burn comes out at nought, so
+ *     the share comes out at nought, and nought percent consumed is the single
+ *     most reassuring thing this file could say about a project that may have
+ *     eaten its budget twice over. It is the one input that would put the
+ *     worst-documented project at the top of a healthy list.
+ *   - **A rate below zero.** Only a hand-edited row reaches it. The burn is
+ *     negative, so the share is negative, and a project that has burned half
+ *     its contract reads as minus fifty percent consumed — which classifies
+ *     `healthy` and is not a reading of anything.
+ *
+ * Both come back null, which is the same answer `consumedShare` gives a
+ * missing price and means the same thing: there is no share here. Null rather
+ * than a verdict, because a classifier that answers `watch` to a missing rate
+ * is reporting its own gap as the project's problem.
+ */
+export function readConsumedShare(readings: CreepReadings): number | null {
+  if (!readings.burnValued) return null;
+  if (readings.consumedShare === null) return null;
+  if (readings.consumedShare < 0) return null;
+  return readings.consumedShare;
+}
