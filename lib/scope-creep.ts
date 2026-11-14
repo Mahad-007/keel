@@ -321,3 +321,35 @@ export function readConsumedShare(readings: CreepReadings): number | null {
   if (readings.consumedShare < 0) return null;
   return readings.consumedShare;
 }
+
+/**
+ * The things that can be missing, each named by what would fix it.
+ *
+ * A verdict is only as good as the two shares behind it, and on a real
+ * database at least one of them is often absent. A classifier that said
+ * nothing about that would be indistinguishable from one that had looked and
+ * found nothing wrong — which is the failure that matters here, because the
+ * project with no rate set is exactly the project nobody is watching.
+ *
+ * Codes rather than sentences. Day 034 writes the words, and it can write
+ * different ones for a banner and a portfolio row without this file having an
+ * opinion about either. A code is also what a test can assert on without
+ * pinning prose.
+ *
+ * `scope-not-estimated` is the only one of the four that does not stop a
+ * verdict being reached. The others each take the money axis away, which is
+ * every axis there is.
+ */
+export const CREEP_BLIND_SPOTS = [
+  /** No contract value, so the burn has nothing to be a share of. */
+  "no-contract-value",
+  /** Hours logged with no rate anywhere, so the burn figure is a gap. */
+  "burn-not-valued",
+  /** A burn below zero, which only a rate below zero produces. */
+  "burn-below-zero",
+  /** Nothing estimated, so completion cannot be measured at all. */
+  "scope-not-estimated",
+] as const;
+
+/** One thing a verdict could not see. */
+export type CreepBlindSpot = (typeof CREEP_BLIND_SPOTS)[number];
