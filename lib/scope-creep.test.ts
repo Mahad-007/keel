@@ -15,6 +15,7 @@ import {
   NEARLY_SPENT_SHARE,
   OVERSPENT_SHARE,
   readConsumedShare,
+  deliveredShareBlindSpot,
   readDeliveredShare,
   REASON_HEALTH,
   SCOPE_HEALTH,
@@ -818,5 +819,48 @@ describe("readDeliveredShare over a list with a negative estimate", () => {
     const burning = { ...corrupted, consumedShare: 0.7 };
     expect(creepReasons(burning)).toEqual([]);
     expect(assessScopeCreep(burning).gap).toBeNull();
+  });
+});
+
+describe("readDeliveredShare over a partly estimated list", () => {
+  /** One sized line done, two unsized lines still open. */
+  const partly = readings({
+    consumedShare: 0.9,
+    deliveredShare: 1,
+    lineCount: 3,
+    unestimatedCount: 2,
+    scopeDelivered: false,
+  });
+
+  it("refuses a share that only covers the lines somebody sized", () => {
+    expect(readDeliveredShare(partly)).toBeNull();
+  });
+
+  it("names the half-estimated list", () => {
+    expect(deliveredShareBlindSpot(partly)).toBe("scope-partly-estimated");
+    expect(creepBlindSpots(partly)).toEqual(["scope-partly-estimated"]);
+  });
+
+  it("does not let it claim the project is delivered", () => {
+    expect(assessScopeCreep(partly).deliveredShare).toBeNull();
+    expect(assessScopeCreep(partly).gap).toBeNull();
+  });
+
+  it("still flags the contract it has nearly spent", () => {
+    expect(classifyScopeCreep(partly)).toBe("watch");
+    expect(creepReasons(partly)).toEqual(["contract-nearly-spent"]);
+  });
+
+  it("names the worse of two things wrong with the estimates", () => {
+    expect(
+      deliveredShareBlindSpot({
+        ...partly,
+        negativeEstimateCount: 1,
+      }),
+    ).toBe("scope-estimates-invalid");
+  });
+
+  it("finds nothing wrong with a list sized all the way through", () => {
+    expect(deliveredShareBlindSpot(readings())).toBeNull();
   });
 });
