@@ -409,11 +409,12 @@ export type CreepBlindSpot = (typeof CREEP_BLIND_SPOTS)[number];
  *
  * The count is asked before the range, because the range only catches the
  * negatives that happen to push the quotient out of bounds. A done line of ten
- * hours against an open line of twenty and another of minus four reads 0.63
- * delivered — inside the range, plainly wrong, and three percentage points of
- * reassurance that nobody can account for. `negativeEstimateCount` is the
- * cause and the quotient is one of its symptoms, so both throw the share out
- * and the count is checked first.
+ * hours against an open line of twenty and another of minus four reads 38%
+ * delivered where the same list without the bad row reads 33% — inside the
+ * range, plainly wrong, and five percentage points of reassurance nobody can
+ * account for. `negativeEstimateCount` is the cause and a quotient out of
+ * range is one of its symptoms, so both throw the share out and the count is
+ * asked first.
  *
  * Unsized lines are the gap that happens to real projects rather than to
  * hand-edited rows, and which way they bias the share depends on whether they
