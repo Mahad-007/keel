@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   classifyConsumedShare,
   healthSeverity,
+  NEARLY_SPENT_SHARE,
   OVERSPENT_SHARE,
   SCOPE_HEALTH,
   worstHealth,
@@ -75,5 +76,25 @@ describe("classifyConsumedShare", () => {
 
   it("is watch a hair under the contract", () => {
     expect(classifyConsumedShare(0.999)).toBe("watch");
+  });
+});
+
+describe("classifyConsumedShare at the nearly-spent threshold", () => {
+  it("is watch exactly on the threshold", () => {
+    expect(classifyConsumedShare(NEARLY_SPENT_SHARE)).toBe("watch");
+  });
+
+  it("is healthy a hair under it", () => {
+    expect(classifyConsumedShare(NEARLY_SPENT_SHARE - 0.001)).toBe("healthy");
+  });
+
+  it("is watch across the whole band up to the contract", () => {
+    for (const share of [0.8, 0.85, 0.9, 0.95, 0.99]) {
+      expect(classifyConsumedShare(share)).toBe("watch");
+    }
+  });
+
+  it("treats a share below zero as healthy, having been handed one", () => {
+    expect(classifyConsumedShare(-0.4)).toBe("healthy");
   });
 });
