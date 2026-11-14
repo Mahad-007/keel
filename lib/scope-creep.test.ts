@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   AHEAD_OF_DELIVERY_GAP,
+  assessScopeCreep,
   classifyConsumedShare,
   classifyCreepGap,
   classifyScopeCreep,
@@ -529,5 +530,44 @@ describe("classifyScopeCreep against its reasons", () => {
         expect(creepReasons(reading).length).toBeGreaterThan(0);
       }
     }
+  });
+});
+
+describe("assessScopeCreep", () => {
+  it("assesses a project tracking its budget", () => {
+    expect(assessScopeCreep(readings())).toEqual({
+      health: "healthy",
+      reasons: [],
+      blindSpots: [],
+      consumedShare: 0.5,
+      deliveredShare: 0.5,
+      gap: 0,
+    });
+  });
+
+  it("assesses high burn against low completion", () => {
+    expect(
+      assessScopeCreep(readings({ consumedShare: 0.6, deliveredShare: 0.1 })),
+    ).toEqual({
+      health: "over",
+      reasons: ["burn-far-ahead-of-delivery"],
+      blindSpots: [],
+      consumedShare: 0.6,
+      deliveredShare: 0.1,
+      gap: 0.5,
+    });
+  });
+
+  it("assesses a project past its contract on both axes", () => {
+    expect(
+      assessScopeCreep(readings({ consumedShare: 1.5, deliveredShare: 0.25 })),
+    ).toEqual({
+      health: "over",
+      reasons: ["contract-overspent", "burn-far-ahead-of-delivery"],
+      blindSpots: [],
+      consumedShare: 1.5,
+      deliveredShare: 0.25,
+      gap: 1.25,
+    });
   });
 });
