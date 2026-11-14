@@ -227,3 +227,29 @@ export const AHEAD_OF_DELIVERY_GAP = 0.25;
  * remaining half.
  */
 export const FAR_AHEAD_OF_DELIVERY_GAP = 0.5;
+
+/**
+ * What the two shares together say about a project.
+ *
+ * The second axis, classified the same way as the first: two thresholds,
+ * inclusive, worst first. Half the contract ahead of the delivery is `over`,
+ * a quarter is `watch`, anything less is `healthy`.
+ *
+ * `healthy` for a null gap, not a null verdict. A missing gap is a project
+ * whose estimates or price cannot be read, and this axis then has no opinion —
+ * but "no opinion" has to combine with the other axis as the neutral element,
+ * or an unestimated project would drag its own money reading down with it. The
+ * fact that the gap could not be read is reported by `creepBlindSpots`, where
+ * a reader can act on it; it is not smuggled into the verdict as a worry.
+ *
+ * A gap below zero is `healthy` and says nothing further. It is a project
+ * delivering ahead of its burn, which is a project going well — and the one
+ * number that would make it look otherwise is its distance from nought, which
+ * is why the comparison is signed rather than absolute.
+ */
+export function classifyCreepGap(gap: number | null): ScopeHealth {
+  if (gap === null) return "healthy";
+  if (gap >= FAR_AHEAD_OF_DELIVERY_GAP) return "over";
+  if (gap >= AHEAD_OF_DELIVERY_GAP) return "watch";
+  return "healthy";
+}
