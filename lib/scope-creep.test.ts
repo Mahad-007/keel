@@ -370,3 +370,45 @@ describe("creepReasons on the delivery axis", () => {
     ).toEqual(["burn-far-ahead-of-delivery", "contract-nearly-spent"]);
   });
 });
+
+describe("creepReasons on a project whose scope is all delivered", () => {
+  const finished = { deliveredShare: 1, scopeDelivered: true };
+
+  it("does not flag a contract nearly spent on finished work", () => {
+    expect(creepReasons(readings({ ...finished, consumedShare: 0.9 }))).toEqual(
+      [],
+    );
+  });
+
+  it("does not flag it even at a hair under the contract", () => {
+    expect(
+      creepReasons(readings({ ...finished, consumedShare: 0.999 })),
+    ).toEqual([]);
+  });
+
+  it("still flags a contract that was overspent to finish", () => {
+    expect(creepReasons(readings({ ...finished, consumedShare: 1.3 }))).toEqual(
+      ["contract-overspent", "burn-ahead-of-delivery"],
+    );
+  });
+
+  it("flags an unscoped project nearing its contract, having no list done", () => {
+    expect(
+      creepReasons(
+        readings({
+          consumedShare: 0.9,
+          deliveredShare: null,
+          scopeDelivered: false,
+        }),
+      ),
+    ).toEqual(["contract-nearly-spent"]);
+  });
+
+  it("does not excuse a burn far ahead of a scope claiming to be done", () => {
+    expect(
+      creepReasons(
+        readings({ consumedShare: 1.6, deliveredShare: 1, scopeDelivered: true }),
+      ),
+    ).toEqual(["contract-overspent", "burn-far-ahead-of-delivery"]);
+  });
+});
