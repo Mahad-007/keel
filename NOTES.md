@@ -857,3 +857,84 @@ printing as "-$0.00" is a problem of the unit and not of the scope arithmetic.
   effective contract value, not the rate, so the resolution here should survive
   it — but the burn figures built on it are named in that milestone and the
   roadmap says so.
+
+## Why a creep verdict can be withheld (Day 033)
+
+`lib/scope-creep.ts` classifies a project `healthy` / `watch` / `over`, and it
+can also return no verdict at all. That fourth outcome is the one worth
+recording, because the obvious alternative is cheaper to write and expensive to
+own: a project with eighty hours logged and no rate anywhere divides out to
+nought percent consumed, and nought percent consumed classifies `healthy`. The
+project least documented in the database would sit at the top of the healthy
+list. So the share is thrown out first — along with a share below zero, which
+only a negative rate produces — and `null` comes back with a blind spot naming
+the field to fill in.
+
+Missing *estimates* do not withhold a verdict. The money axis stands on its own:
+a contract burned in full is burned in full whether or not anybody sized the
+work, and refusing to say so until the deliverables are estimated would hide the
+plainest fact in the app behind a form nobody has filled in.
+
+## The two axes, and the gap that is the point of the file
+
+Burn against contract is the axis anybody would write: four fifths of the price
+is `watch`, the whole price is `over`. Four fifths is a judgement and Day 038
+makes it configurable; it is deliberately late, because a threshold that fires
+in every project's second week is a flag nobody reads by the time it matters.
+
+The second axis is the wedge: **consumed share minus delivered share**. A
+quarter of the contract spent on nothing anybody can point at is `watch`, half
+of it is `over` — and that `over` fires while there is money in the bank and
+nothing overdue, which is the whole reason the file exists. It is a difference
+rather than a ratio because the ratio divides by a delivered share that is
+nought for exactly the stretch this needs reading in.
+
+## The three ways the delivery axis goes quiet, and why
+
+The delivered share is a quotient of sized work over sized work, so what it
+omits decides which way it is wrong. The rule that emerged — after a first pass
+that got it backwards — is about which direction a bound points:
+
+- **Unsized lines still open.** Putting them back can only push the share
+  *down*, so the figure is the best case and the gap built on it is the least
+  the gap can be. Flagging on it is sound, so the share is kept and
+  `scope-partly-estimated` is reported beside it. The first pass refused the
+  share here, which cleared the exact project the file exists to catch: 60%
+  burned against 10% delivered over nine sized lines of ten.
+- **A line delivered with no estimate.** It belongs in both halves of a share
+  it would have raised, so the figure understates completion and has no bound in
+  either direction. A flag built on it can be wrong in the direction that cries
+  wolf, so the share goes. `unestimatedDeliveredCount` in `lib/scope.ts` is the
+  figure that tells this case from the one above.
+- **A scope list of one line.** Its share is nought until the day it is signed
+  off, so subtracting it leaves the consumed share unchanged and the gap stops
+  being a comparison — it becomes a second, stricter threshold on the burn
+  wearing the gap's name. Every single-deliverable fixed-price project would
+  read `over` from half its budget onwards and never read anything else.
+
+A negative estimate anywhere throws the share out too, and the *count* is asked
+rather than the quotient: the range check only catches the negatives that happen
+to push the figure out of bounds, and a corrupted denominator inside the range
+is the one that looks fine.
+
+## Left alone deliberately
+
+- **No words.** The verdict carries reason codes and blind-spot codes, not
+  sentences. Day 034's banner is the milestone that says *why* a project is
+  flagged in a sentence, and it can be tested because the rule that produced the
+  code lives here.
+- **One set of thresholds for every engagement.** A retainer and a fixed-price
+  build do not have the same tolerance. Day 038 resolves them per client and per
+  project; today they are four named constants, wrong in the way a default is
+  wrong rather than in the way a bug is.
+- **No projection.** "At this burn rate the overage will be $4,000" is Day 037,
+  and it needs a time series this file does not have. The gap says the money is
+  outrunning the work; it does not say where it lands.
+- **Work in progress earns nothing.** A deliverable is done or it is not, which
+  is `lib/scope.ts`'s choice and is inherited rather than re-litigated. It makes
+  the delivery axis as pessimistic as the scope list allows, which is the right
+  direction for a flag to err in — and the three cases above are where that
+  pessimism stops being a measurement.
+- **Nothing consumes the verdict yet.** The classifier has no caller in `app/`
+  today, by design: Day 034 is the milestone that decides what a reader is told,
+  and a banner built a day early would be the one deciding the wording.
