@@ -905,23 +905,30 @@ describe("readDeliveredShare over a partly estimated list", () => {
     scopeDelivered: false,
   });
 
-  it("refuses a share that only covers the lines somebody sized", () => {
-    expect(readDeliveredShare(partly)).toBeNull();
+  it("keeps the share, which is the best the completion can be", () => {
+    expect(readDeliveredShare(partly)).toBe(1);
   });
 
-  it("names the half-estimated list", () => {
+  it("names the half-estimated list beside it", () => {
     expect(deliveredShareBlindSpot(partly)).toBe("scope-partly-estimated");
     expect(creepBlindSpots(partly)).toEqual(["scope-partly-estimated"]);
   });
 
-  it("does not let it claim the project is delivered", () => {
-    expect(assessScopeCreep(partly).deliveredShare).toBeNull();
-    expect(assessScopeCreep(partly).gap).toBeNull();
+  it("raises no flag it cannot stand behind", () => {
+    expect(creepReasons(partly)).toEqual(["contract-nearly-spent"]);
+    expect(classifyScopeCreep(partly)).toBe("watch");
   });
 
-  it("still flags the contract it has nearly spent", () => {
-    expect(classifyScopeCreep(partly)).toBe("watch");
-    expect(creepReasons(partly)).toEqual(["contract-nearly-spent"]);
+  it("still flags the gap when even the best case is far ahead", () => {
+    const nine = readings({
+      consumedShare: 0.6,
+      deliveredShare: 0.1,
+      lineCount: 10,
+      unestimatedCount: 1,
+    });
+    expect(creepReasons(nine)).toEqual(["burn-far-ahead-of-delivery"]);
+    expect(classifyScopeCreep(nine)).toBe("over");
+    expect(creepBlindSpots(nine)).toEqual(["scope-partly-estimated"]);
   });
 
   it("names the worse of two things wrong with the estimates", () => {
@@ -935,6 +942,37 @@ describe("readDeliveredShare over a partly estimated list", () => {
 
   it("finds nothing wrong with a list sized all the way through", () => {
     expect(deliveredShareBlindSpot(readings())).toBeNull();
+  });
+});
+
+describe("readDeliveredShare over a delivered line nobody sized", () => {
+  /** One sized line still open, one unsized line already delivered. */
+  const unbounded = readings({
+    consumedShare: 0.6,
+    deliveredShare: 0,
+    lineCount: 2,
+    unestimatedCount: 1,
+    unestimatedDeliveredCount: 1,
+  });
+
+  it("refuses a share with no bound in either direction", () => {
+    expect(readDeliveredShare(unbounded)).toBeNull();
+    expect(deliveredShareBlindSpot(unbounded)).toBe("scope-delivery-unsized");
+  });
+
+  it("raises no gap flag on a project that may be half done", () => {
+    expect(creepReasons(unbounded)).toEqual([]);
+    expect(classifyScopeCreep(unbounded)).toBe("healthy");
+  });
+
+  it("is said before the list being only half sized", () => {
+    expect(creepBlindSpots(unbounded)).toEqual(["scope-delivery-unsized"]);
+  });
+
+  it("still judges the money", () => {
+    expect(classifyScopeCreep({ ...unbounded, consumedShare: 1.1 })).toBe(
+      "over",
+    );
   });
 });
 
@@ -1009,7 +1047,13 @@ describe("readCreepGap", () => {
 
   it("is nothing where the delivered share was refused", () => {
     expect(
-      readCreepGap(readings({ deliveredShare: 1, unestimatedCount: 2 })),
+      readCreepGap(
+        readings({
+          deliveredShare: 1,
+          unestimatedCount: 2,
+          unestimatedDeliveredCount: 1,
+        }),
+      ),
     ).toBeNull();
   });
 
@@ -1032,6 +1076,10 @@ describe("every code this file can report", () => {
     "scope-not-estimated": readings({ deliveredShare: null }),
     "scope-estimates-invalid": readings({ negativeEstimateCount: 1 }),
     "scope-partly-estimated": readings({ unestimatedCount: 1 }),
+    "scope-delivery-unsized": readings({
+      unestimatedCount: 1,
+      unestimatedDeliveredCount: 1,
+    }),
     "scope-too-coarse": readings({ lineCount: 1 }),
   };
 

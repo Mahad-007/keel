@@ -379,8 +379,10 @@ export const CREEP_BLIND_SPOTS = [
   "scope-not-estimated",
   /** A delivered share outside nought to one, which negative estimates make. */
   "scope-estimates-invalid",
-  /** Some lines sized and some not, so the share is of part of the list. */
+  /** Some lines sized and some not, so the share is only the best case. */
   "scope-partly-estimated",
+  /** A line delivered with no estimate, so the share has no bound either way. */
+  "scope-delivery-unsized",
   /** A single deliverable, which cannot report progress before it is done. */
   "scope-too-coarse",
 ] as const;
@@ -413,14 +415,27 @@ export type CreepBlindSpot = (typeof CREEP_BLIND_SPOTS)[number];
  * cause and the quotient is one of its symptoms, so both throw the share out
  * and the count is checked first.
  *
- * An unsized line throws the share out too, and this is the one that happens
- * to real projects rather than to hand-edited rows. The share is a quotient of
- * sized work over sized work, so an unsized line is simply absent from both
- * halves — and the figure it leaves behind is biased in the one direction that
- * costs money. A list with its first deliverable sized and done and two unsized
- * ones still open reads 100% delivered, which is a project two thirds untouched
- * reporting that it has finished. `unestimatedCount` is `lib/scope.ts`'s own
- * figure for how far to trust the totals, and this is what that means here.
+ * Unsized lines are the gap that happens to real projects rather than to
+ * hand-edited rows, and which way they bias the share depends on whether they
+ * are done. The share is a quotient of sized work over sized work, so an
+ * unsized line is absent from both halves:
+ *
+ *   - **Still open.** The line belongs in the denominator and not the
+ *     numerator, so putting it back can only push the share *down*. The figure
+ *     is therefore the best case — true completion is at most this — and a
+ *     best case is worth reading, because a gap built on it is the least the
+ *     gap can be. A project 60% burned reading 10% delivered over nine sized
+ *     lines of ten is at least half a contract ahead of its delivery, and
+ *     refusing the share would clear the one project this file exists to
+ *     catch. So it is kept, and `scope-partly-estimated` is reported beside
+ *     it: the flag it raises is sound, and the comfort it offers is not.
+ *   - **Marked done.** The line belongs in both halves of a share it would
+ *     have *raised*, so the figure understates completion and there is no
+ *     bound on it in either direction. A list of one sized line still open and
+ *     one unsized line delivered reads nothing delivered at all, which at 60%
+ *     burned is `over` on a project that may be half done. A flag that might
+ *     be wrong in that direction is the one kind this file must not raise, so
+ *     the share goes.
  *
  * Exactly one is kept, and exactly nought: a list fully delivered reads one,
  * and a list with nothing done reads nought. Both are ordinary readings of an
@@ -441,10 +456,10 @@ export type CreepBlindSpot = (typeof CREEP_BLIND_SPOTS)[number];
  * really is finished, and one really is the share — so the gap is only reported
  * while the answer would still be nought by construction.
  *
- * One gap at a time, in the order of what to fix first: a list nobody has
- * estimated has no negative estimate to find, a negative estimate is worth
- * saying before a list that is merely incomplete, and a list that is simply
- * short is the one a reader can do least about today.
+ * One gap at a time, and the three that take the axis away come before the one
+ * that only caveats it — a reader told the share is a best case, under a
+ * verdict that refused the share outright, has been told the less true of two
+ * things.
  */
 export function deliveredShareBlindSpot(
   readings: CreepReadings,
@@ -454,10 +469,11 @@ export function deliveredShareBlindSpot(
   if (readings.negativeEstimateCount > 0 || share < 0 || share > 1) {
     return "scope-estimates-invalid";
   }
-  if (readings.unestimatedCount > 0) return "scope-partly-estimated";
+  if (readings.unestimatedDeliveredCount > 0) return "scope-delivery-unsized";
   if (readings.lineCount < 2 && !readings.scopeDelivered) {
     return "scope-too-coarse";
   }
+  if (readings.unestimatedCount > 0) return "scope-partly-estimated";
   return null;
 }
 
@@ -469,9 +485,11 @@ export function deliveredShareBlindSpot(
  * ways: the figure for the arithmetic, and the name of the gap for the reader.
  */
 export function readDeliveredShare(readings: CreepReadings): number | null {
-  return deliveredShareBlindSpot(readings) === null
-    ? readings.deliveredShare
-    : null;
+  const spot = deliveredShareBlindSpot(readings);
+  if (spot === null || spot === "scope-partly-estimated") {
+    return readings.deliveredShare;
+  }
+  return null;
 }
 
 /**

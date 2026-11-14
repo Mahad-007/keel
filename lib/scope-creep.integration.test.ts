@@ -339,7 +339,7 @@ describe("the classifier over a scope list edited straight in the database", () 
 });
 
 describe("the classifier over a scope list only half sized", () => {
-  it("does not read a sized line done as a project delivered", async () => {
+  it("reads a sized line done as the best the completion can be", async () => {
     const project = await createProject(
       { clientId, name: "Half sized", contractValueCents: 1_000_000 },
       db,
@@ -360,7 +360,7 @@ describe("the classifier over a scope list only half sized", () => {
 
     const assessment = assessScopeCreep(await readingsFor(project.id));
 
-    expect(assessment.deliveredShare).toBeNull();
+    expect(assessment.deliveredShare).toBe(1);
     expect(assessment.blindSpots).toEqual(["scope-partly-estimated"]);
     expect(assessment.health).toBe("watch");
     expect(assessment.reasons).toEqual(["contract-nearly-spent"]);
