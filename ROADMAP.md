@@ -52,7 +52,7 @@ as an atomic commit and what does not.
 
 - [x] **Day 031** — `lib/rates.ts`: resolve a project's effective rate (override, else client default, else zero) and convert minutes to burned cents. Pure and tested.
 - [x] **Day 032** — Burn summary on the project page: contracted, burned, remaining, and percentage consumed.
-- [ ] **Day 033** — `lib/scope-creep.ts`: classify a project `healthy` / `watch` / `over` from burn versus contract and completion versus estimate, including the case that matters most — high burn with low completion. Pure, exhaustively tested.
+- [x] **Day 033** — `lib/scope-creep.ts`: classify a project `healthy` / `watch` / `over` from burn versus contract and completion versus estimate, including the case that matters most — high burn with low completion. Pure, exhaustively tested.
 - [ ] **Day 034** — Scope health banner on the project page explaining *why* a project is flagged, in a sentence, not a coloured dot.
 - [ ] **Day 035** — Burn-down over time: a stored daily snapshot of burned value per project, plus a backfill for existing data.
 - [ ] **Day 036** — Burn-down chart on the project page, rendered server-side as inline SVG with no client charting library.
