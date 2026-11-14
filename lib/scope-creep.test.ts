@@ -663,3 +663,33 @@ describe("classifyScopeCreep as the burn grows", () => {
     }
   });
 });
+
+describe("classifyScopeCreep as the work gets delivered", () => {
+  const shares = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1];
+
+  it("never worsens a verdict by delivering more of the work", () => {
+    for (const consumedShare of [0.2, 0.5, 0.75, 0.85, 1.2]) {
+      let worst = healthSeverity("over");
+      for (const deliveredShare of shares) {
+        const health = classifyScopeCreep(
+          readings({ consumedShare, deliveredShare }),
+        );
+        const severity = healthSeverity(health as ScopeHealth);
+        expect(severity).toBeLessThanOrEqual(worst);
+        worst = severity;
+      }
+    }
+  });
+
+  it("clears a watch on a nearly spent contract once the list is done", () => {
+    const halfway = readings({ consumedShare: 0.9, deliveredShare: 0.9 });
+    expect(classifyScopeCreep(halfway)).toBe("watch");
+    expect(
+      classifyScopeCreep({
+        ...halfway,
+        deliveredShare: 1,
+        scopeDelivered: true,
+      }),
+    ).toBe("healthy");
+  });
+});
