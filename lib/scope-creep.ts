@@ -253,3 +253,41 @@ export function classifyCreepGap(gap: number | null): ScopeHealth {
   if (gap >= AHEAD_OF_DELIVERY_GAP) return "watch";
   return "healthy";
 }
+
+/**
+ * The two readings a verdict is made from, and the two facts needed to know
+ * whether they can be trusted.
+ *
+ * Plain numbers rather than a `BurnSummary` and a list of scope lines, for the
+ * reason every pure file here takes the narrowest shape it can: the classifier
+ * can then be called with a literal in a test, with a project page's figures,
+ * and — Day 039 — with a row out of a portfolio query that never built either
+ * of those objects.
+ *
+ * `consumedShare` is `consumedShare` from `lib/burn.ts` and `deliveredShare`
+ * is `deliveredShare` from `lib/scope.ts`, both unrounded, both unclamped,
+ * both null where their denominator is missing. Unclamped matters: a share of
+ * 1.68 is the input this file was built to act on, and a caller that capped it
+ * at one would hand over a project reading as merely finished.
+ *
+ * `burnValued` is handed in rather than worked out here. `hasValuedBurn` in
+ * `lib/projects/burn-summary.ts` is already the one place that decides whether
+ * a burn figure is a measurement or a gap, and a second reading of the rate
+ * column in this file would be a second opinion — the expensive direction of
+ * that drift being a project with eighty unpriced hours classified `healthy`.
+ *
+ * `scopeDelivered` is `allDelivered` from `lib/scope.ts`: whether every line
+ * of the agreed list is done. It is the fact that tells a project finished
+ * inside its budget from one halfway through and running out of it, and
+ * without it a success looks exactly like a project about to fail.
+ */
+export type CreepReadings = {
+  /** Burn over contract value, unclamped, or null with no price to divide by. */
+  readonly consumedShare: number | null;
+  /** Delivered estimate over total estimate, or null with nothing estimated. */
+  readonly deliveredShare: number | null;
+  /** Whether the burn behind the consumed share is a measurement, not a gap. */
+  readonly burnValued: boolean;
+  /** Whether every line of the agreed scope is marked done. */
+  readonly scopeDelivered: boolean;
+};
