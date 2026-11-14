@@ -606,7 +606,7 @@ export type CreepAssessment = {
   readonly blindSpots: readonly CreepBlindSpot[];
   /** The consumed share the verdict used, or null if there was none. */
   readonly consumedShare: number | null;
-  /** The delivered share as handed in, or null with nothing estimated. */
+  /** The delivered share the verdict used, or null if there was none. */
   readonly deliveredShare: number | null;
   /** Consumed less delivered, or null without both. */
   readonly gap: number | null;
@@ -621,21 +621,23 @@ export type CreepAssessment = {
  * verdict, but nothing that shows a reader more than one of these figures
  * should be calling them one at a time.
  *
- * The gap is taken from the share as read, matching `creepReasons`, so the
- * figure under the verdict is the figure the verdict used. A project whose
- * burn could not be valued therefore has no gap either — the subtraction is
- * available, and what it would produce is a tidy-looking number built on a
- * burn of nought that nobody measured.
+ * Both shares are taken as read, matching `creepReasons`, so the figures under
+ * the verdict are the figures the verdict used. A project whose burn could not
+ * be valued therefore has no share and no gap either — the subtraction is
+ * available, and what it would produce is a tidy-looking number built on a burn
+ * of nought that nobody measured.
  */
 export function assessScopeCreep(readings: CreepReadings): CreepAssessment {
   const consumedShare = readConsumedShare(readings);
+
+  const deliveredShare = readDeliveredShare(readings);
 
   return {
     health: classifyScopeCreep(readings),
     reasons: creepReasons(readings),
     blindSpots: creepBlindSpots(readings),
     consumedShare,
-    deliveredShare: readings.deliveredShare,
-    gap: creepGap(consumedShare, readings.deliveredShare),
+    deliveredShare,
+    gap: creepGap(consumedShare, deliveredShare),
   };
 }
