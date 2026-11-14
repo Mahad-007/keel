@@ -6,6 +6,7 @@ import {
   classifyCreepGap,
   creepBlindSpots,
   creepGap,
+  creepReasons,
   type CreepReadings,
   FAR_AHEAD_OF_DELIVERY_GAP,
   healthSeverity,
@@ -273,5 +274,51 @@ describe("creepBlindSpots", () => {
 
   it("finds nothing missing on a project nobody has logged against", () => {
     expect(creepBlindSpots(readings({ consumedShare: 0 }))).toEqual([]);
+  });
+});
+
+describe("creepReasons on the contract axis", () => {
+  it("flags nothing on a project halfway through its budget", () => {
+    expect(creepReasons(readings())).toEqual([]);
+  });
+
+  it("flags a contract burned in full", () => {
+    expect(creepReasons(readings({ consumedShare: 1 }))).toContain(
+      "contract-overspent",
+    );
+  });
+
+  it("flags a contract burned well past its value", () => {
+    expect(creepReasons(readings({ consumedShare: 1.68 }))).toContain(
+      "contract-overspent",
+    );
+  });
+
+  it("flags a contract nearly spent", () => {
+    expect(creepReasons(readings({ consumedShare: 0.85 }))).toEqual([
+      "contract-nearly-spent",
+    ]);
+  });
+
+  it("does not call a nearly-spent contract overspent as well", () => {
+    expect(creepReasons(readings({ consumedShare: 0.85 }))).not.toContain(
+      "contract-overspent",
+    );
+  });
+
+  it("does not call an overspent contract nearly spent as well", () => {
+    expect(creepReasons(readings({ consumedShare: 1.2 }))).not.toContain(
+      "contract-nearly-spent",
+    );
+  });
+
+  it("flags nothing when the burn could not be valued", () => {
+    expect(
+      creepReasons(readings({ consumedShare: 0, burnValued: false })),
+    ).toEqual([]);
+  });
+
+  it("flags nothing when there is no price to measure against", () => {
+    expect(creepReasons(readings({ consumedShare: null }))).toEqual([]);
   });
 });
