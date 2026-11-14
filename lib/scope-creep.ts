@@ -151,3 +151,38 @@ export function classifyConsumedShare(consumedShare: number): ScopeHealth {
   if (consumedShare >= NEARLY_SPENT_SHARE) return "watch";
   return "healthy";
 }
+
+/**
+ * How far the burn has run ahead of the delivery, as a fraction of one.
+ *
+ * The second axis, and the one this file exists for. Two shares of the same
+ * project, subtracted: how much of the money is gone, less how much of the
+ * work is done. Nought means the two are in step — half the budget for half
+ * the deliverables, which is what a project on track looks like. A fifth means
+ * a fifth of the contract has bought nothing yet.
+ *
+ * Signed, and the sign is not symmetric in meaning. Positive is the money
+ * running ahead of the work, which is the failure mode; negative is the work
+ * running ahead of the money, which is a project being delivered under budget
+ * and needs no attention at all. Both come out of the same subtraction, and
+ * only one of them is read.
+ *
+ * A difference of two shares rather than a ratio of them. The ratio is the
+ * tempting figure — "twice as much money as work" — but it divides by a
+ * delivered share that is nought for the whole first stretch of every project,
+ * which is exactly the stretch this is meant to be read in. The difference is
+ * defined everywhere the two shares are, and it stays readable at the start.
+ *
+ * Null when either share is missing, because there is no half of this figure
+ * worth having: without a price there is nothing to say the money has run
+ * ahead of, and without estimates there is nothing to say it has run ahead
+ * *of*. The missing half is named by `creepBlindSpots` rather than guessed at
+ * here.
+ */
+export function creepGap(
+  consumedShare: number | null,
+  deliveredShare: number | null,
+): number | null {
+  if (consumedShare === null || deliveredShare === null) return null;
+  return consumedShare - deliveredShare;
+}
