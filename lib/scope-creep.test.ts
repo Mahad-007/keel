@@ -322,3 +322,51 @@ describe("creepReasons on the contract axis", () => {
     expect(creepReasons(readings({ consumedShare: null }))).toEqual([]);
   });
 });
+
+describe("creepReasons on the delivery axis", () => {
+  it("flags high burn against low completion, which is the whole point", () => {
+    expect(
+      creepReasons(readings({ consumedShare: 0.6, deliveredShare: 0.1 })),
+    ).toEqual(["burn-far-ahead-of-delivery"]);
+  });
+
+  it("flags it while the contract axis alone still reads healthy", () => {
+    expect(classifyConsumedShare(0.6)).toBe("healthy");
+  });
+
+  it("flags a quarter of the contract ahead of the work as watch", () => {
+    expect(
+      creepReasons(readings({ consumedShare: 0.45, deliveredShare: 0.2 })),
+    ).toEqual(["burn-ahead-of-delivery"]);
+  });
+
+  it("flags nothing when the money and the work keep step", () => {
+    expect(
+      creepReasons(readings({ consumedShare: 0.7, deliveredShare: 0.65 })),
+    ).toEqual([]);
+  });
+
+  it("flags nothing when the work is ahead of the money", () => {
+    expect(
+      creepReasons(readings({ consumedShare: 0.3, deliveredShare: 0.8 })),
+    ).toEqual([]);
+  });
+
+  it("flags nothing on the gap when there is nothing estimated", () => {
+    expect(
+      creepReasons(readings({ consumedShare: 0.6, deliveredShare: null })),
+    ).toEqual([]);
+  });
+
+  it("leads with the contract when both axes are over", () => {
+    expect(
+      creepReasons(readings({ consumedShare: 1.4, deliveredShare: 0.2 })),
+    ).toEqual(["contract-overspent", "burn-far-ahead-of-delivery"]);
+  });
+
+  it("leads with the gap when it is over and the contract only watch", () => {
+    expect(
+      creepReasons(readings({ consumedShare: 0.9, deliveredShare: 0.1 })),
+    ).toEqual(["burn-far-ahead-of-delivery", "contract-nearly-spent"]);
+  });
+});
