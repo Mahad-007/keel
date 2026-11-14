@@ -533,3 +533,40 @@ export function classifyScopeCreep(
     "healthy",
   );
 }
+
+/**
+ * The whole assessment of one project: the verdict, why, what could not be
+ * seen, and the figures it was all worked out from.
+ *
+ * The shape a page reads. The functions above are the ones worth testing one
+ * at a time; this is the one call that produces a set of answers consistent
+ * with each other by construction — the verdict is the worst of these reasons,
+ * the gap is the difference of these two shares, and no caller can pair a
+ * verdict from one reading of a project with a sentence from another.
+ *
+ * The shares are echoed back **as read**, which is the half of this type that
+ * is easy to miss. `consumedShare` here is the one that survived
+ * `readConsumedShare`, so a figure a banner prints beside the verdict is the
+ * same figure the verdict was reached from — and a project whose burn could
+ * not be valued carries null here rather than the reassuring nought that
+ * `lib/burn.ts` honestly computed.
+ *
+ * `gap` is carried rather than left to be subtracted again, for the reason
+ * `ScopeSummary` carries its hours: it is the figure the most important
+ * sentence in the app is built on, and two callers subtracting it themselves
+ * is how a banner comes to quote a gap the verdict did not use.
+ */
+export type CreepAssessment = {
+  /** The verdict, or null when the burn could not be read at all. */
+  readonly health: ScopeHealth | null;
+  /** Every comparison that flagged the project, worst first. */
+  readonly reasons: readonly CreepReason[];
+  /** Everything the verdict could not see, money first. */
+  readonly blindSpots: readonly CreepBlindSpot[];
+  /** The consumed share the verdict used, or null if there was none. */
+  readonly consumedShare: number | null;
+  /** The delivered share as handed in, or null with nothing estimated. */
+  readonly deliveredShare: number | null;
+  /** Consumed less delivered, or null without both. */
+  readonly gap: number | null;
+};
