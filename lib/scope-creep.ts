@@ -399,10 +399,11 @@ export type CreepBlindSpot = (typeof CREEP_BLIND_SPOTS)[number];
  * the rate next. A negative burn is only reachable past the other two, so it
  * is reported last of the three.
  *
- * `scope-not-estimated` stacks with any of them, because it is a different
- * form on a different tab. A project with no contract value and no estimates
- * genuinely has two things to fix, and the verdict is missing both axes rather
- * than one.
+ * One of the two scope gaps at most, and they are ordered the same way: a
+ * project with no estimates has none to be out of range. Either stacks with a
+ * money gap, because they are different forms on different tabs: a project with
+ * no contract value and no estimates genuinely has two things to fix, and the
+ * verdict is missing both axes rather than one.
  *
  * An empty array is the ordinary answer: most projects have a price, a rate
  * and some sized deliverables, and for those the verdict stands on its own.
@@ -418,7 +419,11 @@ export function creepBlindSpots(
   } else if (readings.consumedShare < 0) {
     spots.push("burn-below-zero");
   }
-  if (readings.deliveredShare === null) spots.push("scope-not-estimated");
+  if (readings.deliveredShare === null) {
+    spots.push("scope-not-estimated");
+  } else if (readDeliveredShare(readings) === null) {
+    spots.push("scope-estimates-invalid");
+  }
   return spots;
 }
 
