@@ -308,6 +308,8 @@ export type CreepReadings = {
   readonly lineCount: number;
   /** How many of them carry no estimate, and so are missing from the share. */
   readonly unestimatedCount: number;
+  /** How many of the unsized lines are marked done, which unbounds the share. */
+  readonly unestimatedDeliveredCount: number;
   /** How many carry an estimate below zero, which no form in the app writes. */
   readonly negativeEstimateCount: number;
   /** Whether the burn behind the consumed share is a measurement, not a gap. */

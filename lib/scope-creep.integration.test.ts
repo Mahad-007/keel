@@ -20,6 +20,7 @@ import {
   deliveredShare,
   negativeEstimateCount,
   unestimatedCount,
+  unestimatedDeliveredCount,
 } from "@/lib/scope";
 
 import { assessScopeCreep, type CreepReadings } from "./scope-creep";
@@ -76,6 +77,7 @@ async function readingsFor(projectId: string): Promise<CreepReadings> {
     deliveredShare: deliveredShare(lines),
     lineCount: lines.length,
     unestimatedCount: unestimatedCount(lines),
+    unestimatedDeliveredCount: unestimatedDeliveredCount(lines),
     negativeEstimateCount: negativeEstimateCount(lines),
     burnValued: hasValuedBurn(burn),
     scopeDelivered: allDelivered(lines),
