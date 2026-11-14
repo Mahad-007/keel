@@ -17,6 +17,7 @@ import {
   readConsumedShare,
   REASON_HEALTH,
   SCOPE_HEALTH,
+  type ScopeHealth,
   worstHealth,
 } from "./scope-creep";
 
@@ -623,5 +624,42 @@ describe("assessScopeCreep where something is missing", () => {
       deliveredShare: 1,
       gap: -0.125,
     });
+  });
+});
+
+/**
+ * The verdicts in worsening order, for the monotonicity properties below. A
+ * verdict can only be compared with another through `healthSeverity`, and a
+ * withheld verdict has no place in the order at all — so these walks skip the
+ * readings that produce one, which are tested by name above.
+ */
+describe("classifyScopeCreep as the burn grows", () => {
+  const shares = [0, 0.1, 0.25, 0.5, 0.75, 0.79, 0.8, 0.9, 1, 1.25, 2];
+
+  it("never improves a verdict by burning more of the contract", () => {
+    for (const deliveredShare of [0, 0.25, 0.5, 0.75, 1]) {
+      let worst = 0;
+      for (const consumedShare of shares) {
+        const health = classifyScopeCreep(
+          readings({ consumedShare, deliveredShare }),
+        );
+        expect(health).not.toBeNull();
+        const severity = healthSeverity(health as ScopeHealth);
+        expect(severity).toBeGreaterThanOrEqual(worst);
+        worst = severity;
+      }
+    }
+  });
+
+  it("never improves a verdict with nothing estimated either", () => {
+    let worst = 0;
+    for (const consumedShare of shares) {
+      const health = classifyScopeCreep(
+        readings({ consumedShare, deliveredShare: null }),
+      );
+      const severity = healthSeverity(health as ScopeHealth);
+      expect(severity).toBeGreaterThanOrEqual(worst);
+      worst = severity;
+    }
   });
 });
