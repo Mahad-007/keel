@@ -186,3 +186,44 @@ export function creepGap(
   if (consumedShare === null || deliveredShare === null) return null;
   return consumedShare - deliveredShare;
 }
+
+/**
+ * The gap between money and work at which a project is worth another look.
+ *
+ * A quarter of the contract spent on nothing anybody can point at. Smaller
+ * than that is the ordinary shape of a project: the first week buys
+ * discovery, a kickoff and a half-built thing, and none of it is a deliverable
+ * marked done — so a gap of a tenth is how every engagement starts, and a
+ * threshold there would flag all of them.
+ *
+ * A quarter is also roughly where the gap stops being recoverable by working
+ * faster and starts needing a conversation about scope. That is the judgement
+ * in the figure, and it is the reason this is `watch` rather than `over`: a
+ * quarter out at the halfway mark is a project to look at next week, not one
+ * to reprice.
+ */
+export const AHEAD_OF_DELIVERY_GAP = 0.25;
+
+/**
+ * The gap at which the project will not come in, whatever is still in the
+ * bank.
+ *
+ * Half the contract spent on work nobody has delivered. At that point the
+ * remaining budget has to cover more than half the deliverables — and the
+ * evidence so far is that half the budget bought less than half of them, so
+ * the figures have already said it cannot.
+ *
+ * This is the threshold that makes the file worth writing. It fires on
+ * projects with money left, nothing overdue and no invoice yet in dispute:
+ * sixty percent consumed against ten percent delivered is `over` here while
+ * the contract axis alone still reads `healthy`. Calling it `over` before the
+ * money runs out is the entire wedge, and it is the one verdict in this file
+ * that a reader would not have reached on their own.
+ *
+ * The word is right even though nothing has technically been exceeded yet.
+ * `over` is the verdict that says this engagement will cost more than it
+ * pays, and a project half-spent with a tenth delivered has already settled
+ * that question — waiting for the arithmetic to catch up only costs the
+ * remaining half.
+ */
+export const FAR_AHEAD_OF_DELIVERY_GAP = 0.5;
