@@ -5,13 +5,29 @@ import {
   classifyConsumedShare,
   classifyCreepGap,
   creepGap,
+  type CreepReadings,
   FAR_AHEAD_OF_DELIVERY_GAP,
   healthSeverity,
   NEARLY_SPENT_SHARE,
   OVERSPENT_SHARE,
+  readConsumedShare,
   SCOPE_HEALTH,
   worstHealth,
 } from "./scope-creep";
+
+/**
+ * Readings for a project halfway through its budget and its scope, which is
+ * the shape every test below varies one figure of.
+ */
+function readings(partial: Partial<CreepReadings> = {}): CreepReadings {
+  return {
+    consumedShare: 0.5,
+    deliveredShare: 0.5,
+    burnValued: true,
+    scopeDelivered: false,
+    ...partial,
+  };
+}
 
 describe("SCOPE_HEALTH", () => {
   it("lists the three verdicts", () => {
@@ -168,5 +184,39 @@ describe("classifyCreepGap", () => {
 
   it("has no opinion when the gap could not be read", () => {
     expect(classifyCreepGap(null)).toBe("healthy");
+  });
+});
+
+describe("readConsumedShare", () => {
+  it("passes a share of a real price straight through", () => {
+    expect(readConsumedShare(readings({ consumedShare: 0.42 }))).toBe(0.42);
+  });
+
+  it("passes a share past the contract through unclamped", () => {
+    expect(readConsumedShare(readings({ consumedShare: 1.68 }))).toBe(1.68);
+  });
+
+  it("has no share when there is no price to divide by", () => {
+    expect(readConsumedShare(readings({ consumedShare: null }))).toBeNull();
+  });
+
+  it("refuses the nought that an unvalued burn divides out to", () => {
+    expect(
+      readConsumedShare(readings({ consumedShare: 0, burnValued: false })),
+    ).toBeNull();
+  });
+
+  it("refuses a real-looking share when the burn was never valued", () => {
+    expect(
+      readConsumedShare(readings({ consumedShare: 0.4, burnValued: false })),
+    ).toBeNull();
+  });
+
+  it("refuses a share below zero, which a negative rate produces", () => {
+    expect(readConsumedShare(readings({ consumedShare: -0.5 }))).toBeNull();
+  });
+
+  it("keeps a share of exactly nothing on a project nobody has worked on", () => {
+    expect(readConsumedShare(readings({ consumedShare: 0 }))).toBe(0);
   });
 });
