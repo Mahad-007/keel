@@ -337,45 +337,6 @@ export function readConsumedShare(readings: CreepReadings): number | null {
 }
 
 /**
- * The delivered share, once a figure that cannot be a share of anything has
- * been thrown out.
- *
- * `deliveredShare` is deliberately unclamped — `lib/scope.ts` says why, and it
- * is right: a share above one or below nought is the clearest sign available
- * that the estimates need looking at, and clamping it would hide the bad row
- * behind a plausible percentage. But it cannot be *subtracted* from the
- * consumed share, because the result is not a gap between two shares of the
- * same thing. A project reading 140% delivered against 90% consumed comes out
- * at minus half a contract of slack, which is the most reassuring figure in
- * this file produced by the worst data in the database.
- *
- * Only a negative estimate reaches it, and no form in the app writes one — so
- * this is a row edited straight in the database, and the honest answer is that
- * completion cannot be read rather than that it is fine. Null, and
- * `creepBlindSpots` names it, which sends somebody to the scope list where the
- * bad estimate is.
- *
- * The count is asked before the range, because the range only catches the
- * negatives that happen to push the quotient out of bounds. A done line of ten
- * hours against an open line of twenty and another of minus four reads 0.63
- * delivered — inside the range, plainly wrong, and three percentage points of
- * reassurance that nobody can account for. `negativeEstimateCount` is the
- * cause and the quotient is one of its symptoms, so both throw the share out
- * and the count is checked first.
- *
- * Exactly one is kept, and exactly nought: a list fully delivered reads one,
- * and a list with nothing done reads nought. Both are ordinary readings of an
- * ordinary project.
- */
-export function readDeliveredShare(readings: CreepReadings): number | null {
-  const share = readings.deliveredShare;
-  if (share === null) return null;
-  if (readings.negativeEstimateCount > 0) return null;
-  if (share < 0 || share > 1) return null;
-  return share;
-}
-
-/**
  * The things that can be missing, each named by what would fix it.
  *
  * A verdict is only as good as the two shares behind it, and on a real
@@ -404,10 +365,79 @@ export const CREEP_BLIND_SPOTS = [
   "scope-not-estimated",
   /** A delivered share outside nought to one, which negative estimates make. */
   "scope-estimates-invalid",
+  /** Some lines sized and some not, so the share is of part of the list. */
+  "scope-partly-estimated",
 ] as const;
 
 /** One thing a verdict could not see. */
 export type CreepBlindSpot = (typeof CREEP_BLIND_SPOTS)[number];
+
+/**
+ * Why the delivered share is not a reading of completion, or null where it is.
+ *
+ * `deliveredShare` is deliberately unclamped — `lib/scope.ts` says why, and it
+ * is right: a share above one or below nought is the clearest sign available
+ * that the estimates need looking at, and clamping it would hide the bad row
+ * behind a plausible percentage. But it cannot be *subtracted* from the
+ * consumed share, because the result is not a gap between two shares of the
+ * same thing. A project reading 140% delivered against 90% consumed comes out
+ * at minus half a contract of slack, which is the most reassuring figure in
+ * this file produced by the worst data in the database.
+ *
+ * Only a negative estimate reaches it, and no form in the app writes one — so
+ * this is a row edited straight in the database, and the honest answer is that
+ * completion cannot be read rather than that it is fine — and the name of the
+ * gap is what sends somebody to the scope list where the bad estimate is.
+ *
+ * The count is asked before the range, because the range only catches the
+ * negatives that happen to push the quotient out of bounds. A done line of ten
+ * hours against an open line of twenty and another of minus four reads 0.63
+ * delivered — inside the range, plainly wrong, and three percentage points of
+ * reassurance that nobody can account for. `negativeEstimateCount` is the
+ * cause and the quotient is one of its symptoms, so both throw the share out
+ * and the count is checked first.
+ *
+ * An unsized line throws the share out too, and this is the one that happens
+ * to real projects rather than to hand-edited rows. The share is a quotient of
+ * sized work over sized work, so an unsized line is simply absent from both
+ * halves — and the figure it leaves behind is biased in the one direction that
+ * costs money. A list with its first deliverable sized and done and two unsized
+ * ones still open reads 100% delivered, which is a project two thirds untouched
+ * reporting that it has finished. `unestimatedCount` is `lib/scope.ts`'s own
+ * figure for how far to trust the totals, and this is what that means here.
+ *
+ * Exactly one is kept, and exactly nought: a list fully delivered reads one,
+ * and a list with nothing done reads nought. Both are ordinary readings of an
+ * ordinary project — provided every line of it was sized.
+ *
+ * One gap at a time, in the order of what to fix first: a list nobody has
+ * estimated has no negative estimate to find, and a negative estimate is worth
+ * saying before a list that is merely incomplete.
+ */
+export function deliveredShareBlindSpot(
+  readings: CreepReadings,
+): CreepBlindSpot | null {
+  const share = readings.deliveredShare;
+  if (share === null) return "scope-not-estimated";
+  if (readings.negativeEstimateCount > 0 || share < 0 || share > 1) {
+    return "scope-estimates-invalid";
+  }
+  if (readings.unestimatedCount > 0) return "scope-partly-estimated";
+  return null;
+}
+
+/**
+ * The delivered share, or nothing where it is not a reading of completion.
+ *
+ * Derived from `deliveredShareBlindSpot` rather than written out again, so
+ * there is one statement of what a trustworthy share is and it is read two
+ * ways: the figure for the arithmetic, and the name of the gap for the reader.
+ */
+export function readDeliveredShare(readings: CreepReadings): number | null {
+  return deliveredShareBlindSpot(readings) === null
+    ? readings.deliveredShare
+    : null;
+}
 
 /**
  * Everything this verdict could not see, in the order a reader would meet it.
@@ -422,8 +452,11 @@ export type CreepBlindSpot = (typeof CREEP_BLIND_SPOTS)[number];
  * the rate next. A negative burn is only reachable past the other two, so it
  * is reported last of the three.
  *
- * One of the two scope gaps at most, and they are ordered the same way: a
- * project with no estimates has none to be out of range. Either stacks with a
+ * One scope gap at most, and it is `deliveredShareBlindSpot`'s rather than a
+ * second reading of the same three counts: the gap reported here and the share
+ * the verdict was reached from are two halves of one decision, and a reader
+ * told the estimates are fine under a verdict that refused them would have no
+ * way to tell which half was lying. Either stacks with a
  * money gap, because they are different forms on different tabs: a project with
  * no contract value and no estimates genuinely has two things to fix, and the
  * verdict is missing both axes rather than one.
@@ -442,11 +475,8 @@ export function creepBlindSpots(
   } else if (readings.consumedShare < 0) {
     spots.push("burn-below-zero");
   }
-  if (readings.deliveredShare === null) {
-    spots.push("scope-not-estimated");
-  } else if (readDeliveredShare(readings) === null) {
-    spots.push("scope-estimates-invalid");
-  }
+  const scope = deliveredShareBlindSpot(readings);
+  if (scope !== null) spots.push(scope);
   return spots;
 }
 
@@ -517,9 +547,7 @@ export type CreepReason = (typeof CREEP_REASONS)[number];
  * `creepBlindSpots`, not by this: a reason is a comparison that came out
  * badly, and a comparison nobody could make did not come out at all.
  */
-export function creepReasons(
-  readings: CreepReadings,
-): readonly CreepReason[] {
+export function creepReasons(readings: CreepReadings): readonly CreepReason[] {
   const consumed = readConsumedShare(readings);
   if (consumed === null) return [];
 
