@@ -4,6 +4,7 @@ import {
   AHEAD_OF_DELIVERY_GAP,
   classifyConsumedShare,
   classifyCreepGap,
+  creepBlindSpots,
   creepGap,
   type CreepReadings,
   FAR_AHEAD_OF_DELIVERY_GAP,
@@ -218,5 +219,59 @@ describe("readConsumedShare", () => {
 
   it("keeps a share of exactly nothing on a project nobody has worked on", () => {
     expect(readConsumedShare(readings({ consumedShare: 0 }))).toBe(0);
+  });
+});
+
+describe("creepBlindSpots", () => {
+  it("finds nothing missing on a project with a price and estimates", () => {
+    expect(creepBlindSpots(readings())).toEqual([]);
+  });
+
+  it("names the missing price", () => {
+    expect(creepBlindSpots(readings({ consumedShare: null }))).toEqual([
+      "no-contract-value",
+    ]);
+  });
+
+  it("names the unvalued burn", () => {
+    expect(
+      creepBlindSpots(readings({ consumedShare: 0, burnValued: false })),
+    ).toEqual(["burn-not-valued"]);
+  });
+
+  it("names the burn below zero", () => {
+    expect(creepBlindSpots(readings({ consumedShare: -0.2 }))).toEqual([
+      "burn-below-zero",
+    ]);
+  });
+
+  it("names the missing estimates", () => {
+    expect(creepBlindSpots(readings({ deliveredShare: null }))).toEqual([
+      "scope-not-estimated",
+    ]);
+  });
+
+  it("says the price once rather than the rate as well", () => {
+    expect(
+      creepBlindSpots(readings({ consumedShare: null, burnValued: false })),
+    ).toEqual(["no-contract-value"]);
+  });
+
+  it("stacks a missing price with missing estimates", () => {
+    expect(
+      creepBlindSpots(readings({ consumedShare: null, deliveredShare: null })),
+    ).toEqual(["no-contract-value", "scope-not-estimated"]);
+  });
+
+  it("stacks an unvalued burn with missing estimates", () => {
+    expect(
+      creepBlindSpots(
+        readings({ consumedShare: 0, burnValued: false, deliveredShare: null }),
+      ),
+    ).toEqual(["burn-not-valued", "scope-not-estimated"]);
+  });
+
+  it("finds nothing missing on a project nobody has logged against", () => {
+    expect(creepBlindSpots(readings({ consumedShare: 0 }))).toEqual([]);
   });
 });
