@@ -473,3 +473,27 @@ export function creepReasons(
   if (creep === "watch") reasons.push("burn-ahead-of-delivery");
   return reasons;
 }
+
+/**
+ * What each reason says about a project on its own.
+ *
+ * The bridge between the reasons and the verdict. Having it written down once
+ * means the verdict is *derived* from the reasons rather than worked out
+ * alongside them: a project cannot come back `over` with nothing to show for
+ * it, and a reason cannot be reported under a verdict that does not account
+ * for it. The two could not be made to disagree without editing this record.
+ *
+ * A record over every reason rather than a pair of lists, so a fifth reason
+ * added later is a compile error here — the one place that has to have an
+ * opinion about how bad it is — rather than a reason that quietly classifies
+ * as `healthy` and shows up in a banner under the word "Healthy".
+ *
+ * No reason maps to `healthy`. A reason is a comparison that came out badly,
+ * and one that came out well is not reported at all.
+ */
+export const REASON_HEALTH: Record<CreepReason, ScopeHealth> = {
+  "contract-overspent": "over",
+  "burn-far-ahead-of-delivery": "over",
+  "contract-nearly-spent": "watch",
+  "burn-ahead-of-delivery": "watch",
+};
