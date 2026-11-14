@@ -15,6 +15,7 @@ import {
   NEARLY_SPENT_SHARE,
   OVERSPENT_SHARE,
   readConsumedShare,
+  readDeliveredShare,
   REASON_HEALTH,
   SCOPE_HEALTH,
   type ScopeHealth,
@@ -730,4 +731,30 @@ describe("classifyScopeCreep over projects somebody might have", () => {
       ).toBe(project.health);
     });
   }
+});
+
+describe("readDeliveredShare", () => {
+  it("passes an ordinary share straight through", () => {
+    expect(readDeliveredShare(readings({ deliveredShare: 0.4 }))).toBe(0.4);
+  });
+
+  it("keeps nothing delivered, which is where every project starts", () => {
+    expect(readDeliveredShare(readings({ deliveredShare: 0 }))).toBe(0);
+  });
+
+  it("keeps everything delivered", () => {
+    expect(readDeliveredShare(readings({ deliveredShare: 1 }))).toBe(1);
+  });
+
+  it("has no share with nothing estimated", () => {
+    expect(readDeliveredShare(readings({ deliveredShare: null }))).toBeNull();
+  });
+
+  it("refuses more than everything delivered", () => {
+    expect(readDeliveredShare(readings({ deliveredShare: 1.4 }))).toBeNull();
+  });
+
+  it("refuses a share below nothing", () => {
+    expect(readDeliveredShare(readings({ deliveredShare: -0.2 }))).toBeNull();
+  });
 });
