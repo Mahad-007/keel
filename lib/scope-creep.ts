@@ -71,3 +71,20 @@ export type ScopeHealth = (typeof SCOPE_HEALTH)[number];
 export function healthSeverity(health: ScopeHealth): number {
   return SCOPE_HEALTH.indexOf(health);
 }
+
+/**
+ * The worse of two verdicts.
+ *
+ * A project is assessed on two axes — the money and the work — and a verdict
+ * has to be one word, so the two readings have to combine. The worse of them
+ * wins, which is the only combination that cannot hide a problem: averaging
+ * them would let a project burning its budget with nothing delivered come out
+ * as `watch` because one of the two figures was fine, and a project with one
+ * thing badly wrong is a project with one thing badly wrong.
+ *
+ * Associative and commutative, so a third axis can be folded in later without
+ * the order of the folding changing the answer.
+ */
+export function worstHealth(a: ScopeHealth, b: ScopeHealth): ScopeHealth {
+  return healthSeverity(b) > healthSeverity(a) ? b : a;
+}
