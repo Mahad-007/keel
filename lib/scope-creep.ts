@@ -276,6 +276,14 @@ export function classifyCreepGap(gap: number | null): ScopeHealth {
  * column in this file would be a second opinion — the expensive direction of
  * that drift being a project with eighty unpriced hours classified `healthy`.
  *
+ * The three counts are `ScopeSummary`'s own, and they are here because the
+ * delivered share cannot be asked how far to trust itself. It is a quotient of
+ * two sums, and both sums are built from a column that may be empty or may
+ * hold a figure no form would accept — so a share of exactly one can mean the
+ * list is finished, or that the one line anybody sized happens to be the one
+ * line anybody finished. `readDeliveredShare` is the function that tells those
+ * apart, and it cannot do it from the quotient alone.
+ *
  * `scopeDelivered` is `allDelivered` from `lib/scope.ts`: whether every line
  * of the agreed list is done. It is the fact that tells a project finished
  * inside its budget from one halfway through and running out of it, and
@@ -286,6 +294,12 @@ export type CreepReadings = {
   readonly consumedShare: number | null;
   /** Delivered estimate over total estimate, or null with nothing estimated. */
   readonly deliveredShare: number | null;
+  /** How many deliverables the scope list was written as. */
+  readonly lineCount: number;
+  /** How many of them carry no estimate, and so are missing from the share. */
+  readonly unestimatedCount: number;
+  /** How many carry an estimate below zero, which no form in the app writes. */
+  readonly negativeEstimateCount: number;
   /** Whether the burn behind the consumed share is a measurement, not a gap. */
   readonly burnValued: boolean;
   /** Whether every line of the agreed scope is marked done. */

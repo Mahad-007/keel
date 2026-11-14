@@ -30,6 +30,9 @@ function readings(partial: Partial<CreepReadings> = {}): CreepReadings {
   return {
     consumedShare: 0.5,
     deliveredShare: 0.5,
+    lineCount: 4,
+    unestimatedCount: 0,
+    negativeEstimateCount: 0,
     burnValued: true,
     scopeDelivered: false,
     ...partial,

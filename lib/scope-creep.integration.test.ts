@@ -15,7 +15,12 @@ import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 import { hasValuedBurn } from "@/lib/projects/burn-summary";
 import { resolveJoinedRate } from "@/lib/rates";
-import { allDelivered, deliveredShare } from "@/lib/scope";
+import {
+  allDelivered,
+  deliveredShare,
+  negativeEstimateCount,
+  unestimatedCount,
+} from "@/lib/scope";
 
 import { assessScopeCreep, type CreepReadings } from "./scope-creep";
 
@@ -69,6 +74,9 @@ async function readingsFor(projectId: string): Promise<CreepReadings> {
   return {
     consumedShare: burn.consumedShare,
     deliveredShare: deliveredShare(lines),
+    lineCount: lines.length,
+    unestimatedCount: unestimatedCount(lines),
+    negativeEstimateCount: negativeEstimateCount(lines),
     burnValued: hasValuedBurn(burn),
     scopeDelivered: allDelivered(lines),
   };
