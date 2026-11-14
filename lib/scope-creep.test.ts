@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   classifyConsumedShare,
+  creepGap,
   healthSeverity,
   NEARLY_SPENT_SHARE,
   OVERSPENT_SHARE,
@@ -96,5 +97,39 @@ describe("classifyConsumedShare at the nearly-spent threshold", () => {
 
   it("treats a share below zero as healthy, having been handed one", () => {
     expect(classifyConsumedShare(-0.4)).toBe("healthy");
+  });
+});
+
+describe("creepGap", () => {
+  it("is nothing when the money and the work are in step", () => {
+    expect(creepGap(0.5, 0.5)).toBe(0);
+  });
+
+  it("is the money ahead of the work as a positive figure", () => {
+    expect(creepGap(0.6, 0.1)).toBeCloseTo(0.5);
+  });
+
+  it("is the whole consumed share when nothing is delivered", () => {
+    expect(creepGap(0.35, 0)).toBeCloseTo(0.35);
+  });
+
+  it("goes below zero when the work is ahead of the money", () => {
+    expect(creepGap(0.4, 0.75)).toBeCloseTo(-0.35);
+  });
+
+  it("is readable past the contract, where the share is above one", () => {
+    expect(creepGap(1.68, 0.5)).toBeCloseTo(1.18);
+  });
+
+  it("has nothing to say with no price to take a share of", () => {
+    expect(creepGap(null, 0.5)).toBeNull();
+  });
+
+  it("has nothing to say with nothing estimated", () => {
+    expect(creepGap(0.5, null)).toBeNull();
+  });
+
+  it("has nothing to say with neither", () => {
+    expect(creepGap(null, null)).toBeNull();
   });
 });
