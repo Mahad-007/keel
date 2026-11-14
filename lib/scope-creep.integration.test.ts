@@ -153,7 +153,11 @@ describe("the classifier over real rows", () => {
       db,
     );
     const only = await createDeliverable(
-      { projectId: project.id, title: "The whole job", estimatedMinutes: 1_200 },
+      {
+        projectId: project.id,
+        title: "The whole job",
+        estimatedMinutes: 1_200,
+      },
       db,
     );
     await setDeliverableStatus(only.id, only.status, "done", db);
@@ -177,7 +181,11 @@ describe("the classifier over real rows", () => {
       db,
     );
     const only = await createDeliverable(
-      { projectId: project.id, title: "The whole job", estimatedMinutes: 3_000 },
+      {
+        projectId: project.id,
+        title: "The whole job",
+        estimatedMinutes: 3_000,
+      },
       db,
     );
     await setDeliverableStatus(only.id, only.status, "done", db);
@@ -325,5 +333,61 @@ describe("the classifier over a scope list edited straight in the database", () 
     expect(assessment.blindSpots).toEqual(["scope-estimates-invalid"]);
     expect(assessment.health).toBe("watch");
     expect(assessment.reasons).toEqual(["contract-nearly-spent"]);
+  });
+});
+
+describe("the classifier over a scope list only half sized", () => {
+  it("does not read a sized line done as a project delivered", async () => {
+    const project = await createProject(
+      { clientId, name: "Half sized", contractValueCents: 1_000_000 },
+      db,
+    );
+    const sized = await createDeliverable(
+      { projectId: project.id, title: "Discovery", estimatedMinutes: 600 },
+      db,
+    );
+    await createDeliverable({ projectId: project.id, title: "Build" }, db);
+    await createDeliverable({ projectId: project.id, title: "Launch" }, db);
+    await setDeliverableStatus(sized.id, sized.status, "done", db);
+    // Forty-five hours at $200 — $9,000 of the $10,000 agreed — with two
+    // thirds of the list unsized and untouched.
+    await createTimeEntry(
+      { projectId: project.id, minutes: 2_700, workedOn: "2026-11-02" },
+      db,
+    );
+
+    const assessment = assessScopeCreep(await readingsFor(project.id));
+
+    expect(assessment.deliveredShare).toBeNull();
+    expect(assessment.blindSpots).toEqual(["scope-partly-estimated"]);
+    expect(assessment.health).toBe("watch");
+    expect(assessment.reasons).toEqual(["contract-nearly-spent"]);
+  });
+
+  it("judges a single-deliverable project on its money alone", async () => {
+    const project = await createProject(
+      { clientId, name: "One line", contractValueCents: 1_000_000 },
+      db,
+    );
+    await createDeliverable(
+      {
+        projectId: project.id,
+        title: "The whole job",
+        estimatedMinutes: 3_000,
+      },
+      db,
+    );
+    // Thirty hours at $200 — $6,000 of the $10,000 — and nothing signed off,
+    // which is the only reading a one-line list can give before the end.
+    await createTimeEntry(
+      { projectId: project.id, minutes: 1_800, workedOn: "2026-11-02" },
+      db,
+    );
+
+    const assessment = assessScopeCreep(await readingsFor(project.id));
+
+    expect(assessment.blindSpots).toEqual(["scope-too-coarse"]);
+    expect(assessment.gap).toBeNull();
+    expect(assessment.health).toBe("healthy");
   });
 });
