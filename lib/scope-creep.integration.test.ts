@@ -184,3 +184,89 @@ describe("the classifier over real rows", () => {
     expect(assessment.reasons).toEqual([]);
   });
 });
+
+describe("the classifier over rows with a field unfilled", () => {
+  it("withholds a verdict on hours nobody can price", async () => {
+    const bare = await createClient({ name: "No default rate" }, db);
+    const project = await createProject(
+      {
+        clientId: bare.id,
+        name: "Unpriced hours",
+        contractValueCents: 1_000_000,
+      },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Build", estimatedMinutes: 3_000 },
+      db,
+    );
+    // Eighty hours logged, and nothing anywhere says what an hour is worth.
+    await createTimeEntry(
+      { projectId: project.id, minutes: 4_800, workedOn: "2026-11-02" },
+      db,
+    );
+
+    const assessment = assessScopeCreep(await readingsFor(project.id));
+
+    expect(assessment.health).toBeNull();
+    expect(assessment.blindSpots).toEqual(["burn-not-valued"]);
+    expect(assessment.consumedShare).toBeNull();
+  });
+
+  it("withholds a verdict with no contract value to measure against", async () => {
+    const project = await createProject(
+      { clientId, name: "No price agreed" },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Build", estimatedMinutes: 3_000 },
+      db,
+    );
+    await createTimeEntry(
+      { projectId: project.id, minutes: 1_800, workedOn: "2026-11-02" },
+      db,
+    );
+
+    const assessment = assessScopeCreep(await readingsFor(project.id));
+
+    expect(assessment.health).toBeNull();
+    expect(assessment.blindSpots).toEqual(["no-contract-value"]);
+  });
+
+  it("still judges the money on a project nobody has estimated", async () => {
+    const project = await createProject(
+      { clientId, name: "Unestimated", contractValueCents: 400_000 },
+      db,
+    );
+    // Twenty-five hours at $200 — $5,000 against a $4,000 contract — with no
+    // deliverables at all, so there is nothing to compare the delivery against.
+    await createTimeEntry(
+      { projectId: project.id, minutes: 1_500, workedOn: "2026-11-02" },
+      db,
+    );
+
+    const assessment = assessScopeCreep(await readingsFor(project.id));
+
+    expect(assessment.health).toBe("over");
+    expect(assessment.reasons).toEqual(["contract-overspent"]);
+    expect(assessment.blindSpots).toEqual(["scope-not-estimated"]);
+    expect(assessment.gap).toBeNull();
+  });
+
+  it("is healthy on a project with a price and nothing logged", async () => {
+    const project = await createProject(
+      { clientId, name: "Not started", contractValueCents: 1_000_000 },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Build", estimatedMinutes: 3_000 },
+      db,
+    );
+
+    const assessment = assessScopeCreep(await readingsFor(project.id));
+
+    expect(assessment.health).toBe("healthy");
+    expect(assessment.consumedShare).toBe(0);
+    expect(assessment.deliveredShare).toBe(0);
+  });
+});
