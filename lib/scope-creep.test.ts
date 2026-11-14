@@ -758,3 +758,34 @@ describe("readDeliveredShare", () => {
     expect(readDeliveredShare(readings({ deliveredShare: -0.2 }))).toBeNull();
   });
 });
+
+describe("a project whose estimates put the delivered share out of range", () => {
+  /** 90% of the budget gone, and a scope list claiming 140% delivered. */
+  const edited = readings({ consumedShare: 0.9, deliveredShare: 1.4 });
+
+  it("does not let the bad share subtract the warning away", () => {
+    expect(classifyScopeCreep(edited)).toBe("watch");
+    expect(creepReasons(edited)).toEqual(["contract-nearly-spent"]);
+  });
+
+  it("says which list to go and look at", () => {
+    expect(creepBlindSpots(edited)).toEqual(["scope-estimates-invalid"]);
+  });
+
+  it("carries no delivered share and no gap", () => {
+    expect(assessScopeCreep(edited).deliveredShare).toBeNull();
+    expect(assessScopeCreep(edited).gap).toBeNull();
+  });
+
+  it("does not flag a project on a delivered share below nothing", () => {
+    const negative = readings({ consumedShare: 0.3, deliveredShare: -0.5 });
+    expect(creepReasons(negative)).toEqual([]);
+    expect(creepBlindSpots(negative)).toEqual(["scope-estimates-invalid"]);
+  });
+
+  it("keeps the money axis when the estimates are the only thing wrong", () => {
+    const over = readings({ consumedShare: 1.2, deliveredShare: 1.4 });
+    expect(classifyScopeCreep(over)).toBe("over");
+    expect(creepReasons(over)).toEqual(["contract-overspent"]);
+  });
+});
