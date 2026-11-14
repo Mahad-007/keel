@@ -416,7 +416,11 @@ describe("creepReasons on a project whose scope is all delivered", () => {
   it("does not excuse a burn far ahead of a scope claiming to be done", () => {
     expect(
       creepReasons(
-        readings({ consumedShare: 1.6, deliveredShare: 1, scopeDelivered: true }),
+        readings({
+          consumedShare: 1.6,
+          deliveredShare: 1,
+          scopeDelivered: true,
+        }),
       ),
     ).toEqual(["contract-overspent", "burn-far-ahead-of-delivery"]);
   });
@@ -435,7 +439,9 @@ describe("classifyScopeCreep", () => {
 
   it("is watch on a contract nearly spent", () => {
     expect(
-      classifyScopeCreep(readings({ consumedShare: 0.85, deliveredShare: 0.8 })),
+      classifyScopeCreep(
+        readings({ consumedShare: 0.85, deliveredShare: 0.8 }),
+      ),
     ).toBe("watch");
   });
 
@@ -453,14 +459,20 @@ describe("classifyScopeCreep", () => {
 
   it("is watch on a quarter of the contract ahead of the work", () => {
     expect(
-      classifyScopeCreep(readings({ consumedShare: 0.45, deliveredShare: 0.2 })),
+      classifyScopeCreep(
+        readings({ consumedShare: 0.45, deliveredShare: 0.2 }),
+      ),
     ).toBe("watch");
   });
 
   it("is healthy on a project delivered inside its budget", () => {
     expect(
       classifyScopeCreep(
-        readings({ consumedShare: 0.9, deliveredShare: 1, scopeDelivered: true }),
+        readings({
+          consumedShare: 0.9,
+          deliveredShare: 1,
+          scopeDelivered: true,
+        }),
       ),
     ).toBe("healthy");
   });
@@ -493,19 +505,25 @@ describe("classifyScopeCreep where the burn cannot be read", () => {
 
   it("still says the contract is overspent with nothing estimated", () => {
     expect(
-      classifyScopeCreep(readings({ consumedShare: 1.4, deliveredShare: null })),
+      classifyScopeCreep(
+        readings({ consumedShare: 1.4, deliveredShare: null }),
+      ),
     ).toBe("over");
   });
 
   it("still says a contract is nearly spent with nothing estimated", () => {
     expect(
-      classifyScopeCreep(readings({ consumedShare: 0.9, deliveredShare: null })),
+      classifyScopeCreep(
+        readings({ consumedShare: 0.9, deliveredShare: null }),
+      ),
     ).toBe("watch");
   });
 
   it("is healthy on an unestimated project with plenty of budget left", () => {
     expect(
-      classifyScopeCreep(readings({ consumedShare: 0.2, deliveredShare: null })),
+      classifyScopeCreep(
+        readings({ consumedShare: 0.2, deliveredShare: null }),
+      ),
     ).toBe("healthy");
   });
 });
@@ -521,7 +539,9 @@ describe("classifyScopeCreep against its reasons", () => {
         const expected =
           reasons.length === 0
             ? "healthy"
-            : reasons.map((reason) => REASON_HEALTH[reason]).reduce(worstHealth);
+            : reasons
+                .map((reason) => REASON_HEALTH[reason])
+                .reduce(worstHealth);
         expect(classifyScopeCreep(reading)).toBe(expected);
       }
     }
@@ -619,7 +639,11 @@ describe("assessScopeCreep where something is missing", () => {
   it("assesses a project delivered inside its budget as healthy", () => {
     expect(
       assessScopeCreep(
-        readings({ consumedShare: 0.875, deliveredShare: 1, scopeDelivered: true }),
+        readings({
+          consumedShare: 0.875,
+          deliveredShare: 1,
+          scopeDelivered: true,
+        }),
       ),
     ).toEqual({
       health: "healthy",
@@ -712,15 +736,60 @@ describe("classifyScopeCreep over projects somebody might have", () => {
     readonly deliveredShare: number;
     readonly health: ScopeHealth;
   }> = [
-    { name: "just started", consumedShare: 0.05, deliveredShare: 0, health: "healthy" },
-    { name: "halfway, in step", consumedShare: 0.5, deliveredShare: 0.5, health: "healthy" },
-    { name: "two thirds spent, half done", consumedShare: 0.66, deliveredShare: 0.5, health: "healthy" },
-    { name: "a third spent, nothing shippable", consumedShare: 0.3, deliveredShare: 0, health: "watch" },
-    { name: "half spent, nothing shippable", consumedShare: 0.5, deliveredShare: 0, health: "over" },
-    { name: "most spent, a tenth done", consumedShare: 0.6, deliveredShare: 0.1, health: "over" },
-    { name: "nearly spent, nearly done", consumedShare: 0.9, deliveredShare: 0.85, health: "watch" },
-    { name: "spent to the cent, all done", consumedShare: 1, deliveredShare: 1, health: "over" },
-    { name: "two thirds over", consumedShare: 1.68, deliveredShare: 0.9, health: "over" },
+    {
+      name: "just started",
+      consumedShare: 0.05,
+      deliveredShare: 0,
+      health: "healthy",
+    },
+    {
+      name: "halfway, in step",
+      consumedShare: 0.5,
+      deliveredShare: 0.5,
+      health: "healthy",
+    },
+    {
+      name: "two thirds spent, half done",
+      consumedShare: 0.66,
+      deliveredShare: 0.5,
+      health: "healthy",
+    },
+    {
+      name: "a third spent, nothing shippable",
+      consumedShare: 0.3,
+      deliveredShare: 0,
+      health: "watch",
+    },
+    {
+      name: "half spent, nothing shippable",
+      consumedShare: 0.5,
+      deliveredShare: 0,
+      health: "over",
+    },
+    {
+      name: "most spent, a tenth done",
+      consumedShare: 0.6,
+      deliveredShare: 0.1,
+      health: "over",
+    },
+    {
+      name: "nearly spent, nearly done",
+      consumedShare: 0.9,
+      deliveredShare: 0.85,
+      health: "watch",
+    },
+    {
+      name: "spent to the cent, all done",
+      consumedShare: 1,
+      deliveredShare: 1,
+      health: "over",
+    },
+    {
+      name: "two thirds over",
+      consumedShare: 1.68,
+      deliveredShare: 0.9,
+      health: "over",
+    },
   ];
 
   for (const project of projects) {
@@ -862,5 +931,49 @@ describe("readDeliveredShare over a partly estimated list", () => {
 
   it("finds nothing wrong with a list sized all the way through", () => {
     expect(deliveredShareBlindSpot(readings())).toBeNull();
+  });
+});
+
+describe("readDeliveredShare over a scope list of one line", () => {
+  /** Half the budget gone on the only deliverable there is. */
+  const single = readings({
+    consumedShare: 0.6,
+    deliveredShare: 0,
+    lineCount: 1,
+    scopeDelivered: false,
+  });
+
+  it("refuses a share that is nought by construction", () => {
+    expect(readDeliveredShare(single)).toBeNull();
+    expect(deliveredShareBlindSpot(single)).toBe("scope-too-coarse");
+  });
+
+  it("does not call a one-line project over on its gap alone", () => {
+    expect(creepReasons(single)).toEqual([]);
+    expect(classifyScopeCreep(single)).toBe("healthy");
+  });
+
+  it("still judges a one-line project on its money", () => {
+    expect(classifyScopeCreep({ ...single, consumedShare: 1.2 })).toBe("over");
+  });
+
+  it("reads the share again once the only line is delivered", () => {
+    const done = {
+      ...single,
+      deliveredShare: 1,
+      scopeDelivered: true,
+    };
+    expect(readDeliveredShare(done)).toBe(1);
+    expect(deliveredShareBlindSpot(done)).toBeNull();
+  });
+
+  it("reads the share on a list staged in two", () => {
+    expect(readDeliveredShare({ ...single, lineCount: 2 })).toBe(0);
+  });
+
+  it("says nothing about coarseness when nothing is estimated", () => {
+    expect(deliveredShareBlindSpot({ ...single, deliveredShare: null })).toBe(
+      "scope-not-estimated",
+    );
   });
 });
