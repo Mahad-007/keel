@@ -15,6 +15,7 @@ import {
   NEARLY_SPENT_SHARE,
   OVERSPENT_SHARE,
   readConsumedShare,
+  readCreepGap,
   deliveredShareBlindSpot,
   readDeliveredShare,
   REASON_HEALTH,
@@ -975,5 +976,46 @@ describe("readDeliveredShare over a scope list of one line", () => {
     expect(deliveredShareBlindSpot({ ...single, deliveredShare: null })).toBe(
       "scope-not-estimated",
     );
+  });
+});
+
+describe("readCreepGap", () => {
+  it("is the money ahead of the work while there is work left", () => {
+    expect(
+      readCreepGap(readings({ consumedShare: 0.6, deliveredShare: 0.1 })),
+    ).toBeCloseTo(0.5);
+  });
+
+  it("is nothing once every line is delivered", () => {
+    expect(
+      readCreepGap(
+        readings({
+          consumedShare: 1.6,
+          deliveredShare: 1,
+          scopeDelivered: true,
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it("is nothing where the burn could not be valued", () => {
+    expect(
+      readCreepGap(readings({ consumedShare: 0, burnValued: false })),
+    ).toBeNull();
+  });
+
+  it("is nothing where the delivered share was refused", () => {
+    expect(
+      readCreepGap(readings({ deliveredShare: 1, unestimatedCount: 2 })),
+    ).toBeNull();
+  });
+
+  it("is the figure the assessment carries", () => {
+    for (const consumedShare of [0.2, 0.6, 1.2]) {
+      for (const deliveredShare of [0, 0.3, 1]) {
+        const reading = readings({ consumedShare, deliveredShare });
+        expect(assessScopeCreep(reading).gap).toBe(readCreepGap(reading));
+      }
+    }
   });
 });
