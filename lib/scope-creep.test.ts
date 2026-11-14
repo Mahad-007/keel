@@ -397,7 +397,7 @@ describe("creepReasons on a project whose scope is all delivered", () => {
 
   it("still flags a contract that was overspent to finish", () => {
     expect(creepReasons(readings({ ...finished, consumedShare: 1.3 }))).toEqual(
-      ["contract-overspent", "burn-ahead-of-delivery"],
+      ["contract-overspent"],
     );
   });
 
@@ -413,7 +413,7 @@ describe("creepReasons on a project whose scope is all delivered", () => {
     ).toEqual(["contract-nearly-spent"]);
   });
 
-  it("does not excuse a burn far ahead of a scope claiming to be done", () => {
+  it("says the overspend once rather than as a gap as well", () => {
     expect(
       creepReasons(
         readings({
@@ -422,7 +422,7 @@ describe("creepReasons on a project whose scope is all delivered", () => {
           scopeDelivered: true,
         }),
       ),
-    ).toEqual(["contract-overspent", "burn-far-ahead-of-delivery"]);
+    ).toEqual(["contract-overspent"]);
   });
 });
 
@@ -651,7 +651,7 @@ describe("assessScopeCreep where something is missing", () => {
       blindSpots: [],
       consumedShare: 0.875,
       deliveredShare: 1,
-      gap: -0.125,
+      gap: null,
     });
   });
 });

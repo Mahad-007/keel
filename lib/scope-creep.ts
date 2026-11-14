@@ -502,6 +502,32 @@ export function creepBlindSpots(
 }
 
 /**
+ * The creep gap of one project, as the verdict reads it.
+ *
+ * Both shares taken as read rather than as handed in, so a figure thrown out
+ * as unreadable cannot come back in through the subtraction and flag a project
+ * — or, worse, un-flag one — on a number this file has already refused to
+ * believe.
+ *
+ * Nothing at all once every line of the scope is delivered, which is the case
+ * the plain subtraction gets wrong. A project that spent 160% of its contract
+ * to finish its whole list comes out at a gap of 0.6, and the reason that gap
+ * earns says the burn has run half the contract ahead of the delivered work —
+ * which is false: the work is all delivered. There is no undelivered work for
+ * the burn to be ahead of, and the overspend is already named by the axis whose
+ * business it is. A gap here would be the same news told twice, once wrongly.
+ *
+ * The questions the two axes ask are different, and this is where the
+ * difference shows. The money axis asks what the engagement has cost. The gap
+ * asks whether the money is outrunning the work — a question about what
+ * happens next, and one that has an answer only while there is work left.
+ */
+export function readCreepGap(readings: CreepReadings): number | null {
+  if (readings.scopeDelivered) return null;
+  return creepGap(readConsumedShare(readings), readDeliveredShare(readings));
+}
+
+/**
  * The reasons a project is flagged, each naming the comparison that flagged
  * it.
  *
@@ -541,12 +567,10 @@ export type CreepReason = (typeof CREEP_REASONS)[number];
  * sentence should have been told the worst thing. The rest follow in the same
  * order for the same reason.
  *
- * Both shares are taken as read rather than as handed in, so a figure thrown
- * out as unreadable cannot come back in through the subtraction and flag a
- * project — or, worse, un-flag one — on a number this file has already refused
- * to believe. The consumed share is the one the money axis used, and the
- * delivered share has been through the same check that keeps a hand-edited
- * negative estimate from reading as work delivered.
+ * The gap comes from `readCreepGap`, which is the same figure the assessment
+ * carries — so the reason a reader is given and the figure printed beside it
+ * are the same arithmetic, and neither is the raw subtraction of two shares
+ * this file may have refused.
  *
  * Both axes are read through the same thresholds the two classifiers use, so a
  * verdict and the reasons under it can never disagree — `classifyScopeCreep`
@@ -574,9 +598,7 @@ export function creepReasons(readings: CreepReadings): readonly CreepReason[] {
 
   const reasons: CreepReason[] = [];
   const money = classifyConsumedShare(consumed);
-  const creep = classifyCreepGap(
-    creepGap(consumed, readDeliveredShare(readings)),
-  );
+  const creep = classifyCreepGap(readCreepGap(readings));
 
   if (money === "over") reasons.push("contract-overspent");
   if (creep === "over") reasons.push("burn-far-ahead-of-delivery");
@@ -702,14 +724,12 @@ export type CreepAssessment = {
 export function assessScopeCreep(readings: CreepReadings): CreepAssessment {
   const consumedShare = readConsumedShare(readings);
 
-  const deliveredShare = readDeliveredShare(readings);
-
   return {
     health: classifyScopeCreep(readings),
     reasons: creepReasons(readings),
     blindSpots: creepBlindSpots(readings),
     consumedShare,
-    deliveredShare,
-    gap: creepGap(consumedShare, deliveredShare),
+    deliveredShare: readDeliveredShare(readings),
+    gap: readCreepGap(readings),
   };
 }
