@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { summariseBurn } from "@/lib/burn";
 import { createClient } from "@/lib/data/clients";
-import { createDeliverable, listDeliverables } from "@/lib/data/deliverables";
+import {
+  createDeliverable,
+  listDeliverables,
+  setDeliverableStatus,
+} from "@/lib/data/deliverables";
 import { createProject, getProjectWithClient } from "@/lib/data/projects";
 import { createTimeEntry, projectTimeTotals } from "@/lib/data/time-entries";
 import type { Database } from "@/lib/db";
@@ -102,5 +106,81 @@ describe("the classifier over real rows", () => {
     expect(assessment.consumedShare).toBeCloseTo(0.6);
     expect(assessment.deliveredShare).toBe(0);
     expect(assessment.blindSpots).toEqual([]);
+  });
+
+  it("calls a project delivering in step with its burn healthy", async () => {
+    const project = await createProject(
+      { clientId, name: "Steady build", contractValueCents: 1_000_000 },
+      db,
+    );
+    const first = await createDeliverable(
+      { projectId: project.id, title: "Phase one", estimatedMinutes: 1_500 },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Phase two", estimatedMinutes: 1_500 },
+      db,
+    );
+    await setDeliverableStatus(first.id, first.status, "done", db);
+    // Twenty-five hours — $5,000 of $10,000 — for half the estimated work.
+    await createTimeEntry(
+      { projectId: project.id, minutes: 1_500, workedOn: "2026-11-02" },
+      db,
+    );
+
+    const assessment = assessScopeCreep(await readingsFor(project.id));
+
+    expect(assessment.health).toBe("healthy");
+    expect(assessment.reasons).toEqual([]);
+    expect(assessment.consumedShare).toBeCloseTo(0.5);
+    expect(assessment.deliveredShare).toBeCloseTo(0.5);
+    expect(assessment.gap).toBeCloseTo(0);
+  });
+
+  it("calls a project past its contract over, however much is delivered", async () => {
+    const project = await createProject(
+      { clientId, name: "Overrun", contractValueCents: 400_000 },
+      db,
+    );
+    const only = await createDeliverable(
+      { projectId: project.id, title: "The whole job", estimatedMinutes: 1_200 },
+      db,
+    );
+    await setDeliverableStatus(only.id, only.status, "done", db);
+    // Thirty hours at $200 — $6,000 against a $4,000 contract.
+    await createTimeEntry(
+      { projectId: project.id, minutes: 1_800, workedOn: "2026-11-02" },
+      db,
+    );
+
+    const assessment = assessScopeCreep(await readingsFor(project.id));
+
+    expect(assessment.health).toBe("over");
+    expect(assessment.reasons).toContain("contract-overspent");
+    expect(assessment.consumedShare).toBeCloseTo(1.5);
+    expect(assessment.deliveredShare).toBe(1);
+  });
+
+  it("leaves a project finished inside its budget unflagged", async () => {
+    const project = await createProject(
+      { clientId, name: "Came in under", contractValueCents: 1_000_000 },
+      db,
+    );
+    const only = await createDeliverable(
+      { projectId: project.id, title: "The whole job", estimatedMinutes: 3_000 },
+      db,
+    );
+    await setDeliverableStatus(only.id, only.status, "done", db);
+    // Forty-five hours — $9,000 of the $10,000 — and every line done.
+    await createTimeEntry(
+      { projectId: project.id, minutes: 2_700, workedOn: "2026-11-02" },
+      db,
+    );
+
+    const assessment = assessScopeCreep(await readingsFor(project.id));
+
+    expect(assessment.consumedShare).toBeCloseTo(0.9);
+    expect(assessment.health).toBe("healthy");
+    expect(assessment.reasons).toEqual([]);
   });
 });
