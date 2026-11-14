@@ -122,3 +122,32 @@ export const NEARLY_SPENT_SHARE = 0.8;
  * than as a bare `>= 1` a later reader has to decode.
  */
 export const OVERSPENT_SHARE = 1;
+
+/**
+ * What the money alone says about a project.
+ *
+ * The first of the two axes, and the one that needs no estimates: a contract
+ * value and some logged hours are enough. Over the whole price is `over`, four
+ * fifths of it is `watch`, anything under that is `healthy`.
+ *
+ * Inclusive at both thresholds. A project that has burned exactly its contract
+ * value is over it — the next hour is unpaid, which is the thing `over` means
+ * — and `>=` rather than `>` is what keeps the common case from falling
+ * through: round contracts meet round rates, and landing precisely on the
+ * price happens far more often than the arithmetic suggests.
+ *
+ * It takes the share rather than the two amounts, so there is exactly one
+ * division in the codebase and it is `consumedShare`'s. The share it is handed
+ * has already decided what an unreadable price means, which is why there is no
+ * null branch here: a share that arrives is a share worth classifying.
+ *
+ * No opinion about whether the work is done — that is the other axis, and
+ * `creepReasons` is where the two meet. A project that has delivered
+ * everything for four fifths of the price is a success, and this function
+ * still calls it `watch`, because on the money alone it is.
+ */
+export function classifyConsumedShare(consumedShare: number): ScopeHealth {
+  if (consumedShare >= OVERSPENT_SHARE) return "over";
+  if (consumedShare >= NEARLY_SPENT_SHARE) return "watch";
+  return "healthy";
+}
