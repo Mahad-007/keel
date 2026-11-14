@@ -367,6 +367,8 @@ export const CREEP_BLIND_SPOTS = [
   "scope-estimates-invalid",
   /** Some lines sized and some not, so the share is of part of the list. */
   "scope-partly-estimated",
+  /** A single deliverable, which cannot report progress before it is done. */
+  "scope-too-coarse",
 ] as const;
 
 /** One thing a verdict could not see. */
@@ -410,9 +412,25 @@ export type CreepBlindSpot = (typeof CREEP_BLIND_SPOTS)[number];
  * and a list with nothing done reads nought. Both are ordinary readings of an
  * ordinary project — provided every line of it was sized.
  *
+ * A scope list of one line is the last of them, and it is the subtlest. Its
+ * delivered share can only be nought or one: nought every day until the work
+ * is signed off, and one from then on. Subtracting a nought that is nought by
+ * construction leaves the consumed share unchanged, so the creep gap stops
+ * being a comparison between two figures and becomes a second, stricter
+ * threshold on the burn wearing the first one's name — every single-deliverable
+ * fixed-price project would read `over` from the moment it passed half its
+ * budget, and never read anything else until the day it finished. That is not a
+ * measurement of creep; it is the absence of one, and the gap it names points
+ * at the fix: scope broken into deliverables is what makes progress legible.
+ *
+ * Once that one line is delivered the share is a reading again — the list
+ * really is finished, and one really is the share — so the gap is only reported
+ * while the answer would still be nought by construction.
+ *
  * One gap at a time, in the order of what to fix first: a list nobody has
- * estimated has no negative estimate to find, and a negative estimate is worth
- * saying before a list that is merely incomplete.
+ * estimated has no negative estimate to find, a negative estimate is worth
+ * saying before a list that is merely incomplete, and a list that is simply
+ * short is the one a reader can do least about today.
  */
 export function deliveredShareBlindSpot(
   readings: CreepReadings,
@@ -423,6 +441,9 @@ export function deliveredShareBlindSpot(
     return "scope-estimates-invalid";
   }
   if (readings.unestimatedCount > 0) return "scope-partly-estimated";
+  if (readings.lineCount < 2 && !readings.scopeDelivered) {
+    return "scope-too-coarse";
+  }
   return null;
 }
 

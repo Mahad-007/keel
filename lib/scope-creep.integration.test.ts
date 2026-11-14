@@ -207,7 +207,11 @@ describe("the classifier over rows with a field unfilled", () => {
       db,
     );
     await createDeliverable(
-      { projectId: project.id, title: "Build", estimatedMinutes: 3_000 },
+      { projectId: project.id, title: "Build", estimatedMinutes: 1_500 },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Launch", estimatedMinutes: 1_500 },
       db,
     );
     // Eighty hours logged, and nothing anywhere says what an hour is worth.
@@ -229,7 +233,11 @@ describe("the classifier over rows with a field unfilled", () => {
       db,
     );
     await createDeliverable(
-      { projectId: project.id, title: "Build", estimatedMinutes: 3_000 },
+      { projectId: project.id, title: "Build", estimatedMinutes: 1_500 },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Launch", estimatedMinutes: 1_500 },
       db,
     );
     await createTimeEntry(
@@ -269,7 +277,11 @@ describe("the classifier over rows with a field unfilled", () => {
       db,
     );
     await createDeliverable(
-      { projectId: project.id, title: "Build", estimatedMinutes: 3_000 },
+      { projectId: project.id, title: "Build", estimatedMinutes: 1_500 },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Launch", estimatedMinutes: 1_500 },
       db,
     );
 
