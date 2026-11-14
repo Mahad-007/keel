@@ -440,6 +440,16 @@ export type CreepReason = (typeof CREEP_REASONS)[number];
  * is built out of this function rather than beside it, which is what makes
  * that guarantee structural rather than a thing to test for.
  *
+ * A project with every line of its scope delivered is not flagged for nearing
+ * its contract. Four fifths of the price spent on all of the work is the shape
+ * of a job well done, and the fifth left over is profit rather than runway —
+ * flagging it would put a success in the same list as the engagements that are
+ * failing. Being *over* is not excused the same way: the money is gone and it
+ * is not coming back, and that is the figure to carry into the next quote for
+ * this client. An empty scope list is not delivered, so an unscoped project
+ * nearing its contract is still flagged, which is right — nobody can say what
+ * the remaining fifth has to cover.
+ *
  * Empty when there is nothing to flag, which covers both a project going well
  * and one that cannot be read at all. Those two are told apart by
  * `creepBlindSpots`, not by this: a reason is a comparison that came out
@@ -457,7 +467,9 @@ export function creepReasons(
 
   if (money === "over") reasons.push("contract-overspent");
   if (creep === "over") reasons.push("burn-far-ahead-of-delivery");
-  if (money === "watch") reasons.push("contract-nearly-spent");
+  if (money === "watch" && !readings.scopeDelivered) {
+    reasons.push("contract-nearly-spent");
+  }
   if (creep === "watch") reasons.push("burn-ahead-of-delivery");
   return reasons;
 }
