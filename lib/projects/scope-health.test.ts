@@ -508,6 +508,18 @@ describe("the banner for one project", () => {
     expect(banner.gaps).toEqual([BLIND_SPOT_SENTENCE["burn-not-valued"]]);
   });
 
+  it("never clears a flagged project it could not explain", () => {
+    // Not reachable from assessScopeCreep — a verdict is the worst of its
+    // reasons — but reachable from a caller assembling an assessment itself,
+    // and a banner that clears a flagged project is wrong about the only thing
+    // that matters.
+    const banner = scopeHealthBanner(assessment({ health: "over" }));
+
+    expect(banner.headline).toBe("Over scope");
+    expect(banner.verdict).toContain("This project is flagged");
+    expect(banner.verdict).not.toContain("came out fine");
+  });
+
   it("always has a sentence under the heading", () => {
     for (const health of [null, ...SCOPE_HEALTH]) {
       const banner = scopeHealthBanner(assessment({ health }));

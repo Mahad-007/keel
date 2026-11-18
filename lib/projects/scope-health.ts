@@ -537,14 +537,34 @@ export function scopeHealthBanner(
   return {
     health: assessment.health,
     headline: scopeHealthHeadline(assessment.health),
-    verdict:
-      lead ??
-      (assessment.health === null
-        ? NOT_ASSESSED_LEAD
-        : describeHealthyProject(assessment)),
+    verdict: lead ?? describeUnflaggedProject(assessment),
     reasons: rest,
     gaps: creepBlindSpotSentences(assessment),
   };
+}
+
+/**
+ * What to say when there is no reason to lead with, which happens three ways.
+ *
+ * Null means nothing could be read. `healthy` means both comparisons were made
+ * and both came out fine. Those two must never collapse into each other — the
+ * one the classifier refuses is `healthy` on a project with eighty unpriced
+ * hours — and this is the line where they would.
+ *
+ * The third way is a flagged verdict with no sentence under it, which
+ * `assessScopeCreep` cannot produce: a `watch` or an `over` is the worst of its
+ * reasons, so a verdict without reasons is not reachable from a whole
+ * assessment. It is handled because the type allows it and the alternative is
+ * worse than a plain sentence — the `??` that used to stand here handed every
+ * non-healthy verdict the healthy sentence, which would have put "Over scope"
+ * over the words "both comparisons came out fine". A banner that says the
+ * figures are missing is wrong about one thing; a banner that clears a flagged
+ * project is wrong about the only thing that matters.
+ */
+function describeUnflaggedProject(assessment: CreepAssessment): string {
+  if (assessment.health === null) return NOT_ASSESSED_LEAD;
+  if (assessment.health === "healthy") return describeHealthyProject(assessment);
+  return "This project is flagged, and the comparison that flagged it did not carry the figures to explain itself. The burn summary below has the figures.";
 }
 
 /**
