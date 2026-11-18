@@ -437,3 +437,41 @@ export function describeHealthyProject(assessment: CreepAssessment): string {
  */
 export const NOT_ASSESSED_LEAD =
   "This project has not been assessed: the burn could not be read, so calling it healthy would be a guess rather than a finding. What is missing is below.";
+
+/**
+ * The banner, as a component reads it: a heading, the sentence that matters,
+ * the rest of the reasons, and what could not be seen.
+ *
+ * Four fields rather than one block of prose, because they are read at
+ * different distances. The heading is what a reader takes in without stopping.
+ * The verdict sentence is what they read if the heading made them pause, and it
+ * is the whole milestone: the *why*, with the figures in it. The remaining
+ * reasons are for somebody who has decided to do something. The gaps are for
+ * whoever wonders whether the verdict can be trusted at all.
+ *
+ * `verdict` is one sentence and never an empty string, whatever the assessment
+ * holds. A banner whose heading says "Over scope" over nothing is worse than no
+ * banner, because it has raised the alarm and withheld the reason — which is
+ * the coloured dot this file exists to replace.
+ *
+ * The verdict sentence is the worst reason rather than a summary of all of them,
+ * so a reader who stops after one sentence has been told the worst thing. The
+ * others are not dropped; they are the ones under it.
+ *
+ * `health` is carried through so the component can pick a tone without
+ * re-deriving one. It is the only field here a component is allowed to branch
+ * on, and the branch is a border colour — every word on the banner is already
+ * decided by the time it arrives.
+ */
+export type ScopeHealthBanner = {
+  /** The verdict, or null when one was withheld. Tone only. */
+  readonly health: ScopeHealth | null;
+  /** The heading: the verdict in two or three words. */
+  readonly headline: string;
+  /** Why, in one sentence, with the figures it was reached from. */
+  readonly verdict: string;
+  /** The other comparisons that flagged it, worst first. May be empty. */
+  readonly reasons: readonly string[];
+  /** What the verdict could not see, money first. Usually empty. */
+  readonly gaps: readonly string[];
+};
