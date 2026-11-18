@@ -420,3 +420,20 @@ export function describeHealthyProject(assessment: CreepAssessment): string {
     deliveredShare,
   )}, so the burn is inside the price agreed and tracking the work delivered.`;
 }
+
+/**
+ * What a project the classifier would not judge gets told instead of a
+ * verdict.
+ *
+ * The sentence that stops a withheld verdict reading as a clean bill of health.
+ * The alternative the classifier rejected is `healthy`, and `healthy` on a
+ * project with eighty unpriced hours is the most expensive sentence this
+ * codebase could produce — so the banner says outright that no judgement was
+ * reached, and says why saying otherwise would be a guess.
+ *
+ * It points down at the gaps rather than naming one. Which field is missing is
+ * `BLIND_SPOT_SENTENCE`'s business, and it already names the form; repeating the
+ * field here would put two different-length versions of one fact an inch apart.
+ */
+export const NOT_ASSESSED_LEAD =
+  "This project has not been assessed: the burn could not be read, so calling it healthy would be a guess rather than a finding. What is missing is below.";
