@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { SCOPE_HEALTH, type ScopeHealth } from "@/lib/scope-creep";
 
 import {
+  describeNearlySpentContract,
   describeOverspentContract,
   formatSharePoints,
   NOT_ASSESSED_HEADLINE,
@@ -81,5 +82,34 @@ describe("the sentence for a contract already spent", () => {
 
   it("says exactly spent as exactly spent", () => {
     expect(describeOverspentContract(1)).toContain("100% of the contract");
+  });
+});
+
+describe("the sentence for a contract nearly spent", () => {
+  it("leads with the share the hours have burned", () => {
+    expect(describeNearlySpentContract(0.84)).toContain(
+      "84% of the contract value",
+    );
+  });
+
+  it("names the outstanding scope that earns the flag", () => {
+    expect(describeNearlySpentContract(0.84)).toContain(
+      "the scope list is not finished",
+    );
+  });
+
+  it("says what the remainder has to cover rather than how much it is", () => {
+    const sentence = describeNearlySpentContract(0.84);
+
+    expect(sentence).toContain("everything still outstanding");
+    // The amount left is on the burn panel an inch below; repeating it here
+    // would be one figure twice with nothing added.
+    expect(sentence).not.toContain("16%");
+  });
+
+  it("reads differently from the sentence for a contract already spent", () => {
+    expect(describeNearlySpentContract(0.84)).not.toBe(
+      describeOverspentContract(0.84),
+    );
   });
 });
