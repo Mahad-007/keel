@@ -1,5 +1,7 @@
 import type { ScopeHealth } from "@/lib/scope-creep";
 
+import { formatSharePercent } from "./scope-summary";
+
 /**
  * The words a scope verdict is read in.
  *
@@ -97,4 +99,29 @@ export function formatSharePoints(gap: number): string {
   if (points === 0 && gap > 0) return "less than a point";
   if (points === 1) return "1 point";
   return `${points} points`;
+}
+
+/**
+ * Why a project past its contract value is flagged.
+ *
+ * The plainest sentence in the banner, and the one that needs the least
+ * explaining: the money agreed is gone, and the share says by how much. It
+ * leads with the figure because the figure is the news — a reader who sees
+ * "112%" has already understood the sentence.
+ *
+ * The second half is the consequence rather than a restatement of the first,
+ * because the consequence is what there is to decide. Hours logged from here
+ * are hours nobody is paying for, and somebody has to choose whether to keep
+ * logging them, raise a change order, or stop — which is a different kind of
+ * sentence from "the budget is spent".
+ *
+ * `formatSharePercent` rather than a percentage worked out here, so the share
+ * in this sentence and the share in the burn panel's own Consumed row round
+ * the same way. The two sit an inch apart on the overview tab, and two
+ * roundings of one fraction is the fastest way to make a reader distrust both.
+ */
+export function describeOverspentContract(consumedShare: number): string {
+  return `The hours logged against this project have burned ${formatSharePercent(
+    consumedShare,
+  )} of the contract value. Anything logged from here is work the agreement does not pay for.`;
 }
