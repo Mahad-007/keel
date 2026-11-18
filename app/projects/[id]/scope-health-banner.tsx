@@ -149,6 +149,28 @@ export function ScopeHealthBanner({
           ))}
         </ul>
       )}
+      {/*
+        What the verdict could not see, below a hairline rule and in smaller
+        type. Last because it is the least urgent thing in the box and the most
+        likely to be skipped — a reader who trusts the verdict has already
+        finished reading — and divided off because it is about the verdict
+        rather than about the project.
+
+        Inside the box rather than under it, because a caveat that escaped the
+        border would read as a caveat about the whole tab. It is this verdict
+        that is partly blind, and the burn figures further down say for
+        themselves which of their own rows is missing a field.
+
+        Borrowing the box's own text colour at reduced weight rather than
+        zinc-500, which would be unreadable on amber and wrong on red.
+      */}
+      {banner.gaps.length === 0 ? null : (
+        <ul className="mt-3 space-y-1.5 border-t border-current/15 pt-2.5 text-xs leading-5 opacity-80">
+          {banner.gaps.map((gap) => (
+            <li key={gap}>{gap}</li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
