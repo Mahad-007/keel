@@ -4,7 +4,7 @@ import { cache } from "react";
 
 import { getRunningTimer } from "@/lib/data/active-timers";
 import { listDeliverableTemplates } from "@/lib/data/deliverable-templates";
-import { countDeliverables, listDeliverables } from "@/lib/data/deliverables";
+import { listDeliverables } from "@/lib/data/deliverables";
 import { listProjectStatusEvents } from "@/lib/data/project-status-events";
 import { getProjectWithClient } from "@/lib/data/projects";
 import {
@@ -98,24 +98,28 @@ export default async function ProjectPage({
     only the overview pays for them: the other four tabs render a sentence
     apiece and have no business running two more queries to do it.
 
-    The scope list is the fourth, and it is the delivery half of the scope
+    The scope list is the third, and it is the delivery half of the scope
     health verdict: the banner at the top of the tab sets what the hours have
     burned against what the estimates say is done, and the second of those is
     only on this table. Read here rather than inside the panel, so the page
     keeps every query it makes in one place.
 
-    All four together, because none depends on another and awaiting them in
-    sequence would make the tab wait for the sum of four round trips.
+    It also answers the duplicate control, which says how many deliverables a
+    copy would carry: a count in SQL was the cheaper read while the rows were
+    not wanted, and now that they are, a second query for their number would be
+    a round trip to learn the length of a list already in hand.
+
+    All three together, because none depends on another and awaiting them in
+    sequence would make the tab wait for the sum of three round trips.
   */
-  const [statusEvents, deliverableCount, timeTotals, overviewScope] =
+  const [statusEvents, timeTotals, overviewScope] =
     tab === "overview"
       ? await Promise.all([
           listProjectStatusEvents(project.id),
-          countDeliverables(project.id),
           projectTimeTotals(project.id),
           listDeliverables(project.id),
         ])
-      : [[], 0, NO_TIME_LOGGED, []];
+      : [[], NO_TIME_LOGGED, []];
 
   /*
     Same rule for the scope tab, which reads two things: the project's own list
@@ -198,7 +202,7 @@ export default async function ProjectPage({
           <OverviewPanel
             project={project}
             statusEvents={statusEvents}
-            deliverableCount={deliverableCount}
+            deliverableCount={overviewScope.length}
             timeTotals={timeTotals}
             scopeLines={overviewScope}
           />
