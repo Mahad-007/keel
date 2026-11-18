@@ -10,6 +10,7 @@ import {
   type ScopeHealth,
 } from "@/lib/scope-creep";
 
+import { assessProjectCreep } from "./creep-readings";
 import {
   BLIND_SPOT_SENTENCE,
   hasScopeHealthToShow,
@@ -512,5 +513,71 @@ describe("whether a project is far enough along for a banner", () => {
     // The dangerous row: hours gone in, no rate, no price. The verdict is
     // withheld, and the banner is the only thing that says so.
     expect(hasScopeHealthToShow(burn(4_800, 0, UNRATED), 0)).toBe(true);
+  });
+});
+
+describe("the banner over a burn and a scope list", () => {
+  /** One scope line, pending unless its status says otherwise. */
+  function line(
+    estimatedMinutes: number,
+    status: "pending" | "started" | "done" = "pending",
+  ) {
+    return { estimatedMinutes, status };
+  }
+
+  it("explains the case the phase was built for", () => {
+    // $6,000 of a $10,000 contract, fifty hours estimated, nothing done.
+    const banner = scopeHealthBanner(
+      assessProjectCreep(burn(1_800, 1_000_000), [
+        line(300),
+        line(2_400),
+        line(300),
+      ]),
+    );
+
+    expect(banner.headline).toBe("Over scope");
+    expect(banner.verdict).toContain(
+      "60% of the contract has gone on 0% of the estimated work",
+    );
+    expect(banner.verdict).toContain("60 points ahead of the delivery");
+    expect(banner.gaps).toEqual([]);
+  });
+
+  it("clears a project whose money is tracking its delivery", () => {
+    const banner = scopeHealthBanner(
+      assessProjectCreep(burn(1_800, 1_000_000), [
+        line(1_800, "done"),
+        line(1_200),
+      ]),
+    );
+
+    expect(banner.headline).toBe("On track");
+    expect(banner.verdict).toContain("60% of the contract has gone on 60%");
+    expect(banner.reasons).toEqual([]);
+  });
+
+  it("withholds a verdict from unpriced hours and says which form to open", () => {
+    const banner = scopeHealthBanner(
+      assessProjectCreep(burn(4_800, 1_000_000, UNRATED), [
+        line(1_800),
+        line(600),
+      ]),
+    );
+
+    expect(banner.headline).toBe("Not assessed");
+    expect(banner.verdict).toBe(NOT_ASSESSED_LEAD);
+    expect(banner.gaps).toEqual([BLIND_SPOT_SENTENCE["burn-not-valued"]]);
+  });
+
+  it("reads the money axis alone when nothing was estimated", () => {
+    const banner = scopeHealthBanner(
+      assessProjectCreep(burn(3_300, 1_000_000), [line(0), line(0)]),
+    );
+
+    expect(banner.headline).toBe("Over scope");
+    expect(banner.verdict).toContain("110% of the contract value");
+    expect(banner.gaps).toEqual([
+      BLIND_SPOT_SENTENCE["scope-not-estimated"],
+    ]);
   });
 });
