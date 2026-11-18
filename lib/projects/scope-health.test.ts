@@ -4,6 +4,7 @@ import { SCOPE_HEALTH, type ScopeHealth } from "@/lib/scope-creep";
 
 import {
   describeBurnAgainstDelivery,
+  describeFarAheadOfDelivery,
   describeNearlySpentContract,
   describeOverspentContract,
   formatSharePoints,
@@ -137,5 +138,28 @@ describe("the two shares set against each other", () => {
     expect(describeBurnAgainstDelivery(0.6, 0)).toContain(
       "0% of the estimated work",
     );
+  });
+});
+
+describe("the sentence for a burn far ahead of its delivery", () => {
+  it("quotes both shares and the gap between them", () => {
+    const sentence = describeFarAheadOfDelivery(0.6, 0.1, 0.5);
+
+    expect(sentence).toContain("60% of the contract has gone on 10%");
+    expect(sentence).toContain("50 points ahead of the delivery");
+  });
+
+  it("says why a project with budget left is being flagged", () => {
+    expect(describeFarAheadOfDelivery(0.6, 0.1, 0.5)).toContain(
+      "both figures look survivable on their own",
+    );
+  });
+
+  it("makes no claim about what the burn will come to", () => {
+    const sentence = describeFarAheadOfDelivery(0.6, 0.1, 0.5);
+
+    // A projection rests on the pace holding, and it belongs with the caveats
+    // that go with it rather than inside a sentence about today.
+    expect(sentence).not.toMatch(/will|expect|project(ed|ion)|forecast/);
   });
 });
