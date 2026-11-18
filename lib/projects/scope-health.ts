@@ -390,3 +390,33 @@ export function creepBlindSpotSentences(
 ): readonly string[] {
   return assessment.blindSpots.map((spot) => BLIND_SPOT_SENTENCE[spot]);
 }
+
+/**
+ * What a project with nothing wrong gets told, when both axes were read.
+ *
+ * A healthy verdict is worth a sentence rather than a word, and the sentence is
+ * the two figures. "On track" alone is the coloured dot again: it says somebody
+ * checked, not what they checked, and a reader who disagrees has nothing to
+ * disagree with. The same comparison that flags a project is what clears it, so
+ * clearing it quotes the same clause.
+ *
+ * Reusing `describeBurnAgainstDelivery` is the point. A healthy banner and a
+ * flagged one differ in what follows the figures, not in the figures — which is
+ * what lets a reader learn to read one pair of percentages rather than two
+ * layouts.
+ */
+export function describeHealthyProject(assessment: CreepAssessment): string {
+  const { consumedShare, deliveredShare } = assessment;
+  if (consumedShare === null) {
+    return "Both comparisons behind this verdict came out fine.";
+  }
+  if (deliveredShare === null) {
+    return `${formatSharePercent(
+      consumedShare,
+    )} of the contract has gone, which is inside what was agreed. How much of the work is done could not be read, so this is the money on its own.`;
+  }
+  return `${describeBurnAgainstDelivery(
+    consumedShare,
+    deliveredShare,
+  )}, so the burn is inside the price agreed and tracking the work delivered.`;
+}
