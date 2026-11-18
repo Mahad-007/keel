@@ -366,6 +366,29 @@ describe("the sentences for what a verdict could not see", () => {
     }
   });
 
+  it("does not claim a verdict stands when a scope gap is reported", () => {
+    // A scope gap stacks with a money gap, and a project can have no price and
+    // no estimates — so a sentence saying the verdict rests on the money alone
+    // would be claiming a verdict that is not there.
+    for (const spot of [
+      "scope-not-estimated",
+      "scope-estimates-invalid",
+      "scope-partly-estimated",
+      "scope-delivery-unsized",
+      "scope-too-coarse",
+    ] as const) {
+      expect(BLIND_SPOT_SENTENCE[spot]).not.toContain("verdict");
+    }
+  });
+
+  it("does not send an unscoped project to estimate an empty list", () => {
+    // The gap is reported for a list with no estimates and for no list at all,
+    // so the fix has to name the list as well as the estimates.
+    expect(BLIND_SPOT_SENTENCE["scope-not-estimated"]).toContain(
+      "the list and its estimates",
+    );
+  });
+
   it("names a form to open for each gap somebody can fix", () => {
     for (const spot of [
       "no-contract-value",

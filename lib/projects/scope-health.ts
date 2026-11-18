@@ -366,9 +366,14 @@ export function creepReasonSentences(
  *
  * The three about the money say the verdict is withheld outright, because it is:
  * the money axis is the only axis there is, and without it `classifyScopeCreep`
- * returns null rather than `healthy`. The five about the scope say the verdict
- * stands on the money alone, which is the narrower and true claim — a contract
- * burned in full is burned in full whether or not anybody sized the work.
+ * returns null rather than `healthy`.
+ *
+ * The five about the scope say nothing at all about the verdict, and that is
+ * deliberate. A scope gap stacks with a money gap — a project can have no price
+ * *and* no estimates — so a sentence claiming the verdict rests on the money
+ * alone would be claiming a verdict that is not there. Each of them says what
+ * happened to the delivered share and stops, which is true in both cases and is
+ * the half a reader can act on.
  *
  * Deliberately shorter and narrower than the burn panel's own caveats, which a
  * reader meets further down the same tab. Those are about four figures and name
@@ -388,15 +393,15 @@ export const BLIND_SPOT_SENTENCE: Record<CreepBlindSpot, string> = {
   "burn-below-zero":
     "The rate values the hours below zero, so the burn runs backwards and the verdict is withheld. No form in the app accepts a rate like that, so the row was edited directly.",
   "scope-not-estimated":
-    "Nothing on the scope list is estimated, so how much of the work is done cannot be read and the verdict above rests on the money alone. Estimates go on the Scope tab.",
+    "No estimated deliverables, so how much of the work is done cannot be read. The Scope tab is where the list and its estimates go.",
   "scope-estimates-invalid":
-    "The scope list holds an estimate below zero, so the delivered share is not a reading of completion and the verdict rests on the money alone. No form writes one, so the row was edited directly.",
+    "The scope list holds an estimate below zero, so the delivered share is not a reading of completion. No form in the app writes one, so the row was edited directly.",
   "scope-partly-estimated":
-    "Some deliverables carry no estimate, so the delivered share is the best case: true completion is at most that, which makes any gap above it the least the gap can be.",
+    "Some deliverables carry no estimate, so the delivered share is the best case: true completion is at most that, which makes any gap it is set against the least that gap can be.",
   "scope-delivery-unsized":
-    "A deliverable is marked done with no estimate on it, so completion is understated by an unknown amount and the verdict rests on the money alone. Size it on the Scope tab.",
+    "A deliverable is marked done with no estimate on it, so completion is understated by an unknown amount and the delivered share has been left out. Size it on the Scope tab.",
   "scope-too-coarse":
-    "The scope is a single deliverable, so it reads as nothing delivered until the day it is signed off, and the verdict rests on the money alone. Breaking it up is what makes progress legible.",
+    "The scope is a single deliverable, so it reads as nothing delivered until the day it is signed off — which is why the delivered share has been left out here. Breaking it up is what makes progress legible.",
 };
 
 /**
