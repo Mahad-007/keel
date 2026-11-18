@@ -10,6 +10,8 @@ import {
 
 import {
   BLIND_SPOT_SENTENCE,
+  NOT_ASSESSED_LEAD,
+  scopeHealthBanner,
   describeHealthyProject,
   creepBlindSpotSentences,
   creepReasonSentence,
@@ -409,5 +411,62 @@ describe("the sentence for a project with nothing wrong", () => {
     );
 
     expect(sentence).toContain("84% of the contract has gone on 100%");
+  });
+});
+
+describe("the banner for one project", () => {
+  it("leads with the worst reason and keeps the rest under it", () => {
+    const banner = scopeHealthBanner(
+      assessment({
+        health: "over",
+        reasons: ["contract-overspent", "burn-ahead-of-delivery"],
+        consumedShare: 1.1,
+        deliveredShare: 0.8,
+        gap: 0.3,
+      }),
+    );
+
+    expect(banner.headline).toBe("Over scope");
+    expect(banner.verdict).toBe(describeOverspentContract(1.1));
+    expect(banner.reasons).toEqual([describeAheadOfDelivery(1.1, 0.8, 0.3)]);
+  });
+
+  it("explains a healthy project rather than leaving the sentence empty", () => {
+    const banner = scopeHealthBanner(
+      assessment({ health: "healthy", consumedShare: 0.42, deliveredShare: 0.5 }),
+    );
+
+    expect(banner.headline).toBe("On track");
+    expect(banner.verdict).toBe(
+      describeHealthyProject(
+        assessment({ health: "healthy", consumedShare: 0.42, deliveredShare: 0.5 }),
+      ),
+    );
+    expect(banner.reasons).toEqual([]);
+  });
+
+  it("does not let a withheld verdict read as a healthy one", () => {
+    const banner = scopeHealthBanner(
+      assessment({ blindSpots: ["burn-not-valued"] }),
+    );
+
+    expect(banner.headline).toBe("Not assessed");
+    expect(banner.verdict).toBe(NOT_ASSESSED_LEAD);
+    expect(banner.gaps).toEqual([BLIND_SPOT_SENTENCE["burn-not-valued"]]);
+  });
+
+  it("always has a sentence under the heading", () => {
+    for (const health of [null, ...SCOPE_HEALTH]) {
+      const banner = scopeHealthBanner(assessment({ health }));
+
+      expect(banner.verdict.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("carries the verdict through for the component's tone", () => {
+    expect(scopeHealthBanner(assessment({ health: "watch" })).health).toBe(
+      "watch",
+    );
+    expect(scopeHealthBanner(assessment()).health).toBeNull();
   });
 });
