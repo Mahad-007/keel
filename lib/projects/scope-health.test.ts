@@ -151,7 +151,7 @@ describe("the sentence for a contract nearly spent", () => {
   it("says what the remainder has to cover rather than how much it is", () => {
     const sentence = describeNearlySpentContract(0.84);
 
-    expect(sentence).toContain("everything still outstanding");
+    expect(sentence).toContain("whatever is still outstanding");
     // The amount left is on the burn panel an inch below; repeating it here
     // would be one figure twice with nothing added.
     expect(sentence).not.toContain("16%");
