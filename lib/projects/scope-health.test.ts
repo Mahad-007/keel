@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { SCOPE_HEALTH, type ScopeHealth } from "@/lib/scope-creep";
 
 import {
+  describeBurnAgainstDelivery,
   describeNearlySpentContract,
   describeOverspentContract,
   formatSharePoints,
@@ -110,6 +111,31 @@ describe("the sentence for a contract nearly spent", () => {
   it("reads differently from the sentence for a contract already spent", () => {
     expect(describeNearlySpentContract(0.84)).not.toBe(
       describeOverspentContract(0.84),
+    );
+  });
+});
+
+describe("the two shares set against each other", () => {
+  it("puts the money first and the work second", () => {
+    expect(describeBurnAgainstDelivery(0.6, 0.1)).toBe(
+      "60% of the contract has gone on 10% of the estimated work",
+    );
+  });
+
+  it("says the contract was consumed, not that anyone was paid", () => {
+    // The burn is hours at a rate; nothing in Keel knows what was invoiced.
+    expect(describeBurnAgainstDelivery(0.6, 0.1)).not.toContain("paid");
+  });
+
+  it("does not round a delivered line away to nothing", () => {
+    expect(describeBurnAgainstDelivery(0.6, 0.004)).toContain(
+      "less than 1% of the estimated work",
+    );
+  });
+
+  it("reads nothing delivered as nothing", () => {
+    expect(describeBurnAgainstDelivery(0.6, 0)).toContain(
+      "0% of the estimated work",
     );
   });
 });
