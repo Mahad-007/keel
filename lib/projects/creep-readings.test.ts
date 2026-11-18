@@ -4,7 +4,7 @@ import { summariseBurn, type BurnSummary } from "@/lib/burn";
 import { UNRATED, type EffectiveRate } from "@/lib/rates";
 import type { ScopeLine } from "@/lib/scope";
 
-import { projectCreepReadings } from "./creep-readings";
+import { assessProjectCreep, projectCreepReadings } from "./creep-readings";
 
 /** The common case: a rate set on the project itself, $200 an hour. */
 const AT_200: EffectiveRate = { cents: 20_000, source: "project" };
@@ -144,5 +144,49 @@ describe("the delivery half of the readings", () => {
 
     expect(readings.scopeDelivered).toBe(false);
     expect(readings.deliveredShare).toBe(0);
+  });
+});
+
+describe("assessing a project in one call", () => {
+  it("catches high burn against low completion", () => {
+    // $6,000 of a $10,000 contract, and not one of the three lines done.
+    const assessment = assessProjectCreep(burn(1_800, 1_000_000), [
+      line(300),
+      line(2_400),
+      line(300),
+    ]);
+
+    expect(assessment.health).toBe("over");
+    expect(assessment.reasons).toEqual(["burn-far-ahead-of-delivery"]);
+    expect(assessment.gap).toBeCloseTo(0.6);
+    expect(assessment.blindSpots).toEqual([]);
+  });
+
+  it("calls a project tracking its delivery healthy", () => {
+    const assessment = assessProjectCreep(burn(1_800, 1_000_000), [
+      line(1_800, "done"),
+      line(1_200),
+    ]);
+
+    expect(assessment.health).toBe("healthy");
+    expect(assessment.reasons).toEqual([]);
+  });
+
+  it("withholds a verdict when the hours could not be valued", () => {
+    const assessment = assessProjectCreep(burn(1_800, 1_000_000, UNRATED), [
+      line(1_800, "done"),
+    ]);
+
+    expect(assessment.health).toBeNull();
+    expect(assessment.consumedShare).toBeNull();
+    expect(assessment.blindSpots).toContain("burn-not-valued");
+  });
+
+  it("still reads the money axis with nothing estimated", () => {
+    const assessment = assessProjectCreep(burn(3_000, 1_000_000), [line(0)]);
+
+    expect(assessment.health).toBe("over");
+    expect(assessment.reasons).toEqual(["contract-overspent"]);
+    expect(assessment.blindSpots).toEqual(["scope-not-estimated"]);
   });
 });
