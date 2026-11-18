@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CREEP_BLIND_SPOTS,
   CREEP_REASONS,
   SCOPE_HEALTH,
   type CreepAssessment,
@@ -8,6 +9,7 @@ import {
 } from "@/lib/scope-creep";
 
 import {
+  BLIND_SPOT_SENTENCE,
   creepReasonSentence,
   creepReasonSentences,
   describeAheadOfDelivery,
@@ -306,5 +308,55 @@ describe("every reason a project was flagged for", () => {
     );
 
     expect(sentences).toEqual([describeOverspentContract(1.1)]);
+  });
+});
+
+describe("the sentences for what a verdict could not see", () => {
+  it("has words for every blind spot the classifier can report", () => {
+    for (const spot of CREEP_BLIND_SPOTS) {
+      expect(BLIND_SPOT_SENTENCE[spot]).toBeTruthy();
+    }
+  });
+
+  it("gives each blind spot a sentence of its own", () => {
+    const sentences = CREEP_BLIND_SPOTS.map((spot) => BLIND_SPOT_SENTENCE[spot]);
+
+    expect(new Set(sentences).size).toBe(CREEP_BLIND_SPOTS.length);
+  });
+
+  it("says the verdict is withheld for each of the money gaps", () => {
+    // These three take the only axis there is, so the classifier returns null
+    // rather than healthy — and the sentence has to say so, or a reader will
+    // read the missing verdict as a project doing fine.
+    for (const spot of [
+      "no-contract-value",
+      "burn-not-valued",
+      "burn-below-zero",
+    ] as const) {
+      expect(BLIND_SPOT_SENTENCE[spot]).toMatch(
+        /no verdict here at all|verdict is withheld/,
+      );
+    }
+  });
+
+  it("names a form to open for each gap somebody can fix", () => {
+    for (const spot of [
+      "no-contract-value",
+      "burn-not-valued",
+      "scope-not-estimated",
+      "scope-delivery-unsized",
+    ] as const) {
+      expect(BLIND_SPOT_SENTENCE[spot]).toMatch(
+        /edit form|Scope tab|on its client/,
+      );
+    }
+  });
+
+  it("says a hand-edited row was hand-edited", () => {
+    // Neither is reachable through a form, so a reader has to be told the cause
+    // is a row rather than a fault in the page.
+    for (const spot of ["burn-below-zero", "scope-estimates-invalid"] as const) {
+      expect(BLIND_SPOT_SENTENCE[spot]).toContain("edited directly");
+    }
   });
 });
