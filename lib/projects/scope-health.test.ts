@@ -10,6 +10,7 @@ import {
 
 import {
   BLIND_SPOT_SENTENCE,
+  describeHealthyProject,
   creepBlindSpotSentences,
   creepReasonSentence,
   creepReasonSentences,
@@ -380,5 +381,33 @@ describe("every gap a verdict was reached around", () => {
     expect(creepBlindSpotSentences(assessment({ health: "healthy" }))).toEqual(
       [],
     );
+  });
+});
+
+describe("the sentence for a project with nothing wrong", () => {
+  it("quotes both shares rather than saying it is fine", () => {
+    const sentence = describeHealthyProject(
+      assessment({ health: "healthy", consumedShare: 0.42, deliveredShare: 0.5 }),
+    );
+
+    expect(sentence).toContain(describeBurnAgainstDelivery(0.42, 0.5));
+    expect(sentence).toContain("inside the price agreed");
+  });
+
+  it("says the delivery was not read when there was no share for it", () => {
+    const sentence = describeHealthyProject(
+      assessment({ health: "healthy", consumedShare: 0.42 }),
+    );
+
+    expect(sentence).toContain("42% of the contract has gone");
+    expect(sentence).toContain("this is the money on its own");
+  });
+
+  it("clears a project that delivered everything inside its price", () => {
+    const sentence = describeHealthyProject(
+      assessment({ health: "healthy", consumedShare: 0.84, deliveredShare: 1 }),
+    );
+
+    expect(sentence).toContain("84% of the contract has gone on 100%");
   });
 });
