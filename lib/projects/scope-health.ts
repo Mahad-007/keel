@@ -125,3 +125,24 @@ export function describeOverspentContract(consumedShare: number): string {
     consumedShare,
   )} of the contract value. Anything logged from here is work the agreement does not pay for.`;
 }
+
+/**
+ * Why a project nearing its contract value is flagged.
+ *
+ * The weaker of the two money sentences, and the one most at risk of being
+ * read as the stronger. Four fifths of a contract spent is a perfectly
+ * ordinary reading on a project four fifths of the way through its work — so
+ * the sentence has to say why it is here at all, and the answer is the scope
+ * list: the classifier only raises this while there is work outstanding.
+ *
+ * It closes on what the remainder has to cover rather than on the remainder
+ * itself. The amount left is already on the burn panel an inch below, and a
+ * banner that repeated it would be the same figure twice with nothing added;
+ * what is not anywhere else is that the fraction left has a job, and whether
+ * it is enough is the judgement the reader is being asked to make.
+ */
+export function describeNearlySpentContract(consumedShare: number): string {
+  return `The hours logged against this project have burned ${formatSharePercent(
+    consumedShare,
+  )} of the contract value, and the scope list is not finished. What is left has to cover everything still outstanding.`;
+}
