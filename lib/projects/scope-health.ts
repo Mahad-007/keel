@@ -5,6 +5,9 @@ import type {
   ScopeHealth,
 } from "@/lib/scope-creep";
 
+import type { BurnSummary } from "@/lib/burn";
+
+import { hasBurnToShow } from "./burn-summary";
 import { formatSharePercent } from "./scope-summary";
 
 /**
@@ -508,4 +511,31 @@ export function scopeHealthBanner(
     reasons: rest,
     gaps: creepBlindSpotSentences(assessment),
   };
+}
+
+/**
+ * Whether a project has got far enough for a verdict to mean anything.
+ *
+ * A row somebody created a minute ago has no price, no hours and no
+ * deliverables, and the honest assessment of it is that there is nothing to
+ * assess — which is true and is not worth a box at the top of the page. The
+ * banner is the loudest thing on the overview tab, and a banner that greets
+ * every new project with two fields it has not filled in yet is one a reader
+ * learns to ignore before they ever see it fire in anger.
+ *
+ * Anything at all is enough: a price agreed, an hour logged, or a line of scope
+ * written down. Each of those is somebody saying this engagement has started,
+ * and from that point a missing rate or an unestimated list is a gap worth
+ * naming rather than a form nobody has reached.
+ *
+ * `hasBurnToShow` rather than the price and the hours written out again, so the
+ * banner and the burn panel under it appear and disappear by one rule — a
+ * verdict over a panel that is not there would be quoting figures a reader
+ * cannot go and check.
+ */
+export function hasScopeHealthToShow(
+  summary: BurnSummary,
+  lineCount: number,
+): boolean {
+  return hasBurnToShow(summary) || lineCount > 0;
 }
