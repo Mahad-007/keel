@@ -475,3 +475,37 @@ export type ScopeHealthBanner = {
   /** What the verdict could not see, money first. Usually empty. */
   readonly gaps: readonly string[];
 };
+
+/**
+ * The banner for one project, from one assessment.
+ *
+ * The lead sentence is the first reason, which the classifier has already put
+ * worst-first. Where there are no reasons — and there are two very different
+ * ways to have none — the fallback is the one the verdict chooses: null means
+ * nothing could be read, and `healthy` means both comparisons were made and
+ * both came out fine. Those two must never collapse into each other, and this
+ * is the line where they would.
+ *
+ * Taking the assessment rather than the readings, so the sentences quote the
+ * shares the verdict used. `assessScopeCreep` echoes both back as read — a burn
+ * no rate could value carries null rather than the reassuring nought the
+ * arithmetic produced — which is the guarantee that makes the figures in the
+ * banner checkable against the verdict above them.
+ */
+export function scopeHealthBanner(
+  assessment: CreepAssessment,
+): ScopeHealthBanner {
+  const [lead, ...rest] = creepReasonSentences(assessment);
+
+  return {
+    health: assessment.health,
+    headline: scopeHealthHeadline(assessment.health),
+    verdict:
+      lead ??
+      (assessment.health === null
+        ? NOT_ASSESSED_LEAD
+        : describeHealthyProject(assessment)),
+    reasons: rest,
+    gaps: creepBlindSpotSentences(assessment),
+  };
+}
