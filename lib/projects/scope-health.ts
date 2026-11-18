@@ -465,9 +465,15 @@ export function describeHealthyProject(assessment: CreepAssessment): string {
  * It points down at the gaps rather than naming one. Which field is missing is
  * `BLIND_SPOT_SENTENCE`'s business, and it already names the form; repeating the
  * field here would put two different-length versions of one fact an inch apart.
+ *
+ * "No readable share of the contract" rather than "the burn could not be read",
+ * which is only true of two of the three ways to get here. A project with a burn
+ * printed in full and no price on it has a perfectly readable burn and nothing
+ * to measure it against — and a reader told the burn could not be read, an inch
+ * above a panel printing it, would take the banner for broken.
  */
 export const NOT_ASSESSED_LEAD =
-  "This project has not been assessed: the burn could not be read, so calling it healthy would be a guess rather than a finding. What is missing is below.";
+  "This project has not been assessed: there is no readable share of the contract to judge it by, so calling it healthy would be a guess rather than a finding. What is missing is below.";
 
 /**
  * The banner, as a component reads it: a heading, the sentence that matters,

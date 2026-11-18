@@ -491,6 +491,13 @@ describe("the banner for one project", () => {
     expect(banner.reasons).toEqual([]);
   });
 
+  it("does not blame the burn for a verdict a missing price withheld", () => {
+    // The burn panel below prints the burn in full; a lead sentence saying it
+    // could not be read would have the banner contradicting the figures.
+    expect(NOT_ASSESSED_LEAD).not.toContain("the burn could not be read");
+    expect(NOT_ASSESSED_LEAD).toContain("no readable share of the contract");
+  });
+
   it("does not let a withheld verdict read as a healthy one", () => {
     const banner = scopeHealthBanner(
       assessment({ blindSpots: ["burn-not-valued"] }),
