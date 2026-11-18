@@ -98,21 +98,24 @@ export default async function ProjectPage({
     only the overview pays for them: the other four tabs render a sentence
     apiece and have no business running two more queries to do it.
 
-    The count is a count rather than the rows — the duplicate control says how
-    many deliverables a copy would carry and shows none of them — and it is
-    read here rather than inside the panel, so the page keeps every query it
-    makes in one place. Together with the trail, because neither read depends
-    on the other and awaiting them in sequence would make the tab wait for the
-    sum of two round trips.
+    The scope list is the fourth, and it is the delivery half of the scope
+    health verdict: the banner at the top of the tab sets what the hours have
+    burned against what the estimates say is done, and the second of those is
+    only on this table. Read here rather than inside the panel, so the page
+    keeps every query it makes in one place.
+
+    All four together, because none depends on another and awaiting them in
+    sequence would make the tab wait for the sum of four round trips.
   */
-  const [statusEvents, deliverableCount, timeTotals] =
+  const [statusEvents, deliverableCount, timeTotals, overviewScope] =
     tab === "overview"
       ? await Promise.all([
           listProjectStatusEvents(project.id),
           countDeliverables(project.id),
           projectTimeTotals(project.id),
+          listDeliverables(project.id),
         ])
-      : [[], 0, NO_TIME_LOGGED];
+      : [[], 0, NO_TIME_LOGGED, []];
 
   /*
     Same rule for the scope tab, which reads two things: the project's own list
@@ -197,6 +200,7 @@ export default async function ProjectPage({
             statusEvents={statusEvents}
             deliverableCount={deliverableCount}
             timeTotals={timeTotals}
+            scopeLines={overviewScope}
           />
         ) : tab === "scope" ? (
           <ScopePanel

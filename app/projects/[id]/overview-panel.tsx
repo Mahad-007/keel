@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { summariseBurn } from "@/lib/burn";
 import type { ProjectWithClient } from "@/lib/data/projects";
-import type { ProjectStatusEvent } from "@/lib/db/schema";
+import type { Deliverable, ProjectStatusEvent } from "@/lib/db/schema";
 import { formatDate } from "@/lib/dates";
 import { describeRateOverride } from "@/lib/projects/detail";
 import type { DuplicateFormState } from "@/lib/projects/duplicate-form";
@@ -12,6 +12,7 @@ import type { LoggedTotals } from "@/lib/time/rollup";
 import { writeDuplicatedProject } from "./duplicate-writes";
 
 import { BurnPanel } from "./burn-panel";
+import { ScopeHealthBanner } from "./scope-health-banner";
 import { DuplicateSection } from "./duplicate-section";
 import { StatusHistory } from "./status-history";
 import { StatusSection } from "./status-section";
@@ -48,6 +49,7 @@ export function OverviewPanel({
   statusEvents,
   deliverableCount,
   timeTotals,
+  scopeLines,
 }: {
   project: ProjectWithClient;
   /** The project's status trail, newest first. */
@@ -63,6 +65,16 @@ export function OverviewPanel({
    * four figures can be printed is a cost paid on every page load.
    */
   timeTotals: LoggedTotals;
+  /**
+   * The project's scope list, which carries the delivery half of the scope
+   * health verdict.
+   *
+   * The rows rather than a share, because what makes a delivered share
+   * trustworthy is four counts over the same list, and a panel handed one
+   * number could not tell a finished project from one where the only sized
+   * line happens to be the only finished one.
+   */
+  scopeLines: readonly Deliverable[];
 }) {
   /*
     Built here rather than by the page, the same arrangement the time tab
@@ -94,6 +106,13 @@ export function OverviewPanel({
 
   return (
     <>
+      {/*
+        First on the tab, because it is the only thing on the page that reaches
+        a conclusion and everything under it is the working. A reader who opens
+        a project wants to know whether to worry before they want to know what
+        rate it bills at.
+      */}
+      <ScopeHealthBanner summary={burn} lines={scopeLines} />
       <dl className="mt-4 text-sm">
         <Fact term="Rate">{describeRateOverride(project.rateCents)}</Fact>
         <Fact term="Set up">{formatDate(project.createdAt)}</Fact>
