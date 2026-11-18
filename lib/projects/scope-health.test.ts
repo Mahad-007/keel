@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { SCOPE_HEALTH, type ScopeHealth } from "@/lib/scope-creep";
+import {
+  CREEP_REASONS,
+  SCOPE_HEALTH,
+  type CreepAssessment,
+  type ScopeHealth,
+} from "@/lib/scope-creep";
 
 import {
+  creepReasonSentence,
   describeAheadOfDelivery,
   describeBurnAgainstDelivery,
   describeFarAheadOfDelivery,
@@ -13,6 +19,26 @@ import {
   SCOPE_HEALTH_HEADLINE,
   scopeHealthHeadline,
 } from "./scope-health";
+
+/**
+ * An assessment with nothing read, overridden a field at a time.
+ *
+ * Hand-built rather than classified, because half of what these tests check is
+ * what the words do with a figure the classifier would never have left out —
+ * the pairings a real project cannot produce are exactly the ones a later
+ * caller assembling readings itself could.
+ */
+function assessment(partial: Partial<CreepAssessment> = {}): CreepAssessment {
+  return {
+    health: null,
+    reasons: [],
+    blindSpots: [],
+    consumedShare: null,
+    deliveredShare: null,
+    gap: null,
+    ...partial,
+  };
+}
 
 describe("the banner's heading", () => {
   it("names every verdict the classifier can reach", () => {
@@ -194,5 +220,55 @@ describe("the sentence for a burn ahead of its delivery", () => {
     expect(describeAheadOfDelivery(0.6, 0.1, 0.5)).not.toBe(
       describeFarAheadOfDelivery(0.6, 0.1, 0.5),
     );
+  });
+});
+
+describe("one reason's sentence, read off an assessment", () => {
+  /** A project 60% consumed against 10% delivered: the creep case. */
+  const creeping = assessment({
+    consumedShare: 0.6,
+    deliveredShare: 0.1,
+    gap: 0.5,
+  });
+
+  it("has words for every reason the classifier can report", () => {
+    for (const reason of CREEP_REASONS) {
+      expect(creepReasonSentence(reason, creeping)).not.toBeNull();
+    }
+  });
+
+  it("gives each reason a sentence of its own", () => {
+    const sentences = CREEP_REASONS.map((reason) =>
+      creepReasonSentence(reason, creeping),
+    );
+
+    expect(new Set(sentences).size).toBe(CREEP_REASONS.length);
+  });
+
+  it("quotes the share the verdict was reached from", () => {
+    expect(creepReasonSentence("contract-overspent", creeping)).toBe(
+      describeOverspentContract(0.6),
+    );
+  });
+
+  it("quotes the gap the assessment carries rather than subtracting again", () => {
+    // A gap the assessment refused is not reconstructed here: the sentence
+    // takes the figure the verdict used, whatever the two shares look like.
+    const sentence = creepReasonSentence(
+      "burn-far-ahead-of-delivery",
+      assessment({ consumedShare: 0.9, deliveredShare: 0.1, gap: 0.5 }),
+    );
+
+    expect(sentence).toContain("50 points ahead");
+  });
+
+  it("has nothing to say about a money reason with no share", () => {
+    expect(creepReasonSentence("contract-overspent", assessment())).toBeNull();
+  });
+
+  it("has nothing to say about a gap reason with no gap", () => {
+    const withoutGap = assessment({ consumedShare: 0.6, deliveredShare: 0.1 });
+
+    expect(creepReasonSentence("burn-ahead-of-delivery", withoutGap)).toBeNull();
   });
 });
