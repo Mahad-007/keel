@@ -1,5 +1,6 @@
 import type {
   CreepAssessment,
+  CreepBlindSpot,
   CreepReason,
   ScopeHealth,
 } from "@/lib/scope-creep";
@@ -321,3 +322,53 @@ export function creepReasonSentences(
     .map((reason) => creepReasonSentence(reason, assessment))
     .filter((sentence): sentence is string => sentence !== null);
 }
+
+/**
+ * What each thing the verdict could not see costs it, and what fixes it.
+ *
+ * The half of the banner that keeps it honest. A verdict reached over a project
+ * with no rate set and no estimates is not wrong, it is partly blind, and a
+ * banner that showed only the verdict would be indistinguishable from one that
+ * had looked at everything and found nothing — which is the failure that
+ * matters, because the project with no rate set is exactly the project nobody
+ * is watching.
+ *
+ * Each sentence says the consequence before the fix. The consequence is why a
+ * reader should care about an empty field they have lived with for weeks; the
+ * fix is what they do about it, and it names the form rather than the column,
+ * because a column name is no use to anyone who is not holding a SQL prompt.
+ *
+ * The three about the money say the verdict is withheld outright, because it is:
+ * the money axis is the only axis there is, and without it `classifyScopeCreep`
+ * returns null rather than `healthy`. The five about the scope say the verdict
+ * stands on the money alone, which is the narrower and true claim — a contract
+ * burned in full is burned in full whether or not anybody sized the work.
+ *
+ * Deliberately shorter and narrower than the burn panel's own caveats, which a
+ * reader meets further down the same tab. Those are about four figures and name
+ * the field that would make them work; these are about the verdict and name
+ * what it lost. Saying it twice at the same length would train a reader to skip
+ * both.
+ *
+ * A record over every blind spot rather than a chain of conditions, so a ninth
+ * one added to the classifier is a compile error in the one file that has to
+ * have words for it.
+ */
+export const BLIND_SPOT_SENTENCE: Record<CreepBlindSpot, string> = {
+  "no-contract-value":
+    "No contract value is set, so the hours have nothing to be a share of and there is no verdict here at all — not a healthy one. The price is a field on this project's edit form.",
+  "burn-not-valued":
+    "Hours have been logged and no rate values them, so the burn is a gap rather than a nought and the verdict is withheld. Set a rate on this project, or a default on its client.",
+  "burn-below-zero":
+    "The rate values the hours below zero, so the burn runs backwards and the verdict is withheld. No form in the app accepts a rate like that, so the row was edited directly.",
+  "scope-not-estimated":
+    "Nothing on the scope list is estimated, so how much of the work is done cannot be read and the verdict above rests on the money alone. Estimates go on the Scope tab.",
+  "scope-estimates-invalid":
+    "The scope list holds an estimate below zero, so the delivered share is not a reading of completion and the verdict rests on the money alone. No form writes one, so the row was edited directly.",
+  "scope-partly-estimated":
+    "Some deliverables carry no estimate, so the delivered share is the best case: true completion is at most that, which makes any gap above it the least the gap can be.",
+  "scope-delivery-unsized":
+    "A deliverable is marked done with no estimate on it, so completion is understated by an unknown amount and the verdict rests on the money alone. Size it on the Scope tab.",
+  "scope-too-coarse":
+    "The scope is a single deliverable, so it reads as nothing delivered until the day it is signed off, and the verdict rests on the money alone. Breaking it up is what makes progress legible.",
+};
