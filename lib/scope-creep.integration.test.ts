@@ -13,15 +13,8 @@ import { createTimeEntry, projectTimeTotals } from "@/lib/data/time-entries";
 import { deliverables } from "@/lib/db/schema";
 import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
-import { hasValuedBurn } from "@/lib/projects/burn-summary";
+import { projectCreepReadings } from "@/lib/projects/creep-readings";
 import { resolveJoinedRate } from "@/lib/rates";
-import {
-  allDelivered,
-  deliveredShare,
-  negativeEstimateCount,
-  unestimatedCount,
-  unestimatedDeliveredCount,
-} from "@/lib/scope";
 
 import { assessScopeCreep, type CreepReadings } from "./scope-creep";
 
@@ -56,9 +49,13 @@ beforeEach(async () => {
 });
 
 /**
- * The readings as a project page would assemble them: a burn off the joined
- * rate and the SQL totals, a delivered share off the scope list, and the two
- * facts that say whether either can be trusted.
+ * The readings as the project page assembles them: a burn off the joined rate
+ * and the SQL totals, and a scope list off its own table.
+ *
+ * Through `projectCreepReadings` rather than built here, which is the point of
+ * the test. A fixture that put the figures in the right arguments by hand would
+ * prove only that this file knows the order — and the page, which is the thing
+ * that must not get it wrong, would be untested.
  */
 async function readingsFor(projectId: string): Promise<CreepReadings> {
   const [project, totals, lines] = await Promise.all([
@@ -67,21 +64,10 @@ async function readingsFor(projectId: string): Promise<CreepReadings> {
     listDeliverables(projectId, db),
   ]);
   if (project === null) throw new Error("no such project");
-  const burn = summariseBurn(
-    totals,
-    project.contractValueCents,
-    resolveJoinedRate(project),
+  return projectCreepReadings(
+    summariseBurn(totals, project.contractValueCents, resolveJoinedRate(project)),
+    lines,
   );
-  return {
-    consumedShare: burn.consumedShare,
-    deliveredShare: deliveredShare(lines),
-    lineCount: lines.length,
-    unestimatedCount: unestimatedCount(lines),
-    unestimatedDeliveredCount: unestimatedDeliveredCount(lines),
-    negativeEstimateCount: negativeEstimateCount(lines),
-    burnValued: hasValuedBurn(burn),
-    scopeDelivered: allDelivered(lines),
-  };
 }
 
 describe("the classifier over real rows", () => {
