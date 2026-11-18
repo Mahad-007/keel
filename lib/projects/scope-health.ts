@@ -70,3 +70,31 @@ export function scopeHealthHeadline(health: ScopeHealth | null): string {
   if (health === null) return NOT_ASSESSED_HEADLINE;
   return SCOPE_HEALTH_HEADLINE[health];
 }
+
+/**
+ * A gap between two shares, in percentage points.
+ *
+ * The creep gap is a difference of two fractions, and "0.5" is not a thing to
+ * say out loud. Nor is "50%", which is the mistake this function exists to
+ * stop: the two shares either side of it are already printed as percentages,
+ * and a third percentage between them would read as a share of something —
+ * a reader would take "50%" for half the contract rather than the distance
+ * between 60% and 10%.
+ *
+ * Whole points, because both shares behind it are rounded to whole percent
+ * where they are printed, and a gap carrying a decimal would not reconcile
+ * with the two figures a reader subtracts in their head.
+ *
+ * A gap that rounds away is written as less than a point rather than as none.
+ * It is not reachable from the thresholds the classifier flags on — a quarter
+ * of a contract is the narrowest gap that earns a sentence — but a figure
+ * function that answers "0 points ahead" to a gap that exists is one a later
+ * caller discovers the hard way, and the portfolio ranking in Day 039 will
+ * print gaps nobody flagged.
+ */
+export function formatSharePoints(gap: number): string {
+  const points = Math.round(gap * 100);
+  if (points === 0 && gap > 0) return "less than a point";
+  if (points === 1) return "1 point";
+  return `${points} points`;
+}
