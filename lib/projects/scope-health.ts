@@ -174,3 +174,37 @@ export function describeBurnAgainstDelivery(
     deliveredShare,
   )} of the estimated work`;
 }
+
+/**
+ * Why a project whose burn has run a long way ahead of its delivery is
+ * flagged.
+ *
+ * The sentence this whole phase was built to be able to write. Sixty percent of
+ * the money for ten percent of the work is a project that will miss by a mile,
+ * and on the day it happens there is still forty percent of the budget in the
+ * bank and nothing overdue — so neither figure raises anything alone, nobody
+ * notices, and the margin is gone by the time the overspend shows up on the
+ * money axis.
+ *
+ * It says so explicitly, in the last clause, because a reader meeting this
+ * banner on a project with budget left will reasonably wonder what the fuss is.
+ * Telling them that both halves look survivable is what answers that — and it
+ * is the one thing on the banner that a reader cannot work out from the figures
+ * in front of them.
+ *
+ * No projection. What the burn would come to by the time the list is finished is
+ * a different claim, resting on the pace holding, and it belongs with the
+ * caveats that go with it rather than smuggled into a sentence about today.
+ */
+export function describeFarAheadOfDelivery(
+  consumedShare: number,
+  deliveredShare: number,
+  gap: number,
+): string {
+  return `${describeBurnAgainstDelivery(
+    consumedShare,
+    deliveredShare,
+  )} — the burn is running ${formatSharePoints(
+    gap,
+  )} ahead of the delivery. That much of the contract has gone on work that is not there yet, which is the reading this flag exists for: both figures look survivable on their own.`;
+}
