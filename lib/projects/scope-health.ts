@@ -528,10 +528,11 @@ export function scopeHealthBanner(
  * and from that point a missing rate or an unestimated list is a gap worth
  * naming rather than a form nobody has reached.
  *
- * `hasBurnToShow` rather than the price and the hours written out again, so the
- * banner and the burn panel under it appear and disappear by one rule — a
- * verdict over a panel that is not there would be quoting figures a reader
- * cannot go and check.
+ * `hasBurnToShow` rather than the price and the hours written out again, so
+ * whatever counts as a burn worth showing counts here too and the two cannot
+ * drift apart. The scope list is the one thing this rule adds to it: an agreed
+ * list with no price on it is an engagement somebody started and nobody costed,
+ * and the banner saying so is the only place on the tab that would.
  */
 export function hasScopeHealthToShow(
   summary: BurnSummary,
