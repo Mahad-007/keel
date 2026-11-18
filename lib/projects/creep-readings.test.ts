@@ -76,3 +76,73 @@ describe("the money half of the readings", () => {
     expect(readings.burnValued).toBe(true);
   });
 });
+
+describe("the delivery half of the readings", () => {
+  it("carries the delivered share of the sized work", () => {
+    const readings = projectCreepReadings(burn(0, 1_000_000), [
+      line(600, "done"),
+      line(1_800),
+    ]);
+
+    expect(readings.deliveredShare).toBeCloseTo(0.25);
+  });
+
+  it("has no share when nothing was estimated", () => {
+    const readings = projectCreepReadings(burn(0, 1_000_000), [
+      line(0),
+      line(0),
+    ]);
+
+    expect(readings.deliveredShare).toBeNull();
+  });
+
+  it("counts the lines, so a one-line list can be told apart", () => {
+    expect(projectCreepReadings(burn(0, 1_000_000), [line(600)]).lineCount).toBe(
+      1,
+    );
+    expect(projectCreepReadings(burn(0, 1_000_000), []).lineCount).toBe(0);
+  });
+
+  it("counts the lines nobody sized", () => {
+    const readings = projectCreepReadings(burn(0, 1_000_000), [
+      line(600),
+      line(0),
+      line(0, "done"),
+    ]);
+
+    expect(readings.unestimatedCount).toBe(2);
+    expect(readings.unestimatedDeliveredCount).toBe(1);
+  });
+
+  it("counts the estimates below zero no form would have written", () => {
+    const readings = projectCreepReadings(burn(0, 1_000_000), [
+      line(600),
+      line(-240),
+    ]);
+
+    expect(readings.negativeEstimateCount).toBe(1);
+  });
+
+  it("says when every line of the list is delivered", () => {
+    const all = [line(600, "done"), line(1_800, "done")];
+
+    expect(projectCreepReadings(burn(0, 1_000_000), all).scopeDelivered).toBe(
+      true,
+    );
+  });
+
+  it("does not call an empty list delivered", () => {
+    expect(projectCreepReadings(burn(0, 1_000_000), []).scopeDelivered).toBe(
+      false,
+    );
+  });
+
+  it("does not call a started line delivered", () => {
+    const readings = projectCreepReadings(burn(0, 1_000_000), [
+      line(600, "started"),
+    ]);
+
+    expect(readings.scopeDelivered).toBe(false);
+    expect(readings.deliveredShare).toBe(0);
+  });
+});
