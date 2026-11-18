@@ -197,6 +197,15 @@ describe("the sentence for a burn far ahead of its delivery", () => {
     );
   });
 
+  it("does not call both figures survivable once the contract is spent", () => {
+    // The reason stacks with contract-overspent, so this sentence lands as a
+    // bullet under a lead that has just said the money is gone.
+    const sentence = describeFarAheadOfDelivery(1.2, 0.1, 1.1);
+
+    expect(sentence).not.toContain("survivable");
+    expect(sentence).toContain("The contract value is already gone");
+  });
+
   it("makes no claim about what the burn will come to", () => {
     const sentence = describeFarAheadOfDelivery(0.6, 0.1, 0.5);
 

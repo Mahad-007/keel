@@ -1,8 +1,9 @@
-import type {
-  CreepAssessment,
-  CreepBlindSpot,
-  CreepReason,
-  ScopeHealth,
+import {
+  classifyConsumedShare,
+  type CreepAssessment,
+  type CreepBlindSpot,
+  type CreepReason,
+  type ScopeHealth,
 } from "@/lib/scope-creep";
 
 import type { BurnSummary } from "@/lib/burn";
@@ -206,6 +207,14 @@ export function describeBurnAgainstDelivery(
  * is the one thing on the banner that a reader cannot work out from the figures
  * in front of them.
  *
+ * Except where the money has already gone, which is the one case that clause
+ * would be false in. This reason stacks with `contract-overspent`, and under a
+ * lead sentence that has just said the contract is spent, "both figures look
+ * survivable on their own" is the banner contradicting itself an inch apart. So
+ * the threshold is asked, through `classifyConsumedShare` rather than a second
+ * copy of the number, and the closing clause says what the gap means once the
+ * money is gone: the overspend bought work that has not landed.
+ *
  * No projection. What the burn would come to by the time the list is finished is
  * a different claim, resting on the pace holding, and it belongs with the
  * caveats that go with it rather than smuggled into a sentence about today.
@@ -215,12 +224,14 @@ export function describeFarAheadOfDelivery(
   deliveredShare: number,
   gap: number,
 ): string {
+  const closing =
+    classifyConsumedShare(consumedShare) === "over"
+      ? "The contract value is already gone, so this is not a warning about what might happen: the money bought work that is not there."
+      : "That much of the contract has gone on work that is not there yet, which is the reading this flag exists for: both figures look survivable on their own.";
   return `${describeBurnAgainstDelivery(
     consumedShare,
     deliveredShare,
-  )} — the burn is running ${formatSharePoints(
-    gap,
-  )} ahead of the delivery. That much of the contract has gone on work that is not there yet, which is the reading this flag exists for: both figures look survivable on their own.`;
+  )} — the burn is running ${formatSharePoints(gap)} ahead of the delivery. ${closing}`;
 }
 
 /**
