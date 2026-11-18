@@ -106,4 +106,65 @@ describe("the banner over real rows", () => {
     expect(banner.verdict).toContain("60 points ahead of the delivery");
     expect(banner.gaps).toEqual([]);
   });
+
+  it("values the hours at the client's default rate when the project has none", async () => {
+    // No override on the project, so the $200/hr comes through the join. Get
+    // that wrong and the burn is nought and the project reads unassessable.
+    const project = await createProject(
+      { clientId, name: "Retainer work", contractValueCents: 400_000 },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Audit", estimatedMinutes: 600 },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Fixes", estimatedMinutes: 600 },
+      db,
+    );
+    // Ten hours, $2,000 of $4,000, and the first of two lines handed over.
+    await createTimeEntry(
+      { projectId: project.id, minutes: 600, workedOn: "2026-11-03" },
+      db,
+    );
+    const [audit] = await listDeliverables(project.id, db);
+    await setDeliverableStatus(audit.id, audit.status, "done", db);
+
+    const banner = await bannerFor(project.id);
+
+    expect(banner.headline).toBe("On track");
+    expect(banner.verdict).toContain(
+      "50% of the contract has gone on 50% of the estimated work",
+    );
+    expect(banner.gaps).toEqual([]);
+  });
+
+  it("withholds a verdict from hours no rate can value", async () => {
+    const bare = await createClient({ name: "No default rate" }, db);
+    const project = await createProject(
+      { clientId: bare.id, name: "Unpriced hours", contractValueCents: 500_000 },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Phase one", estimatedMinutes: 1_200 },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Phase two", estimatedMinutes: 1_200 },
+      db,
+    );
+    // Eighty hours in, and nothing anywhere says what an hour is worth.
+    await createTimeEntry(
+      { projectId: project.id, minutes: 4_800, workedOn: "2026-11-04" },
+      db,
+    );
+
+    const banner = await bannerFor(project.id);
+
+    // The arithmetic says nought burned, which would read as an engagement
+    // that has barely started. The banner says nobody can tell.
+    expect(banner.headline).toBe(NOT_ASSESSED_HEADLINE);
+    expect(banner.verdict).toBe(NOT_ASSESSED_LEAD);
+    expect(banner.gaps).toEqual([BLIND_SPOT_SENTENCE["burn-not-valued"]]);
+  });
 });
