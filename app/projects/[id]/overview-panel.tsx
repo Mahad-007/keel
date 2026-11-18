@@ -47,15 +47,12 @@ function Fact({ term, children }: { term: string; children: ReactNode }) {
 export function OverviewPanel({
   project,
   statusEvents,
-  deliverableCount,
   timeTotals,
   scopeLines,
 }: {
   project: ProjectWithClient;
   /** The project's status trail, newest first. */
   statusEvents: readonly ProjectStatusEvent[];
-  /** How many deliverables a copy of this project would carry over. */
-  deliverableCount: number;
   /**
    * What this project's time entries come to: the three figures the burn is
    * built from.
@@ -73,6 +70,10 @@ export function OverviewPanel({
    * trustworthy is four counts over the same list, and a panel handed one
    * number could not tell a finished project from one where the only sized
    * line happens to be the only finished one.
+   *
+   * The duplicate control's count comes off it too. It wants a number and
+   * nothing else, and a second prop carrying the length of a list already in
+   * hand is a figure that can disagree with the list beside it.
    */
   scopeLines: readonly Deliverable[];
 }) {
@@ -142,7 +143,7 @@ export function OverviewPanel({
         projectName={project.name}
         clientName={project.clientName}
         clientArchivedAt={project.clientArchivedAt}
-        deliverableCount={deliverableCount}
+        deliverableCount={scopeLines.length}
         duplicate={duplicate}
       />
     </>

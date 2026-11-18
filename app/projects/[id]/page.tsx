@@ -94,9 +94,9 @@ export default async function ProjectPage({
   const now = new Date();
 
   /*
-    Only the overview reads the status trail and the size of the scope list, so
-    only the overview pays for them: the other four tabs render a sentence
-    apiece and have no business running two more queries to do it.
+    Only the overview reads the status trail, the time totals and the scope
+    list, so only the overview pays for them: the other four tabs render a
+    sentence apiece and have no business running three queries to do it.
 
     The scope list is the third, and it is the delivery half of the scope
     health verdict: the banner at the top of the tab sets what the hours have
@@ -202,8 +202,7 @@ export default async function ProjectPage({
           <OverviewPanel
             project={project}
             statusEvents={statusEvents}
-            deliverableCount={overviewScope.length}
-            timeTotals={timeTotals}
+                        timeTotals={timeTotals}
             scopeLines={overviewScope}
           />
         ) : tab === "scope" ? (
