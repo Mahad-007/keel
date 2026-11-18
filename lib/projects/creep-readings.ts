@@ -7,7 +7,11 @@ import {
   unestimatedDeliveredCount,
   type ScopeLine,
 } from "@/lib/scope";
-import type { CreepReadings } from "@/lib/scope-creep";
+import {
+  assessScopeCreep,
+  type CreepAssessment,
+  type CreepReadings,
+} from "@/lib/scope-creep";
 
 import { hasValuedBurn } from "./burn-summary";
 
@@ -67,4 +71,22 @@ export function projectCreepReadings(
     burnValued: hasValuedBurn(summary),
     scopeDelivered: allDelivered(lines),
   };
+}
+
+/**
+ * The whole assessment of one project, read straight off its burn and its
+ * scope list.
+ *
+ * The call a page makes. `projectCreepReadings` stays exported because the
+ * readings are worth asserting on one at a time, but nothing that shows a
+ * reader a verdict should be assembling eight facts itself — the point of the
+ * assessment is that the verdict, the reasons, the gaps and the figures all
+ * came from one reading of one project, and that guarantee survives exactly as
+ * far as the number of places that build the readings.
+ */
+export function assessProjectCreep(
+  summary: BurnSummary,
+  lines: readonly ScopeLine[],
+): CreepAssessment {
+  return assessScopeCreep(projectCreepReadings(summary, lines));
 }
