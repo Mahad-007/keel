@@ -101,6 +101,10 @@ describe("a gap written in percentage points", () => {
     // never flags it, and the portfolio ranking will still print it.
     expect(formatSharePoints(-0.2)).toBe("-20 points");
   });
+
+  it("reads the singular off the magnitude, not the figure", () => {
+    expect(formatSharePoints(-0.01)).toBe("-1 point");
+  });
 });
 
 describe("the sentence for a contract already spent", () => {

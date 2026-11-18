@@ -95,6 +95,12 @@ export function scopeHealthHeadline(health: ScopeHealth | null): string {
  * where they are printed, and a gap carrying a decimal would not reconcile
  * with the two figures a reader subtracts in their head.
  *
+ * The singular is read off the magnitude, not the figure, so a gap of a single
+ * point the other way round reads "-1 point" rather than "-1 points". Only the
+ * portfolio ranking will print one — the classifier never flags a project whose
+ * delivery is ahead of its burn — and a plural there would look like a typo in
+ * the one place a reader has nothing else to check it against.
+ *
  * A gap that rounds away is written as less than a point rather than as none.
  * It is not reachable from the thresholds the classifier flags on — a quarter
  * of a contract is the narrowest gap that earns a sentence — but a figure
@@ -105,7 +111,7 @@ export function scopeHealthHeadline(health: ScopeHealth | null): string {
 export function formatSharePoints(gap: number): string {
   const points = Math.round(gap * 100);
   if (points === 0 && gap > 0) return "less than a point";
-  if (points === 1) return "1 point";
+  if (Math.abs(points) === 1) return `${points} point`;
   return `${points} points`;
 }
 
