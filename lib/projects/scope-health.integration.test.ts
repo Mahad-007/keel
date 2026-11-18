@@ -167,4 +167,91 @@ describe("the banner over real rows", () => {
     expect(banner.verdict).toBe(NOT_ASSESSED_LEAD);
     expect(banner.gaps).toEqual([BLIND_SPOT_SENTENCE["burn-not-valued"]]);
   });
+
+  it("withholds a verdict from a scope list nobody put a price on", async () => {
+    // Deliverables agreed, estimated, half delivered, and no contract value.
+    // There is plenty to read and nothing to measure it against.
+    const project = await createProject(
+      { clientId, name: "Unpriced scope" },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Wireframes", estimatedMinutes: 600 },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Build", estimatedMinutes: 600 },
+      db,
+    );
+    const [wireframes] = await listDeliverables(project.id, db);
+    await setDeliverableStatus(wireframes.id, wireframes.status, "done", db);
+
+    const banner = await bannerFor(project.id);
+
+    expect(banner.headline).toBe(NOT_ASSESSED_HEADLINE);
+    expect(banner.gaps).toEqual([BLIND_SPOT_SENTENCE["no-contract-value"]]);
+  });
+
+  it("calls out a contract spent in full on an unfinished list", async () => {
+    const project = await createProject(
+      { clientId, name: "Overrun", contractValueCents: 200_000 },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Spec", estimatedMinutes: 300 },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Delivery", estimatedMinutes: 300 },
+      db,
+    );
+    const [spec] = await listDeliverables(project.id, db);
+    await setDeliverableStatus(spec.id, spec.status, "done", db);
+    // Twelve hours at $200 is $2,400 against a $2,000 contract.
+    await createTimeEntry(
+      { projectId: project.id, minutes: 720, workedOn: "2026-11-05" },
+      db,
+    );
+
+    const banner = await bannerFor(project.id);
+
+    expect(banner.headline).toBe("Over scope");
+    expect(banner.verdict).toContain("120% of the contract value");
+    expect(banner.verdict).toContain("the agreement does not pay for");
+    expect(banner.gaps).toEqual([]);
+  });
+
+  it("clears a project that delivered its whole list inside its price", async () => {
+    const project = await createProject(
+      { clientId, name: "Landed well", contractValueCents: 400_000 },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Phase one", estimatedMinutes: 480 },
+      db,
+    );
+    await createDeliverable(
+      { projectId: project.id, title: "Phase two", estimatedMinutes: 480 },
+      db,
+    );
+    for (const line of await listDeliverables(project.id, db)) {
+      await setDeliverableStatus(line.id, line.status, "done", db);
+    }
+    // Sixteen hours at $200 is $3,200 of the $4,000 agreed: 80% spent, and
+    // every line handed over. Four fifths of a price for all of the work is a
+    // job well done, not a project to flag.
+    await createTimeEntry(
+      { projectId: project.id, minutes: 960, workedOn: "2026-11-06" },
+      db,
+    );
+
+    const banner = await bannerFor(project.id);
+
+    expect(banner.headline).toBe("On track");
+    expect(banner.verdict).toContain(
+      "80% of the contract has gone on 100% of the estimated work",
+    );
+    expect(banner.reasons).toEqual([]);
+    expect(banner.gaps).toEqual([]);
+  });
 });
