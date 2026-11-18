@@ -132,6 +132,23 @@ export function ScopeHealthBanner({
         was reached from.
       */}
       <p className="mt-1 text-sm leading-6">{banner.verdict}</p>
+      {/*
+        The comparisons that also came out badly, under the worst one. Bulleted
+        rather than run together into the paragraph above, because they are
+        separate things to do something about: a project past its contract value
+        and a long way ahead of its delivery has a conversation to have about
+        the money and a different one to have about the scope.
+
+        Usually empty — one comparison flags most projects — so the list and its
+        spacing drop out rather than leaving a gap under the sentence.
+      */}
+      {banner.reasons.length === 0 ? null : (
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6">
+          {banner.reasons.map((reason) => (
+            <li key={reason}>{reason}</li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
