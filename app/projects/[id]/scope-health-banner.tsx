@@ -5,6 +5,82 @@ import {
   scopeHealthBanner,
 } from "@/lib/projects/scope-health";
 import type { ScopeLine } from "@/lib/scope";
+import type { ScopeHealth } from "@/lib/scope-creep";
+
+
+/**
+ * A project reading fine, which is most of them: a hairline border and no fill
+ * at all.
+ *
+ * The quietest thing the banner can be, because an engagement going to plan
+ * should not be the loudest box on its own page. It is still a box — the
+ * verdict was reached and the figures behind it are worth a reader's eye — but
+ * nothing about it competes with the one next door that is flagged.
+ *
+ * No text colour either, so the words are the page's own. The other two tones
+ * have to set one to stay legible on a fill; this one has nothing to be legible
+ * against.
+ */
+const ON_TRACK_TONE = "border-zinc-200 dark:border-zinc-800";
+
+/**
+ * Amber: do not take the figures at face value.
+ *
+ * Worn by two different headings, and they are the same instruction. "Worth
+ * watching" says the money is moving faster than the work and somebody should
+ * look; "Not assessed" says the money could not be read and nobody can say
+ * whether it is moving at all. Both mean a reader should stop, and neither
+ * means anything has failed yet.
+ *
+ * The same amber, and deliberately the same values, as `CaveatNote` — which is
+ * the component that taught this app what the colour means, and which a reader
+ * meets further down this very tab under the burn figures.
+ */
+const LOOK_AT_THIS_TONE =
+  "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100";
+
+/**
+ * Red: the money agreed has gone, or gone somewhere the work has not followed.
+ *
+ * The only red on the project page that is not a refused write, and the
+ * distinction is deliberate: `AlertNote`'s red means a press did not stick, and
+ * this one means a fact about the engagement that no amount of reloading will
+ * change. Both are the colour somebody stops at, which is the whole purpose
+ * here — this is the verdict the phase exists to surface.
+ */
+const OVER_SCOPE_TONE =
+  "border-red-300 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-100";
+
+/**
+ * How loud each verdict is allowed to be.
+ *
+ * A record over every verdict rather than a chain of conditions, so a fourth
+ * one is a compile error here rather than a banner with no border.
+ *
+ * The colour is the only thing on this banner that the component decides, and
+ * it decides it from the verdict alone — never from a share, a gap or a count.
+ * A box that picked its own threshold would be a second classifier, and the one
+ * a reader believed.
+ */
+const SCOPE_HEALTH_TONE: Record<ScopeHealth, string> = {
+  healthy: ON_TRACK_TONE,
+  watch: LOOK_AT_THIS_TONE,
+  over: OVER_SCOPE_TONE,
+};
+
+/**
+ * The tone for a verdict, or for the absence of one.
+ *
+ * A withheld verdict is amber rather than neutral, which is the one decision
+ * here worth arguing about. Neutral would read as "nothing to see", and the
+ * project it would read that way about is the one with hours logged and no rate
+ * to value them — the single most expensive thing this page could be quiet
+ * about.
+ */
+function scopeHealthTone(health: ScopeHealth | null): string {
+  if (health === null) return LOOK_AT_THIS_TONE;
+  return SCOPE_HEALTH_TONE[health];
+}
 
 /**
  * Why this project is flagged, in a sentence, at the top of its overview.
@@ -43,19 +119,19 @@ export function ScopeHealthBanner({
   const banner = scopeHealthBanner(assessProjectCreep(summary, lines));
 
   return (
-    <section className="mt-4 max-w-prose rounded border border-zinc-200 px-4 py-3 dark:border-zinc-800">
-      <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-        {banner.headline}
-      </h3>
+    <section
+      className={`mt-4 max-w-prose rounded border px-4 py-3 ${scopeHealthTone(
+        banner.health,
+      )}`}
+    >
+      <h3 className="text-sm font-medium">{banner.headline}</h3>
       {/*
         The milestone, in one element. It is the first thing under the heading
         because a reader who stopped at the heading has been told a verdict and
         nothing else, and the next line is the only place they find out what it
         was reached from.
       */}
-      <p className="mt-1 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-        {banner.verdict}
-      </p>
+      <p className="mt-1 text-sm leading-6">{banner.verdict}</p>
     </section>
   );
 }
