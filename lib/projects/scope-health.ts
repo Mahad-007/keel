@@ -208,3 +208,30 @@ export function describeFarAheadOfDelivery(
     gap,
   )} ahead of the delivery. That much of the contract has gone on work that is not there yet, which is the reading this flag exists for: both figures look survivable on their own.`;
 }
+
+/**
+ * Why a project whose burn has run ahead of its delivery is flagged.
+ *
+ * The same comparison as `describeFarAheadOfDelivery` at half the distance, and
+ * the whole difference is in what follows it: a quarter of a contract ahead of
+ * the work is a project that can still be brought back, and the sentence has to
+ * say that rather than leaving the reader to infer it from a lighter shade of
+ * the same warning.
+ *
+ * "A conversation rather than a correction" is the distinction, and it is the
+ * actionable half. At this gap there is budget left and scope left, so the
+ * options are all cheap — reorder the list, trim a deliverable, agree a change
+ * order. By the time the gap doubles, most of them are gone.
+ */
+export function describeAheadOfDelivery(
+  consumedShare: number,
+  deliveredShare: number,
+  gap: number,
+): string {
+  return `${describeBurnAgainstDelivery(
+    consumedShare,
+    deliveredShare,
+  )} — the burn is running ${formatSharePoints(
+    gap,
+  )} ahead of the delivery. The money is moving faster than the work, early enough that it is a conversation rather than a correction.`;
+}
