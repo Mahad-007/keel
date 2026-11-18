@@ -1,4 +1,8 @@
-import type { ScopeHealth } from "@/lib/scope-creep";
+import type {
+  CreepAssessment,
+  CreepReason,
+  ScopeHealth,
+} from "@/lib/scope-creep";
 
 import { formatSharePercent } from "./scope-summary";
 
@@ -234,4 +238,60 @@ export function describeAheadOfDelivery(
   )} — the burn is running ${formatSharePoints(
     gap,
   )} ahead of the delivery. The money is moving faster than the work, early enough that it is a conversation rather than a correction.`;
+}
+
+/**
+ * The sentence each reason is read in, as a function of the assessment that
+ * reported it.
+ *
+ * A record over every reason rather than a switch, so a fifth reason added to
+ * the classifier is a compile error in this file — the one place that has to
+ * have words for it — rather than a flagged project whose banner silently
+ * leaves out the comparison that flagged it. The same arrangement, for the same
+ * reason, that `REASON_HEALTH` keeps next door.
+ *
+ * Each one takes the figures off the assessment rather than being handed them,
+ * so the sentence quotes the shares the verdict was reached from. The
+ * assessment echoes both shares *as read* — a burn no rate could value carries
+ * null here rather than the reassuring nought the arithmetic produced — which
+ * is exactly the guarantee a banner needs and cannot get by subtracting
+ * anything itself.
+ *
+ * Null where a figure the sentence needs is missing. That cannot happen from a
+ * whole assessment: `creepReasons` returns nothing at all without a readable
+ * consumed share, and the two gap reasons only fire on a gap that exists. It is
+ * here because the type cannot say so, and a banner that threw on a
+ * hand-assembled pair would take the project page with it — a verdict with one
+ * sentence missing is a worse banner, not a blank screen.
+ */
+const REASON_SENTENCE: Record<
+  CreepReason,
+  (assessment: CreepAssessment) => string | null
+> = {
+  "contract-overspent": ({ consumedShare }) =>
+    consumedShare === null ? null : describeOverspentContract(consumedShare),
+  "burn-far-ahead-of-delivery": ({ consumedShare, deliveredShare, gap }) =>
+    consumedShare === null || deliveredShare === null || gap === null
+      ? null
+      : describeFarAheadOfDelivery(consumedShare, deliveredShare, gap),
+  "contract-nearly-spent": ({ consumedShare }) =>
+    consumedShare === null ? null : describeNearlySpentContract(consumedShare),
+  "burn-ahead-of-delivery": ({ consumedShare, deliveredShare, gap }) =>
+    consumedShare === null || deliveredShare === null || gap === null
+      ? null
+      : describeAheadOfDelivery(consumedShare, deliveredShare, gap),
+};
+
+/**
+ * What one reason says, given the assessment that reported it.
+ *
+ * Exported because a portfolio row wants one sentence rather than all of them,
+ * and because a reason's words are worth asserting on without building the
+ * whole banner around them.
+ */
+export function creepReasonSentence(
+  reason: CreepReason,
+  assessment: CreepAssessment,
+): string | null {
+  return REASON_SENTENCE[reason](assessment);
 }
