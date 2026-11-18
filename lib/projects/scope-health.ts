@@ -372,3 +372,21 @@ export const BLIND_SPOT_SENTENCE: Record<CreepBlindSpot, string> = {
   "scope-too-coarse":
     "The scope is a single deliverable, so it reads as nothing delivered until the day it is signed off, and the verdict rests on the money alone. Breaking it up is what makes progress legible.",
 };
+
+/**
+ * Everything the verdict could not see, in sentences, money first.
+ *
+ * The classifier's order, which is the order of what to do about it: the money
+ * gap first, because without the money there is no verdict, and the scope gap
+ * after, because it only costs the second axis. At most two, and usually none.
+ *
+ * Separate sentences rather than one paragraph, matching the reasons above and
+ * for the same reason: a project with no contract value and no estimates has
+ * two forms to fill in, and running them together would make one problem of
+ * two.
+ */
+export function creepBlindSpotSentences(
+  assessment: CreepAssessment,
+): readonly string[] {
+  return assessment.blindSpots.map((spot) => BLIND_SPOT_SENTENCE[spot]);
+}
