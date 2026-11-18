@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { summariseBurn, type BurnSummary } from "@/lib/burn";
+import { UNRATED, type EffectiveRate } from "@/lib/rates";
 import {
   CREEP_BLIND_SPOTS,
   CREEP_REASONS,
@@ -10,6 +12,7 @@ import {
 
 import {
   BLIND_SPOT_SENTENCE,
+  hasScopeHealthToShow,
   NOT_ASSESSED_LEAD,
   scopeHealthBanner,
   describeHealthyProject,
@@ -468,5 +471,46 @@ describe("the banner for one project", () => {
       "watch",
     );
     expect(scopeHealthBanner(assessment()).health).toBeNull();
+  });
+});
+
+/** A burn summary as the overview panel builds one. */
+function burn(
+  loggedMinutes: number,
+  contractedCents: number,
+  rate: EffectiveRate = { cents: 20_000, source: "project" },
+): BurnSummary {
+  return summariseBurn(
+    {
+      entryCount: loggedMinutes === 0 ? 0 : 1,
+      loggedMinutes,
+      billableMinutes: loggedMinutes,
+    },
+    contractedCents,
+    rate,
+  );
+}
+
+describe("whether a project is far enough along for a banner", () => {
+  it("stays off a row nobody has priced, logged against or scoped", () => {
+    expect(hasScopeHealthToShow(burn(0, 0), 0)).toBe(false);
+  });
+
+  it("shows once a price has been agreed", () => {
+    expect(hasScopeHealthToShow(burn(0, 1_000_000), 0)).toBe(true);
+  });
+
+  it("shows once an hour has been logged, even with no price", () => {
+    expect(hasScopeHealthToShow(burn(60, 0), 0)).toBe(true);
+  });
+
+  it("shows once a line of scope has been written down", () => {
+    expect(hasScopeHealthToShow(burn(0, 0), 1)).toBe(true);
+  });
+
+  it("shows for the project with unpriced hours and nothing else", () => {
+    // The dangerous row: hours gone in, no rate, no price. The verdict is
+    // withheld, and the banner is the only thing that says so.
+    expect(hasScopeHealthToShow(burn(4_800, 0, UNRATED), 0)).toBe(true);
   });
 });
