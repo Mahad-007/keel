@@ -10,6 +10,7 @@ import {
 
 import {
   BLIND_SPOT_SENTENCE,
+  creepBlindSpotSentences,
   creepReasonSentence,
   creepReasonSentences,
   describeAheadOfDelivery,
@@ -358,5 +359,26 @@ describe("the sentences for what a verdict could not see", () => {
     for (const spot of ["burn-below-zero", "scope-estimates-invalid"] as const) {
       expect(BLIND_SPOT_SENTENCE[spot]).toContain("edited directly");
     }
+  });
+});
+
+describe("every gap a verdict was reached around", () => {
+  it("keeps the classifier's money-first order", () => {
+    const sentences = creepBlindSpotSentences(
+      assessment({
+        blindSpots: ["no-contract-value", "scope-not-estimated"],
+      }),
+    );
+
+    expect(sentences).toEqual([
+      BLIND_SPOT_SENTENCE["no-contract-value"],
+      BLIND_SPOT_SENTENCE["scope-not-estimated"],
+    ]);
+  });
+
+  it("says nothing about a project with a price, a rate and estimates", () => {
+    expect(creepBlindSpotSentences(assessment({ health: "healthy" }))).toEqual(
+      [],
+    );
   });
 });
