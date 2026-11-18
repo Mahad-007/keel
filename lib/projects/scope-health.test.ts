@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { SCOPE_HEALTH, type ScopeHealth } from "@/lib/scope-creep";
 
 import {
+  describeAheadOfDelivery,
   describeBurnAgainstDelivery,
   describeFarAheadOfDelivery,
   describeNearlySpentContract,
@@ -161,5 +162,37 @@ describe("the sentence for a burn far ahead of its delivery", () => {
     // A projection rests on the pace holding, and it belongs with the caveats
     // that go with it rather than inside a sentence about today.
     expect(sentence).not.toMatch(/will|expect|project(ed|ion)|forecast/);
+  });
+});
+
+describe("the sentence for a burn ahead of its delivery", () => {
+  it("quotes both shares and the gap between them", () => {
+    const sentence = describeAheadOfDelivery(0.45, 0.18, 0.27);
+
+    expect(sentence).toContain("45% of the contract has gone on 18%");
+    expect(sentence).toContain("27 points ahead of the delivery");
+  });
+
+  it("says the gap is still cheap to close", () => {
+    expect(describeAheadOfDelivery(0.45, 0.18, 0.27)).toContain(
+      "a conversation rather than a correction",
+    );
+  });
+
+  it("opens on the same comparison as the far-ahead sentence", () => {
+    // The thresholds differ in what follows, not in what is measured. Two
+    // spellings of one comparison would read as two different measurements.
+    const clause = describeBurnAgainstDelivery(0.6, 0.1);
+
+    expect(describeAheadOfDelivery(0.6, 0.1, 0.5).startsWith(clause)).toBe(true);
+    expect(describeFarAheadOfDelivery(0.6, 0.1, 0.5).startsWith(clause)).toBe(
+      true,
+    );
+  });
+
+  it("does not read as the far-ahead sentence", () => {
+    expect(describeAheadOfDelivery(0.6, 0.1, 0.5)).not.toBe(
+      describeFarAheadOfDelivery(0.6, 0.1, 0.5),
+    );
   });
 });
