@@ -146,3 +146,31 @@ export function describeNearlySpentContract(consumedShare: number): string {
     consumedShare,
   )} of the contract value, and the scope list is not finished. What is left has to cover everything still outstanding.`;
 }
+
+/**
+ * The two shares, side by side, as the clause both creep sentences open on.
+ *
+ * This is the comparison the whole phase exists for, in eleven words: what
+ * fraction of the money has gone, and what fraction of the work has landed for
+ * it. Neither figure flags anything on its own — 60% consumed is a project
+ * going fine and 10% delivered is a project that has just started — and set
+ * against each other they are an engagement that will miss by a mile.
+ *
+ * "Has gone on" rather than "has paid for". Nothing has been paid: the burn is
+ * hours valued at a rate, and the burn panel says so under its own figures. The
+ * contract has been *consumed*, which is a different claim and the one the
+ * arithmetic supports.
+ *
+ * Shared by both gap sentences rather than written twice, so the watch reading
+ * and the over reading quote their figures identically and differ only in what
+ * they say follows. Two spellings of one comparison is how a reader comes to
+ * think the thresholds measure different things.
+ */
+export function describeBurnAgainstDelivery(
+  consumedShare: number,
+  deliveredShare: number,
+): string {
+  return `${formatSharePercent(consumedShare)} of the contract has gone on ${formatSharePercent(
+    deliveredShare,
+  )} of the estimated work`;
+}
