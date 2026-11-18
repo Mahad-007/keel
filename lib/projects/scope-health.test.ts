@@ -9,6 +9,7 @@ import {
 
 import {
   creepReasonSentence,
+  creepReasonSentences,
   describeAheadOfDelivery,
   describeBurnAgainstDelivery,
   describeFarAheadOfDelivery,
@@ -270,5 +271,40 @@ describe("one reason's sentence, read off an assessment", () => {
     const withoutGap = assessment({ consumedShare: 0.6, deliveredShare: 0.1 });
 
     expect(creepReasonSentence("burn-ahead-of-delivery", withoutGap)).toBeNull();
+  });
+});
+
+describe("every reason a project was flagged for", () => {
+  it("keeps the classifier's worst-first order", () => {
+    const sentences = creepReasonSentences(
+      assessment({
+        reasons: ["contract-overspent", "burn-ahead-of-delivery"],
+        consumedShare: 1.1,
+        deliveredShare: 0.8,
+        gap: 0.3,
+      }),
+    );
+
+    expect(sentences).toEqual([
+      describeOverspentContract(1.1),
+      describeAheadOfDelivery(1.1, 0.8, 0.3),
+    ]);
+  });
+
+  it("says nothing at all about a project with nothing wrong", () => {
+    expect(
+      creepReasonSentences(assessment({ health: "healthy", consumedShare: 0.2 })),
+    ).toEqual([]);
+  });
+
+  it("drops a reason whose figures are missing rather than printing a hole", () => {
+    const sentences = creepReasonSentences(
+      assessment({
+        reasons: ["contract-overspent", "burn-far-ahead-of-delivery"],
+        consumedShare: 1.1,
+      }),
+    );
+
+    expect(sentences).toEqual([describeOverspentContract(1.1)]);
   });
 });
