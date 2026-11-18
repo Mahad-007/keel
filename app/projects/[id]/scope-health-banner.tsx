@@ -82,6 +82,9 @@ function scopeHealthTone(health: ScopeHealth | null): string {
   return SCOPE_HEALTH_TONE[health];
 }
 
+/** Ties the banner's region to the heading that names it. */
+const HEADING_ID = "scope-health-heading";
+
 /**
  * Why this project is flagged, in a sentence, at the top of its overview.
  *
@@ -120,11 +123,22 @@ export function ScopeHealthBanner({
 
   return (
     <section
+      aria-labelledby={HEADING_ID}
       className={`mt-4 max-w-prose rounded border px-4 py-3 ${scopeHealthTone(
         banner.health,
       )}`}
     >
-      <h3 className="text-sm font-medium">{banner.headline}</h3>
+      {/*
+        Named by its heading, so the box is a region a reader can jump to and
+        the verdict is what it is called. Without the name it is a bare `section`
+        — which carries no role at all, so the one conclusion on the page would
+        be reachable only by reading the whole tab in order. The colour that
+        makes it findable on screen is no help here, which is most of the reason
+        the colour is not what carries the meaning.
+      */}
+      <h3 id={HEADING_ID} className="text-sm font-medium">
+        {banner.headline}
+      </h3>
       {/*
         The milestone, in one element. It is the first thing under the heading
         because a reader who stopped at the heading has been told a verdict and
