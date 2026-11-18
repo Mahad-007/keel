@@ -136,10 +136,16 @@ describe("the sentence for a contract nearly spent", () => {
     );
   });
 
-  it("names the outstanding scope that earns the flag", () => {
+  it("names the unfinished work that earns the flag", () => {
     expect(describeNearlySpentContract(0.84)).toContain(
-      "the scope list is not finished",
+      "nothing yet says the work is finished",
     );
+  });
+
+  it("does not send an unscoped project looking for a list", () => {
+    // An empty scope list earns this reason too, and rightly: nobody can say
+    // what the remaining fifth of the price has to cover.
+    expect(describeNearlySpentContract(0.84)).not.toContain("scope list");
   });
 
   it("says what the remainder has to cover rather than how much it is", () => {

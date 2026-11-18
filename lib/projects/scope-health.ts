@@ -147,8 +147,14 @@ export function describeOverspentContract(consumedShare: number): string {
  * The weaker of the two money sentences, and the one most at risk of being
  * read as the stronger. Four fifths of a contract spent is a perfectly
  * ordinary reading on a project four fifths of the way through its work — so
- * the sentence has to say why it is here at all, and the answer is the scope
- * list: the classifier only raises this while there is work outstanding.
+ * the sentence has to say why it is here at all, and the answer is that nothing
+ * says the work is finished: the classifier excuses this reading only once
+ * every line of the scope is delivered.
+ *
+ * "Nothing yet says the work is finished" rather than "the scope list is not
+ * finished", because an empty scope list earns this reason too — and rightly:
+ * nobody can say what the remaining fifth of the price has to cover. Naming a
+ * list would send a reader to look for one that is not there.
  *
  * It closes on what the remainder has to cover rather than on the remainder
  * itself. The amount left is already on the burn panel an inch below, and a
@@ -159,7 +165,7 @@ export function describeOverspentContract(consumedShare: number): string {
 export function describeNearlySpentContract(consumedShare: number): string {
   return `The hours logged against this project have burned ${formatSharePercent(
     consumedShare,
-  )} of the contract value, and the scope list is not finished. What is left has to cover everything still outstanding.`;
+  )} of the contract value, and nothing yet says the work is finished. What is left has to cover whatever is still outstanding.`;
 }
 
 /**
