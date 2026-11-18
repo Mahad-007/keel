@@ -295,3 +295,29 @@ export function creepReasonSentence(
 ): string | null {
   return REASON_SENTENCE[reason](assessment);
 }
+
+/**
+ * Every comparison that flagged this project, worst first, in sentences.
+ *
+ * The order is the classifier's, which puts the worst first — the banner leads
+ * with the first of these, and a reader who stops after one sentence should
+ * have been told the worst thing.
+ *
+ * Every reason gets its own sentence rather than being run together into a
+ * paragraph. Two comparisons came out badly and they are two separate things to
+ * do something about: a project past its contract value *and* a long way ahead
+ * of its delivery has a conversation to have about the money and a different
+ * one to have about the scope.
+ *
+ * A reason whose figures are missing drops out rather than appearing as a
+ * sentence with a hole in it. On an assessment from `assessScopeCreep` that
+ * cannot happen, so the ordinary answer is one sentence per reason and an empty
+ * array for a project with nothing wrong.
+ */
+export function creepReasonSentences(
+  assessment: CreepAssessment,
+): readonly string[] {
+  return assessment.reasons
+    .map((reason) => creepReasonSentence(reason, assessment))
+    .filter((sentence): sentence is string => sentence !== null);
+}
