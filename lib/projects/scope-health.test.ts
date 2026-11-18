@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { SCOPE_HEALTH, type ScopeHealth } from "@/lib/scope-creep";
 
 import {
+  describeOverspentContract,
   formatSharePoints,
   NOT_ASSESSED_HEADLINE,
   SCOPE_HEALTH_HEADLINE,
@@ -58,5 +59,27 @@ describe("a gap written in percentage points", () => {
     // Delivery ahead of the burn, which is a project doing well. The classifier
     // never flags it, and the portfolio ranking will still print it.
     expect(formatSharePoints(-0.2)).toBe("-20 points");
+  });
+});
+
+describe("the sentence for a contract already spent", () => {
+  it("leads with the share the hours have burned", () => {
+    expect(describeOverspentContract(1.12)).toContain("112% of the contract");
+  });
+
+  it("names the consequence rather than restating the share", () => {
+    expect(describeOverspentContract(1.12)).toContain(
+      "the agreement does not pay for",
+    );
+  });
+
+  it("rounds the share the way the burn panel rounds it", () => {
+    // A hair over the contract must not read as exactly spent: a reader told
+    // "100%" stops looking, and this is the project to keep looking at.
+    expect(describeOverspentContract(1.001)).toContain("more than 100%");
+  });
+
+  it("says exactly spent as exactly spent", () => {
+    expect(describeOverspentContract(1)).toContain("100% of the contract");
   });
 });
