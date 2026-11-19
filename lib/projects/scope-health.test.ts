@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import { summariseBurn, type BurnSummary } from "@/lib/burn";
 import { UNRATED, type EffectiveRate } from "@/lib/rates";
 import {
+  assessScopeCreep,
   CREEP_BLIND_SPOTS,
   CREEP_REASONS,
   SCOPE_HEALTH,
   type CreepAssessment,
+  type CreepReadings,
   type ScopeHealth,
 } from "@/lib/scope-creep";
 
@@ -710,5 +712,73 @@ describe("the banner over a burn and a scope list", () => {
     expect(banner.gaps).toEqual([
       BLIND_SPOT_SENTENCE["scope-not-estimated"],
     ]);
+  });
+});
+
+/**
+ * The guard the two closing clauses exist for, over every pairing that can
+ * reach a banner.
+ *
+ * Each sentence is checked on its own above. What those tests cannot say is
+ * that a banner's sentences agree with each other, and the reasons do stack:
+ * the money axis and the creep axis flag independently, so a lead that has
+ * just said the contract is spent can be followed by a bullet written for a
+ * project with budget to spare. Both ways round have happened.
+ *
+ * Two reserved words carry the comfort — "survivable" for the far gap and
+ * "conversation" for the near one — and the rule is that neither may appear in
+ * a banner that also flagged the money. The second half of the rule matters as
+ * much: where the money reads fine they must still be there, so the guard
+ * cannot be satisfied by deleting the clause a reader needs most.
+ */
+describe("a banner that flags more than one comparison", () => {
+  /** Readings of a well-estimated four-line list at two given shares. */
+  function at(consumedShare: number, deliveredShare: number): CreepReadings {
+    return {
+      consumedShare,
+      deliveredShare,
+      lineCount: 4,
+      unestimatedCount: 0,
+      unestimatedDeliveredCount: 0,
+      negativeEstimateCount: 0,
+      burnValued: true,
+      scopeDelivered: deliveredShare >= 1,
+    };
+  }
+
+  /** Every sentence a reader would see, lead first. */
+  function sentences(consumedShare: number, deliveredShare: number): string[] {
+    const banner = scopeHealthBanner(assessScopeCreep(at(consumedShare, deliveredShare)));
+    return [banner.verdict, ...banner.reasons];
+  }
+
+  /** Words only a project with money still in the bank may be told. */
+  const COMFORT = ["survivable", "conversation"];
+
+  /** The money readings that flag: the watch band, and past the whole. */
+  const FLAGGED_MONEY = [0.8, 0.9, 0.99, 1, 1.4];
+  /** Delivered shares spanning both creep thresholds and neither. */
+  const DELIVERED = [0, 0.2, 0.45, 0.6, 0.79];
+
+  it("offers no comfort about money it has already flagged", () => {
+    for (const consumedShare of FLAGGED_MONEY) {
+      for (const deliveredShare of DELIVERED) {
+        for (const sentence of sentences(consumedShare, deliveredShare)) {
+          for (const word of COMFORT) {
+            expect(
+              sentence,
+              `${consumedShare} consumed against ${deliveredShare} delivered`,
+            ).not.toContain(word);
+          }
+        }
+      }
+    }
+  });
+
+  it("still says why a project with budget left is flagged at all", () => {
+    // 60% of a contract is not flagged on its own, so both gap sentences keep
+    // their closing clause here — which is the reading the phase exists for.
+    expect(sentences(0.6, 0.05).join(" ")).toContain("survivable");
+    expect(sentences(0.6, 0.3).join(" ")).toContain("conversation");
   });
 });
