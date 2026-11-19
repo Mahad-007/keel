@@ -15,6 +15,7 @@ import { resolveJoinedRate } from "@/lib/rates";
 
 import { assessProjectCreep } from "./creep-readings";
 import {
+  AHEAD_CLOSING,
   BLIND_SPOT_SENTENCE,
   hasScopeHealthToShow,
   NOT_ASSESSED_HEADLINE,
@@ -218,6 +219,43 @@ describe("the banner over real rows", () => {
     expect(banner.headline).toBe("Over scope");
     expect(banner.verdict).toContain("120% of the contract value");
     expect(banner.verdict).toContain("the agreement does not pay for");
+    expect(banner.gaps).toEqual([]);
+  });
+
+  it("keeps the bullet under an overspent lead from excusing it", async () => {
+    // The pair that stacks worst. The money is over and the gap has only
+    // reached a quarter, so the lead is the overspend and the bullet under it
+    // is a watch — and a watch sentence written for a project with budget left
+    // would be offering a conversation about money that has gone.
+    const project = await createProject(
+      { clientId, name: "Late overrun", contractValueCents: 1_000_000 },
+      db,
+    );
+    for (const [title, estimatedMinutes] of [
+      ["Discovery", 600],
+      ["Build", 1_800],
+      ["Launch", 600],
+    ] as const) {
+      await createDeliverable({ projectId: project.id, title, estimatedMinutes }, db);
+    }
+    for (const line of (await listDeliverables(project.id, db)).slice(0, 2)) {
+      await setDeliverableStatus(line.id, line.status, "done", db);
+    }
+    // Fifty-five hours at $200 is $11,000 against the $10,000 agreed, and
+    // 2,400 of the 3,000 estimated minutes are signed off: 110% against 80%.
+    await createTimeEntry(
+      { projectId: project.id, minutes: 3_300, workedOn: "2026-11-07" },
+      db,
+    );
+
+    const banner = await bannerFor(project.id);
+
+    expect(banner.headline).toBe("Over scope");
+    expect(banner.verdict).toContain("110% of the contract value");
+    expect(banner.reasons).toEqual([
+      `110% of the contract has gone on 80% of the estimated work — the burn is running 30 points ahead of the delivery. ${AHEAD_CLOSING.over}`,
+    ]);
+    expect(banner.reasons[0]).not.toContain("conversation");
     expect(banner.gaps).toEqual([]);
   });
 
