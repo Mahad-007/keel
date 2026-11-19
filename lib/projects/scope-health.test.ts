@@ -13,6 +13,7 @@ import {
 import { assessProjectCreep } from "./creep-readings";
 import {
   BLIND_SPOT_SENTENCE,
+  FAR_AHEAD_CLOSING,
   hasScopeHealthToShow,
   NOT_ASSESSED_LEAD,
   scopeHealthBanner,
@@ -210,6 +211,38 @@ describe("the sentence for a burn far ahead of its delivery", () => {
 
     expect(sentence).not.toContain("survivable");
     expect(sentence).toContain("The contract value is already gone");
+  });
+
+  it("does not call both figures survivable with the contract nearly spent", () => {
+    // 85% burned against 30% delivered flags on both axes: the money is at the
+    // watch threshold and the gap is past the far-ahead one. A lead claiming
+    // both readings are survivable sits an inch above the bullet flagging the
+    // money, which is the banner arguing with itself.
+    const sentence = describeFarAheadOfDelivery(0.85, 0.3, 0.55);
+
+    expect(sentence).not.toContain("survivable");
+    expect(sentence).toContain("The money has been flagged too");
+  });
+
+  it("still calls both figures survivable with budget left to spare", () => {
+    // The clause the reason exists for, and the one the guard must not eat:
+    // 60% of the money is not flagged on its own, and that is the point.
+    expect(describeFarAheadOfDelivery(0.6, 0.1, 0.5)).toBe(
+      `${describeBurnAgainstDelivery(0.6, 0.1)} — the burn is running 50 points ahead of the delivery. ${FAR_AHEAD_CLOSING.healthy}`,
+    );
+  });
+
+  it("reads its closing clause off the money verdict", () => {
+    // Each band gets its own clause, and none of them is another band's.
+    expect(describeFarAheadOfDelivery(0.6, 0.1, 0.5)).toContain(
+      FAR_AHEAD_CLOSING.healthy,
+    );
+    expect(describeFarAheadOfDelivery(0.85, 0.3, 0.55)).toContain(
+      FAR_AHEAD_CLOSING.watch,
+    );
+    expect(describeFarAheadOfDelivery(1.2, 0.1, 1.1)).toContain(
+      FAR_AHEAD_CLOSING.over,
+    );
   });
 
   it("makes no claim about what the burn will come to", () => {
