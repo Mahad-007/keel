@@ -44,9 +44,12 @@ describe("the money half of the readings", () => {
   });
 
   it("carries a share past the whole unclamped", () => {
-    const readings = projectCreepReadings(burn(3_000, 1_000_000), []);
+    // Sixty hours at $200 is $12,000 of a $10,000 contract. The figure the
+    // classifier was built to act on, and the one a caller that clamped at the
+    // whole would hand over as a project reading merely finished.
+    const readings = projectCreepReadings(burn(3_600, 1_000_000), []);
 
-    expect(readings.consumedShare).toBeCloseTo(1);
+    expect(readings.consumedShare).toBeCloseTo(1.2);
   });
 
   it("has no share when there is no price to divide by", () => {
