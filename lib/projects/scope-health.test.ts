@@ -12,6 +12,7 @@ import {
 
 import { assessProjectCreep } from "./creep-readings";
 import {
+  AHEAD_CLOSING,
   BLIND_SPOT_SENTENCE,
   FAR_AHEAD_CLOSING,
   hasScopeHealthToShow,
@@ -266,6 +267,42 @@ describe("the sentence for a burn ahead of its delivery", () => {
     expect(describeAheadOfDelivery(0.45, 0.18, 0.27)).toContain(
       "a conversation rather than a correction",
     );
+  });
+
+  it("does not offer a conversation once the contract is spent", () => {
+    // The worst of the stacked pairs: this reason is a watch, so it lands as a
+    // bullet under an overspent lead. 110% burned against 80% delivered is a
+    // project with no budget left to have the conversation about.
+    const sentence = describeAheadOfDelivery(1.1, 0.8, 0.3);
+
+    expect(sentence).not.toContain("conversation");
+    expect(sentence).toContain("the contract value has already gone");
+  });
+
+  it("does not offer a conversation with the contract nearly spent", () => {
+    const sentence = describeAheadOfDelivery(0.85, 0.55, 0.3);
+
+    expect(sentence).not.toContain("conversation");
+    expect(sentence).toContain("at most a fifth of the contract is left");
+  });
+
+  it("reads its closing clause off the money verdict", () => {
+    expect(describeAheadOfDelivery(0.45, 0.18, 0.27)).toContain(
+      AHEAD_CLOSING.healthy,
+    );
+    expect(describeAheadOfDelivery(0.85, 0.55, 0.3)).toContain(
+      AHEAD_CLOSING.watch,
+    );
+    expect(describeAheadOfDelivery(1.1, 0.8, 0.3)).toContain(AHEAD_CLOSING.over);
+  });
+
+  it("says the money is outrunning the work whatever the money reads", () => {
+    // The clause differs in what can be done about the gap, never in what the
+    // gap is: a reader meeting the three bands on three projects should be
+    // reading one measurement, not three.
+    for (const closing of Object.values(AHEAD_CLOSING)) {
+      expect(closing).toContain("The money is moving faster than the work");
+    }
   });
 
   it("opens on the same comparison as the far-ahead sentence", () => {
