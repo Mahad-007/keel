@@ -197,6 +197,36 @@ export function describeBurnAgainstDelivery(
 }
 
 /**
+ * How a far-ahead gap closes, given what the money axis made of the same
+ * project.
+ *
+ * This reason stacks with both money reasons, so its sentence lands as a bullet
+ * under a lead that has already judged the money — and "both figures look
+ * survivable on their own" under a lead that has just said the contract is
+ * spent, or nearly spent, is the banner contradicting itself an inch apart. The
+ * clause is therefore read off the money verdict rather than written once for
+ * every reading of it.
+ *
+ * A record over every verdict rather than a chain of conditions, so a fourth
+ * one is a compile error here rather than a gap sentence that ends mid-thought.
+ * `classifyConsumedShare` supplies the key, so this file never holds a second
+ * copy of the thresholds the classifier flags on.
+ *
+ * The watch clause bounds what is left rather than naming the share again: the
+ * watch band opens at four fifths of the contract, so at most a fifth of it is
+ * left whatever the exact figure — and the figure itself is already in the
+ * clause this sentence closes.
+ */
+export const FAR_AHEAD_CLOSING: Record<ScopeHealth, string> = {
+  healthy:
+    "That much of the contract has gone on work that is not there yet, which is the reading this flag exists for: both figures look survivable on their own.",
+  watch:
+    "The money has been flagged too: at most a fifth of the contract is left, and it has to cover everything the burn has run ahead of.",
+  over:
+    "The contract value is already gone, so this is not a warning about what might happen: the money bought work that is not there.",
+};
+
+/**
  * Why a project whose burn has run a long way ahead of its delivery is
  * flagged.
  *
@@ -213,13 +243,8 @@ export function describeBurnAgainstDelivery(
  * is the one thing on the banner that a reader cannot work out from the figures
  * in front of them.
  *
- * Except where the money has already gone, which is the one case that clause
- * would be false in. This reason stacks with `contract-overspent`, and under a
- * lead sentence that has just said the contract is spent, "both figures look
- * survivable on their own" is the banner contradicting itself an inch apart. So
- * the threshold is asked, through `classifyConsumedShare` rather than a second
- * copy of the number, and the closing clause says what the gap means once the
- * money is gone: the overspend bought work that has not landed.
+ * Except where the money axis has flagged as well, which is where that clause
+ * would be false — `FAR_AHEAD_CLOSING` is what it says instead.
  *
  * No projection. What the burn would come to by the time the list is finished is
  * a different claim, resting on the pace holding, and it belongs with the
@@ -230,14 +255,12 @@ export function describeFarAheadOfDelivery(
   deliveredShare: number,
   gap: number,
 ): string {
-  const closing =
-    classifyConsumedShare(consumedShare) === "over"
-      ? "The contract value is already gone, so this is not a warning about what might happen: the money bought work that is not there."
-      : "That much of the contract has gone on work that is not there yet, which is the reading this flag exists for: both figures look survivable on their own.";
   return `${describeBurnAgainstDelivery(
     consumedShare,
     deliveredShare,
-  )} — the burn is running ${formatSharePoints(gap)} ahead of the delivery. ${closing}`;
+  )} — the burn is running ${formatSharePoints(
+    gap,
+  )} ahead of the delivery. ${FAR_AHEAD_CLOSING[classifyConsumedShare(consumedShare)]}`;
 }
 
 /**
