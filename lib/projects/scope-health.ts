@@ -264,6 +264,35 @@ export function describeFarAheadOfDelivery(
 }
 
 /**
+ * How a quarter-of-a-contract gap closes, given what the money axis made of the
+ * same project.
+ *
+ * `FAR_AHEAD_CLOSING`'s problem at half the distance, and the worse version of
+ * it: this reason is a `watch`, so it is reported *under* an `over` lead
+ * whenever the money has gone and the gap has only reached a quarter — a
+ * project 110% burned against 80% delivered. One clause for every reading of
+ * the money had the banner say the agreement does not pay for another hour, and
+ * then say in the bullet below that there is time to talk about it.
+ *
+ * Each clause opens on the same five words, because the gap means the same
+ * thing in all three — the money is outrunning the work — and only what can
+ * still be done about it changes. Written out three times rather than
+ * concatenated from a stem, so each entry reads as the sentence a reader gets.
+ *
+ * The watch clause bounds what is left rather than naming the share again, for
+ * the reason `FAR_AHEAD_CLOSING`'s does: the band opens at four fifths of the
+ * contract, so a fifth is the most that can be left.
+ */
+export const AHEAD_CLOSING: Record<ScopeHealth, string> = {
+  healthy:
+    "The money is moving faster than the work, early enough that it is a conversation rather than a correction.",
+  watch:
+    "The money is moving faster than the work, and at most a fifth of the contract is left to close the gap from.",
+  over:
+    "The money is moving faster than the work, and the contract value has already gone — whatever is still outstanding has no budget behind it.",
+};
+
+/**
  * Why a project whose burn has run ahead of its delivery is flagged.
  *
  * The same comparison as `describeFarAheadOfDelivery` at half the distance, and
@@ -276,6 +305,11 @@ export function describeFarAheadOfDelivery(
  * actionable half. At this gap there is budget left and scope left, so the
  * options are all cheap — reorder the list, trim a deliverable, agree a change
  * order. By the time the gap doubles, most of them are gone.
+ *
+ * Which holds only while there is budget left, and that is what
+ * `AHEAD_CLOSING` is for: the same clause under a lead that has just said the
+ * contract is spent would be telling a reader there is time to talk about money
+ * that has already gone.
  */
 export function describeAheadOfDelivery(
   consumedShare: number,
@@ -287,7 +321,7 @@ export function describeAheadOfDelivery(
     deliveredShare,
   )} — the burn is running ${formatSharePoints(
     gap,
-  )} ahead of the delivery. The money is moving faster than the work, early enough that it is a conversation rather than a correction.`;
+  )} ahead of the delivery. ${AHEAD_CLOSING[classifyConsumedShare(consumedShare)]}`;
 }
 
 /**
