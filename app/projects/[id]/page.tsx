@@ -202,7 +202,7 @@ export default async function ProjectPage({
           <OverviewPanel
             project={project}
             statusEvents={statusEvents}
-                        timeTotals={timeTotals}
+            timeTotals={timeTotals}
             scopeLines={overviewScope}
           />
         ) : tab === "scope" ? (
