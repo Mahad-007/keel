@@ -1,6 +1,11 @@
-import { summariseBurn, type BurnSummary } from "@/lib/burn";
+import {
+  consumedShare,
+  remainingContractCents,
+  summariseBurn,
+  type BurnSummary,
+} from "@/lib/burn";
 import { isCalendarDate } from "@/lib/dates";
-import type { EffectiveRate } from "@/lib/rates";
+import type { EffectiveRate, RateSource } from "@/lib/rates";
 import type { LoggedTotals } from "@/lib/time/rollup";
 
 /**
@@ -202,4 +207,83 @@ export function burnSeries(
     onDate: day.onDate,
     ...summariseBurn(day, contractedCents, rate),
   }));
+}
+
+/**
+ * What a point needs of a stored reading: the day, the two figures it was
+ * measured against, and the five figures that were measured.
+ *
+ * A structural subset of the `burn_snapshots` row rather than the row itself,
+ * the choice `RateOverride` and `ScopeLine` make for the same reason: a test
+ * can satisfy it with a literal, and a query that projects nine of the
+ * thirteen columns satisfies it too. The id, the project and the origin are
+ * absent because none of them is part of the reading — they say which reading
+ * it is and how much to trust it, which is the caller's business and not the
+ * arithmetic's.
+ *
+ * The field names are the column names, deliberately unchanged on the way
+ * through. `contractValueCents` is what the project calls its price and
+ * `contractedCents` is what a burn summary calls it; translating between the
+ * two is exactly what `recordedBurnPoint` is for, and a type that did the
+ * renaming would leave two places doing half of it.
+ */
+export type RecordedBurn = {
+  /** The day the reading is the end of: `YYYY-MM-DD`. */
+  readonly onDate: string;
+  /** What the project was agreed for that day, in cents. */
+  readonly contractValueCents: number;
+  /** What an hour was worth that day, in cents. */
+  readonly rateCents: number;
+  /** Which row that rate came from. */
+  readonly rateSource: RateSource;
+  readonly entryCount: number;
+  readonly loggedMinutes: number;
+  readonly billableMinutes: number;
+  /** What the logged minutes came to, as it was reported that day. */
+  readonly burnedCents: number;
+  /** What the chargeable minutes came to, as it was reported that day. */
+  readonly chargeableCents: number;
+};
+
+/**
+ * A stored reading, read back as a point of the burn-down.
+ *
+ * The inverse of what the capture wrote, and the function that makes storing
+ * the figures worth doing: the money comes back exactly as it was reported on
+ * the day, at the price and rate of the day, rather than being recomputed from
+ * columns that have since moved.
+ *
+ * So `burnedCents` is taken from the row and *not* worked out again from the
+ * minutes and the rate beside it. Those two are stored as the working behind
+ * the figure — a reader who finds a point surprising wants to know whether it
+ * was the hours or the rate — and reaching for them here would quietly make
+ * the stored burn decorative, with the plotted line following today's rounding
+ * rules rather than the reported amount. A row whose burn does not match its
+ * own minutes times its own rate is a row somebody edited, and the point shows
+ * what the row says.
+ *
+ * The two derived figures *are* computed, through the same functions the live
+ * panel uses: what is left is a subtraction and the share is a division, both
+ * exact over whole cents, and there is nothing a column could remember about
+ * them that the subtraction does not say. That is why neither is stored.
+ */
+export function recordedBurnPoint(recorded: RecordedBurn): BurnPoint {
+  return {
+    onDate: recorded.onDate,
+    contractedCents: recorded.contractValueCents,
+    rate: { cents: recorded.rateCents, source: recorded.rateSource },
+    entryCount: recorded.entryCount,
+    loggedMinutes: recorded.loggedMinutes,
+    billableMinutes: recorded.billableMinutes,
+    burnedCents: recorded.burnedCents,
+    chargeableCents: recorded.chargeableCents,
+    remainingCents: remainingContractCents(
+      recorded.contractValueCents,
+      recorded.burnedCents,
+    ),
+    consumedShare: consumedShare(
+      recorded.contractValueCents,
+      recorded.burnedCents,
+    ),
+  };
 }
