@@ -81,3 +81,55 @@ export function burnDaysThrough(
     (day) => isCalendarDate(day.onDate) && day.onDate <= through,
   );
 }
+
+/**
+ * The days of a series as running totals, in calendar order: every point
+ * carrying what the project had logged by the end of that day.
+ *
+ * The one transformation this file exists for. A query can hand back what each
+ * day cost — that is a `group by` — but a burn-down is not a bar per day, it
+ * is a line that only ever climbs, because the question is how much of the
+ * contract has gone rather than how busy last Tuesday was. Turning the first
+ * into the second is an accumulation, and it has to happen somewhere; here,
+ * once, in a pure function, rather than in the query and again in the chart.
+ *
+ * Sorted into calendar order first, because a running total computed in any
+ * other order is not a running total. The data layer's own ordering is already
+ * ascending, so this is usually a sort of an already-sorted list — cheap, and
+ * the alternative is a silent dependency on an `order by` in another file.
+ *
+ * Days sharing a date are combined into one point rather than producing two.
+ * A `group by` cannot hand over a date twice, so this is for callers that
+ * assembled the list themselves, and being right about it is worth the Map: two
+ * points on one date would be one day plotted at two heights, and — because
+ * the day is the key the storage is unique on — the lower of the two would be
+ * what got stored.
+ *
+ * The totals are summed as integers, which is the whole reason time is kept in
+ * minutes. An empty series accumulates to an empty series rather than to a
+ * point of zeroes: a project with no time logged has no days, and inventing
+ * one dated to nothing would put a point on the chart where nothing happened.
+ */
+export function accumulateBurnDays(days: readonly BurnDay[]): BurnDay[] {
+  const byDate = new Map<string, LoggedTotals>();
+  for (const day of days) {
+    const sofar = byDate.get(day.onDate);
+    byDate.set(day.onDate, {
+      entryCount: (sofar?.entryCount ?? 0) + day.entryCount,
+      loggedMinutes: (sofar?.loggedMinutes ?? 0) + day.loggedMinutes,
+      billableMinutes: (sofar?.billableMinutes ?? 0) + day.billableMinutes,
+    });
+  }
+
+  let entryCount = 0;
+  let loggedMinutes = 0;
+  let billableMinutes = 0;
+
+  return [...byDate.keys()].sort().map((onDate) => {
+    const day = byDate.get(onDate);
+    entryCount += day?.entryCount ?? 0;
+    loggedMinutes += day?.loggedMinutes ?? 0;
+    billableMinutes += day?.billableMinutes ?? 0;
+    return { onDate, entryCount, loggedMinutes, billableMinutes };
+  });
+}
