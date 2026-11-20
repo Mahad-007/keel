@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import type { BurnPoint } from "@/lib/burndown/series";
@@ -523,5 +523,51 @@ describe("captureProjectBurn", () => {
     await expect(
       captureProjectBurn(projectId, "2026-10-14T09:00:00.000Z", db),
     ).rejects.toThrow(/calendar date/);
+  });
+});
+
+describe("captureProjectBurn on a project with a bad column", () => {
+  it("records a negative rate rather than refusing the reading", async () => {
+    await db.run(
+      sql`update projects set rate_cents = -15000 where id = ${projectId}`,
+    );
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+
+    const result = await captureProjectBurn(projectId, "2026-10-14", db);
+
+    // Backwards, and visible: the row somebody has to repair is the one whose
+    // history looks wrong, and a refusal here would hide it.
+    expect(result.ok && result.snapshot.burnedCents).toBe(-15_000);
+  });
+
+  it("refuses a contract value the column cannot hold", async () => {
+    await db.run(
+      sql`update projects set contract_value_cents = 1.5 where id = ${projectId}`,
+    );
+
+    expect(await captureProjectBurn(projectId, "2026-10-14", db)).toEqual({
+      ok: false,
+      reason: "unrecordable-figures",
+    });
+  });
+
+  it("refuses a rate the column cannot hold", async () => {
+    await db.run(
+      sql`update projects set rate_cents = 150.5 where id = ${projectId}`,
+    );
+
+    expect(await captureProjectBurn(projectId, "2026-10-14", db)).toEqual({
+      ok: false,
+      reason: "unrecordable-figures",
+    });
+  });
+
+  it("writes nothing at all when it refuses", async () => {
+    await db.run(
+      sql`update projects set contract_value_cents = 1.5 where id = ${projectId}`,
+    );
+    await captureProjectBurn(projectId, "2026-10-14", db);
+
+    expect(await listBurnSnapshots(projectId, db)).toEqual([]);
   });
 });
