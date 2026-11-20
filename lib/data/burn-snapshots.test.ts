@@ -1055,3 +1055,94 @@ describe("captureProjectBurn and the day it is run on", () => {
     ).rejects.toThrow(/clock day/);
   });
 });
+
+describe("backfillProjectBurn over time logged after the fact", () => {
+  it("repairs a reading the entries have outgrown", async () => {
+    await updateProject(projectId, { rateCents: 15_000 }, db);
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    await backfillProjectBurn(projectId, { through: "2026-10-31" }, db);
+
+    // The afternoon of the 14th, written up a week later.
+    await createTimeEntry({ projectId, minutes: 120, workedOn: "2026-10-14" }, db);
+    const result = await backfillProjectBurn(
+      projectId,
+      { through: "2026-10-31" },
+      db,
+    );
+
+    expect(result).toMatchObject({ written: 0, repaired: 1, alreadyRecorded: 0 });
+    const [row] = await listBurnSnapshots(projectId, db);
+    expect(row.loggedMinutes).toBe(180);
+    expect(row.burnedCents).toBe(45_000);
+  });
+
+  it("repairs the days after it too, so the line cannot fall", async () => {
+    await updateProject(projectId, { rateCents: 15_000 }, db);
+    for (const workedOn of ["2026-10-14", "2026-10-15"]) {
+      await createTimeEntry({ projectId, minutes: 60, workedOn }, db);
+    }
+    await backfillProjectBurn(projectId, { through: "2026-10-31" }, db);
+
+    await createTimeEntry({ projectId, minutes: 120, workedOn: "2026-10-14" }, db);
+    const result = await backfillProjectBurn(
+      projectId,
+      { through: "2026-10-31" },
+      db,
+    );
+
+    expect(result).toMatchObject({ repaired: 2 });
+    const burned = (await listBurnSnapshots(projectId, db)).map(
+      (row) => row.burnedCents,
+    );
+    expect(burned).toEqual([45_000, 60_000]);
+    expect(burned[1] > burned[0]).toBe(true);
+  });
+
+  it("leaves a reading alone when only the rate has moved", async () => {
+    await updateProject(projectId, { rateCents: 15_000 }, db);
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    await backfillProjectBurn(projectId, { through: "2026-10-31" }, db);
+
+    await updateProject(projectId, { rateCents: 30_000 }, db);
+    const result = await backfillProjectBurn(
+      projectId,
+      { through: "2026-10-31" },
+      db,
+    );
+
+    expect(result).toMatchObject({ written: 0, repaired: 0, alreadyRecorded: 1 });
+    expect((await listBurnSnapshots(projectId, db))[0].burnedCents).toBe(15_000);
+  });
+
+  it("replaces a measurement the entries have outgrown", async () => {
+    await updateProject(projectId, { rateCents: 15_000 }, db);
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    await captureProjectBurn(projectId, "2026-10-14", { today: "2026-10-14" }, db);
+
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    const result = await backfillProjectBurn(
+      projectId,
+      { through: "2026-10-31" },
+      db,
+    );
+
+    expect(result).toMatchObject({ repaired: 1 });
+    const [row] = await listBurnSnapshots(projectId, db);
+    // A reading that is wrong about the work is wrong however it was taken —
+    // and the row says it is a reconstruction now, because its money is.
+    expect(row.loggedMinutes).toBe(120);
+    expect(row.origin).toBe("backfilled");
+  });
+
+  it("repairs across the studio too", async () => {
+    await updateProject(projectId, { rateCents: 15_000 }, db);
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    await backfillBurnSnapshots({ through: "2026-10-31" }, db);
+
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    const report = await backfillBurnSnapshots({ through: "2026-10-31" }, db);
+
+    expect(report).toMatchObject({ written: 0, repaired: 1, refused: 0 });
+    expect((await listBurnSnapshots(projectId, db))[0].loggedMinutes).toBe(120);
+  });
+});
