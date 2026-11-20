@@ -6,14 +6,17 @@ import type { Database } from "@/lib/db";
 import { burnSnapshots } from "@/lib/db/schema";
 import { createTestDb } from "@/lib/db/testing";
 
+import { createTimeEntry } from "./time-entries";
+
 import {
   burnSnapshotDates,
+  captureProjectBurn,
   burnSnapshotDaysByProject,
   listBurnSnapshots,
   recordBurnSnapshot,
 } from "./burn-snapshots";
-import { createClient } from "./clients";
-import { createProject, deleteProject } from "./projects";
+import { createClient, updateClient } from "./clients";
+import { createProject, deleteProject, updateProject } from "./projects";
 
 let db: Database;
 /** Every reading hangs off a project, which hangs off a client. */
@@ -389,5 +392,136 @@ describe("burnSnapshotDaysByProject", () => {
         .filter((day) => day.projectId === projectId)
         .map((day) => day.onDate),
     ).toEqual(await burnSnapshotDates(projectId, db));
+  });
+});
+
+describe("captureProjectBurn", () => {
+  /** A rate on the project, so there is something to value hours at. */
+  async function rateProject(rateCents: number): Promise<void> {
+    await updateProject(projectId, { rateCents }, db);
+  }
+
+  it("values the hours logged up to that day at the project's rate", async () => {
+    await rateProject(15_000);
+    await createTimeEntry({ projectId, minutes: 600, workedOn: "2026-10-14" }, db);
+
+    const result = await captureProjectBurn(projectId, "2026-10-14", db);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.snapshot).toMatchObject({
+      onDate: "2026-10-14",
+      contractValueCents: 500_000,
+      rateCents: 15_000,
+      rateSource: "project",
+      entryCount: 1,
+      loggedMinutes: 600,
+      burnedCents: 150_000,
+    });
+  });
+
+  it("is cumulative: a day carries every day before it", async () => {
+    await rateProject(15_000);
+    await createTimeEntry({ projectId, minutes: 120, workedOn: "2026-10-14" }, db);
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-15" }, db);
+
+    const result = await captureProjectBurn(projectId, "2026-10-15", db);
+
+    expect(result.ok && result.snapshot.loggedMinutes).toBe(180);
+    expect(result.ok && result.snapshot.burnedCents).toBe(45_000);
+  });
+
+  it("leaves out hours logged against a later day", async () => {
+    await rateProject(15_000);
+    await createTimeEntry({ projectId, minutes: 120, workedOn: "2026-10-14" }, db);
+    await createTimeEntry({ projectId, minutes: 600, workedOn: "2026-10-30" }, db);
+
+    const result = await captureProjectBurn(projectId, "2026-10-14", db);
+
+    expect(result.ok && result.snapshot.loggedMinutes).toBe(120);
+  });
+
+  it("falls back to the client's default rate", async () => {
+    const client = await createClient({ name: "Rated Co" }, db);
+    await updateClient(client.id, { defaultRateCents: 12_000 }, db);
+    const project = await createProject(
+      { clientId: client.id, name: "Retainer", contractValueCents: 100_000 },
+      db,
+    );
+    await createTimeEntry(
+      { projectId: project.id, minutes: 60, workedOn: "2026-10-14" },
+      db,
+    );
+
+    const result = await captureProjectBurn(project.id, "2026-10-14", db);
+
+    expect(result.ok && result.snapshot.rateSource).toBe("client");
+    expect(result.ok && result.snapshot.burnedCents).toBe(12_000);
+  });
+
+  it("records a day with no rate anywhere as burning nothing", async () => {
+    await createTimeEntry({ projectId, minutes: 600, workedOn: "2026-10-14" }, db);
+
+    const result = await captureProjectBurn(projectId, "2026-10-14", db);
+
+    expect(result.ok && result.snapshot.rateSource).toBe("none");
+    expect(result.ok && result.snapshot.burnedCents).toBe(0);
+    // The minutes are still the measurement: the gap is the missing rate.
+    expect(result.ok && result.snapshot.loggedMinutes).toBe(600);
+  });
+
+  it("records a day the project had logged nothing by", async () => {
+    await rateProject(15_000);
+    await createTimeEntry({ projectId, minutes: 600, workedOn: "2026-10-20" }, db);
+
+    const result = await captureProjectBurn(projectId, "2026-10-14", db);
+
+    expect(result.ok && result.snapshot.loggedMinutes).toBe(0);
+    expect(result.ok && result.snapshot.burnedCents).toBe(0);
+    expect(result.ok && result.snapshot.contractValueCents).toBe(500_000);
+  });
+
+  it("keeps written-off time in the burn and out of the chargeable half", async () => {
+    await rateProject(15_000);
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-14", billable: false },
+      db,
+    );
+
+    const result = await captureProjectBurn(projectId, "2026-10-14", db);
+
+    expect(result.ok && result.snapshot.burnedCents).toBe(30_000);
+    expect(result.ok && result.snapshot.chargeableCents).toBe(15_000);
+  });
+
+  it("calls its own reading a measurement", async () => {
+    const result = await captureProjectBurn(projectId, "2026-10-14", db);
+    expect(result.ok && result.snapshot.origin).toBe("recorded");
+  });
+
+  it("replaces an earlier reading of the same day", async () => {
+    await rateProject(15_000);
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    await captureProjectBurn(projectId, "2026-10-14", db);
+
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    const second = await captureProjectBurn(projectId, "2026-10-14", db);
+
+    expect(await listBurnSnapshots(projectId, db)).toHaveLength(1);
+    expect(second.ok && second.snapshot.loggedMinutes).toBe(120);
+  });
+
+  it("refuses a project that is not there", async () => {
+    expect(await captureProjectBurn("prj_nope", "2026-10-14", db)).toEqual({
+      ok: false,
+      reason: "no-such-project",
+    });
+  });
+
+  it("refuses a day that is a moment rather than a date", async () => {
+    await expect(
+      captureProjectBurn(projectId, "2026-10-14T09:00:00.000Z", db),
+    ).rejects.toThrow(/calendar date/);
   });
 });
