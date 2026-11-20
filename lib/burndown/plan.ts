@@ -1,6 +1,11 @@
 import type { EffectiveRate } from "@/lib/rates";
 
-import type { BurnDay, BurnPoint } from "./series";
+import {
+  burnDaysThrough,
+  burnSeries,
+  type BurnDay,
+  type BurnPoint,
+} from "./series";
 
 /**
  * Which days of a project's history are missing a stored burn reading, and
@@ -86,4 +91,46 @@ export function withoutRecordedDays(
 ): BurnPoint[] {
   const already = new Set(recorded);
   return points.filter((point) => !already.has(point.onDate));
+}
+
+/**
+ * What to write to reconstruct one project's burn-down, and what to leave.
+ *
+ * The three steps in the one order that is correct, which is why they are one
+ * function rather than three calls at every caller:
+ *
+ *   1. drop the days that have not happened yet, before anything is totalled;
+ *   2. value the whole history, cumulatively, at today's price and rate;
+ *   3. drop the days something has already recorded.
+ *
+ * Any other order is wrong in a way that looks right. Narrowing to the missing
+ * days first gives each gap a running total that starts at the gap. Applying
+ * the bound last leaves the final point carrying minutes from days that were
+ * dropped, so the line ends above its own last point.
+ *
+ * It values the past at the present, and that is the honest limit of a
+ * backfill rather than a shortcut: no column anywhere recorded what this
+ * project was agreed for in March, so there is nothing truer available. The
+ * rows it produces are stored with `origin: "backfilled"` for exactly that
+ * reason — the figure is a reconstruction, and the column is what lets a chart
+ * say so rather than presenting it as a measurement.
+ *
+ * `alreadyRecorded` counts the days of this project's history that were left
+ * alone, which is what makes a second run reportable: nothing written, every
+ * day accounted for. It counts days of the bounded series rather than the
+ * `recorded` list it was handed, because that list can hold days the project
+ * logged no work on — a reading taken on a quiet Tuesday — and those are not
+ * days this plan had anything to say about.
+ */
+export function planBurnBackfill(
+  request: BurnBackfillRequest,
+): BurnBackfillPlan {
+  const days = burnDaysThrough(request.days, request.through);
+  const points = burnSeries(days, request.contractedCents, request.rate);
+  const pending = withoutRecordedDays(points, request.recorded);
+
+  return {
+    points: pending,
+    alreadyRecorded: points.length - pending.length,
+  };
 }
