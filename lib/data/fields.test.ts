@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   calendarDate,
   isOptionalWholeCents,
+  isRecordableCents,
   isPresentText,
   isWholeCents,
   isRecordableMinutes,
@@ -10,9 +11,10 @@ import {
   optionalCents,
   optionalText,
   positiveMinutes,
+  recordedCents,
+  recordedMinutes,
   requiredText,
   wholeCents,
-  recordedMinutes,
   wholeMinutes,
 } from "./fields";
 
@@ -408,5 +410,64 @@ describe("positiveMinutes", () => {
     expect(() =>
       positiveMinutes(Number.MAX_SAFE_INTEGER + 2, "time entry minutes"),
     ).toThrow(/must be whole minutes/);
+  });
+});
+
+describe("recordedCents", () => {
+  it("records whole cents as they were", () => {
+    expect(recordedCents(150_000, "recorded burn")).toBe(150_000);
+    expect(recordedCents(0, "recorded burn")).toBe(0);
+  });
+
+  it("records an amount below zero, which is the point of it", () => {
+    // A burn reading copies the price a project held and the figure its hours
+    // came to; a hand-edited negative rate burns backwards, and the reading is
+    // where that becomes visible.
+    expect(recordedCents(-150_000, "recorded burn")).toBe(-150_000);
+  });
+
+  it("refuses a fraction of a cent", () => {
+    expect(() => recordedCents(1250.5, "recorded burn")).toThrow(/whole cents/);
+  });
+
+  it("refuses an amount too large to read back", () => {
+    expect(() =>
+      recordedCents(Number.MAX_SAFE_INTEGER + 2, "recorded burn"),
+    ).toThrow(/whole cents/);
+  });
+
+  it("names the field it was asked about", () => {
+    expect(() => recordedCents(1.5, "recorded contract value")).toThrow(
+      /recorded contract value/,
+    );
+  });
+});
+
+describe("isRecordableCents", () => {
+  it("accepts an amount of either sign", () => {
+    expect(isRecordableCents(150_000)).toBe(true);
+    expect(isRecordableCents(-150_000)).toBe(true);
+  });
+
+  it("agrees with the guard it is the condition of", () => {
+    for (const value of [
+      0,
+      150_000,
+      -150_000,
+      1250.5,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.MAX_SAFE_INTEGER + 2,
+    ]) {
+      const guarded = (() => {
+        try {
+          recordedCents(value, "recorded burn");
+          return true;
+        } catch {
+          return false;
+        }
+      })();
+      expect(isRecordableCents(value)).toBe(guarded);
+    }
   });
 });
