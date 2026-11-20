@@ -286,3 +286,17 @@ export function wholeCount(value: number, field: string): number {
   }
   return value;
 }
+
+/**
+ * Whether a value would satisfy `wholeCount`, as an answer rather than an
+ * exception — the arrangement every guard in this file is paired with, for the
+ * same kind of caller: code deciding, before it writes, whether the figures it
+ * is holding can be written at all.
+ *
+ * Both halves in one predicate, because nothing asking cares which it failed:
+ * minus one entry and one and a half entries are equally unwritable, and the
+ * answer either way is that the reading cannot be stored.
+ */
+export function isWholeCount(value: number): boolean {
+  return Number.isSafeInteger(value) && value >= 0;
+}

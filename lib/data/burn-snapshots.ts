@@ -17,6 +17,7 @@ import {
   calendarDate,
   isRecordableCents,
   isRecordableMinutes,
+  isWholeCount,
   recordedCents,
   recordedMinutes,
   requiredText,
@@ -342,8 +343,7 @@ function isRecordableBurn(point: BurnPoint): boolean {
     isRecordableCents(point.chargeableCents) &&
     isRecordableMinutes(point.loggedMinutes) &&
     isRecordableMinutes(point.billableMinutes) &&
-    Number.isSafeInteger(point.entryCount) &&
-    point.entryCount >= 0
+    isWholeCount(point.entryCount)
   );
 }
 

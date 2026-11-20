@@ -4,6 +4,7 @@ import {
   calendarDate,
   isOptionalWholeCents,
   isRecordableCents,
+  isWholeCount,
   isPresentText,
   isWholeCents,
   isRecordableMinutes,
@@ -496,5 +497,34 @@ describe("wholeCount", () => {
   it("names the field in both refusals", () => {
     expect(() => wholeCount(1.5, "logged entries")).toThrow(/logged entries/);
     expect(() => wholeCount(-1, "logged entries")).toThrow(/logged entries/);
+  });
+});
+
+describe("isWholeCount", () => {
+  it("accepts a count it could store", () => {
+    expect(isWholeCount(0)).toBe(true);
+    expect(isWholeCount(19)).toBe(true);
+  });
+
+  it("agrees with the guard it is the condition of", () => {
+    for (const value of [
+      0,
+      19,
+      -1,
+      1.5,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.MAX_SAFE_INTEGER + 2,
+    ]) {
+      const guarded = (() => {
+        try {
+          wholeCount(value, "logged entries");
+          return true;
+        } catch {
+          return false;
+        }
+      })();
+      expect(isWholeCount(value)).toBe(guarded);
+    }
   });
 });
