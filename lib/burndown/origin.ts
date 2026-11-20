@@ -34,3 +34,22 @@ export type BurnSnapshotOrigin = (typeof BURN_SNAPSHOT_ORIGINS)[number];
  * point in the table to protect the few that need it.
  */
 export const DEFAULT_BURN_SNAPSHOT_ORIGIN: BurnSnapshotOrigin = "recorded";
+
+/**
+ * Narrows a string — a column read back from a row written before an origin
+ * was renamed, a query param — to one of the two origins.
+ *
+ * Needed because the enum on the column is a claim Drizzle makes about the
+ * strings in it rather than a constraint SQLite enforces: nothing stops a
+ * hand-written `insert` putting "guessed" in there, and the row then reads
+ * back typed as an origin it is not. A chart that caveats a point by comparing
+ * against one of the two words would quietly treat such a row as measured.
+ */
+export function isBurnSnapshotOrigin(
+  value: unknown,
+): value is BurnSnapshotOrigin {
+  return (
+    typeof value === "string" &&
+    (BURN_SNAPSHOT_ORIGINS as readonly string[]).includes(value)
+  );
+}
