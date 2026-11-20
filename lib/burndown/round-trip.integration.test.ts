@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { summariseBurn } from "@/lib/burn";
 import {
+  backfillProjectBurn,
   captureProjectBurn,
   listBurnSnapshots,
 } from "@/lib/data/burn-snapshots";
@@ -147,11 +148,33 @@ describe("a recorded burn-down", () => {
       recordedBurnPoint,
     );
 
-    // The corrected day moves; the day before it does not, and the day after
-    // it stays where it was until it is recorded again. A burn-down is a record
-    // of readings, not a view over the entries.
+    // Re-reading one day moves that day and nothing else, which leaves the
+    // line briefly falling: the 16th still holds the total it was read at.
+    // A burn-down is a record of readings rather than a view over the entries,
+    // and this is the state the repair below exists to resolve.
     expect(points.map((point) => point.burnedCents)).toEqual([
       15_000, 60_000, 52_500,
     ]);
+  });
+
+  it("climbs again once the days after the correction are repaired", async () => {
+    await recordEachDay();
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-15" }, db);
+
+    const result = await backfillProjectBurn(
+      projectId,
+      { through: "2026-10-16" },
+      db,
+    );
+
+    expect(result).toMatchObject({ written: 0, repaired: 2 });
+    const points = (await listBurnSnapshots(projectId, db)).map(
+      recordedBurnPoint,
+    );
+    expect(points.map((point) => point.burnedCents)).toEqual([
+      15_000, 60_000, 67_500,
+    ]);
+    // The day the correction did not touch is still the reading it was.
+    expect(points[0].rate.source).toBe("project");
   });
 });
