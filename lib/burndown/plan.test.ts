@@ -166,7 +166,7 @@ describe("planBurnBackfill", () => {
       rate: RATE,
       through: "2026-03-31",
     });
-    expect(plan).toEqual({ points: [], alreadyRecorded: 0 });
+    expect(plan).toEqual({ points: [], stale: [], alreadyRecorded: 0 });
   });
 
   it("values the past at today's rate, which is all it can know", () => {
@@ -247,5 +247,57 @@ describe("staleBurnPoints", () => {
       "2026-03-01",
       "2026-03-03",
     ]);
+  });
+});
+
+describe("planBurnBackfill over a day whose time was logged late", () => {
+  it("plans a repair rather than leaving the reading as it is", () => {
+    const plan = planBurnBackfill({
+      days: DAYS,
+      recorded: [
+        { onDate: "2026-03-01", entryCount: 1, loggedMinutes: 30, billableMinutes: 30 },
+      ],
+      contractedCents: 500_000,
+      rate: RATE,
+      through: "2026-03-31",
+    });
+
+    expect(plan.stale.map((point) => point.onDate)).toEqual(["2026-03-01"]);
+    expect(plan.stale[0].loggedMinutes).toBe(60);
+    expect(plan.alreadyRecorded).toBe(0);
+  });
+
+  it("keeps the repair out of the days it has nothing for", () => {
+    const plan = planBurnBackfill({
+      days: DAYS,
+      recorded: [
+        { onDate: "2026-03-01", entryCount: 1, loggedMinutes: 30, billableMinutes: 30 },
+      ],
+      contractedCents: 500_000,
+      rate: RATE,
+      through: "2026-03-31",
+    });
+
+    expect(plan.points.map((point) => point.onDate)).toEqual([
+      "2026-03-02",
+      "2026-03-03",
+    ]);
+  });
+
+  it("counts a day it leaves alone separately from one it repairs", () => {
+    const plan = planBurnBackfill({
+      days: DAYS,
+      recorded: [
+        ...recorded(["2026-03-01"]),
+        { onDate: "2026-03-02", entryCount: 1, loggedMinutes: 60, billableMinutes: 60 },
+      ],
+      contractedCents: 500_000,
+      rate: RATE,
+      through: "2026-03-31",
+    });
+
+    expect(plan.alreadyRecorded).toBe(1);
+    expect(plan.stale.map((point) => point.onDate)).toEqual(["2026-03-02"]);
+    expect(plan.points.map((point) => point.onDate)).toEqual(["2026-03-03"]);
   });
 });

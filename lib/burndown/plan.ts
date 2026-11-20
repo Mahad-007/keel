@@ -70,9 +70,20 @@ export type BurnBackfillRequest = {
  * leaves everything, which is what a report of (0, 50) means.
  */
 export type BurnBackfillPlan = {
-  /** The points to store, in calendar order, oldest first. */
+  /** The points for days with no reading, in calendar order, oldest first. */
   readonly points: readonly BurnPoint[];
-  /** How many of the project's days already had a reading. */
+  /**
+   * The points for days whose reading no longer matches the entries, in
+   * calendar order.
+   *
+   * Separate from `points` because the write is different: a day with no
+   * reading must not overwrite one that arrives in the meantime, and a day
+   * whose reading is provably wrong about the work must. Separate in the
+   * report, too — "wrote 9 days, repaired 2" is two different things having
+   * happened.
+   */
+  readonly stale: readonly BurnPoint[];
+  /** How many of the project's days had a reading that still agrees. */
   readonly alreadyRecorded: number;
 };
 
@@ -166,7 +177,8 @@ export function staleBurnPoints(
  *
  *   1. drop the days that have not happened yet, before anything is totalled;
  *   2. value the whole history, cumulatively, at today's price and rate;
- *   3. drop the days something has already recorded.
+ *   3. sort the days into the ones nothing has recorded, the ones whose
+ *      reading the entries have outgrown, and the ones to leave alone.
  *
  * Any other order is wrong in a way that looks right. Narrowing to the missing
  * days first gives each gap a running total that starts at the gap. Applying
@@ -181,8 +193,8 @@ export function staleBurnPoints(
  * say so rather than presenting it as a measurement.
  *
  * `alreadyRecorded` counts the days of this project's history that were left
- * alone, which is what makes a second run reportable: nothing written, every
- * day accounted for. It counts days of the bounded series rather than the
+ * alone, which is what makes a second run reportable: nothing written, nothing
+ * repaired, every day accounted for. It counts days of the bounded series rather than the
  * `recorded` list it was handed, because that list can hold days the project
  * logged no work on — a reading taken on a quiet Tuesday — and those are not
  * days this plan had anything to say about.
@@ -193,9 +205,11 @@ export function planBurnBackfill(
   const days = burnDaysThrough(request.days, request.through);
   const points = burnSeries(days, request.contractedCents, request.rate);
   const pending = withoutRecordedDays(points, request.recorded);
+  const stale = staleBurnPoints(points, request.recorded);
 
   return {
     points: pending,
-    alreadyRecorded: points.length - pending.length,
+    stale,
+    alreadyRecorded: points.length - pending.length - stale.length,
   };
 }
