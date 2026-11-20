@@ -157,3 +157,81 @@ describe("recordBurnSnapshot", () => {
     ).rejects.toThrow(/burn reading project/);
   });
 });
+
+describe("recordBurnSnapshot on a project with a bad column", () => {
+  it("records a burn that runs backwards rather than refusing it", async () => {
+    // Only a hand-edited row bills at a negative rate, and the engagement whose
+    // history looks wrong is the one somebody has to look at.
+    const snapshot = await recordBurnSnapshot(
+      {
+        projectId,
+        point: {
+          ...POINT,
+          rate: { cents: -15_000, source: "project" },
+          burnedCents: -150_000,
+          chargeableCents: -135_000,
+        },
+      },
+      db,
+    );
+
+    expect(snapshot.rateCents).toBe(-15_000);
+    expect(snapshot.burnedCents).toBe(-150_000);
+  });
+
+  it("records a contract value below zero as it stands", async () => {
+    const snapshot = await recordBurnSnapshot(
+      { projectId, point: { ...POINT, contractedCents: -1 } },
+      db,
+    );
+
+    expect(snapshot.contractValueCents).toBe(-1);
+  });
+
+  it("records a day with no rate anywhere as a day that burned nothing", async () => {
+    const snapshot = await recordBurnSnapshot(
+      {
+        projectId,
+        point: {
+          ...POINT,
+          rate: { cents: 0, source: "none" },
+          burnedCents: 0,
+          chargeableCents: 0,
+          consumedShare: 0,
+        },
+      },
+      db,
+    );
+
+    expect(snapshot.rateSource).toBe("none");
+    expect(snapshot.burnedCents).toBe(0);
+    expect(snapshot.loggedMinutes).toBe(600);
+  });
+
+  it("refuses an amount too large to read back", async () => {
+    await expect(
+      recordBurnSnapshot(
+        {
+          projectId,
+          point: { ...POINT, burnedCents: Number.MAX_SAFE_INTEGER + 2 },
+        },
+        db,
+      ),
+    ).rejects.toThrow(/recorded burn/);
+  });
+
+  it("refuses a count of entries that is not a count", async () => {
+    await expect(
+      recordBurnSnapshot({ projectId, point: { ...POINT, entryCount: -1 } }, db),
+    ).rejects.toThrow(/recorded entry count/);
+  });
+
+  it("refuses a fraction of a minute", async () => {
+    await expect(
+      recordBurnSnapshot(
+        { projectId, point: { ...POINT, loggedMinutes: 90.5 } },
+        db,
+      ),
+    ).rejects.toThrow(/recorded minutes/);
+  });
+});
