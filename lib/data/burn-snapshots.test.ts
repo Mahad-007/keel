@@ -16,6 +16,7 @@ import {
   burnSnapshotDaysByProject,
   listBurnSnapshots,
   recordBurnSnapshot,
+  updateProjectBurnHistory,
 } from "./burn-snapshots";
 import { createClient, updateClient } from "./clients";
 import { createProject, deleteProject, updateProject } from "./projects";
@@ -842,5 +843,90 @@ describe("backfillBurnSnapshots", () => {
       alreadyRecorded: 0,
     });
     expect(across.map((row) => row.burnedCents)).toEqual([15_000, 30_000]);
+  });
+});
+
+describe("updateProjectBurnHistory", () => {
+  beforeEach(async () => {
+    await updateProject(projectId, { rateCents: 15_000 }, db);
+    for (const workedOn of ["2026-10-14", "2026-10-15"]) {
+      await createTimeEntry({ projectId, minutes: 60, workedOn }, db);
+    }
+  });
+
+  it("reconstructs the past and measures the day it is run on", async () => {
+    const update = await updateProjectBurnHistory(
+      projectId,
+      { through: "2026-10-16" },
+      db,
+    );
+
+    expect(update.backfill).toMatchObject({ ok: true, written: 2 });
+    expect(update.today.ok).toBe(true);
+
+    const rows = await listBurnSnapshots(projectId, db);
+    expect(rows.map((row) => row.onDate)).toEqual([
+      "2026-10-14",
+      "2026-10-15",
+      "2026-10-16",
+    ]);
+    expect(rows.map((row) => row.origin)).toEqual([
+      "backfilled",
+      "backfilled",
+      "recorded",
+    ]);
+  });
+
+  it("calls today a measurement even when today is a day that was worked", async () => {
+    const update = await updateProjectBurnHistory(
+      projectId,
+      { through: "2026-10-15" },
+      db,
+    );
+
+    expect(update.backfill).toMatchObject({ written: 2 });
+    const rows = await listBurnSnapshots(projectId, db);
+    expect(rows.map((row) => row.origin)).toEqual(["backfilled", "recorded"]);
+    // Replaced, not duplicated: one day, one reading.
+    expect(rows).toHaveLength(2);
+  });
+
+  it("writes nothing new when it is run twice in a day", async () => {
+    await updateProjectBurnHistory(projectId, { through: "2026-10-16" }, db);
+    const second = await updateProjectBurnHistory(
+      projectId,
+      { through: "2026-10-16" },
+      db,
+    );
+
+    // Two, not three: `alreadyRecorded` counts the days the project worked,
+    // and the day it is run on had nothing logged against it.
+    expect(second.backfill).toMatchObject({ written: 0, alreadyRecorded: 2 });
+    expect(await listBurnSnapshots(projectId, db)).toHaveLength(3);
+  });
+
+  it("picks up the afternoon when it is run again", async () => {
+    await updateProjectBurnHistory(projectId, { through: "2026-10-15" }, db);
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-15" }, db);
+    await updateProjectBurnHistory(projectId, { through: "2026-10-15" }, db);
+
+    const rows = await listBurnSnapshots(projectId, db);
+    expect(rows[1].loggedMinutes).toBe(180);
+    expect(rows[1].burnedCents).toBe(45_000);
+  });
+
+  it("reports both refusals for a project that is not there", async () => {
+    const update = await updateProjectBurnHistory(
+      "prj_nope",
+      { through: "2026-10-16" },
+      db,
+    );
+
+    expect(update.backfill).toEqual({
+      ok: false,
+      projectId: "prj_nope",
+      reason: "no-such-project",
+    });
+    expect(update.today).toEqual({ ok: false, reason: "no-such-project" });
   });
 });
