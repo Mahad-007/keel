@@ -24,6 +24,7 @@ import {
   listTimeEntriesInRange,
   markTimeEntryBilled,
   projectTimeTotals,
+  projectTimeTotalsThrough,
   updateTimeEntry,
 } from "./time-entries";
 
@@ -461,6 +462,98 @@ describe("projectTimeTotals", () => {
       loggedMinutes: 150,
       billableMinutes: 120,
     });
+  });
+});
+
+describe("projectTimeTotalsThrough", () => {
+  /** Three days of an engagement, an hour and a half apiece on the first two. */
+  async function logThreeDays(): Promise<void> {
+    await createTimeEntry({ projectId, minutes: 90, workedOn: "2026-10-14" }, db);
+    await createTimeEntry({ projectId, minutes: 45, workedOn: "2026-10-15" }, db);
+    await createTimeEntry({ projectId, minutes: 30, workedOn: "2026-10-20" }, db);
+  }
+
+  it("totals every minute up to and including the day asked about", async () => {
+    await logThreeDays();
+
+    expect(await projectTimeTotalsThrough(projectId, "2026-10-15", db)).toEqual({
+      entryCount: 2,
+      loggedMinutes: 135,
+      billableMinutes: 135,
+    });
+  });
+
+  it("includes the whole of its own day", async () => {
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+
+    expect(
+      (await projectTimeTotalsThrough(projectId, "2026-10-14", db)).loggedMinutes,
+    ).toBe(60);
+  });
+
+  it("leaves out work logged against a later day", async () => {
+    await logThreeDays();
+
+    expect(await projectTimeTotalsThrough(projectId, "2026-10-14", db)).toEqual({
+      entryCount: 1,
+      loggedMinutes: 90,
+      billableMinutes: 90,
+    });
+  });
+
+  it("agrees with the unbounded total once the bound is past everything", async () => {
+    await logThreeDays();
+
+    expect(await projectTimeTotalsThrough(projectId, "2026-12-31", db)).toEqual(
+      await projectTimeTotals(projectId, db),
+    );
+  });
+
+  it("is three zeroes for a day before the engagement started", async () => {
+    await logThreeDays();
+
+    expect(await projectTimeTotalsThrough(projectId, "2026-10-13", db)).toEqual({
+      entryCount: 0,
+      loggedMinutes: 0,
+      billableMinutes: 0,
+    });
+  });
+
+  it("counts only this project's time", async () => {
+    const otherClient = await createClient({ name: "Other Co" }, db);
+    const other = await createProject(
+      { clientId: otherClient.id, name: "Elsewhere" },
+      db,
+    );
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    await createTimeEntry(
+      { projectId: other.id, minutes: 600, workedOn: "2026-10-14" },
+      db,
+    );
+
+    expect(
+      (await projectTimeTotalsThrough(projectId, "2026-10-14", db)).loggedMinutes,
+    ).toBe(60);
+  });
+
+  it("keeps written-off time out of the chargeable half", async () => {
+    await createTimeEntry({ projectId, minutes: 120, workedOn: "2026-10-14" }, db);
+    await createTimeEntry(
+      { projectId, minutes: 30, workedOn: "2026-10-15", billable: false },
+      db,
+    );
+
+    expect(await projectTimeTotalsThrough(projectId, "2026-10-15", db)).toEqual({
+      entryCount: 2,
+      loggedMinutes: 150,
+      billableMinutes: 120,
+    });
+  });
+
+  it("refuses a bound that is a moment rather than a day", async () => {
+    await expect(
+      projectTimeTotalsThrough(projectId, "2026-10-15T23:00:00.000Z", db),
+    ).rejects.toThrow(/calendar date/);
   });
 });
 
