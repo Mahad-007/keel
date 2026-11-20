@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { EffectiveRate } from "@/lib/rates";
 
-import { withoutRecordedDays } from "./plan";
+import { planBurnBackfill, withoutRecordedDays } from "./plan";
 import { burnSeries, type BurnDay } from "./series";
 
 const RATE: EffectiveRate = { cents: 15_000, source: "project" };
@@ -53,5 +53,114 @@ describe("withoutRecordedDays", () => {
       "2026-03-01",
       "2026-03-03",
     ]);
+  });
+});
+
+describe("planBurnBackfill", () => {
+  it("plans every day of a project nothing has recorded", () => {
+    const plan = planBurnBackfill({
+      days: DAYS,
+      recorded: [],
+      contractedCents: 500_000,
+      rate: RATE,
+      through: "2026-03-31",
+    });
+    expect(plan.points.map((p) => [p.onDate, p.burnedCents])).toEqual([
+      ["2026-03-01", 15_000],
+      ["2026-03-02", 30_000],
+      ["2026-03-03", 45_000],
+    ]);
+    expect(plan.alreadyRecorded).toBe(0);
+  });
+
+  it("plans nothing on a second run, and says what it left", () => {
+    const plan = planBurnBackfill({
+      days: DAYS,
+      recorded: ["2026-03-01", "2026-03-02", "2026-03-03"],
+      contractedCents: 500_000,
+      rate: RATE,
+      through: "2026-03-31",
+    });
+    expect(plan.points).toEqual([]);
+    expect(plan.alreadyRecorded).toBe(3);
+  });
+
+  it("fills a gap in the middle without disturbing its neighbours", () => {
+    const plan = planBurnBackfill({
+      days: DAYS,
+      recorded: ["2026-03-01", "2026-03-03"],
+      contractedCents: 500_000,
+      rate: RATE,
+      through: "2026-03-31",
+    });
+    expect(plan.points.map((p) => [p.onDate, p.loggedMinutes])).toEqual([
+      ["2026-03-02", 120],
+    ]);
+    expect(plan.alreadyRecorded).toBe(2);
+  });
+
+  it("stops at the day it is run on, with the total it had reached", () => {
+    const plan = planBurnBackfill({
+      days: DAYS,
+      recorded: [],
+      contractedCents: 500_000,
+      rate: RATE,
+      through: "2026-03-02",
+    });
+    expect(plan.points.map((p) => [p.onDate, p.loggedMinutes])).toEqual([
+      ["2026-03-01", 60],
+      ["2026-03-02", 120],
+    ]);
+  });
+
+  it("does not count a recorded day the project never worked", () => {
+    const plan = planBurnBackfill({
+      days: DAYS,
+      recorded: ["2026-02-14", "2026-03-02"],
+      contractedCents: 500_000,
+      rate: RATE,
+      through: "2026-03-31",
+    });
+    expect(plan.alreadyRecorded).toBe(1);
+    expect(plan.points).toHaveLength(2);
+  });
+
+  it("does not count a day beyond the bound as recorded or pending", () => {
+    const plan = planBurnBackfill({
+      days: DAYS,
+      recorded: ["2026-03-03"],
+      contractedCents: 500_000,
+      rate: RATE,
+      through: "2026-03-01",
+    });
+    expect(plan.points.map((p) => p.onDate)).toEqual(["2026-03-01"]);
+    expect(plan.alreadyRecorded).toBe(0);
+  });
+
+  it("plans nothing for a project with no time logged", () => {
+    const plan = planBurnBackfill({
+      days: [],
+      recorded: [],
+      contractedCents: 500_000,
+      rate: RATE,
+      through: "2026-03-31",
+    });
+    expect(plan).toEqual({ points: [], alreadyRecorded: 0 });
+  });
+
+  it("values the past at today's rate, which is all it can know", () => {
+    const plan = planBurnBackfill({
+      days: DAYS,
+      recorded: [],
+      contractedCents: 500_000,
+      rate: { cents: 20_000, source: "client" },
+      through: "2026-03-31",
+    });
+    expect(plan.points.map((p) => p.rate.source)).toEqual([
+      "client",
+      "client",
+      "client",
+    ]);
+    expect(plan.points[2].burnedCents).toBe(60_000);
   });
 });
