@@ -974,17 +974,45 @@ minutes exactly and knows nothing whatever about what the project was agreed
 for in March, so it values the whole history at today's figures and marks every
 row it writes.
 
-Two consequences worth writing down:
+Which day counts as measured is decided against the clock rather than taken on
+trust: `captureProjectBurn` marks a reading `recorded` only when the day it
+covers is the day it is run on, and `backfilled` otherwise. A reading of last
+March takes this month's price and rate whoever asked for it, so a function that
+labelled it a measurement because the caller meant well would put the caveat on
+every point except the ones that need it. A job recording yesterday just after
+midnight is therefore caveated too, when its figures were in fact in force —
+the conservative direction, because a caveat that over-applies costs a sentence
+and one that under-applies costs the reader the ability to tell.
 
-- **A reconstruction never overwrites a measurement.** The plan drops days that
-  already have a reading, and the insert behind it is `on conflict do nothing`
-  rather than the upsert `recordBurnSnapshot` uses — so a reading that landed
-  between the plan and the write still wins.
+A day that has not happened is refused outright (`day-not-reached`), which is
+the same bound `burnDaysThrough` applies to a computed series. Time can be
+logged against next week; a reading of next week would say the money was gone.
+
+Three more consequences worth writing down:
+
+- **A reconstruction never overwrites a measurement that is still true.** The
+  plan separates days with no reading from days whose reading the entries have
+  outgrown: the first are inserted with `on conflict do nothing`, so a reading
+  that landed between the plan and the write still wins, and the second are
+  replaced, because a reading that is wrong about the work is wrong however it
+  was taken. The replacement is marked `backfilled`, since its money is
+  today's.
+- **Staleness is a question about work, never about money.** A reading is stale
+  when its entry count, logged minutes or chargeable minutes no longer match
+  the entries — all three, because any one of them can move alone. Comparing
+  cents would call every reading stale the first time somebody corrected a
+  rate, and the repair would then quietly re-value the whole past, which is the
+  one thing this table exists to prevent.
 - **The accumulation runs over the whole history and the narrowing happens
   after it.** `planBurnBackfill` is three steps in the one order that is
   correct, and `lib/burndown/plan.ts` says why each of the other orders looks
   right and is not. Filtering to the missing days first gives every gap a
   running total that starts at the gap.
+
+Without the repair, the failure is quiet and permanent: time written up a week
+after it was worked leaves its day — and every day after it — understated for
+ever, and re-reading one day on its own leaves a line that *falls*, which is
+the one shape a cumulative burn cannot have.
 
 ## One reading per day, replaceable
 
@@ -1006,9 +1034,13 @@ worked on nine times.
 - **Nothing schedules the daily reading.** There is no cron in this repo and no
   job runner, so `captureProjectBurn` has no caller in `app/` today.
   `updateProjectBurnHistory` is the operation a page calls to top one project up
-  — reconstruct what it missed, then measure today — and Day 036 is the
-  milestone that decides whether drawing the chart is what triggers it. Both
-  halves are idempotent, which is what makes that decision safe to make later.
+  — measure today, then reconstruct and repair everything before it — and Day
+  036 is the milestone that decides whether drawing the chart is what triggers
+  it. Both halves are idempotent, which is what makes that decision safe to
+  make later. The order matters and is tested: measuring first means the
+  reconstruction finds today recorded and agreeing, where the other way round
+  writes a reconstruction of today that the measurement replaces a moment
+  later and reports a day written that nothing kept.
 - **Two unscoped reads.** `dailyTimeTotalsByProject` and
   `burnSnapshotDaysByProject` ask about the whole studio rather than one
   engagement, because the backfill is a studio-wide repair and a query per
