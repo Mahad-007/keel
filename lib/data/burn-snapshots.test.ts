@@ -9,6 +9,7 @@ import { createTestDb } from "@/lib/db/testing";
 import { createTimeEntry } from "./time-entries";
 
 import {
+  backfillProjectBurn,
   burnSnapshotDates,
   captureProjectBurn,
   burnSnapshotDaysByProject,
@@ -569,5 +570,156 @@ describe("captureProjectBurn on a project with a bad column", () => {
     await captureProjectBurn(projectId, "2026-10-14", db);
 
     expect(await listBurnSnapshots(projectId, db)).toEqual([]);
+  });
+});
+
+describe("backfillProjectBurn", () => {
+  /** Three worked days of a $150-an-hour engagement, an hour apiece. */
+  async function threeWorkedDays(): Promise<void> {
+    await updateProject(projectId, { rateCents: 15_000 }, db);
+    for (const workedOn of ["2026-10-14", "2026-10-15", "2026-10-20"]) {
+      await createTimeEntry({ projectId, minutes: 60, workedOn }, db);
+    }
+  }
+
+  it("writes one reading per day the project was worked", async () => {
+    await threeWorkedDays();
+
+    const result = await backfillProjectBurn(
+      projectId,
+      { through: "2026-10-31" },
+      db,
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      projectId,
+      written: 3,
+      alreadyRecorded: 0,
+    });
+    expect((await listBurnSnapshots(projectId, db)).map((r) => r.onDate)).toEqual(
+      ["2026-10-14", "2026-10-15", "2026-10-20"],
+    );
+  });
+
+  it("writes a line that climbs rather than a bar per day", async () => {
+    await threeWorkedDays();
+    await backfillProjectBurn(projectId, { through: "2026-10-31" }, db);
+
+    expect(
+      (await listBurnSnapshots(projectId, db)).map((r) => r.burnedCents),
+    ).toEqual([15_000, 30_000, 45_000]);
+  });
+
+  it("marks what it wrote as a reconstruction", async () => {
+    await threeWorkedDays();
+    await backfillProjectBurn(projectId, { through: "2026-10-31" }, db);
+
+    expect(
+      (await listBurnSnapshots(projectId, db)).every(
+        (r) => r.origin === "backfilled",
+      ),
+    ).toBe(true);
+  });
+
+  it("writes nothing on a second run", async () => {
+    await threeWorkedDays();
+    await backfillProjectBurn(projectId, { through: "2026-10-31" }, db);
+
+    expect(
+      await backfillProjectBurn(projectId, { through: "2026-10-31" }, db),
+    ).toEqual({ ok: true, projectId, written: 0, alreadyRecorded: 3 });
+    expect(await listBurnSnapshots(projectId, db)).toHaveLength(3);
+  });
+
+  it("leaves a measurement alone and fills the days around it", async () => {
+    await threeWorkedDays();
+    await captureProjectBurn(projectId, "2026-10-15", db);
+
+    const result = await backfillProjectBurn(
+      projectId,
+      { through: "2026-10-31" },
+      db,
+    );
+
+    expect(result).toMatchObject({ written: 2, alreadyRecorded: 1 });
+    const rows = await listBurnSnapshots(projectId, db);
+    expect(rows.map((r) => r.origin)).toEqual([
+      "backfilled",
+      "recorded",
+      "backfilled",
+    ]);
+  });
+
+  it("keeps the history behind a day it skipped", async () => {
+    await threeWorkedDays();
+    await captureProjectBurn(projectId, "2026-10-15", db);
+    await backfillProjectBurn(projectId, { through: "2026-10-31" }, db);
+
+    const rows = await listBurnSnapshots(projectId, db);
+    // The 20th is three hours in, not one: the skipped day still happened.
+    expect(rows[2].loggedMinutes).toBe(180);
+  });
+
+  it("stops at the day it is given", async () => {
+    await threeWorkedDays();
+
+    const result = await backfillProjectBurn(
+      projectId,
+      { through: "2026-10-15" },
+      db,
+    );
+
+    expect(result).toMatchObject({ written: 2 });
+    expect((await listBurnSnapshots(projectId, db)).map((r) => r.onDate)).toEqual(
+      ["2026-10-14", "2026-10-15"],
+    );
+  });
+
+  it("writes nothing for a project with no time logged", async () => {
+    expect(
+      await backfillProjectBurn(projectId, { through: "2026-10-31" }, db),
+    ).toEqual({ ok: true, projectId, written: 0, alreadyRecorded: 0 });
+  });
+
+  it("values the history at today's rate, which is all it can know", async () => {
+    await threeWorkedDays();
+    await updateProject(projectId, { rateCents: 20_000 }, db);
+
+    await backfillProjectBurn(projectId, { through: "2026-10-31" }, db);
+
+    expect(
+      (await listBurnSnapshots(projectId, db)).map((r) => r.rateCents),
+    ).toEqual([20_000, 20_000, 20_000]);
+  });
+
+  it("refuses a project that is not there", async () => {
+    expect(await backfillProjectBurn("prj_nope", {}, db)).toEqual({
+      ok: false,
+      projectId: "prj_nope",
+      reason: "no-such-project",
+    });
+  });
+
+  it("refuses a project whose price no column can hold, writing nothing", async () => {
+    await threeWorkedDays();
+    await db.run(
+      sql`update projects set contract_value_cents = 1.5 where id = ${projectId}`,
+    );
+
+    expect(
+      await backfillProjectBurn(projectId, { through: "2026-10-31" }, db),
+    ).toEqual({
+      ok: false,
+      projectId,
+      reason: "unrecordable-figures",
+    });
+    expect(await listBurnSnapshots(projectId, db)).toEqual([]);
+  });
+
+  it("refuses a day that is a moment rather than a date", async () => {
+    await expect(
+      backfillProjectBurn(projectId, { through: "2026-10-31T09:00:00.000Z" }, db),
+    ).rejects.toThrow(/calendar date/);
   });
 });
