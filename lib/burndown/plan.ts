@@ -116,6 +116,49 @@ export function withoutRecordedDays(
 }
 
 /**
+ * The points of a series whose day has a reading that no longer matches the
+ * entries.
+ *
+ * The answer to the one way a stored burn-down goes wrong on its own. Time is
+ * logged late — an afternoon written up the following week is ordinary, not an
+ * error — and a reading taken before that entry arrived understates its day
+ * and every day after it. Nothing about the reading says so: the row looks
+ * exactly like a good one, and the line it draws is plausible and too low.
+ *
+ * So a day is stale when the work it recorded is not the work the entries now
+ * say it held. All three totals are compared, because any of them can move on
+ * its own: two entries merged into one leave the minutes alone and change the
+ * count, and a chargeable flag unticked leaves both alone and changes the
+ * third.
+ *
+ * What is **not** compared is the money. A reading's burn is deliberately the
+ * figure that was reported at the rate of its own day, so a rate corrected
+ * since is exactly the difference a stored history exists to keep — comparing
+ * cents would call every reading stale the first time somebody edited a rate,
+ * and the repair would quietly re-value the entire past.
+ *
+ * A day whose reading agrees is not here and is not rewritten. That is what
+ * keeps a measurement a measurement: the repair only touches days that are
+ * provably wrong about the work.
+ */
+export function staleBurnPoints(
+  points: readonly BurnPoint[],
+  recorded: readonly BurnDay[],
+): BurnPoint[] {
+  const already = readingsByDate(recorded);
+
+  return points.filter((point) => {
+    const reading = already.get(point.onDate);
+    if (reading === undefined) return false;
+    return (
+      reading.entryCount !== point.entryCount ||
+      reading.loggedMinutes !== point.loggedMinutes ||
+      reading.billableMinutes !== point.billableMinutes
+    );
+  });
+}
+
+/**
  * What to write to reconstruct one project's burn-down, and what to leave.
  *
  * The three steps in the one order that is correct, which is why they are one
