@@ -16,6 +16,7 @@ import {
   clearTimeEntryBilled,
   createTimeEntries,
   dailyProjectTimeTotals,
+  dailyTimeTotalsByProject,
   createTimeEntry,
   deleteTimeEntry,
   getTimeEntry,
@@ -640,6 +641,88 @@ describe("dailyProjectTimeTotals", () => {
         billableMinutes: 60,
       },
     ]);
+  });
+});
+
+describe("dailyTimeTotalsByProject", () => {
+  /** A second engagement, so the grouping has two projects to keep apart. */
+  async function secondProject(): Promise<string> {
+    const otherClient = await createClient({ name: "Other Co" }, db);
+    const other = await createProject(
+      { clientId: otherClient.id, name: "Elsewhere" },
+      db,
+    );
+    return other.id;
+  }
+
+  it("keeps each project's days to itself", async () => {
+    const otherId = await secondProject();
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    await createTimeEntry(
+      { projectId: otherId, minutes: 600, workedOn: "2026-10-14" },
+      db,
+    );
+
+    const days = await dailyTimeTotalsByProject(db);
+
+    expect(days).toHaveLength(2);
+    const mine = days.find((day) => day.projectId === projectId);
+    expect(mine?.loggedMinutes).toBe(60);
+    expect(days.find((day) => day.projectId === otherId)?.loggedMinutes).toBe(
+      600,
+    );
+  });
+
+  it("gathers one project's entries on one day into one row", async () => {
+    await createTimeEntry({ projectId, minutes: 90, workedOn: "2026-10-14" }, db);
+    await createTimeEntry({ projectId, minutes: 30, workedOn: "2026-10-14" }, db);
+
+    expect(await dailyTimeTotalsByProject(db)).toEqual([
+      {
+        projectId,
+        onDate: "2026-10-14",
+        entryCount: 2,
+        loggedMinutes: 120,
+        billableMinutes: 120,
+      },
+    ]);
+  });
+
+  it("puts each project's days in calendar order", async () => {
+    await createTimeEntry({ projectId, minutes: 30, workedOn: "2026-10-20" }, db);
+    await createTimeEntry({ projectId, minutes: 90, workedOn: "2026-10-14" }, db);
+
+    const mine = (await dailyTimeTotalsByProject(db)).filter(
+      (day) => day.projectId === projectId,
+    );
+    expect(mine.map((day) => day.onDate)).toEqual(["2026-10-14", "2026-10-20"]);
+  });
+
+  it("agrees with the single-project grouping", async () => {
+    await secondProject();
+    await createTimeEntry({ projectId, minutes: 90, workedOn: "2026-10-14" }, db);
+    await createTimeEntry({ projectId, minutes: 45, workedOn: "2026-10-15" }, db);
+
+    const across = (await dailyTimeTotalsByProject(db))
+      .filter((day) => day.projectId === projectId)
+      .map(({ projectId: _project, ...day }) => day);
+
+    expect(across).toEqual(await dailyProjectTimeTotals(projectId, db));
+  });
+
+  it("leaves out a project nothing has been logged against", async () => {
+    const otherId = await secondProject();
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+
+    expect(
+      (await dailyTimeTotalsByProject(db)).some(
+        (day) => day.projectId === otherId,
+      ),
+    ).toBe(false);
+  });
+
+  it("is empty for a studio with no time logged at all", async () => {
+    expect(await dailyTimeTotalsByProject(db)).toEqual([]);
   });
 });
 
