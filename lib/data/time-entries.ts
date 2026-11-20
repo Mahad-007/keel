@@ -514,6 +514,60 @@ export async function dailyProjectTimeTotals(
 }
 
 /**
+ * A day of one project's work, with the project named.
+ *
+ * `BurnDay` and the column that says whose day it is, for the one read that
+ * crosses projects. The series functions take the day on its own, so a caller
+ * groups these by project and hands each group over without the extra field
+ * mattering — which is why it is an addition to the shape rather than a shape
+ * of its own.
+ */
+export type ProjectBurnDay = BurnDay & {
+  /** The project the day belongs to. */
+  readonly projectId: string;
+};
+
+/**
+ * Every project's time, gathered into the days each one was worked, in project
+ * and then date order.
+ *
+ * The query the studio-wide backfill is built from, and it is one query on
+ * purpose. The alternative — list the projects, then ask each for its days —
+ * is a round trip per project, which is the shape that turns a backfill of a
+ * year-old studio into a thousand queries. Grouped once in SQL, a studio's
+ * whole history is a few hundred rows.
+ *
+ * Unscoped, like `listTimeEntriesInRange` and for a similar reason: the
+ * question is about the studio rather than about an engagement. It is the read
+ * Phase 8 will have to scope by owner along with every other, and it is listed
+ * in `NOTES.md` for that reason rather than left to be found.
+ *
+ * Ordered by project and then by day so a caller can walk it once, and so an
+ * interrupted backfill has written whole projects rather than a scatter. The
+ * grouping is on the same two columns the project index leads with, so the
+ * order comes off the index.
+ *
+ * A project with no time logged does not appear at all, which is the right
+ * answer for a burn-down: there is nothing to plot, and a reading of zero
+ * dated to nothing would be a point on a chart where no work happened.
+ */
+export async function dailyTimeTotalsByProject(
+  database: Database = db,
+): Promise<ProjectBurnDay[]> {
+  const rows = await database
+    .select({
+      projectId: timeEntries.projectId,
+      onDate: timeEntries.workedOn,
+      ...LOGGED_TOTALS_COLUMNS,
+    })
+    .from(timeEntries)
+    .groupBy(timeEntries.projectId, timeEntries.workedOn)
+    .orderBy(asc(timeEntries.projectId), asc(timeEntries.workedOn));
+
+  return rows.map((row) => ({ projectId: row.projectId, ...burnDayOf(row) }));
+}
+
+/**
  * A stretch of days, both ends included: what a timesheet asks for.
  *
  * Calendar dates rather than timestamps, because `worked_on` holds a day. Both
