@@ -1,3 +1,5 @@
+import { asc, eq } from "drizzle-orm";
+
 import {
   DEFAULT_BURN_SNAPSHOT_ORIGIN,
   type BurnSnapshotOrigin,
@@ -168,4 +170,48 @@ export async function recordBurnSnapshot(
     .returning();
 
   return snapshot;
+}
+
+/**
+ * The order a project's readings are always read in: oldest first.
+ *
+ * The opposite of every other list in the data layer, and deliberately so. A
+ * list of rows is read as "what happened lately" and comes back newest first;
+ * a series is read as a line and is drawn left to right. Handing a chart the
+ * reversed order would mean every caller reversing it, and the first one to
+ * forget would plot the engagement backwards — a burn-down that falls.
+ *
+ * One key and no tie-break, because the unique index makes a tie impossible: a
+ * project has at most one reading per day.
+ *
+ * A constant rather than an `orderBy` per query, so the list a chart draws and
+ * the dates a backfill compares against cannot come back in different orders.
+ */
+const OLDEST_FIRST = [asc(burnSnapshots.onDate)] as const;
+
+/**
+ * Every stored reading of one project, oldest first.
+ *
+ * The whole burn-down in one query. Scoped to a project, because that is the
+ * only way a series is read — a chart is of one engagement, and the portfolio
+ * views later in the phase ask for figures rather than for lines.
+ *
+ * The whole row rather than the nine columns a point needs, because the two
+ * extras answer questions a chart asks: `origin` is whether a point can be
+ * presented as a measurement, and `capturedAt` is how stale the end of the
+ * line is. `recordedBurnPoint` takes what it needs from the row and ignores
+ * the rest.
+ *
+ * The unique index covers this exactly: the project is the leading column and
+ * the day is the second, so the rows come back in order without a sort.
+ */
+export async function listBurnSnapshots(
+  projectId: string,
+  database: Database = db,
+): Promise<BurnSnapshot[]> {
+  return database
+    .select()
+    .from(burnSnapshots)
+    .where(eq(burnSnapshots.projectId, projectId))
+    .orderBy(...OLDEST_FIRST);
 }
