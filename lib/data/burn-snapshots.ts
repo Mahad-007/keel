@@ -442,3 +442,48 @@ export type ProjectBurnBackfill =
       readonly projectId: string;
       readonly reason: BurnCaptureReason;
     };
+
+/**
+ * Writes a run of readings in one statement, skipping any day that already has
+ * one.
+ *
+ * A single multi-row insert rather than a loop of upserts, because a backfill
+ * of a year-old engagement is a hundred and fifty days and a hundred and fifty
+ * round trips is the difference between a second and a minute.
+ *
+ * `onConflictDoNothing` rather than the replacement `recordBurnSnapshot`
+ * makes, and the difference is which reading wins. The plan has already left
+ * out every day that was recorded, so a conflict here means a reading arrived
+ * between the plan and the write — from the daily capture, or from another
+ * backfill — and that reading is at least as good as this reconstruction. A
+ * reconstruction must never overwrite a measurement.
+ *
+ * It returns how many rows actually landed rather than how many were offered,
+ * which is the only honest count when some of them may have been skipped.
+ *
+ * One timestamp for the whole run: every row of it was captured at the same
+ * moment, because they were all worked out from the same read.
+ */
+async function addBurnSnapshots(
+  projectId: string,
+  points: readonly BurnPoint[],
+  origin: BurnSnapshotOrigin,
+  database: Database,
+): Promise<number> {
+  // Drizzle refuses an insert with no values, and a plan with nothing to do is
+  // the ordinary case on every run after the first.
+  if (points.length === 0) return 0;
+
+  const capturedAt = new Date().toISOString();
+  const rows = await database
+    .insert(burnSnapshots)
+    .values(
+      points.map((point) =>
+        burnSnapshotValues({ projectId, point, origin }, capturedAt),
+      ),
+    )
+    .onConflictDoNothing()
+    .returning();
+
+  return rows.length;
+}
