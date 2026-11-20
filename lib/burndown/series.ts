@@ -1,3 +1,4 @@
+import { isCalendarDate } from "@/lib/dates";
 import type { LoggedTotals } from "@/lib/time/rollup";
 
 /**
@@ -40,3 +41,43 @@ export type BurnDay = LoggedTotals & {
   /** The calendar date: `YYYY-MM-DD`, no time of day. */
   readonly onDate: string;
 };
+
+/**
+ * The days of a series that fall on or before a given day, in the order they
+ * arrived.
+ *
+ * Every series has an upper bound, and it is always the same one: today. Time
+ * can be logged against a future date — the form takes any day, and somebody
+ * blocking out next week's retainer is not making a mistake — but a burn-down
+ * cannot plot it. A point dated next Friday would say the engagement had
+ * already consumed that money, and the line would run off the end of the chart
+ * into work nobody has done.
+ *
+ * So the bound is applied before anything is accumulated, which is the only
+ * order that gives a true figure: filtering a running total afterwards would
+ * leave the last point carrying minutes from days that had been dropped, and
+ * the chart would end higher than its own final point.
+ *
+ * The comparison is on the strings, which is exact for `YYYY-MM-DD` and only
+ * for that shape — zero-padded, fixed width, biggest unit first. A day that is
+ * not a calendar date is therefore dropped rather than compared, because the
+ * comparison would be meaningless and a reading cannot be dated to a day that
+ * is not a day. Only a hand-edited row reaches here as one.
+ *
+ * `through` itself has to be a calendar date and throws if it is not, like
+ * `shiftCalendarDate`: the bound comes from the caller's clock rather than
+ * from a column, so a timestamp there is a mistake in code, and silently
+ * truncating it to its first ten characters would drop the whole of its own
+ * day for anybody east of UTC.
+ */
+export function burnDaysThrough(
+  days: readonly BurnDay[],
+  through: string,
+): BurnDay[] {
+  if (!isCalendarDate(through)) {
+    throw new Error(`not a calendar date: ${through}`);
+  }
+  return days.filter(
+    (day) => isCalendarDate(day.onDate) && day.onDate <= through,
+  );
+}
