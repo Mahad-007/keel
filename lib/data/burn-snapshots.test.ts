@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { BurnPoint } from "@/lib/burndown/series";
 import type { Database } from "@/lib/db";
 import { burnSnapshots } from "@/lib/db/schema";
+import { shiftCalendarDate, utcCalendarDate } from "@/lib/dates";
 import { createTestDb } from "@/lib/db/testing";
 
 import { createTimeEntry } from "./time-entries";
@@ -972,5 +973,85 @@ describe("updateProjectBurnHistory", () => {
       reason: "no-such-project",
     });
     expect(update.today).toEqual({ ok: false, reason: "no-such-project" });
+  });
+});
+
+describe("captureProjectBurn and the day it is run on", () => {
+  it("calls a reading of its own day a measurement", async () => {
+    const result = await captureProjectBurn(
+      projectId,
+      "2026-10-14",
+      { today: "2026-10-14" },
+      db,
+    );
+
+    expect(result.ok && result.snapshot.origin).toBe("recorded");
+  });
+
+  it("calls a reading of an earlier day a reconstruction", async () => {
+    // Last March at this month's price and rate is a reconstruction whoever
+    // asked for it, and the row has to say so or a chart cannot caveat it.
+    const result = await captureProjectBurn(
+      projectId,
+      "2026-10-14",
+      { today: "2026-10-20" },
+      db,
+    );
+
+    expect(result.ok && result.snapshot.origin).toBe("backfilled");
+  });
+
+  it("refuses a day that has not happened", async () => {
+    expect(
+      await captureProjectBurn(
+        projectId,
+        "2026-10-20",
+        { today: "2026-10-14" },
+        db,
+      ),
+    ).toEqual({ ok: false, reason: "day-not-reached" });
+    expect(await listBurnSnapshots(projectId, db)).toEqual([]);
+  });
+
+  it("refuses a future day even when time is logged against it", async () => {
+    await createTimeEntry({ projectId, minutes: 600, workedOn: "2026-10-20" }, db);
+
+    expect(
+      await captureProjectBurn(
+        projectId,
+        "2026-10-20",
+        { today: "2026-10-14" },
+        db,
+      ),
+    ).toMatchObject({ ok: false, reason: "day-not-reached" });
+  });
+
+  it("reads the clock itself when it is not told the day", async () => {
+    const today = utcCalendarDate(new Date());
+
+    const result = await captureProjectBurn(projectId, today, {}, db);
+
+    expect(result.ok && result.snapshot.onDate).toBe(today);
+    expect(result.ok && result.snapshot.origin).toBe("recorded");
+  });
+
+  it("refuses tomorrow against the clock it read itself", async () => {
+    const tomorrow = shiftCalendarDate(utcCalendarDate(new Date()), 1);
+
+    expect(await captureProjectBurn(projectId, tomorrow, {}, db)).toEqual({
+      ok: false,
+      reason: "day-not-reached",
+    });
+  });
+
+  it("refuses a clock day that is a moment rather than a date", async () => {
+    await expect(
+      captureProjectBurn(
+        projectId,
+        "2026-10-14",
+        { today: "2026-10-14T09:00:00.000Z" },
+        db,
+      ),
+    ).rejects.toThrow(/clock day/);
   });
 });
