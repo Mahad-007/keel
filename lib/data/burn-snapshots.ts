@@ -722,3 +722,62 @@ export async function backfillBurnSnapshots(
     { behavior: "immediate" },
   );
 }
+
+/**
+ * What bringing one project's burn-down up to date did: the reconstruction of
+ * the days it had missed, and the reading of today.
+ *
+ * Both halves reported separately rather than summed into a count of rows,
+ * because they are different claims. The backfill's days are reconstructions
+ * valued at today's figures; today's reading is a measurement. A caller that
+ * wanted to say "41 days of this line were worked out afterwards" could not
+ * get that from a total.
+ */
+export type BurnHistoryUpdate = {
+  /** What the reconstruction of the missing days did. */
+  readonly backfill: ProjectBurnBackfill;
+  /** The reading of the last day, which is today unless one was named. */
+  readonly today: BurnCaptureResult;
+};
+
+/**
+ * Brings one project's burn-down up to date: reconstructs the days it has no
+ * reading for, then records the day it is run on.
+ *
+ * The two halves of the milestone in the order they have to happen, which is
+ * the only reason this exists rather than two calls at each caller. The
+ * backfill leaves today alone when today already has a reading and would
+ * otherwise write a reconstruction of a day that is still in progress; the
+ * capture then replaces whatever the day held with a measurement. Called the
+ * other way round, a reconstruction would overwrite the measurement it had
+ * just taken — no, worse: `addBurnSnapshots` would skip it, and the day would
+ * keep a reading taken before the afternoon was logged.
+ *
+ * It also fixes one answer to "today" for both halves. Run as two calls either
+ * side of midnight, a project could be reconstructed through one day and
+ * measured on the next, leaving a line with a hole in it that the next run
+ * would fill with a reconstruction dated to a day somebody was watching.
+ *
+ * A refused backfill still lets the capture run, and the result carries both
+ * answers rather than one. The two refuse for the same two reasons, so they
+ * will usually agree — but a project whose figures no column can hold is one
+ * where the *reader* needs both sentences, and a function that stopped at the
+ * first would hide the simpler one.
+ *
+ * This is the operation a page calls. The daily capture across a studio is
+ * `captureProjectBurn` per project, and the one-off repair is
+ * `backfillBurnSnapshots`; what a reader opening one engagement wants is this,
+ * which is both of them narrowed to the project in front of them.
+ */
+export async function updateProjectBurnHistory(
+  projectId: string,
+  options: BurnBackfillOptions = {},
+  database: Database = db,
+): Promise<BurnHistoryUpdate> {
+  const through = options.through ?? utcCalendarDate(new Date());
+
+  return {
+    backfill: await backfillProjectBurn(projectId, { through }, database),
+    today: await captureProjectBurn(projectId, through, database),
+  };
+}
