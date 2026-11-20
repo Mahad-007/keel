@@ -1,5 +1,6 @@
 import {
   and,
+  asc,
   count,
   desc,
   eq,
@@ -11,6 +12,7 @@ import {
   type SQL,
 } from "drizzle-orm";
 
+import type { BurnDay } from "@/lib/burndown/series";
 import { db, type Database } from "@/lib/db";
 import {
   clients,
@@ -449,6 +451,66 @@ export async function projectTimeTotalsThrough(
     ),
     database,
   );
+}
+
+/**
+ * A day of a project's work as the burn-down reads it: the date, and the three
+ * figures logged against it.
+ *
+ * `BurnDay` is the burn-down's shape rather than this module's, and the query
+ * produces it directly — `onDate` instead of `workedOn`, which is the one
+ * rename in the module. A day of a burn series is not a day of a timesheet: it
+ * stands for the state of an engagement at the end of that date, and the days
+ * it is accumulated into include ones nothing was worked on.
+ *
+ * Every figure goes through `Number` for the reason `loggedTotalsWhere` does:
+ * the driver hands a large `SUM` back as a bigint, and a bigint reaching the
+ * pure arithmetic would throw there rather than here.
+ */
+function burnDayOf(row: {
+  onDate: string;
+  entryCount: number;
+  loggedMinutes: number;
+  billableMinutes: number;
+}): BurnDay {
+  return {
+    onDate: row.onDate,
+    entryCount: Number(row.entryCount),
+    loggedMinutes: Number(row.loggedMinutes),
+    billableMinutes: Number(row.billableMinutes),
+  };
+}
+
+/**
+ * One project's time gathered into the days it was worked, oldest first.
+ *
+ * The query a burn-down is reconstructed from. A day at a time rather than an
+ * entry at a time, because the series has one point per day however many
+ * stretches of work went into it, and reading the rows to group them in
+ * JavaScript would cross the wire with a year of entries to produce forty
+ * numbers.
+ *
+ * Days with nothing logged are simply absent, which is what the series wants:
+ * a burn-down holds its last value across a gap, and a row per quiet day would
+ * be a year of identical readings for a project that was worked on nine times.
+ *
+ * Oldest first, because a running total is accumulated forwards — the opposite
+ * of every other list in this module, which are newest-first because they are
+ * read as "what happened lately". The `project_id, worked_on` index is walked
+ * in order for the grouping, so the ordering is free.
+ */
+export async function dailyProjectTimeTotals(
+  projectId: string,
+  database: Database = db,
+): Promise<BurnDay[]> {
+  const rows = await database
+    .select({ onDate: timeEntries.workedOn, ...LOGGED_TOTALS_COLUMNS })
+    .from(timeEntries)
+    .where(eq(timeEntries.projectId, projectId))
+    .groupBy(timeEntries.workedOn)
+    .orderBy(asc(timeEntries.workedOn));
+
+  return rows.map(burnDayOf);
 }
 
 /**
