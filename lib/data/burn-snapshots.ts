@@ -450,11 +450,13 @@ export type BurnBackfillOptions = {
 /**
  * What a backfill did to one project.
  *
- * Both numbers, because the pair is the sentence. "Wrote 9 days, left 41" says
- * the run did something and that it did not touch what was already there;
- * (0, 50) says it was run twice and the second time was a no-op, which is the
- * property anybody running a backfill over live data wants to see demonstrated
- * rather than promised.
+ * All three numbers, because together they are the sentence. "Wrote 9 days,
+ * repaired 2, left 41" says what the run did and what it did not touch;
+ * (0, 0, 50) says it was run twice and the second time was a no-op, which is
+ * the property anybody running a backfill over live data wants to see
+ * demonstrated rather than promised. The repairs are counted apart from the
+ * writes because they are a different event: a day that had a reading and now
+ * has a better one, rather than a day that had none.
  *
  * A refusal names the project too, because the caller of the studio-wide run
  * is reading a list and needs to know which engagement to go and look at.
@@ -463,8 +465,13 @@ export type ProjectBurnBackfill =
   | {
       readonly ok: true;
       readonly projectId: string;
-      /** How many days of history were written. */
+      /** How many days of history were written for the first time. */
       readonly written: number;
+      /**
+       * How many stored readings were replaced because the entries had
+       * outgrown them — time logged days after it was worked.
+       */
+      readonly repaired: number;
       /** How many of its days already had a reading and were left alone. */
       readonly alreadyRecorded: number;
     }
@@ -482,12 +489,13 @@ export type ProjectBurnBackfill =
  * of a year-old engagement is a hundred and fifty days and a hundred and fifty
  * round trips is the difference between a second and a minute.
  *
- * `onConflictDoNothing` rather than the replacement `recordBurnSnapshot`
- * makes, and the difference is which reading wins. The plan has already left
- * out every day that was recorded, so a conflict here means a reading arrived
- * between the plan and the write — from the daily capture, or from another
- * backfill — and that reading is at least as good as this reconstruction. A
- * reconstruction must never overwrite a measurement.
+ * What happens to a day that already has a reading is the caller's decision,
+ * because the two writes a backfill makes want opposite answers. For a day the
+ * plan found nothing stored for, a conflict means a reading arrived between the
+ * plan and the write — from the daily capture, or from another run — and that
+ * reading is at least as good as this reconstruction, so it is left alone. For
+ * a day the plan found a reading the entries have outgrown, the stored row is
+ * provably wrong about the work and replacement is the whole point.
  *
  * It returns how many rows actually landed rather than how many were offered,
  * which is the only honest count when some of them may have been skipped.
@@ -499,6 +507,7 @@ async function addBurnSnapshots(
   projectId: string,
   points: readonly BurnPoint[],
   origin: BurnSnapshotOrigin,
+  onConflict: "skip" | "replace",
   database: Database,
 ): Promise<number> {
   // Drizzle refuses an insert with no values, and a plan with nothing to do is
@@ -506,15 +515,21 @@ async function addBurnSnapshots(
   if (points.length === 0) return 0;
 
   const capturedAt = new Date().toISOString();
-  const rows = await database
+  const insert = database
     .insert(burnSnapshots)
     .values(
       points.map((point) =>
         burnSnapshotValues({ projectId, point, origin }, capturedAt),
       ),
-    )
-    .onConflictDoNothing()
-    .returning();
+    );
+
+  const rows = await (onConflict === "skip"
+    ? insert.onConflictDoNothing()
+    : insert.onConflictDoUpdate({
+        target: [burnSnapshots.projectId, burnSnapshots.onDate],
+        set: REFRESHED_FROM_THE_READING,
+      })
+  ).returning();
 
   return rows.length;
 }
@@ -579,19 +594,40 @@ export async function backfillProjectBurn(
         no storable ones, and writing the prefix would leave a half-built line
         nothing says is half-built.
       */
-      if (plan.points.some((point) => !isRecordableBurn(point))) {
+      if (
+        [...plan.points, ...plan.stale].some(
+          (point) => !isRecordableBurn(point),
+        )
+      ) {
         return { ok: false, projectId, reason: "unrecordable-figures" };
       }
+
+      /*
+        The two writes, in the order that keeps the stronger claim. The days
+        with no reading go in first and skip anything that has appeared since;
+        the stale days are then replaced, because a reading the entries have
+        outgrown is wrong about the work however it was taken.
+      */
+      const written = await addBurnSnapshots(
+        projectId,
+        plan.points,
+        "backfilled",
+        "skip",
+        tx,
+      );
+      const repaired = await addBurnSnapshots(
+        projectId,
+        plan.stale,
+        "backfilled",
+        "replace",
+        tx,
+      );
 
       return {
         ok: true,
         projectId,
-        written: await addBurnSnapshots(
-          projectId,
-          plan.points,
-          "backfilled",
-          tx,
-        ),
+        written,
+        repaired,
         alreadyRecorded: plan.alreadyRecorded,
       };
     },
@@ -642,6 +678,8 @@ export type BurnBackfillReport = {
   readonly projects: readonly ProjectBurnBackfill[];
   /** How many days of history were written in total. */
   readonly written: number;
+  /** How many stored readings the entries had outgrown and were replaced. */
+  readonly repaired: number;
   /** How many days already had a reading and were left alone. */
   readonly alreadyRecorded: number;
   /** How many projects were refused, each for a reason in the list. */
@@ -711,7 +749,11 @@ export async function backfillBurnSnapshots(
           through,
         });
 
-        if (plan.points.some((point) => !isRecordableBurn(point))) {
+        if (
+          [...plan.points, ...plan.stale].some(
+            (point) => !isRecordableBurn(point),
+          )
+        ) {
           results.push({
             ok: false,
             projectId,
@@ -727,6 +769,14 @@ export async function backfillBurnSnapshots(
             projectId,
             plan.points,
             "backfilled",
+            "skip",
+            tx,
+          ),
+          repaired: await addBurnSnapshots(
+            projectId,
+            plan.stale,
+            "backfilled",
+            "replace",
             tx,
           ),
           alreadyRecorded: plan.alreadyRecorded,
@@ -736,6 +786,7 @@ export async function backfillBurnSnapshots(
       return {
         projects: results,
         written: sumOf(results, (result) => (result.ok ? result.written : 0)),
+        repaired: sumOf(results, (result) => (result.ok ? result.repaired : 0)),
         alreadyRecorded: sumOf(results, (result) =>
           result.ok ? result.alreadyRecorded : 0,
         ),

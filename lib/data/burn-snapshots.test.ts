@@ -615,6 +615,7 @@ describe("backfillProjectBurn", () => {
       ok: true,
       projectId,
       written: 3,
+      repaired: 0,
       alreadyRecorded: 0,
     });
     expect((await listBurnSnapshots(projectId, db)).map((r) => r.onDate)).toEqual(
@@ -648,7 +649,13 @@ describe("backfillProjectBurn", () => {
 
     expect(
       await backfillProjectBurn(projectId, { through: "2026-10-31" }, db),
-    ).toEqual({ ok: true, projectId, written: 0, alreadyRecorded: 3 });
+    ).toEqual({
+      ok: true,
+      projectId,
+      written: 0,
+      repaired: 0,
+      alreadyRecorded: 3,
+    });
     expect(await listBurnSnapshots(projectId, db)).toHaveLength(3);
   });
 
@@ -699,7 +706,13 @@ describe("backfillProjectBurn", () => {
   it("writes nothing for a project with no time logged", async () => {
     expect(
       await backfillProjectBurn(projectId, { through: "2026-10-31" }, db),
-    ).toEqual({ ok: true, projectId, written: 0, alreadyRecorded: 0 });
+    ).toEqual({
+      ok: true,
+      projectId,
+      written: 0,
+      repaired: 0,
+      alreadyRecorded: 0,
+    });
   });
 
   it("values the history at today's rate, which is all it can know", async () => {
@@ -840,6 +853,7 @@ describe("backfillBurnSnapshots", () => {
     expect(await backfillBurnSnapshots({ through: "2026-10-31" }, db)).toEqual({
       projects: [],
       written: 0,
+      repaired: 0,
       alreadyRecorded: 0,
       refused: 0,
     });
@@ -858,6 +872,7 @@ describe("backfillBurnSnapshots", () => {
       ok: true,
       projectId,
       written: 2,
+      repaired: 0,
       alreadyRecorded: 0,
     });
     expect(across.map((row) => row.burnedCents)).toEqual([15_000, 30_000]);
