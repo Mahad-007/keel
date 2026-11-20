@@ -9,6 +9,7 @@ import { createTestDb } from "@/lib/db/testing";
 import { createTimeEntry } from "./time-entries";
 
 import {
+  backfillBurnSnapshots,
   backfillProjectBurn,
   burnSnapshotDates,
   captureProjectBurn,
@@ -721,5 +722,125 @@ describe("backfillProjectBurn", () => {
     await expect(
       backfillProjectBurn(projectId, { through: "2026-10-31T09:00:00.000Z" }, db),
     ).rejects.toThrow(/calendar date/);
+  });
+});
+
+describe("backfillBurnSnapshots", () => {
+  /** A second engagement with its own rate and its own days. */
+  async function secondEngagement(): Promise<string> {
+    const client = await createClient({ name: "Other Co" }, db);
+    const project = await createProject(
+      {
+        clientId: client.id,
+        name: "Elsewhere",
+        contractValueCents: 200_000,
+        rateCents: 10_000,
+      },
+      db,
+    );
+    await createTimeEntry(
+      { projectId: project.id, minutes: 120, workedOn: "2026-10-16" },
+      db,
+    );
+    return project.id;
+  }
+
+  it("reconstructs every project that has logged time", async () => {
+    await updateProject(projectId, { rateCents: 15_000 }, db);
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    const otherId = await secondEngagement();
+
+    const report = await backfillBurnSnapshots({ through: "2026-10-31" }, db);
+
+    expect(report.written).toBe(2);
+    expect(report.refused).toBe(0);
+    expect(report.projects).toHaveLength(2);
+    expect((await listBurnSnapshots(projectId, db))[0].burnedCents).toBe(15_000);
+    expect((await listBurnSnapshots(otherId, db))[0].burnedCents).toBe(20_000);
+  });
+
+  it("values each project at its own rate", async () => {
+    await updateProject(projectId, { rateCents: 15_000 }, db);
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    const otherId = await secondEngagement();
+
+    await backfillBurnSnapshots({ through: "2026-10-31" }, db);
+
+    expect((await listBurnSnapshots(projectId, db))[0].rateCents).toBe(15_000);
+    expect((await listBurnSnapshots(otherId, db))[0].rateCents).toBe(10_000);
+  });
+
+  it("leaves out a project nothing has been logged against", async () => {
+    const otherId = await secondEngagement();
+
+    const report = await backfillBurnSnapshots({ through: "2026-10-31" }, db);
+
+    expect(report.projects.map((result) => result.projectId)).toEqual([otherId]);
+    expect(await listBurnSnapshots(projectId, db)).toEqual([]);
+  });
+
+  it("writes nothing on a second run and says what it left", async () => {
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    await backfillBurnSnapshots({ through: "2026-10-31" }, db);
+
+    const report = await backfillBurnSnapshots({ through: "2026-10-31" }, db);
+
+    expect(report).toMatchObject({ written: 0, alreadyRecorded: 1, refused: 0 });
+  });
+
+  it("reports one bad project and reconstructs the rest", async () => {
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    const otherId = await secondEngagement();
+    await db.run(
+      sql`update projects set contract_value_cents = 1.5 where id = ${projectId}`,
+    );
+
+    const report = await backfillBurnSnapshots({ through: "2026-10-31" }, db);
+
+    expect(report.refused).toBe(1);
+    expect(report.written).toBe(1);
+    expect(
+      report.projects.find((result) => result.projectId === projectId),
+    ).toEqual({ ok: false, projectId, reason: "unrecordable-figures" });
+    expect(await listBurnSnapshots(otherId, db)).toHaveLength(1);
+  });
+
+  it("does not overwrite a measurement with a reconstruction", async () => {
+    await updateProject(projectId, { rateCents: 15_000 }, db);
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    await captureProjectBurn(projectId, "2026-10-14", db);
+
+    await backfillBurnSnapshots({ through: "2026-10-31" }, db);
+
+    const rows = await listBurnSnapshots(projectId, db);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].origin).toBe("recorded");
+  });
+
+  it("is an empty report for a studio with no time logged", async () => {
+    expect(await backfillBurnSnapshots({ through: "2026-10-31" }, db)).toEqual({
+      projects: [],
+      written: 0,
+      alreadyRecorded: 0,
+      refused: 0,
+    });
+  });
+
+  it("agrees with the per-project backfill", async () => {
+    await updateProject(projectId, { rateCents: 15_000 }, db);
+    for (const workedOn of ["2026-10-14", "2026-10-15"]) {
+      await createTimeEntry({ projectId, minutes: 60, workedOn }, db);
+    }
+
+    const report = await backfillBurnSnapshots({ through: "2026-10-31" }, db);
+    const across = await listBurnSnapshots(projectId, db);
+
+    expect(report.projects[0]).toEqual({
+      ok: true,
+      projectId,
+      written: 2,
+      alreadyRecorded: 0,
+    });
+    expect(across.map((row) => row.burnedCents)).toEqual([15_000, 30_000]);
   });
 });
