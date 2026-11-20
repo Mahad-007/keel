@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { burnDaysThrough, type BurnDay } from "./series";
+import { accumulateBurnDays, burnDaysThrough, type BurnDay } from "./series";
 
 /** A day of logged work, with the figures a caller does not care about filled. */
 function day(onDate: string, loggedMinutes = 60): BurnDay {
@@ -58,5 +58,77 @@ describe("burnDaysThrough", () => {
     expect(() => burnDaysThrough([], "2026-02-30")).toThrow(
       "not a calendar date",
     );
+  });
+});
+
+describe("accumulateBurnDays", () => {
+  it("carries each day's total forward into the next", () => {
+    const series = accumulateBurnDays([
+      day("2026-03-01", 60),
+      day("2026-03-02", 90),
+      day("2026-03-04", 30),
+    ]);
+    expect(series.map((d) => [d.onDate, d.loggedMinutes])).toEqual([
+      ["2026-03-01", 60],
+      ["2026-03-02", 150],
+      ["2026-03-04", 180],
+    ]);
+  });
+
+  it("accumulates in calendar order whatever order it was given", () => {
+    const series = accumulateBurnDays([
+      day("2026-03-04", 30),
+      day("2026-03-01", 60),
+      day("2026-03-02", 90),
+    ]);
+    expect(series.map((d) => [d.onDate, d.loggedMinutes])).toEqual([
+      ["2026-03-01", 60],
+      ["2026-03-02", 150],
+      ["2026-03-04", 180],
+    ]);
+  });
+
+  it("counts the entries behind the figure as well as the minutes", () => {
+    const series = accumulateBurnDays([
+      { onDate: "2026-03-01", entryCount: 2, loggedMinutes: 60, billableMinutes: 60 },
+      { onDate: "2026-03-02", entryCount: 3, loggedMinutes: 90, billableMinutes: 30 },
+    ]);
+    expect(series.map((d) => d.entryCount)).toEqual([2, 5]);
+  });
+
+  it("keeps the chargeable half running separately", () => {
+    const series = accumulateBurnDays([
+      { onDate: "2026-03-01", entryCount: 1, loggedMinutes: 60, billableMinutes: 0 },
+      { onDate: "2026-03-02", entryCount: 1, loggedMinutes: 60, billableMinutes: 60 },
+    ]);
+    expect(series.map((d) => [d.loggedMinutes, d.billableMinutes])).toEqual([
+      [60, 0],
+      [120, 60],
+    ]);
+  });
+
+  it("combines two helpings of one day into a single point", () => {
+    const series = accumulateBurnDays([
+      day("2026-03-01", 60),
+      day("2026-03-01", 30),
+      day("2026-03-02", 15),
+    ]);
+    expect(series.map((d) => [d.onDate, d.loggedMinutes, d.entryCount])).toEqual([
+      ["2026-03-01", 90, 2],
+      ["2026-03-02", 105, 3],
+    ]);
+  });
+
+  it("has no point at all for a project with no time logged", () => {
+    expect(accumulateBurnDays([])).toEqual([]);
+  });
+
+  it("does not mutate the days it was handed", () => {
+    const days = [day("2026-03-02", 90), day("2026-03-01", 60)];
+    accumulateBurnDays(days);
+    expect(days.map((d) => [d.onDate, d.loggedMinutes])).toEqual([
+      ["2026-03-02", 90],
+      ["2026-03-01", 60],
+    ]);
   });
 });
