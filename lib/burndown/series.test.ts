@@ -6,7 +6,9 @@ import {
   accumulateBurnDays,
   burnDaysThrough,
   burnSeries,
+  recordedBurnPoint,
   type BurnDay,
+  type RecordedBurn,
 } from "./series";
 
 /** A day of logged work, with the figures a caller does not care about filled. */
@@ -211,5 +213,72 @@ describe("burnSeries", () => {
 
   it("has no points for a project with no time logged", () => {
     expect(burnSeries([], 500_000, RATE)).toEqual([]);
+  });
+});
+
+/** A stored reading of one day: ten hours of a $500,000 contract at $150. */
+const RECORDED: RecordedBurn = {
+  onDate: "2026-03-02",
+  contractValueCents: 500_000,
+  rateCents: 15_000,
+  rateSource: "project",
+  entryCount: 4,
+  loggedMinutes: 600,
+  billableMinutes: 540,
+  burnedCents: 150_000,
+  chargeableCents: 135_000,
+};
+
+describe("recordedBurnPoint", () => {
+  it("reports the money the row holds rather than recomputing it", () => {
+    const point = recordedBurnPoint({ ...RECORDED, rateCents: 1 });
+    expect(point.burnedCents).toBe(150_000);
+    expect(point.rate.cents).toBe(1);
+  });
+
+  it("keeps the day, the minutes and the entries behind the figure", () => {
+    const point = recordedBurnPoint(RECORDED);
+    expect(point.onDate).toBe("2026-03-02");
+    expect(point.loggedMinutes).toBe(600);
+    expect(point.billableMinutes).toBe(540);
+    expect(point.entryCount).toBe(4);
+    expect(point.chargeableCents).toBe(135_000);
+  });
+
+  it("measures against the price the day was measured against", () => {
+    const point = recordedBurnPoint(RECORDED);
+    expect(point.contractedCents).toBe(500_000);
+    expect(point.remainingCents).toBe(350_000);
+    expect(point.consumedShare).toBeCloseTo(0.3);
+  });
+
+  it("carries the rate's provenance, so a zero can be read", () => {
+    const point = recordedBurnPoint({
+      ...RECORDED,
+      rateCents: 0,
+      rateSource: "none",
+      burnedCents: 0,
+      chargeableCents: 0,
+    });
+    expect(point.rate).toEqual({ cents: 0, source: "none" });
+    expect(point.burnedCents).toBe(0);
+  });
+
+  it("reports a day that had gone over as having gone over", () => {
+    const point = recordedBurnPoint({ ...RECORDED, burnedCents: 650_000 });
+    expect(point.remainingCents).toBe(-150_000);
+    expect(point.consumedShare).toBeCloseTo(1.3);
+  });
+
+  it("has no share to report when the day had no price", () => {
+    const point = recordedBurnPoint({ ...RECORDED, contractValueCents: 0 });
+    expect(point.consumedShare).toBeNull();
+    expect(point.remainingCents).toBe(-150_000);
+  });
+
+  it("agrees with the live series over the same day", () => {
+    const [live] = burnSeries([day("2026-03-02", 600)], 500_000, RATE);
+    const stored = recordedBurnPoint({ ...RECORDED, entryCount: 1, billableMinutes: 600, chargeableCents: 150_000 });
+    expect(stored).toEqual(live);
   });
 });
