@@ -12,7 +12,7 @@ import {
   type SQL,
 } from "drizzle-orm";
 
-import type { BurnDay } from "@/lib/burndown/series";
+import type { BurnDay, ProjectBurnDay } from "@/lib/burndown/series";
 import { db, type Database } from "@/lib/db";
 import {
   clients,
@@ -512,20 +512,6 @@ export async function dailyProjectTimeTotals(
 
   return rows.map(burnDayOf);
 }
-
-/**
- * A day of one project's work, with the project named.
- *
- * `BurnDay` and the column that says whose day it is, for the one read that
- * crosses projects. The series functions take the day on its own, so a caller
- * groups these by project and hands each group over without the extra field
- * mattering — which is why it is an addition to the shape rather than a shape
- * of its own.
- */
-export type ProjectBurnDay = BurnDay & {
-  /** The project the day belongs to. */
-  readonly projectId: string;
-};
 
 /**
  * Every project's time, gathered into the days each one was worked, in project

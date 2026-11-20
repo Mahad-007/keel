@@ -50,6 +50,25 @@ export type BurnDay = LoggedTotals & {
 };
 
 /**
+ * A day of one project's work, with the project named.
+ *
+ * `BurnDay` and the column that says whose day it is, for the two reads that
+ * cross projects — every project's logged days, and every project's recorded
+ * readings. The series functions take the day on its own, so a caller groups
+ * these by project and hands each group over without the extra field
+ * mattering, which is why it is an addition to the shape rather than a shape
+ * of its own.
+ *
+ * It lives beside `BurnDay` rather than in either data module, because both of
+ * them produce it and a type owned by one would be imported by the other to
+ * describe a different table.
+ */
+export type ProjectBurnDay = BurnDay & {
+  /** The project the day belongs to. */
+  readonly projectId: string;
+};
+
+/**
  * The days of a series that fall on or before a given day, in the order they
  * arrived.
  *
