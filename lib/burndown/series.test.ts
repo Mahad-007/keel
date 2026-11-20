@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { accumulateBurnDays, burnDaysThrough, type BurnDay } from "./series";
+import type { EffectiveRate } from "@/lib/rates";
+
+import {
+  accumulateBurnDays,
+  burnDaysThrough,
+  burnSeries,
+  type BurnDay,
+} from "./series";
 
 /** A day of logged work, with the figures a caller does not care about filled. */
 function day(onDate: string, loggedMinutes = 60): BurnDay {
@@ -130,5 +137,79 @@ describe("accumulateBurnDays", () => {
       ["2026-03-02", 90],
       ["2026-03-01", 60],
     ]);
+  });
+});
+
+/** $150 an hour, set on the project itself. */
+const RATE: EffectiveRate = { cents: 15_000, source: "project" };
+
+describe("burnSeries", () => {
+  it("values the running minutes of each day at the rate", () => {
+    const series = burnSeries(
+      [day("2026-03-01", 60), day("2026-03-02", 30)],
+      500_000,
+      RATE,
+    );
+    expect(series.map((p) => [p.onDate, p.burnedCents])).toEqual([
+      ["2026-03-01", 15_000],
+      ["2026-03-02", 22_500],
+    ]);
+  });
+
+  it("sets each day's burn against the contract it was sold for", () => {
+    const series = burnSeries([day("2026-03-01", 60)], 500_000, RATE);
+    expect(series[0].contractedCents).toBe(500_000);
+    expect(series[0].remainingCents).toBe(485_000);
+    expect(series[0].consumedShare).toBeCloseTo(0.03);
+  });
+
+  it("carries the rate onto every point, so a zero can be explained", () => {
+    const series = burnSeries([day("2026-03-01", 60)], 500_000, {
+      cents: 0,
+      source: "none",
+    });
+    expect(series[0].burnedCents).toBe(0);
+    expect(series[0].rate.source).toBe("none");
+  });
+
+  it("crosses the contract and keeps going, which is the point of it", () => {
+    const series = burnSeries(
+      [day("2026-03-01", 60 * 30), day("2026-03-02", 60 * 10)],
+      300_000,
+      RATE,
+    );
+    expect(series.map((p) => p.remainingCents)).toEqual([-150_000, -300_000]);
+    expect(series[1].consumedShare).toBeCloseTo(2);
+  });
+
+  it("values the total rather than each day, so the cents do not drift", () => {
+    const twentyMinuteDays = [
+      day("2026-03-01", 20),
+      day("2026-03-02", 20),
+      day("2026-03-03", 20),
+    ];
+    const series = burnSeries(twentyMinuteDays, 500_000, RATE);
+    // Three days of twenty minutes is an hour, so the last point is the rate
+    // exactly — where valuing each day separately gives 5000 x 3 - 1 cent.
+    expect(series[2].burnedCents).toBe(15_000);
+  });
+
+  it("keeps the chargeable figure beside the burn", () => {
+    const series = burnSeries(
+      [
+        { onDate: "2026-03-01", entryCount: 1, loggedMinutes: 60, billableMinutes: 0 },
+        { onDate: "2026-03-02", entryCount: 1, loggedMinutes: 60, billableMinutes: 60 },
+      ],
+      500_000,
+      RATE,
+    );
+    expect(series.map((p) => [p.burnedCents, p.chargeableCents])).toEqual([
+      [15_000, 0],
+      [30_000, 15_000],
+    ]);
+  });
+
+  it("has no points for a project with no time logged", () => {
+    expect(burnSeries([], 500_000, RATE)).toEqual([]);
   });
 });
