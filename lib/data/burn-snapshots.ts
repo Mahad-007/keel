@@ -4,8 +4,10 @@ import {
   DEFAULT_BURN_SNAPSHOT_ORIGIN,
   type BurnSnapshotOrigin,
 } from "@/lib/burndown/origin";
+import { planBurnBackfill } from "@/lib/burndown/plan";
 import type { BurnPoint } from "@/lib/burndown/series";
 import { summariseBurn } from "@/lib/burn";
+import { utcCalendarDate } from "@/lib/dates";
 import { db, type Database } from "@/lib/db";
 import { burnSnapshots, type BurnSnapshot } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
@@ -21,7 +23,10 @@ import {
   wholeCount,
 } from "./fields";
 import { getProjectWithClient } from "./projects";
-import { projectTimeTotalsThrough } from "./time-entries";
+import {
+  dailyProjectTimeTotals,
+  projectTimeTotalsThrough,
+} from "./time-entries";
 
 /**
  * Data access for the `burn_snapshots` table: what each project had burned at
@@ -486,4 +491,84 @@ async function addBurnSnapshots(
     .returning();
 
   return rows.length;
+}
+
+/**
+ * Reconstructs every missing day of one project's burn-down.
+ *
+ * The other half of the milestone, and the half that only has to work once per
+ * engagement: a table of daily readings is empty for everything that was
+ * already running when it was added, and a chart of a six-month project that
+ * starts today is no use to anybody.
+ *
+ * What it can know is exactly the minutes. `worked_on` is a calendar date on
+ * every time entry, so the days a project was worked and what each cost are a
+ * matter of record. What it cannot know is what the project was agreed for or
+ * what an hour was worth on any of those days, because nothing has ever stored
+ * either — so it values the whole history at today's figures and marks every
+ * row `backfilled` to say so. That is the honest limit rather than a shortcut,
+ * and it is why the column exists.
+ *
+ * Days that already have a reading are left exactly as they are, including
+ * ones this would value differently. A reading taken on the day is better
+ * evidence than a reconstruction of it, and the arithmetic behind the
+ * reconstruction still accounts for those days — see `planBurnBackfill` for
+ * why the accumulation has to run over the whole history and the narrowing
+ * after it.
+ *
+ * One immediate transaction: the days, the recorded dates, the project's price
+ * and rate, and the writes. A deferred transaction would let a time entry be
+ * logged between the read and the write, leaving a reconstruction of a day
+ * that is already out of date and no record that it happened.
+ *
+ * It refuses rather than throwing, for both reasons, because the studio-wide
+ * run below must not abandon a hundred projects over one with a bad column.
+ */
+export async function backfillProjectBurn(
+  projectId: string,
+  options: BurnBackfillOptions = {},
+  database: Database = db,
+): Promise<ProjectBurnBackfill> {
+  const through = options.through ?? utcCalendarDate(new Date());
+
+  return database.transaction(
+    async (tx) => {
+      const project = await getProjectWithClient(projectId, tx);
+      if (project === null) return { ok: false, projectId, reason: "no-such-project" };
+
+      const days = await dailyProjectTimeTotals(projectId, tx);
+      const recorded = await burnSnapshotDates(projectId, tx);
+      const plan = planBurnBackfill({
+        days,
+        recorded,
+        contractedCents: project.contractValueCents,
+        rate: resolveJoinedRate(project),
+        through,
+      });
+
+      /*
+        Asked of the whole plan before any of it is written. The figures a
+        project's points share — its price, its rate — are the ones a bad
+        column spoils, so a plan with one unstorable point almost certainly has
+        no storable ones, and writing the prefix would leave a half-built line
+        nothing says is half-built.
+      */
+      if (plan.points.some((point) => !isRecordableBurn(point))) {
+        return { ok: false, projectId, reason: "unrecordable-figures" };
+      }
+
+      return {
+        ok: true,
+        projectId,
+        written: await addBurnSnapshots(
+          projectId,
+          plan.points,
+          "backfilled",
+          tx,
+        ),
+        alreadyRecorded: plan.alreadyRecorded,
+      };
+    },
+    { behavior: "immediate" },
+  );
 }
