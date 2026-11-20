@@ -6,9 +6,9 @@ import type { Database } from "@/lib/db";
 import { burnSnapshots } from "@/lib/db/schema";
 import { createTestDb } from "@/lib/db/testing";
 
-import { recordBurnSnapshot } from "./burn-snapshots";
+import { listBurnSnapshots, recordBurnSnapshot } from "./burn-snapshots";
 import { createClient } from "./clients";
-import { createProject } from "./projects";
+import { createProject, deleteProject } from "./projects";
 
 let db: Database;
 /** Every reading hangs off a project, which hangs off a client. */
@@ -233,5 +233,65 @@ describe("recordBurnSnapshot on a project with a bad column", () => {
         db,
       ),
     ).rejects.toThrow(/recorded minutes/);
+  });
+});
+
+describe("listBurnSnapshots", () => {
+  /** Three days of readings, written in an order no chart would want. */
+  async function recordThreeDays(): Promise<void> {
+    for (const onDate of ["2026-10-20", "2026-10-14", "2026-10-15"]) {
+      await recordBurnSnapshot({ projectId, point: { ...POINT, onDate } }, db);
+    }
+  }
+
+  it("is empty for a project with no readings", async () => {
+    expect(await listBurnSnapshots(projectId, db)).toEqual([]);
+  });
+
+  it("comes back oldest first, which is the direction a line is drawn", async () => {
+    await recordThreeDays();
+
+    expect((await listBurnSnapshots(projectId, db)).map((r) => r.onDate)).toEqual(
+      ["2026-10-14", "2026-10-15", "2026-10-20"],
+    );
+  });
+
+  it("holds one row per day however often a day was recorded", async () => {
+    await recordBurnSnapshot({ projectId, point: POINT }, db);
+    await recordBurnSnapshot({ projectId, point: POINT }, db);
+
+    expect(await listBurnSnapshots(projectId, db)).toHaveLength(1);
+  });
+
+  it("holds only this project's readings", async () => {
+    const otherClient = await createClient({ name: "Other Co" }, db);
+    const other = await createProject(
+      { clientId: otherClient.id, name: "Elsewhere" },
+      db,
+    );
+    await recordBurnSnapshot({ projectId, point: POINT }, db);
+    await recordBurnSnapshot({ projectId: other.id, point: POINT }, db);
+
+    const mine = await listBurnSnapshots(projectId, db);
+    expect(mine).toHaveLength(1);
+    expect(mine[0].projectId).toBe(projectId);
+  });
+
+  it("carries the origin and the moment, which a point does not", async () => {
+    await recordBurnSnapshot(
+      { projectId, point: POINT, origin: "backfilled" },
+      db,
+    );
+
+    const [row] = await listBurnSnapshots(projectId, db);
+    expect(row.origin).toBe("backfilled");
+    expect(row.capturedAt).toBeTruthy();
+  });
+
+  it("goes when the project goes", async () => {
+    await recordBurnSnapshot({ projectId, point: POINT }, db);
+    await deleteProject(projectId, db);
+
+    expect(await listBurnSnapshots(projectId, db)).toEqual([]);
   });
 });
