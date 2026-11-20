@@ -245,3 +245,37 @@ export async function burnSnapshotDates(
 
   return rows.map((row) => row.onDate);
 }
+
+/** One recorded day, with the project it belongs to. */
+export type RecordedBurnDay = {
+  readonly projectId: string;
+  /** The day a reading exists for: `YYYY-MM-DD`. */
+  readonly onDate: string;
+};
+
+/**
+ * Every recorded day of every project, in project and then date order.
+ *
+ * `burnSnapshotDates` across the whole studio, and one query for the same
+ * reason the daily totals are: a backfill that asked each project for its
+ * recorded days separately would be a round trip per project before it wrote
+ * anything at all.
+ *
+ * Two columns and no figures. The studio-wide backfill needs to know which
+ * days to leave alone, not what those days said, and the readings it does not
+ * touch are the bulk of the table on every run after the first.
+ *
+ * Unscoped, like the daily totals it is paired with, and listed in `NOTES.md`
+ * as a read Phase 8 has to scope by owner.
+ */
+export async function burnSnapshotDaysByProject(
+  database: Database = db,
+): Promise<RecordedBurnDay[]> {
+  return database
+    .select({
+      projectId: burnSnapshots.projectId,
+      onDate: burnSnapshots.onDate,
+    })
+    .from(burnSnapshots)
+    .orderBy(asc(burnSnapshots.projectId), ...OLDEST_FIRST);
+}
