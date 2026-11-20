@@ -218,3 +218,47 @@ export function positiveMinutes(value: number, field: string): number {
   if (minutes === 0) throw new Error(`${field} cannot be zero`);
   return minutes;
 }
+
+/**
+ * A money column that records what another column held, or what was reported
+ * from it, rather than accepting a new amount.
+ *
+ * The counterpart of `recordedMinutes`, and it exists for the same table-shaped
+ * reason. `wholeCents` refuses a negative because no form in the app can write
+ * one, which is right for a contract value somebody is typing and wrong for a
+ * reading of one: a burn snapshot records what a project was agreed for and
+ * what its hours came to on a given day, and a project hand-edited to minus
+ * ten thousand is exactly the row whose history a reader needs to see. The
+ * refusal would make the one project with a bad column the one project with no
+ * burn-down.
+ *
+ * It is also the honest guard for a *derived* amount. A negative rate — again,
+ * only a hand-edited row — burns backwards, and `burnedCents` carries the sign
+ * through deliberately so the inversion is visible rather than clamped away.
+ * A column that refused the figure would turn a visible symptom into a failed
+ * write somewhere else entirely.
+ *
+ * The safe-integer half of the guard stays, and for the reason it always
+ * does: past 2^53 SQLite takes the write and the driver then fails decoding it
+ * back, leaving a row that poisons every later read of the table. A record of
+ * an unreadable amount is not worth a table nobody can read.
+ */
+export function recordedCents(value: number, field: string): number {
+  // Through the predicate, like `recordedMinutes`: the pair exists so that the
+  // rule is written once, and a caller asks the question before the write
+  // where this answers it during one.
+  if (!isRecordableCents(value)) {
+    throw new Error(`${field} must be whole cents, got ${value}`);
+  }
+  return value;
+}
+
+/**
+ * Whether an amount could be recorded by `recordedCents`, as an answer rather
+ * than an exception — the arrangement `isRecordableMinutes` makes, for the
+ * same kind of caller: code deciding, before it writes a reading, whether the
+ * figures it has read can be written down at all.
+ */
+export function isRecordableCents(value: number): boolean {
+  return Number.isSafeInteger(value);
+}
