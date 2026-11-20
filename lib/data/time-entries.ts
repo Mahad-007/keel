@@ -313,6 +313,54 @@ export async function listTimeEntries(
 }
 
 /**
+ * The three aggregates `LoggedTotals` is made of, as SQL.
+ *
+ * Written once because more than one question is asked of them — a project's
+ * whole time, and a project's time up to a given day — and the answers have to
+ * be the same kind of thing. The `CASE` in particular is the sort of
+ * expression that gets copied and then edited in one copy: the flag is
+ * compared against 1 rather than left to SQLite's idea of truth, which is the
+ * comparison `isChargeable` makes, and a second spelling of it is a second
+ * opinion about a hand-edited row.
+ */
+const LOGGED_TOTALS_COLUMNS = {
+  entryCount: count(),
+  loggedMinutes: sql<number>`coalesce(sum(${timeEntries.minutes}), 0)`,
+  billableMinutes: sql<number>`coalesce(sum(case when ${timeEntries.billable} = 1 then ${timeEntries.minutes} else 0 end), 0)`,
+};
+
+/**
+ * What the entries matching a predicate come to, as the three figures every
+ * total in the app is made of.
+ *
+ * Private, because the predicate is the whole question: an exported function
+ * taking one would be an invitation to total the table across projects, which
+ * is not a figure anything in Keel means. The two callers below each name
+ * their own question and build their own `where`.
+ *
+ * Every figure goes through `Number`, because SQLite's `SUM` comes back as a
+ * bigint from the driver when the total is large enough, and a bigint
+ * subtracted from a number throws rather than being coerced. A year of time
+ * entries is nowhere near that, but a hand-edited row is one keystroke away
+ * from it, and the failure would be in the page rather than here.
+ */
+async function loggedTotalsWhere(
+  where: SQL | undefined,
+  database: Database,
+): Promise<LoggedTotals> {
+  const [row] = await database
+    .select(LOGGED_TOTALS_COLUMNS)
+    .from(timeEntries)
+    .where(where);
+
+  return {
+    entryCount: Number(row?.entryCount ?? 0),
+    loggedMinutes: Number(row?.loggedMinutes ?? 0),
+    billableMinutes: Number(row?.billableMinutes ?? 0),
+  };
+}
+
+/**
  * What one project's time comes to, totalled in SQL rather than in JavaScript.
  *
  * The burn summary wants three integers and nothing else: how many entries,
@@ -355,20 +403,7 @@ export async function projectTimeTotals(
   projectId: string,
   database: Database = db,
 ): Promise<LoggedTotals> {
-  const [row] = await database
-    .select({
-      entryCount: count(),
-      loggedMinutes: sql<number>`coalesce(sum(${timeEntries.minutes}), 0)`,
-      billableMinutes: sql<number>`coalesce(sum(case when ${timeEntries.billable} = 1 then ${timeEntries.minutes} else 0 end), 0)`,
-    })
-    .from(timeEntries)
-    .where(eq(timeEntries.projectId, projectId));
-
-  return {
-    entryCount: Number(row?.entryCount ?? 0),
-    loggedMinutes: Number(row?.loggedMinutes ?? 0),
-    billableMinutes: Number(row?.billableMinutes ?? 0),
-  };
+  return loggedTotalsWhere(eq(timeEntries.projectId, projectId), database);
 }
 
 /**
