@@ -15,6 +15,7 @@ import {
 import {
   clearTimeEntryBilled,
   createTimeEntries,
+  dailyProjectTimeTotals,
   createTimeEntry,
   deleteTimeEntry,
   getTimeEntry,
@@ -554,6 +555,91 @@ describe("projectTimeTotalsThrough", () => {
     await expect(
       projectTimeTotalsThrough(projectId, "2026-10-15T23:00:00.000Z", db),
     ).rejects.toThrow(/calendar date/);
+  });
+});
+
+describe("dailyProjectTimeTotals", () => {
+  it("gathers several entries on one day into one day", async () => {
+    await createTimeEntry({ projectId, minutes: 90, workedOn: "2026-10-14" }, db);
+    await createTimeEntry({ projectId, minutes: 30, workedOn: "2026-10-14" }, db);
+
+    expect(await dailyProjectTimeTotals(projectId, db)).toEqual([
+      {
+        onDate: "2026-10-14",
+        entryCount: 2,
+        loggedMinutes: 120,
+        billableMinutes: 120,
+      },
+    ]);
+  });
+
+  it("reports each day's own work, not a running total", async () => {
+    await createTimeEntry({ projectId, minutes: 90, workedOn: "2026-10-14" }, db);
+    await createTimeEntry({ projectId, minutes: 45, workedOn: "2026-10-15" }, db);
+
+    expect(
+      (await dailyProjectTimeTotals(projectId, db)).map((d) => d.loggedMinutes),
+    ).toEqual([90, 45]);
+  });
+
+  it("comes back oldest first, whatever order the entries were logged in", async () => {
+    await createTimeEntry({ projectId, minutes: 30, workedOn: "2026-10-20" }, db);
+    await createTimeEntry({ projectId, minutes: 90, workedOn: "2026-10-14" }, db);
+    await createTimeEntry({ projectId, minutes: 45, workedOn: "2026-10-15" }, db);
+
+    expect(
+      (await dailyProjectTimeTotals(projectId, db)).map((d) => d.onDate),
+    ).toEqual(["2026-10-14", "2026-10-15", "2026-10-20"]);
+  });
+
+  it("leaves out the days nothing was logged on", async () => {
+    await createTimeEntry({ projectId, minutes: 90, workedOn: "2026-10-14" }, db);
+    await createTimeEntry({ projectId, minutes: 45, workedOn: "2026-10-20" }, db);
+
+    expect(await dailyProjectTimeTotals(projectId, db)).toHaveLength(2);
+  });
+
+  it("keeps written-off time out of each day's chargeable half", async () => {
+    await createTimeEntry({ projectId, minutes: 120, workedOn: "2026-10-14" }, db);
+    await createTimeEntry(
+      { projectId, minutes: 30, workedOn: "2026-10-14", billable: false },
+      db,
+    );
+
+    expect(await dailyProjectTimeTotals(projectId, db)).toEqual([
+      {
+        onDate: "2026-10-14",
+        entryCount: 2,
+        loggedMinutes: 150,
+        billableMinutes: 120,
+      },
+    ]);
+  });
+
+  it("is empty for a project nothing has been logged against", async () => {
+    expect(await dailyProjectTimeTotals(projectId, db)).toEqual([]);
+  });
+
+  it("holds only this project's days", async () => {
+    const otherClient = await createClient({ name: "Other Co" }, db);
+    const other = await createProject(
+      { clientId: otherClient.id, name: "Elsewhere" },
+      db,
+    );
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    await createTimeEntry(
+      { projectId: other.id, minutes: 600, workedOn: "2026-10-15" },
+      db,
+    );
+
+    expect(await dailyProjectTimeTotals(projectId, db)).toEqual([
+      {
+        onDate: "2026-10-14",
+        entryCount: 1,
+        loggedMinutes: 60,
+        billableMinutes: 60,
+      },
+    ]);
   });
 });
 
