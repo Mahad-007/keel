@@ -330,6 +330,13 @@ export async function burnSnapshotDaysByProject(
  * exception because a studio-wide run must not abandon forty projects over the
  * one that has gone.
  *
+ * `day-not-reached` is a day in the future. Time can be logged against one —
+ * a retainer blocked out for next week is not a mistake — but a reading of it
+ * would say the engagement had already consumed money nobody has spent, and
+ * the line would run off the end of the chart into work that has not happened.
+ * It is the same bound `burnDaysThrough` applies to a computed series, applied
+ * here so that nothing can store what that would refuse to plot.
+ *
  * `unrecordable-figures` is a hand-edited row. The figures a reading records
  * are deliberately permissive about sign, so this is not a negative rate or a
  * contract value below zero — those are recorded as they stand, because the
@@ -338,7 +345,10 @@ export async function burnSnapshotDaysByProject(
  * minute, or an amount past the point where an integer stops being exact and
  * the driver can no longer read the row back.
  */
-export type BurnCaptureReason = "no-such-project" | "unrecordable-figures";
+export type BurnCaptureReason =
+  | "no-such-project"
+  | "unrecordable-figures"
+  | "day-not-reached";
 
 /** The outcome of asking a project for its burn as at one day. */
 export type BurnCaptureResult =
@@ -397,15 +407,55 @@ function isRecordableBurn(point: BurnPoint): boolean {
  * The day is recorded even when nothing has been logged by it: a project with
  * a price and no hours has burned nothing, which is a measurement and the
  * honest left-hand end of a line. What is *not* recorded is a day for a
- * project that does not exist, and the refusal says so rather than throwing,
- * because the caller is usually recording a studio and must not stop.
+ * project that does not exist, or a day that has not happened, and both
+ * refusals are answers rather than exceptions because the caller is usually
+ * recording a studio and must not stop.
  */
+export type BurnCaptureOptions = {
+  /**
+   * The day the clock is on, which decides whether this reading is a
+   * measurement. Defaults to today in UTC.
+   *
+   * It is an argument rather than a reading of the clock inside the function
+   * for the reason `through` is: a caller recording a studio should record
+   * every project against one answer to "today", and a test should be able to
+   * say which day it means.
+   */
+  readonly today?: string;
+};
+
 export async function captureProjectBurn(
   projectId: string,
   onDate: string,
+  options: BurnCaptureOptions = {},
   database: Database = db,
 ): Promise<BurnCaptureResult> {
   const day = calendarDate(onDate, "burn reading day");
+  const today = options.today ?? utcCalendarDate(new Date());
+
+  /*
+    A day that has not happened cannot be read, however much time has been
+    logged against it. Refused rather than clamped to today, because a caller
+    asking for a day in the future has a bug in its idea of the date and
+    quietly answering a different question would hide it.
+  */
+  if (day > calendarDate(today, "clock day")) {
+    return { ok: false, reason: "day-not-reached" };
+  }
+
+  /*
+    Measured only if it is a reading of the day it is taken on. A reading of
+    last March takes this month's price and this month's rate, because those
+    are the only ones stored anywhere — which is precisely a reconstruction,
+    and the origin has to say so or the caveat on a chart would be missing from
+    the points that need it most.
+
+    A job that records yesterday just after midnight is therefore marked as a
+    reconstruction too, when its figures were in fact in force. That is the
+    conservative direction: a caveat that over-applies costs a reader a sentence
+    and one that under-applies costs them the ability to tell.
+  */
+  const origin: BurnSnapshotOrigin = day === today ? "recorded" : "backfilled";
 
   return database.transaction(
     async (tx) => {
@@ -426,7 +476,10 @@ export async function captureProjectBurn(
         return { ok: false, reason: "unrecordable-figures" };
       }
 
-      const snapshot = await recordBurnSnapshot({ projectId, point }, tx);
+      const snapshot = await recordBurnSnapshot(
+        { projectId, point, origin },
+        tx,
+      );
       return { ok: true, snapshot };
     },
     { behavior: "immediate" },
@@ -819,13 +872,8 @@ export type BurnHistoryUpdate = {
  * reading for, then records the day it is run on.
  *
  * The two halves of the milestone in the order they have to happen, which is
- * the only reason this exists rather than two calls at each caller. The
- * backfill leaves today alone when today already has a reading and would
- * otherwise write a reconstruction of a day that is still in progress; the
- * capture then replaces whatever the day held with a measurement. Called the
- * other way round, a reconstruction would overwrite the measurement it had
- * just taken — no, worse: `addBurnSnapshots` would skip it, and the day would
- * keep a reading taken before the afternoon was logged.
+ * the only reason this exists rather than two calls at each caller: today is
+ * measured, and then everything before it is reconstructed.
  *
  * It also fixes one answer to "today" for both halves. Run as two calls either
  * side of midnight, a project could be reconstructed through one day and
@@ -850,8 +898,19 @@ export async function updateProjectBurnHistory(
 ): Promise<BurnHistoryUpdate> {
   const through = options.through ?? utcCalendarDate(new Date());
 
+  /*
+    The reading of today first, then the reconstruction of what came before it.
+
+    That order is what keeps the two halves from arguing. Today's reading is a
+    measurement, and the backfill then finds it already recorded and agreeing
+    with the entries, so it leaves it alone — where the other order writes a
+    reconstruction of today and has it replaced a moment later, reporting a day
+    written that nothing kept.
+  */
+  const today = await captureProjectBurn(projectId, through, { today: through }, database);
+
   return {
+    today,
     backfill: await backfillProjectBurn(projectId, { through }, database),
-    today: await captureProjectBurn(projectId, through, database),
   };
 }

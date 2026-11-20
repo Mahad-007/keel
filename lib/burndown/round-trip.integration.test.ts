@@ -56,7 +56,7 @@ beforeEach(async () => {
 /** Readings taken as each day ended, which is what the daily job would do. */
 async function recordEachDay(): Promise<void> {
   for (const onDate of ["2026-10-14", "2026-10-15", "2026-10-16"]) {
-    await captureProjectBurn(projectId, onDate, db);
+    await captureProjectBurn(projectId, onDate, { today: onDate }, db);
   }
 }
 
@@ -141,7 +141,7 @@ describe("a recorded burn-down", () => {
   it("moves a day's reading when the day's time is corrected", async () => {
     await recordEachDay();
     await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-15" }, db);
-    await captureProjectBurn(projectId, "2026-10-15", db);
+    await captureProjectBurn(projectId, "2026-10-15", { today: "2026-10-15" }, db);
 
     const points = (await listBurnSnapshots(projectId, db)).map(
       recordedBurnPoint,

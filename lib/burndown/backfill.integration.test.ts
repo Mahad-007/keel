@@ -136,8 +136,8 @@ describe("backfilling a studio that predates the table", () => {
       { projectId, minutes: 60, workedOn: "2026-10-13" },
       db,
     );
-    await captureProjectBurn(projectId, "2026-10-13", db);
-    await captureProjectBurn(projectId, "2026-10-14", db);
+    await captureProjectBurn(projectId, "2026-10-13", { today: "2026-10-13" }, db);
+    await captureProjectBurn(projectId, "2026-10-14", { today: "2026-10-14" }, db);
 
     const rows = await listBurnSnapshots(projectId, db);
 

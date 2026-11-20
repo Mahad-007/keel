@@ -426,7 +426,7 @@ describe("captureProjectBurn", () => {
     await rateProject(15_000);
     await createTimeEntry({ projectId, minutes: 600, workedOn: "2026-10-14" }, db);
 
-    const result = await captureProjectBurn(projectId, "2026-10-14", db);
+    const result = await captureProjectBurn(projectId, "2026-10-14", { today: "2026-10-14" }, db);
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -446,7 +446,7 @@ describe("captureProjectBurn", () => {
     await createTimeEntry({ projectId, minutes: 120, workedOn: "2026-10-14" }, db);
     await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-15" }, db);
 
-    const result = await captureProjectBurn(projectId, "2026-10-15", db);
+    const result = await captureProjectBurn(projectId, "2026-10-15", { today: "2026-10-15" }, db);
 
     expect(result.ok && result.snapshot.loggedMinutes).toBe(180);
     expect(result.ok && result.snapshot.burnedCents).toBe(45_000);
@@ -457,7 +457,7 @@ describe("captureProjectBurn", () => {
     await createTimeEntry({ projectId, minutes: 120, workedOn: "2026-10-14" }, db);
     await createTimeEntry({ projectId, minutes: 600, workedOn: "2026-10-30" }, db);
 
-    const result = await captureProjectBurn(projectId, "2026-10-14", db);
+    const result = await captureProjectBurn(projectId, "2026-10-14", { today: "2026-10-14" }, db);
 
     expect(result.ok && result.snapshot.loggedMinutes).toBe(120);
   });
@@ -474,7 +474,7 @@ describe("captureProjectBurn", () => {
       db,
     );
 
-    const result = await captureProjectBurn(project.id, "2026-10-14", db);
+    const result = await captureProjectBurn(project.id, "2026-10-14", { today: "2026-10-14" }, db);
 
     expect(result.ok && result.snapshot.rateSource).toBe("client");
     expect(result.ok && result.snapshot.burnedCents).toBe(12_000);
@@ -483,7 +483,7 @@ describe("captureProjectBurn", () => {
   it("records a day with no rate anywhere as burning nothing", async () => {
     await createTimeEntry({ projectId, minutes: 600, workedOn: "2026-10-14" }, db);
 
-    const result = await captureProjectBurn(projectId, "2026-10-14", db);
+    const result = await captureProjectBurn(projectId, "2026-10-14", { today: "2026-10-14" }, db);
 
     expect(result.ok && result.snapshot.rateSource).toBe("none");
     expect(result.ok && result.snapshot.burnedCents).toBe(0);
@@ -495,7 +495,7 @@ describe("captureProjectBurn", () => {
     await rateProject(15_000);
     await createTimeEntry({ projectId, minutes: 600, workedOn: "2026-10-20" }, db);
 
-    const result = await captureProjectBurn(projectId, "2026-10-14", db);
+    const result = await captureProjectBurn(projectId, "2026-10-14", { today: "2026-10-14" }, db);
 
     expect(result.ok && result.snapshot.loggedMinutes).toBe(0);
     expect(result.ok && result.snapshot.burnedCents).toBe(0);
@@ -510,31 +510,31 @@ describe("captureProjectBurn", () => {
       db,
     );
 
-    const result = await captureProjectBurn(projectId, "2026-10-14", db);
+    const result = await captureProjectBurn(projectId, "2026-10-14", { today: "2026-10-14" }, db);
 
     expect(result.ok && result.snapshot.burnedCents).toBe(30_000);
     expect(result.ok && result.snapshot.chargeableCents).toBe(15_000);
   });
 
   it("calls its own reading a measurement", async () => {
-    const result = await captureProjectBurn(projectId, "2026-10-14", db);
+    const result = await captureProjectBurn(projectId, "2026-10-14", { today: "2026-10-14" }, db);
     expect(result.ok && result.snapshot.origin).toBe("recorded");
   });
 
   it("replaces an earlier reading of the same day", async () => {
     await rateProject(15_000);
     await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
-    await captureProjectBurn(projectId, "2026-10-14", db);
+    await captureProjectBurn(projectId, "2026-10-14", { today: "2026-10-14" }, db);
 
     await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
-    const second = await captureProjectBurn(projectId, "2026-10-14", db);
+    const second = await captureProjectBurn(projectId, "2026-10-14", { today: "2026-10-14" }, db);
 
     expect(await listBurnSnapshots(projectId, db)).toHaveLength(1);
     expect(second.ok && second.snapshot.loggedMinutes).toBe(120);
   });
 
   it("refuses a project that is not there", async () => {
-    expect(await captureProjectBurn("prj_nope", "2026-10-14", db)).toEqual({
+    expect(await captureProjectBurn("prj_nope", "2026-10-14", { today: "2026-10-14" }, db)).toEqual({
       ok: false,
       reason: "no-such-project",
     });
@@ -542,7 +542,7 @@ describe("captureProjectBurn", () => {
 
   it("refuses a day that is a moment rather than a date", async () => {
     await expect(
-      captureProjectBurn(projectId, "2026-10-14T09:00:00.000Z", db),
+      captureProjectBurn(projectId, "2026-10-14T09:00:00.000Z", {}, db),
     ).rejects.toThrow(/calendar date/);
   });
 });
@@ -554,7 +554,7 @@ describe("captureProjectBurn on a project with a bad column", () => {
     );
     await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
 
-    const result = await captureProjectBurn(projectId, "2026-10-14", db);
+    const result = await captureProjectBurn(projectId, "2026-10-14", { today: "2026-10-14" }, db);
 
     // Backwards, and visible: the row somebody has to repair is the one whose
     // history looks wrong, and a refusal here would hide it.
@@ -566,7 +566,7 @@ describe("captureProjectBurn on a project with a bad column", () => {
       sql`update projects set contract_value_cents = 1.5 where id = ${projectId}`,
     );
 
-    expect(await captureProjectBurn(projectId, "2026-10-14", db)).toEqual({
+    expect(await captureProjectBurn(projectId, "2026-10-14", { today: "2026-10-14" }, db)).toEqual({
       ok: false,
       reason: "unrecordable-figures",
     });
@@ -577,7 +577,7 @@ describe("captureProjectBurn on a project with a bad column", () => {
       sql`update projects set rate_cents = 150.5 where id = ${projectId}`,
     );
 
-    expect(await captureProjectBurn(projectId, "2026-10-14", db)).toEqual({
+    expect(await captureProjectBurn(projectId, "2026-10-14", { today: "2026-10-14" }, db)).toEqual({
       ok: false,
       reason: "unrecordable-figures",
     });
@@ -587,7 +587,7 @@ describe("captureProjectBurn on a project with a bad column", () => {
     await db.run(
       sql`update projects set contract_value_cents = 1.5 where id = ${projectId}`,
     );
-    await captureProjectBurn(projectId, "2026-10-14", db);
+    await captureProjectBurn(projectId, "2026-10-14", { today: "2026-10-14" }, db);
 
     expect(await listBurnSnapshots(projectId, db)).toEqual([]);
   });
@@ -661,7 +661,7 @@ describe("backfillProjectBurn", () => {
 
   it("leaves a measurement alone and fills the days around it", async () => {
     await threeWorkedDays();
-    await captureProjectBurn(projectId, "2026-10-15", db);
+    await captureProjectBurn(projectId, "2026-10-15", { today: "2026-10-15" }, db);
 
     const result = await backfillProjectBurn(
       projectId,
@@ -680,7 +680,7 @@ describe("backfillProjectBurn", () => {
 
   it("keeps the history behind a day it skipped", async () => {
     await threeWorkedDays();
-    await captureProjectBurn(projectId, "2026-10-15", db);
+    await captureProjectBurn(projectId, "2026-10-15", { today: "2026-10-15" }, db);
     await backfillProjectBurn(projectId, { through: "2026-10-31" }, db);
 
     const rows = await listBurnSnapshots(projectId, db);
@@ -840,7 +840,7 @@ describe("backfillBurnSnapshots", () => {
   it("does not overwrite a measurement with a reconstruction", async () => {
     await updateProject(projectId, { rateCents: 15_000 }, db);
     await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
-    await captureProjectBurn(projectId, "2026-10-14", db);
+    await captureProjectBurn(projectId, "2026-10-14", { today: "2026-10-14" }, db);
 
     await backfillBurnSnapshots({ through: "2026-10-31" }, db);
 
@@ -917,7 +917,14 @@ describe("updateProjectBurnHistory", () => {
       db,
     );
 
-    expect(update.backfill).toMatchObject({ written: 2 });
+    // One, not two: today was measured first, so the reconstruction found it
+    // recorded and agreeing, and left it alone rather than writing a row the
+    // measurement would have replaced.
+    expect(update.backfill).toMatchObject({
+      written: 1,
+      repaired: 0,
+      alreadyRecorded: 1,
+    });
     const rows = await listBurnSnapshots(projectId, db);
     expect(rows.map((row) => row.origin)).toEqual(["backfilled", "recorded"]);
     // Replaced, not duplicated: one day, one reading.
@@ -934,7 +941,11 @@ describe("updateProjectBurnHistory", () => {
 
     // Two, not three: `alreadyRecorded` counts the days the project worked,
     // and the day it is run on had nothing logged against it.
-    expect(second.backfill).toMatchObject({ written: 0, alreadyRecorded: 2 });
+    expect(second.backfill).toMatchObject({
+      written: 0,
+      repaired: 0,
+      alreadyRecorded: 2,
+    });
     expect(await listBurnSnapshots(projectId, db)).toHaveLength(3);
   });
 
