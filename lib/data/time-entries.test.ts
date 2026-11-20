@@ -705,7 +705,12 @@ describe("dailyTimeTotalsByProject", () => {
 
     const across = (await dailyTimeTotalsByProject(db))
       .filter((day) => day.projectId === projectId)
-      .map(({ projectId: _project, ...day }) => day);
+      .map((day) => ({
+        onDate: day.onDate,
+        entryCount: day.entryCount,
+        loggedMinutes: day.loggedMinutes,
+        billableMinutes: day.billableMinutes,
+      }));
 
     expect(across).toEqual(await dailyProjectTimeTotals(projectId, db));
   });
