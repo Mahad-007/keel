@@ -8,6 +8,7 @@ import { createTestDb } from "@/lib/db/testing";
 
 import {
   burnSnapshotDates,
+  burnSnapshotDaysByProject,
   listBurnSnapshots,
   recordBurnSnapshot,
 } from "./burn-snapshots";
@@ -337,5 +338,56 @@ describe("burnSnapshotDates", () => {
     );
 
     expect(await burnSnapshotDates(projectId, db)).toEqual(["2026-10-14"]);
+  });
+});
+
+describe("burnSnapshotDaysByProject", () => {
+  it("is empty for a studio with no readings", async () => {
+    expect(await burnSnapshotDaysByProject(db)).toEqual([]);
+  });
+
+  it("names each project's days against that project", async () => {
+    const otherClient = await createClient({ name: "Other Co" }, db);
+    const other = await createProject(
+      { clientId: otherClient.id, name: "Elsewhere" },
+      db,
+    );
+    await recordBurnSnapshot({ projectId, point: POINT }, db);
+    await recordBurnSnapshot(
+      { projectId: other.id, point: { ...POINT, onDate: "2026-10-15" } },
+      db,
+    );
+
+    const days = await burnSnapshotDaysByProject(db);
+
+    expect(days).toHaveLength(2);
+    expect(days.find((day) => day.projectId === projectId)?.onDate).toBe(
+      "2026-10-14",
+    );
+    expect(days.find((day) => day.projectId === other.id)?.onDate).toBe(
+      "2026-10-15",
+    );
+  });
+
+  it("puts one project's days in calendar order", async () => {
+    for (const onDate of ["2026-10-20", "2026-10-14", "2026-10-15"]) {
+      await recordBurnSnapshot({ projectId, point: { ...POINT, onDate } }, db);
+    }
+
+    expect((await burnSnapshotDaysByProject(db)).map((day) => day.onDate)).toEqual(
+      ["2026-10-14", "2026-10-15", "2026-10-20"],
+    );
+  });
+
+  it("agrees with the single-project read", async () => {
+    for (const onDate of ["2026-10-14", "2026-10-15"]) {
+      await recordBurnSnapshot({ projectId, point: { ...POINT, onDate } }, db);
+    }
+
+    expect(
+      (await burnSnapshotDaysByProject(db))
+        .filter((day) => day.projectId === projectId)
+        .map((day) => day.onDate),
+    ).toEqual(await burnSnapshotDates(projectId, db));
   });
 });
