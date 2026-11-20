@@ -401,3 +401,44 @@ export async function captureProjectBurn(
     { behavior: "immediate" },
   );
 }
+
+/**
+ * What a backfill is told: how far forward to reconstruct.
+ *
+ * One field, optional, because the only thing a backfill needs to be told is
+ * where the past ends — and the answer is nearly always today. It is an
+ * argument rather than a reading of the clock inside the loop so that a test
+ * can state the day, and so that a studio-wide run reconstructs every project
+ * against the same bound however long it takes.
+ */
+export type BurnBackfillOptions = {
+  /** The last day to reconstruct. Defaults to today, in UTC. */
+  readonly through?: string;
+};
+
+/**
+ * What a backfill did to one project.
+ *
+ * Both numbers, because the pair is the sentence. "Wrote 9 days, left 41" says
+ * the run did something and that it did not touch what was already there;
+ * (0, 50) says it was run twice and the second time was a no-op, which is the
+ * property anybody running a backfill over live data wants to see demonstrated
+ * rather than promised.
+ *
+ * A refusal names the project too, because the caller of the studio-wide run
+ * is reading a list and needs to know which engagement to go and look at.
+ */
+export type ProjectBurnBackfill =
+  | {
+      readonly ok: true;
+      readonly projectId: string;
+      /** How many days of history were written. */
+      readonly written: number;
+      /** How many of its days already had a reading and were left alone. */
+      readonly alreadyRecorded: number;
+    }
+  | {
+      readonly ok: false;
+      readonly projectId: string;
+      readonly reason: BurnCaptureReason;
+    };
