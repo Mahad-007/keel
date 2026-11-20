@@ -215,3 +215,33 @@ export async function listBurnSnapshots(
     .where(eq(burnSnapshots.projectId, projectId))
     .orderBy(...OLDEST_FIRST);
 }
+
+/**
+ * The days one project already has a reading for, oldest first.
+ *
+ * What a backfill asks before it writes anything: the dates, and nothing else.
+ * `listBurnSnapshots` would answer the same question and carry thirteen
+ * columns of every row to do it, which is a year of rows crossing a wire so
+ * that a plan can compare forty strings.
+ *
+ * It is the whole list rather than the latest, because the gaps are the point.
+ * A project recorded daily for a month, left alone for a week and recorded
+ * again has a hole in the middle, and a backfill that asked only how far the
+ * history reached would skip straight past it — which is exactly the shape a
+ * run that was interrupted leaves behind.
+ *
+ * Covered by the unique index, which holds both columns: the dates come
+ * straight off it without the table being touched.
+ */
+export async function burnSnapshotDates(
+  projectId: string,
+  database: Database = db,
+): Promise<string[]> {
+  const rows = await database
+    .select({ onDate: burnSnapshots.onDate })
+    .from(burnSnapshots)
+    .where(eq(burnSnapshots.projectId, projectId))
+    .orderBy(...OLDEST_FIRST);
+
+  return rows.map((row) => row.onDate);
+}
