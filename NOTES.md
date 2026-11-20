@@ -938,3 +938,88 @@ is the one that looks fine.
 - **Nothing consumes the verdict yet.** The classifier has no caller in `app/`
   today, by design: Day 034 is the milestone that decides what a reader is told,
   and a banner built a day early would be the one deciding the wording.
+
+## Why a burn-down is stored rather than computed (Day 035)
+
+Every figure in Keel before this one is the present tense, recomputed from the
+rows on every render, which is right: a cached figure about now is a figure
+that is wrong. A burn-down is the exception, and the reason is not performance.
+
+The minutes behind a past day are recoverable at any time — `worked_on` is a
+calendar date, so "every entry on or before the 14th" is one query. What is not
+recoverable is the other two thirds of the multiplication. Neither
+`projects.contract_value_cents` nor the rate chain keeps a history, so a chart
+computed from the entries would be drawn at *today's* price and *today's* rate,
+and correcting a client's default from $120 to $150 would silently rewrite
+every point behind it. A line whose past moves when somebody fixes a form is
+not a record of anything.
+
+So `burn_snapshots` copies the price, the rate and the rate's source onto every
+row, the way `scope_snapshots` copies a deliverable's title. `burned_cents` and
+`chargeable_cents` are stored too, even though they are a product of columns
+beside them: a reading is what was reported on the day, and the arithmetic that
+reported it is code, which changes.
+
+Nothing derived is stored. There is no `remaining_cents` and no
+`consumed_share`, because both are one expression over two columns that are
+there, both are already written in `lib/burn.ts`, and a stored copy is how a
+chart comes to disagree with the panel above it.
+
+## What a backfill cannot know, and says so
+
+`origin` is `recorded` or `backfilled`, and the distinction is the honest part
+of the day. A reading taken on its own day was measured against the figures as
+they stood that morning. A reconstruction was not: the backfill knows the
+minutes exactly and knows nothing whatever about what the project was agreed
+for in March, so it values the whole history at today's figures and marks every
+row it writes.
+
+Two consequences worth writing down:
+
+- **A reconstruction never overwrites a measurement.** The plan drops days that
+  already have a reading, and the insert behind it is `on conflict do nothing`
+  rather than the upsert `recordBurnSnapshot` uses — so a reading that landed
+  between the plan and the write still wins.
+- **The accumulation runs over the whole history and the narrowing happens
+  after it.** `planBurnBackfill` is three steps in the one order that is
+  correct, and `lib/burndown/plan.ts` says why each of the other orders looks
+  right and is not. Filtering to the missing days first gives every gap a
+  running total that starts at the gap.
+
+## One reading per day, replaceable
+
+A scope snapshot is immutable, because it records what was agreed at a moment
+somebody chose. A burn reading records the state of a *day*, and a day has one
+state: a reading taken at lunchtime and one taken at six are the same day's
+reading, and the second is better informed. Hence the unique index on
+`(project_id, on_date)` and an upsert that moves `captured_at` — and hence no
+`updated_at`, which would invite the reading that the figures are from one
+moment and the day from another.
+
+Days nothing was logged on are not stored at all. A burn-down holds its last
+value across a gap, which is the true shape of a week nobody worked; a row per
+calendar day would be a year of identical readings for a project that was
+worked on nine times.
+
+## Left alone deliberately
+
+- **Nothing schedules the daily reading.** There is no cron in this repo and no
+  job runner, so `captureProjectBurn` has no caller in `app/` today.
+  `updateProjectBurnHistory` is the operation a page calls to top one project up
+  — reconstruct what it missed, then measure today — and Day 036 is the
+  milestone that decides whether drawing the chart is what triggers it. Both
+  halves are idempotent, which is what makes that decision safe to make later.
+- **Two unscoped reads.** `dailyTimeTotalsByProject` and
+  `burnSnapshotDaysByProject` ask about the whole studio rather than one
+  engagement, because the backfill is a studio-wide repair and a query per
+  project is what makes a one-off repair something nobody dares run. They are
+  listed here because Day 084 has to scope every query by owner, and these two
+  have no project in their predicate to scope.
+- **No chart.** Day 036 renders the line, server-side, as inline SVG.
+  `recordedBurnPoint` is the seam: it reads a stored row back as the same
+  `BurnSummary` shape the overview panel already has words for, so the chart
+  renders the past tense with Day 032's vocabulary rather than a second one.
+- **No projection past today.** A series stops at the day it is drawn on, and
+  `burnDaysThrough` drops time logged against a future date rather than
+  plotting money nobody has spent. Day 037 is the extrapolation, with its
+  caveats.
