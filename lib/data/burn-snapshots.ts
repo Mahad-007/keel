@@ -1,5 +1,19 @@
-import type { BurnSnapshotOrigin } from "@/lib/burndown/origin";
+import {
+  DEFAULT_BURN_SNAPSHOT_ORIGIN,
+  type BurnSnapshotOrigin,
+} from "@/lib/burndown/origin";
 import type { BurnPoint } from "@/lib/burndown/series";
+import { db, type Database } from "@/lib/db";
+import { burnSnapshots, type BurnSnapshot } from "@/lib/db/schema";
+import { newId } from "@/lib/id";
+
+import {
+  calendarDate,
+  recordedCents,
+  recordedMinutes,
+  requiredText,
+  wholeCount,
+} from "./fields";
 
 /**
  * Data access for the `burn_snapshots` table: what each project had burned at
@@ -41,3 +55,117 @@ export type NewBurnSnapshotInput = {
   /** Whether the reading was measured on the day or reconstructed later. */
   readonly origin?: BurnSnapshotOrigin;
 };
+
+/**
+ * The columns a reading writes, guarded, with the day and the figures taken
+ * off the point.
+ *
+ * The one place the burn summary's names and the table's names meet:
+ * `contractedCents` is what a summary calls the price and
+ * `contract_value_cents` is what the project calls it, and the translation
+ * happens here so that the two writes below cannot disagree about it.
+ *
+ * The money goes through `recordedCents` rather than `wholeCents`, and the
+ * minutes through `recordedMinutes` rather than `wholeMinutes`. A reading
+ * records what the figures were, including the ones no form could produce: a
+ * project hand-edited to a negative rate burns backwards, and that is the
+ * engagement whose history somebody needs to see. Only a value too large to
+ * read back is refused, because a row the driver cannot decode poisons every
+ * later read of the table.
+ *
+ * `entryCount` is the exception and takes the ordinary guard, because there is
+ * no such thing as recording minus one stretch of work.
+ */
+function burnSnapshotValues(
+  input: NewBurnSnapshotInput,
+  capturedAt: string,
+): typeof burnSnapshots.$inferInsert {
+  const { point } = input;
+
+  return {
+    id: newId("brn"),
+    projectId: requiredText(input.projectId, "burn reading project"),
+    onDate: calendarDate(point.onDate, "burn reading day"),
+    contractValueCents: recordedCents(
+      point.contractedCents,
+      "recorded contract value",
+    ),
+    rateCents: recordedCents(point.rate.cents, "recorded rate"),
+    rateSource: point.rate.source,
+    entryCount: wholeCount(point.entryCount, "recorded entry count"),
+    loggedMinutes: recordedMinutes(point.loggedMinutes, "recorded minutes"),
+    billableMinutes: recordedMinutes(
+      point.billableMinutes,
+      "recorded chargeable minutes",
+    ),
+    burnedCents: recordedCents(point.burnedCents, "recorded burn"),
+    chargeableCents: recordedCents(
+      point.chargeableCents,
+      "recorded chargeable burn",
+    ),
+    origin: input.origin ?? DEFAULT_BURN_SNAPSHOT_ORIGIN,
+    capturedAt,
+  };
+}
+
+/**
+ * Writes one day's reading, replacing any reading that day already had.
+ *
+ * An upsert, which is the one place this table departs from `scope_snapshots`
+ * — and the departure is the point. A scope snapshot records what was agreed
+ * at a moment somebody chose, so a second one is a second fact and editing one
+ * destroys a record. A burn reading records the state of a *day*, and a day
+ * has one state: a reading taken at lunchtime is the same day's reading as one
+ * taken at six, and the second is simply better informed. Two rows would plot
+ * one day at two heights, and the unique index refuses that — so the write has
+ * to say what it means by a repeat, and it means a replacement.
+ *
+ * `capturedAt` is overwritten along with the figures, so the row says when the
+ * reading it holds was taken rather than when the day was first recorded.
+ * There is no `updatedAt`: the figures and the time they were taken are one
+ * fact, and a second timestamp would invite the reading that the amounts are
+ * from one moment and the day from another.
+ *
+ * Replacing rather than conflating also means a backfill can be run over a day
+ * that has moved: time entries get corrected after the fact, and a reading
+ * recorded before the correction is now wrong about a day it cannot
+ * recalculate for itself.
+ *
+ * Nothing checks that the project exists, because the foreign key does. The
+ * callers below read it anyway, for the rate — this is the narrow write they
+ * both go through.
+ */
+export async function recordBurnSnapshot(
+  input: NewBurnSnapshotInput,
+  database: Database = db,
+): Promise<BurnSnapshot> {
+  const values = burnSnapshotValues(input, new Date().toISOString());
+
+  const [snapshot] = await database
+    .insert(burnSnapshots)
+    .values(values)
+    .onConflictDoUpdate({
+      target: [burnSnapshots.projectId, burnSnapshots.onDate],
+      /*
+        Every column but the id and the pair that identify the day. The id
+        stays as it was so that anything holding a reference to the reading
+        still resolves to the day it named — the row is the same reading,
+        better informed.
+      */
+      set: {
+        contractValueCents: values.contractValueCents,
+        rateCents: values.rateCents,
+        rateSource: values.rateSource,
+        entryCount: values.entryCount,
+        loggedMinutes: values.loggedMinutes,
+        billableMinutes: values.billableMinutes,
+        burnedCents: values.burnedCents,
+        chargeableCents: values.chargeableCents,
+        origin: values.origin,
+        capturedAt: values.capturedAt,
+      },
+    })
+    .returning();
+
+  return snapshot;
+}
