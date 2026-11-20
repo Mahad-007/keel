@@ -22,9 +22,10 @@ import {
   requiredText,
   wholeCount,
 } from "./fields";
-import { getProjectWithClient } from "./projects";
+import { getProjectWithClient, listProjectsWithClient } from "./projects";
 import {
   dailyProjectTimeTotals,
+  dailyTimeTotalsByProject,
   projectTimeTotalsThrough,
 } from "./time-entries";
 
@@ -567,6 +568,155 @@ export async function backfillProjectBurn(
           tx,
         ),
         alreadyRecorded: plan.alreadyRecorded,
+      };
+    },
+    { behavior: "immediate" },
+  );
+}
+
+/**
+ * Rows that each name a project, gathered by the project they name, in the
+ * order the projects first appear.
+ *
+ * The studio-wide backfill reads two unscoped lists and has to walk them one
+ * project at a time; a `filter` per project per list is the quadratic way to
+ * do that, and a studio's history is the one place in the app where the lists
+ * are long enough for it to matter.
+ *
+ * The order the query returned is kept, so a run writes projects in a settled
+ * order and an interrupted one has written whole projects.
+ */
+function groupByProject<T extends { readonly projectId: string }>(
+  rows: readonly T[],
+): Map<string, T[]> {
+  const grouped = new Map<string, T[]>();
+  for (const row of rows) {
+    const mine = grouped.get(row.projectId);
+    if (mine === undefined) grouped.set(row.projectId, [row]);
+    else mine.push(row);
+  }
+  return grouped;
+}
+
+/** Adds up one figure of a list of results. */
+function sumOf<T>(rows: readonly T[], figure: (row: T) => number): number {
+  return rows.reduce((total, row) => total + figure(row), 0);
+}
+
+/**
+ * What a backfill did to the whole studio.
+ *
+ * The per-project results, and the three figures somebody running it reads
+ * first. The totals are sums of the list rather than independent counts, so
+ * they cannot disagree with it; they are carried because a studio with sixty
+ * engagements is sixty lines, and "wrote 412 days across 47 projects, refused
+ * 1" is the line that says whether to go and read them.
+ */
+export type BurnBackfillReport = {
+  /** One result per project that had any time logged, in project order. */
+  readonly projects: readonly ProjectBurnBackfill[];
+  /** How many days of history were written in total. */
+  readonly written: number;
+  /** How many days already had a reading and were left alone. */
+  readonly alreadyRecorded: number;
+  /** How many projects were refused, each for a reason in the list. */
+  readonly refused: number;
+};
+
+/**
+ * Reconstructs every missing day of every project's burn-down.
+ *
+ * The backfill as it is actually run: once, over a studio that has been
+ * logging time since before this table existed. Three queries and then
+ * arithmetic — every project with its client's rate, every project's days, and
+ * every day already recorded — rather than three queries per project, which is
+ * what a loop over `backfillProjectBurn` would be and what turns a one-off
+ * repair into something nobody dares run twice.
+ *
+ * A project with no time logged against it is not reported at all, because
+ * there is nothing to reconstruct: a burn-down of an engagement nobody has
+ * worked is an empty chart rather than a line at nought, and a row saying so
+ * would be a point where no work happened.
+ *
+ * One immediate transaction for the whole run, like the per-project version
+ * and for the same reason, with one addition: a studio reconstructed in one
+ * transaction is reconstructed against one set of reads, so two projects
+ * cannot be valued at rates from either side of an edit.
+ *
+ * Every project is attempted even when one is refused. The refusals are in the
+ * list with the project named, which is the whole reason they are answers
+ * rather than exceptions — a studio where one engagement has a hand-edited
+ * rate is still a studio with fifty-nine charts worth drawing.
+ */
+export async function backfillBurnSnapshots(
+  options: BurnBackfillOptions = {},
+  database: Database = db,
+): Promise<BurnBackfillReport> {
+  const through = options.through ?? utcCalendarDate(new Date());
+
+  return database.transaction(
+    async (tx) => {
+      const projects = await listProjectsWithClient({}, tx);
+      const days = await dailyTimeTotalsByProject(tx);
+      const recorded = await burnSnapshotDaysByProject(tx);
+
+      const byProject = new Map(projects.map((project) => [project.id, project]));
+      const daysByProject = groupByProject(days);
+      const recordedByProject = groupByProject(recorded);
+
+      const results: ProjectBurnBackfill[] = [];
+      for (const [projectId, projectDays] of daysByProject) {
+        const project = byProject.get(projectId);
+        /*
+          The foreign key makes this unreachable — a day cannot be logged
+          against a project that is not there — but a deleted project would
+          take its entries with it, and reporting the gap is cheaper than
+          reasoning about whether it can open.
+        */
+        if (project === undefined) {
+          results.push({ ok: false, projectId, reason: "no-such-project" });
+          continue;
+        }
+
+        const plan = planBurnBackfill({
+          days: projectDays,
+          recorded: (recordedByProject.get(projectId) ?? []).map(
+            (day) => day.onDate,
+          ),
+          contractedCents: project.contractValueCents,
+          rate: resolveJoinedRate(project),
+          through,
+        });
+
+        if (plan.points.some((point) => !isRecordableBurn(point))) {
+          results.push({
+            ok: false,
+            projectId,
+            reason: "unrecordable-figures",
+          });
+          continue;
+        }
+
+        results.push({
+          ok: true,
+          projectId,
+          written: await addBurnSnapshots(
+            projectId,
+            plan.points,
+            "backfilled",
+            tx,
+          ),
+          alreadyRecorded: plan.alreadyRecorded,
+        });
+      }
+
+      return {
+        projects: results,
+        written: sumOf(results, (result) => (result.ok ? result.written : 0)),
+        alreadyRecorded: sumOf(results, (result) =>
+          result.ok ? result.alreadyRecorded : 0,
+        ),
+        refused: results.filter((result) => !result.ok).length,
       };
     },
     { behavior: "immediate" },
