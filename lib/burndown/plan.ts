@@ -61,3 +61,29 @@ export type BurnBackfillPlan = {
   /** How many of the project's days already had a reading. */
   readonly alreadyRecorded: number;
 };
+
+/**
+ * The points of a series whose day is not in a list of days already recorded.
+ *
+ * Separate from the plan below, and run *after* the series is valued rather
+ * than over the days that went into it, which is the whole subtlety of a
+ * backfill: a point is a running total, so a point for Thursday can only be
+ * worked out from Monday and Tuesday as well. Dropping Monday from the input
+ * because it is already stored would leave Thursday's reading saying the
+ * engagement had spent only Thursday.
+ *
+ * A Set rather than `includes` per point, because this runs once per project
+ * over every day it has ever logged: a two-year engagement against two years
+ * of stored readings is half a million comparisons written the other way.
+ *
+ * Order is the series order it was given, which `burnSeries` has already put
+ * into calendar order — so the rows go in oldest first, and a backfill that is
+ * interrupted has written a prefix of the history rather than a scatter of it.
+ */
+export function withoutRecordedDays(
+  points: readonly BurnPoint[],
+  recorded: readonly string[],
+): BurnPoint[] {
+  const already = new Set(recorded);
+  return points.filter((point) => !already.has(point.onDate));
+}
