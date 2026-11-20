@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 
 import {
   DEFAULT_BURN_SNAPSHOT_ORIGIN,
@@ -128,6 +128,33 @@ function burnSnapshotValues(
 }
 
 /**
+ * What a replaced reading takes from the reading that replaced it: every
+ * column but the id and the two that identify the day.
+ *
+ * Read off `excluded` — SQLite's name for the row the insert offered — rather
+ * than interpolated from the values. With one row the two are the same thing;
+ * with several, interpolation would set every conflicting day to the figures
+ * of whichever row the object was built from, which is the quiet way a repair
+ * of ten days writes one day's figures ten times.
+ *
+ * The id is deliberately not refreshed, so a reading keeps the id it was first
+ * written with: the row is the same reading, better informed, and anything
+ * holding a reference to it still resolves to the day it named.
+ */
+const REFRESHED_FROM_THE_READING = {
+  contractValueCents: sql`excluded.contract_value_cents`,
+  rateCents: sql`excluded.rate_cents`,
+  rateSource: sql`excluded.rate_source`,
+  entryCount: sql`excluded.entry_count`,
+  loggedMinutes: sql`excluded.logged_minutes`,
+  billableMinutes: sql`excluded.billable_minutes`,
+  burnedCents: sql`excluded.burned_cents`,
+  chargeableCents: sql`excluded.chargeable_cents`,
+  origin: sql`excluded.origin`,
+  capturedAt: sql`excluded.captured_at`,
+};
+
+/**
  * Writes one day's reading, replacing any reading that day already had.
  *
  * An upsert, which is the one place this table departs from `scope_snapshots`
@@ -165,24 +192,7 @@ export async function recordBurnSnapshot(
     .values(values)
     .onConflictDoUpdate({
       target: [burnSnapshots.projectId, burnSnapshots.onDate],
-      /*
-        Every column but the id and the pair that identify the day. The id
-        stays as it was so that anything holding a reference to the reading
-        still resolves to the day it named — the row is the same reading,
-        better informed.
-      */
-      set: {
-        contractValueCents: values.contractValueCents,
-        rateCents: values.rateCents,
-        rateSource: values.rateSource,
-        entryCount: values.entryCount,
-        loggedMinutes: values.loggedMinutes,
-        billableMinutes: values.billableMinutes,
-        burnedCents: values.burnedCents,
-        chargeableCents: values.chargeableCents,
-        origin: values.origin,
-        capturedAt: values.capturedAt,
-      },
+      set: REFRESHED_FROM_THE_READING,
     })
     .returning();
 
