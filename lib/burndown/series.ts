@@ -1,5 +1,6 @@
-import type { BurnSummary } from "@/lib/burn";
+import { summariseBurn, type BurnSummary } from "@/lib/burn";
 import { isCalendarDate } from "@/lib/dates";
+import type { EffectiveRate } from "@/lib/rates";
 import type { LoggedTotals } from "@/lib/time/rollup";
 
 /**
@@ -158,3 +159,47 @@ export type BurnPoint = BurnSummary & {
   /** The day this reading is the end of: `YYYY-MM-DD`. */
   readonly onDate: string;
 };
+
+/**
+ * A project's burn-down: one point per day it logged work, each holding what
+ * the whole engagement had consumed by the end of that day.
+ *
+ * The three things a burn figure needs, in the order they arrive: the days
+ * come from the time entries, the price from the project, and the rate from
+ * the resolution. The accumulation is a separate function above because it is
+ * worth testing without money in the way; the valuation is `summariseBurn`,
+ * unchanged, called once per day.
+ *
+ * Which means the price and the rate are the same on every point of a series
+ * built this way, and that is honest about what can be known from the rows:
+ * neither column keeps a history, so a series computed now can only be a
+ * series computed at today's figures. It is the stored table that holds the
+ * other reading, where each row kept the price and rate of its own day — and
+ * `recordedBurnPoint` is how those come back. A caller plotting history wants
+ * the stored rows; this is what produces them in the first place, and what the
+ * backfill values the past with for want of anything better.
+ *
+ * The minutes are totalled before they are valued rather than each day's being
+ * valued and the money added up, which is the rule `burnedCents` exists to
+ * keep: twenty minutes converted three times comes to a cent less than the
+ * hour it is. A series accumulated in cents would drift from the panel above
+ * it by a few cents on a long engagement, and the panel is the figure people
+ * quote.
+ *
+ * Days are *not* filled in. A project worked on Monday and Thursday has two
+ * points and not four, because the two days in between have nothing to say —
+ * the burn did not move, and a row per calendar day would store a year of
+ * identical readings for a project that was worked on nine times. A chart
+ * holds its last value across a gap, which is the true shape: the line is flat
+ * because nothing happened.
+ */
+export function burnSeries(
+  days: readonly BurnDay[],
+  contractedCents: number,
+  rate: EffectiveRate,
+): BurnPoint[] {
+  return accumulateBurnDays(days).map((day) => ({
+    onDate: day.onDate,
+    ...summariseBurn(day, contractedCents, rate),
+  }));
+}
