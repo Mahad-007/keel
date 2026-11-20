@@ -6,7 +6,11 @@ import type { Database } from "@/lib/db";
 import { burnSnapshots } from "@/lib/db/schema";
 import { createTestDb } from "@/lib/db/testing";
 
-import { listBurnSnapshots, recordBurnSnapshot } from "./burn-snapshots";
+import {
+  burnSnapshotDates,
+  listBurnSnapshots,
+  recordBurnSnapshot,
+} from "./burn-snapshots";
 import { createClient } from "./clients";
 import { createProject, deleteProject } from "./projects";
 
@@ -293,5 +297,45 @@ describe("listBurnSnapshots", () => {
     await deleteProject(projectId, db);
 
     expect(await listBurnSnapshots(projectId, db)).toEqual([]);
+  });
+});
+
+describe("burnSnapshotDates", () => {
+  it("is empty for a project with no readings", async () => {
+    expect(await burnSnapshotDates(projectId, db)).toEqual([]);
+  });
+
+  it("names every recorded day, oldest first", async () => {
+    for (const onDate of ["2026-10-20", "2026-10-14"]) {
+      await recordBurnSnapshot({ projectId, point: { ...POINT, onDate } }, db);
+    }
+
+    expect(await burnSnapshotDates(projectId, db)).toEqual([
+      "2026-10-14",
+      "2026-10-20",
+    ]);
+  });
+
+  it("shows the gaps rather than only how far the history reaches", async () => {
+    for (const onDate of ["2026-10-14", "2026-10-16", "2026-10-17"]) {
+      await recordBurnSnapshot({ projectId, point: { ...POINT, onDate } }, db);
+    }
+
+    expect(await burnSnapshotDates(projectId, db)).not.toContain("2026-10-15");
+  });
+
+  it("names only this project's days", async () => {
+    const otherClient = await createClient({ name: "Other Co" }, db);
+    const other = await createProject(
+      { clientId: otherClient.id, name: "Elsewhere" },
+      db,
+    );
+    await recordBurnSnapshot({ projectId, point: POINT }, db);
+    await recordBurnSnapshot(
+      { projectId: other.id, point: { ...POINT, onDate: "2026-10-15" } },
+      db,
+    );
+
+    expect(await burnSnapshotDates(projectId, db)).toEqual(["2026-10-14"]);
   });
 });
