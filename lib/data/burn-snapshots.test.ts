@@ -11,7 +11,7 @@ import { createTimeEntry } from "./time-entries";
 import {
   backfillBurnSnapshots,
   backfillProjectBurn,
-  burnSnapshotDates,
+  burnSnapshotTotals,
   captureProjectBurn,
   burnSnapshotDaysByProject,
   listBurnSnapshots,
@@ -307,9 +307,9 @@ describe("listBurnSnapshots", () => {
   });
 });
 
-describe("burnSnapshotDates", () => {
+describe("burnSnapshotTotals", () => {
   it("is empty for a project with no readings", async () => {
-    expect(await burnSnapshotDates(projectId, db)).toEqual([]);
+    expect(await burnSnapshotTotals(projectId, db)).toEqual([]);
   });
 
   it("names every recorded day, oldest first", async () => {
@@ -317,9 +317,21 @@ describe("burnSnapshotDates", () => {
       await recordBurnSnapshot({ projectId, point: { ...POINT, onDate } }, db);
     }
 
-    expect(await burnSnapshotDates(projectId, db)).toEqual([
-      "2026-10-14",
-      "2026-10-20",
+    expect(
+      (await burnSnapshotTotals(projectId, db)).map((day) => day.onDate),
+    ).toEqual(["2026-10-14", "2026-10-20"]);
+  });
+
+  it("carries the work each reading recorded, and none of the money", async () => {
+    await recordBurnSnapshot({ projectId, point: POINT }, db);
+
+    expect(await burnSnapshotTotals(projectId, db)).toEqual([
+      {
+        onDate: "2026-10-14",
+        entryCount: 4,
+        loggedMinutes: 600,
+        billableMinutes: 540,
+      },
     ]);
   });
 
@@ -328,7 +340,9 @@ describe("burnSnapshotDates", () => {
       await recordBurnSnapshot({ projectId, point: { ...POINT, onDate } }, db);
     }
 
-    expect(await burnSnapshotDates(projectId, db)).not.toContain("2026-10-15");
+    expect(
+      (await burnSnapshotTotals(projectId, db)).map((day) => day.onDate),
+    ).not.toContain("2026-10-15");
   });
 
   it("names only this project's days", async () => {
@@ -343,7 +357,9 @@ describe("burnSnapshotDates", () => {
       db,
     );
 
-    expect(await burnSnapshotDates(projectId, db)).toEqual(["2026-10-14"]);
+    expect(
+      (await burnSnapshotTotals(projectId, db)).map((day) => day.onDate),
+    ).toEqual(["2026-10-14"]);
   });
 });
 
@@ -394,7 +410,9 @@ describe("burnSnapshotDaysByProject", () => {
       (await burnSnapshotDaysByProject(db))
         .filter((day) => day.projectId === projectId)
         .map((day) => day.onDate),
-    ).toEqual(await burnSnapshotDates(projectId, db));
+    ).toEqual(
+      (await burnSnapshotTotals(projectId, db)).map((day) => day.onDate),
+    );
   });
 });
 

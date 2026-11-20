@@ -40,8 +40,17 @@ import {
 export type BurnBackfillRequest = {
   /** Every day the project logged work, in any order, with that day's totals. */
   readonly days: readonly BurnDay[];
-  /** The days already in the table, which this will not touch. */
-  readonly recorded: readonly string[];
+  /**
+   * The readings already in the table: the day each covers, and the running
+   * totals it recorded.
+   *
+   * The totals and not only the dates, because a reading can be out of date as
+   * well as absent. Time gets logged days after it was worked, and a reading
+   * taken before that entry arrived understates its day for ever — so what a
+   * backfill has to know is which recorded days still agree with the entries,
+   * not merely which days have a row.
+   */
+  readonly recorded: readonly BurnDay[];
   /** What the project is agreed for now, in cents. */
   readonly contractedCents: number;
   /** What an hour is worth now, and which row says so. */
@@ -68,7 +77,24 @@ export type BurnBackfillPlan = {
 };
 
 /**
- * The points of a series whose day is not in a list of days already recorded.
+ * The readings a day at a time, so a plan can ask what a given day already
+ * says.
+ *
+ * A Map rather than a scan per point, because both questions below are asked
+ * once per day of a project's history: a two-year engagement against two years
+ * of readings is half a million comparisons written the other way.
+ *
+ * Later wins on a duplicate day, which cannot happen — the table is unique on
+ * the pair — and costs nothing to be definite about.
+ */
+function readingsByDate(
+  recorded: readonly BurnDay[],
+): Map<string, BurnDay> {
+  return new Map(recorded.map((reading) => [reading.onDate, reading]));
+}
+
+/**
+ * The points of a series whose day has no reading at all.
  *
  * Separate from the plan below, and run *after* the series is valued rather
  * than over the days that went into it, which is the whole subtlety of a
@@ -77,19 +103,15 @@ export type BurnBackfillPlan = {
  * because it is already stored would leave Thursday's reading saying the
  * engagement had spent only Thursday.
  *
- * A Set rather than `includes` per point, because this runs once per project
- * over every day it has ever logged: a two-year engagement against two years
- * of stored readings is half a million comparisons written the other way.
- *
  * Order is the series order it was given, which `burnSeries` has already put
  * into calendar order — so the rows go in oldest first, and a backfill that is
  * interrupted has written a prefix of the history rather than a scatter of it.
  */
 export function withoutRecordedDays(
   points: readonly BurnPoint[],
-  recorded: readonly string[],
+  recorded: readonly BurnDay[],
 ): BurnPoint[] {
-  const already = new Set(recorded);
+  const already = readingsByDate(recorded);
   return points.filter((point) => !already.has(point.onDate));
 }
 

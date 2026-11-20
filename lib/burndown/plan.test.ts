@@ -3,7 +3,17 @@ import { describe, expect, it } from "vitest";
 import type { EffectiveRate } from "@/lib/rates";
 
 import { planBurnBackfill, withoutRecordedDays } from "./plan";
-import { burnSeries, type BurnDay } from "./series";
+import { accumulateBurnDays, burnSeries, type BurnDay } from "./series";
+
+/**
+ * The readings a project would hold for the given days, as the table stores
+ * them: running totals, not each day's own work.
+ */
+function recorded(onDates: readonly string[]): BurnDay[] {
+  return accumulateBurnDays(DAYS).filter((day) =>
+    onDates.includes(day.onDate),
+  );
+}
 
 const RATE: EffectiveRate = { cents: 15_000, source: "project" };
 
@@ -16,13 +26,13 @@ const DAYS = [day("2026-03-01"), day("2026-03-02"), day("2026-03-03")];
 describe("withoutRecordedDays", () => {
   it("leaves the days that already have a reading", () => {
     const points = burnSeries(DAYS, 500_000, RATE);
-    const pending = withoutRecordedDays(points, ["2026-03-02"]);
+    const pending = withoutRecordedDays(points, recorded(["2026-03-02"]));
     expect(pending.map((p) => p.onDate)).toEqual(["2026-03-01", "2026-03-03"]);
   });
 
   it("keeps the running total of the days it dropped", () => {
     const points = burnSeries(DAYS, 500_000, RATE);
-    const pending = withoutRecordedDays(points, ["2026-03-01", "2026-03-02"]);
+    const pending = withoutRecordedDays(points, recorded(["2026-03-01", "2026-03-02"]));
     // The third of March is three hours in, not one: the two stored days still
     // happened, and a reading that forgot them would restart the engagement.
     expect(pending).toHaveLength(1);
@@ -33,13 +43,16 @@ describe("withoutRecordedDays", () => {
   it("writes nothing when every day is already recorded", () => {
     const points = burnSeries(DAYS, 500_000, RATE);
     expect(
-      withoutRecordedDays(points, ["2026-03-01", "2026-03-02", "2026-03-03"]),
+      withoutRecordedDays(
+        points,
+        recorded(["2026-03-01", "2026-03-02", "2026-03-03"]),
+      ),
     ).toEqual([]);
   });
 
   it("ignores a recorded day the project has no work on", () => {
     const points = burnSeries(DAYS, 500_000, RATE);
-    const pending = withoutRecordedDays(points, ["2025-01-01"]);
+    const pending = withoutRecordedDays(points, [{ onDate: "2025-01-01", entryCount: 1, loggedMinutes: 60, billableMinutes: 60 }]);
     expect(pending.map((p) => p.onDate)).toEqual([
       "2026-03-01",
       "2026-03-02",
@@ -76,7 +89,7 @@ describe("planBurnBackfill", () => {
   it("plans nothing on a second run, and says what it left", () => {
     const plan = planBurnBackfill({
       days: DAYS,
-      recorded: ["2026-03-01", "2026-03-02", "2026-03-03"],
+      recorded: recorded(["2026-03-01", "2026-03-02", "2026-03-03"]),
       contractedCents: 500_000,
       rate: RATE,
       through: "2026-03-31",
@@ -88,7 +101,7 @@ describe("planBurnBackfill", () => {
   it("fills a gap in the middle without disturbing its neighbours", () => {
     const plan = planBurnBackfill({
       days: DAYS,
-      recorded: ["2026-03-01", "2026-03-03"],
+      recorded: recorded(["2026-03-01", "2026-03-03"]),
       contractedCents: 500_000,
       rate: RATE,
       through: "2026-03-31",
@@ -116,7 +129,7 @@ describe("planBurnBackfill", () => {
   it("does not count a recorded day the project never worked", () => {
     const plan = planBurnBackfill({
       days: DAYS,
-      recorded: ["2026-02-14", "2026-03-02"],
+      recorded: recorded(["2026-02-14", "2026-03-02"]),
       contractedCents: 500_000,
       rate: RATE,
       through: "2026-03-31",
@@ -128,7 +141,7 @@ describe("planBurnBackfill", () => {
   it("does not count a day beyond the bound as recorded or pending", () => {
     const plan = planBurnBackfill({
       days: DAYS,
-      recorded: ["2026-03-03"],
+      recorded: recorded(["2026-03-03"]),
       contractedCents: 500_000,
       rate: RATE,
       through: "2026-03-01",

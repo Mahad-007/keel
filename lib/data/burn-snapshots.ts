@@ -5,7 +5,11 @@ import {
   type BurnSnapshotOrigin,
 } from "@/lib/burndown/origin";
 import { planBurnBackfill } from "@/lib/burndown/plan";
-import type { BurnPoint } from "@/lib/burndown/series";
+import type {
+  BurnDay,
+  BurnPoint,
+  ProjectBurnDay,
+} from "@/lib/burndown/series";
 import { summariseBurn } from "@/lib/burn";
 import { utcCalendarDate } from "@/lib/dates";
 import { db, type Database } from "@/lib/db";
@@ -230,12 +234,30 @@ export async function listBurnSnapshots(
 }
 
 /**
- * The days one project already has a reading for, oldest first.
+ * The columns a backfill reads of a stored reading: the day, and the running
+ * totals it recorded.
  *
- * What a backfill asks before it writes anything: the dates, and nothing else.
- * `listBurnSnapshots` would answer the same question and carry thirteen
- * columns of every row to do it, which is a year of rows crossing a wire so
- * that a plan can compare forty strings.
+ * Four of the thirteen. `listBurnSnapshots` would answer the same question and
+ * carry every column of every row to do it, which is a year of rows crossing a
+ * wire so that a plan can compare forty days.
+ *
+ * The totals and not only the day, because a reading can be out of date as
+ * well as absent — see `BurnBackfillRequest.recorded`. Not the money, though:
+ * what a backfill compares is the work, and the whole point of the stored
+ * figures is that the money may legitimately have been valued at a rate that
+ * has since moved.
+ */
+const RECORDED_DAY_COLUMNS = {
+  onDate: burnSnapshots.onDate,
+  entryCount: burnSnapshots.entryCount,
+  loggedMinutes: burnSnapshots.loggedMinutes,
+  billableMinutes: burnSnapshots.billableMinutes,
+};
+
+/**
+ * The readings one project already has, oldest first.
+ *
+ * What a backfill asks before it writes anything.
  *
  * It is the whole list rather than the latest, because the gaps are the point.
  * A project recorded daily for a month, left alone for a week and recorded
@@ -243,51 +265,44 @@ export async function listBurnSnapshots(
  * history reached would skip straight past it — which is exactly the shape a
  * run that was interrupted leaves behind.
  *
- * Covered by the unique index, which holds both columns: the dates come
- * straight off it without the table being touched.
+ * The day comes off the unique index; the three totals are read from the rows
+ * it points at.
  */
-export async function burnSnapshotDates(
+export async function burnSnapshotTotals(
   projectId: string,
   database: Database = db,
-): Promise<string[]> {
-  const rows = await database
-    .select({ onDate: burnSnapshots.onDate })
+): Promise<BurnDay[]> {
+  return database
+    .select(RECORDED_DAY_COLUMNS)
     .from(burnSnapshots)
     .where(eq(burnSnapshots.projectId, projectId))
     .orderBy(...OLDEST_FIRST);
-
-  return rows.map((row) => row.onDate);
 }
 
-/** One recorded day, with the project it belongs to. */
-export type RecordedBurnDay = {
-  readonly projectId: string;
-  /** The day a reading exists for: `YYYY-MM-DD`. */
-  readonly onDate: string;
-};
-
 /**
- * Every recorded day of every project, in project and then date order.
+ * Every recorded reading of every project, in project and then date order.
  *
- * `burnSnapshotDates` across the whole studio, and one query for the same
+ * `burnSnapshotTotals` across the whole studio, and one query for the same
  * reason the daily totals are: a backfill that asked each project for its
- * recorded days separately would be a round trip per project before it wrote
+ * readings separately would be a round trip per project before it wrote
  * anything at all.
  *
- * Two columns and no figures. The studio-wide backfill needs to know which
- * days to leave alone, not what those days said, and the readings it does not
- * touch are the bulk of the table on every run after the first.
+ * Four columns and none of the money, like the per-project read it is the
+ * studio-wide form of. The readings a run leaves alone are the bulk of the
+ * table on every run after the first, and carrying their figures across the
+ * wire to decide not to touch them is the cost that makes a repair something
+ * nobody runs.
  *
  * Unscoped, like the daily totals it is paired with, and listed in `NOTES.md`
  * as a read Phase 8 has to scope by owner.
  */
 export async function burnSnapshotDaysByProject(
   database: Database = db,
-): Promise<RecordedBurnDay[]> {
+): Promise<ProjectBurnDay[]> {
   return database
     .select({
       projectId: burnSnapshots.projectId,
-      onDate: burnSnapshots.onDate,
+      ...RECORDED_DAY_COLUMNS,
     })
     .from(burnSnapshots)
     .orderBy(asc(burnSnapshots.projectId), ...OLDEST_FIRST);
@@ -538,7 +553,7 @@ export async function backfillProjectBurn(
       if (project === null) return { ok: false, projectId, reason: "no-such-project" };
 
       const days = await dailyProjectTimeTotals(projectId, tx);
-      const recorded = await burnSnapshotDates(projectId, tx);
+      const recorded = await burnSnapshotTotals(projectId, tx);
       const plan = planBurnBackfill({
         days,
         recorded,
@@ -680,9 +695,7 @@ export async function backfillBurnSnapshots(
 
         const plan = planBurnBackfill({
           days: projectDays,
-          recorded: (recordedByProject.get(projectId) ?? []).map(
-            (day) => day.onDate,
-          ),
+          recorded: recordedByProject.get(projectId) ?? [],
           contractedCents: project.contractValueCents,
           rate: resolveJoinedRate(project),
           through,
