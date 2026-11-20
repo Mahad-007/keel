@@ -5,17 +5,23 @@ import {
   type BurnSnapshotOrigin,
 } from "@/lib/burndown/origin";
 import type { BurnPoint } from "@/lib/burndown/series";
+import { summariseBurn } from "@/lib/burn";
 import { db, type Database } from "@/lib/db";
 import { burnSnapshots, type BurnSnapshot } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
+import { resolveJoinedRate } from "@/lib/rates";
 
 import {
   calendarDate,
+  isRecordableCents,
+  isRecordableMinutes,
   recordedCents,
   recordedMinutes,
   requiredText,
   wholeCount,
 } from "./fields";
+import { getProjectWithClient } from "./projects";
+import { projectTimeTotalsThrough } from "./time-entries";
 
 /**
  * Data access for the `burn_snapshots` table: what each project had burned at
@@ -306,3 +312,92 @@ export type BurnCaptureReason = "no-such-project" | "unrecordable-figures";
 export type BurnCaptureResult =
   | { readonly ok: true; readonly snapshot: BurnSnapshot }
   | { readonly ok: false; readonly reason: BurnCaptureReason };
+
+/**
+ * Whether every figure of a reading is one its column can hold.
+ *
+ * Asked before the write rather than discovered during it, which is what the
+ * `is…` half of each guard in `fields.ts` exists for: the writes below are
+ * batched or run across a whole studio, and a throw partway through would roll
+ * back readings that were perfectly good.
+ *
+ * It asks exactly what the guards in `burnSnapshotValues` ask, and the pairing
+ * is the point — `recordedCents` for the money so a backwards-burning project
+ * is recorded rather than refused, `recordedMinutes` for the durations, and
+ * the strict count for the entries. A predicate that was stricter than the
+ * guard would refuse rows that would have written; a looser one would leave
+ * the throw in place with the refusal unreachable.
+ */
+function isRecordableBurn(point: BurnPoint): boolean {
+  return (
+    isRecordableCents(point.contractedCents) &&
+    isRecordableCents(point.rate.cents) &&
+    isRecordableCents(point.burnedCents) &&
+    isRecordableCents(point.chargeableCents) &&
+    isRecordableMinutes(point.loggedMinutes) &&
+    isRecordableMinutes(point.billableMinutes) &&
+    Number.isSafeInteger(point.entryCount) &&
+    point.entryCount >= 0
+  );
+}
+
+/**
+ * Takes a reading of one project's burn as at the end of a given day.
+ *
+ * The daily half of the milestone. Three facts have to be true at the same
+ * instant for a reading to mean anything — the minutes logged up to that day,
+ * the price the project is agreed at, and the rate an hour is worth — so all
+ * three are read inside one immediate transaction. A deferred one takes no
+ * write lock until the insert, and a rate edited in between would produce a
+ * row whose burn was worked out at a figure its own `rate_cents` column
+ * contradicts.
+ *
+ * The rate comes from `resolveJoinedRate`, which is the one chain in the app
+ * that decides what a NULL override means. A reading that resolved it itself
+ * would be the second opinion `lib/rates.ts` exists to prevent, and the one it
+ * would get wrong is the inheriting project — burned at nothing, for ever,
+ * silently.
+ *
+ * `summariseBurn` does the arithmetic, unchanged, so a stored point and the
+ * overview panel are the same figures from the same function. That is what
+ * makes the end of a burn-down line up with the number beside it rather than
+ * being a near miss nobody can account for.
+ *
+ * The day is recorded even when nothing has been logged by it: a project with
+ * a price and no hours has burned nothing, which is a measurement and the
+ * honest left-hand end of a line. What is *not* recorded is a day for a
+ * project that does not exist, and the refusal says so rather than throwing,
+ * because the caller is usually recording a studio and must not stop.
+ */
+export async function captureProjectBurn(
+  projectId: string,
+  onDate: string,
+  database: Database = db,
+): Promise<BurnCaptureResult> {
+  const day = calendarDate(onDate, "burn reading day");
+
+  return database.transaction(
+    async (tx) => {
+      const project = await getProjectWithClient(projectId, tx);
+      if (project === null) return { ok: false, reason: "no-such-project" };
+
+      const totals = await projectTimeTotalsThrough(project.id, day, tx);
+      const point: BurnPoint = {
+        onDate: day,
+        ...summariseBurn(
+          totals,
+          project.contractValueCents,
+          resolveJoinedRate(project),
+        ),
+      };
+
+      if (!isRecordableBurn(point)) {
+        return { ok: false, reason: "unrecordable-figures" };
+      }
+
+      const snapshot = await recordBurnSnapshot({ projectId, point }, tx);
+      return { ok: true, snapshot };
+    },
+    { behavior: "immediate" },
+  );
+}
