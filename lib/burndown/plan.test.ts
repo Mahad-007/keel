@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { EffectiveRate } from "@/lib/rates";
 
-import { planBurnBackfill, withoutRecordedDays } from "./plan";
+import { planBurnBackfill, staleBurnPoints, withoutRecordedDays } from "./plan";
 import { accumulateBurnDays, burnSeries, type BurnDay } from "./series";
 
 /**
@@ -129,7 +129,15 @@ describe("planBurnBackfill", () => {
   it("does not count a recorded day the project never worked", () => {
     const plan = planBurnBackfill({
       days: DAYS,
-      recorded: recorded(["2026-02-14", "2026-03-02"]),
+      recorded: [
+        {
+          onDate: "2026-02-14",
+          entryCount: 1,
+          loggedMinutes: 60,
+          billableMinutes: 60,
+        },
+        ...recorded(["2026-03-02"]),
+      ],
       contractedCents: 500_000,
       rate: RATE,
       through: "2026-03-31",
@@ -175,5 +183,69 @@ describe("planBurnBackfill", () => {
       "client",
     ]);
     expect(plan.points[2].burnedCents).toBe(60_000);
+  });
+});
+
+describe("staleBurnPoints", () => {
+  it("is empty when every reading still agrees with the entries", () => {
+    const points = burnSeries(DAYS, 500_000, RATE);
+    expect(
+      staleBurnPoints(points, recorded(["2026-03-01", "2026-03-02"])),
+    ).toEqual([]);
+  });
+
+  it("is empty for a day with no reading at all", () => {
+    const points = burnSeries(DAYS, 500_000, RATE);
+    expect(staleBurnPoints(points, [])).toEqual([]);
+  });
+
+  it("finds a day whose minutes have moved since it was read", () => {
+    const points = burnSeries(DAYS, 500_000, RATE);
+    const stale = staleBurnPoints(points, [
+      { onDate: "2026-03-02", entryCount: 2, loggedMinutes: 60, billableMinutes: 60 },
+    ]);
+
+    expect(stale.map((point) => point.onDate)).toEqual(["2026-03-02"]);
+    expect(stale[0].loggedMinutes).toBe(120);
+  });
+
+  it("finds a day whose entry count has moved but whose minutes have not", () => {
+    const points = burnSeries(DAYS, 500_000, RATE);
+    const stale = staleBurnPoints(points, [
+      { onDate: "2026-03-02", entryCount: 1, loggedMinutes: 120, billableMinutes: 120 },
+    ]);
+
+    expect(stale.map((point) => point.onDate)).toEqual(["2026-03-02"]);
+  });
+
+  it("finds a day whose chargeable half has moved", () => {
+    const points = burnSeries(DAYS, 500_000, RATE);
+    const stale = staleBurnPoints(points, [
+      { onDate: "2026-03-02", entryCount: 2, loggedMinutes: 120, billableMinutes: 60 },
+    ]);
+
+    expect(stale.map((point) => point.onDate)).toEqual(["2026-03-02"]);
+  });
+
+  it("does not call a reading stale over money alone", () => {
+    // The same work valued at a rate that has since doubled: the whole reason
+    // the figures are stored rather than recomputed.
+    const points = burnSeries(DAYS, 500_000, { cents: 30_000, source: "project" });
+    expect(
+      staleBurnPoints(points, recorded(["2026-03-01", "2026-03-02", "2026-03-03"])),
+    ).toEqual([]);
+  });
+
+  it("holds the stale days in calendar order", () => {
+    const points = burnSeries(DAYS, 500_000, RATE);
+    const stale = staleBurnPoints(points, [
+      { onDate: "2026-03-03", entryCount: 1, loggedMinutes: 60, billableMinutes: 60 },
+      { onDate: "2026-03-01", entryCount: 1, loggedMinutes: 30, billableMinutes: 30 },
+    ]);
+
+    expect(stale.map((point) => point.onDate)).toEqual([
+      "2026-03-01",
+      "2026-03-03",
+    ]);
   });
 });
