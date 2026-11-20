@@ -279,3 +279,30 @@ export async function burnSnapshotDaysByProject(
     .from(burnSnapshots)
     .orderBy(asc(burnSnapshots.projectId), ...OLDEST_FIRST);
 }
+
+/**
+ * Why a project's burn could not be recorded for a day.
+ *
+ * Codes rather than sentences, the arrangement `SnapshotCaptureReason` makes:
+ * both of these are reachable while something is running unattended, and the
+ * words for a reader belong wherever a reader is told.
+ *
+ * `no-such-project` is the ordinary race — a project deleted between a list
+ * being read and its readings being taken — and it is an answer rather than an
+ * exception because a studio-wide run must not abandon forty projects over the
+ * one that has gone.
+ *
+ * `unrecordable-figures` is a hand-edited row. The figures a reading records
+ * are deliberately permissive about sign, so this is not a negative rate or a
+ * contract value below zero — those are recorded as they stand, because the
+ * engagement that looks wrong is the one somebody has to look at. It is a
+ * value the column cannot hold at all: a fraction of a cent, a fraction of a
+ * minute, or an amount past the point where an integer stops being exact and
+ * the driver can no longer read the row back.
+ */
+export type BurnCaptureReason = "no-such-project" | "unrecordable-figures";
+
+/** The outcome of asking a project for its burn as at one day. */
+export type BurnCaptureResult =
+  | { readonly ok: true; readonly snapshot: BurnSnapshot }
+  | { readonly ok: false; readonly reason: BurnCaptureReason };
