@@ -407,6 +407,51 @@ export async function projectTimeTotals(
 }
 
 /**
+ * What one project's time had come to by the end of a given day.
+ *
+ * `projectTimeTotals` with a bound on the calendar, and the one query a daily
+ * burn reading is built from: the figures a snapshot stores are cumulative, so
+ * a reading of the 14th has to total every minute logged on the 14th or any
+ * day before it — not that day's own work, which is what a chart of daily bars
+ * would want and is not what a burn-down plots.
+ *
+ * Inclusive of `through`, because a day is a whole day. A reading taken during
+ * the afternoon of its own day is therefore provisional, which is why the
+ * table lets a day be recorded again.
+ *
+ * The date goes through the same `calendarDate` guard the column itself does.
+ * A timestamp compares as a string against days and would silently exclude the
+ * whole of its own date — the kind of bug that shows up as a burn-down that is
+ * one day behind, which looks like a caching problem rather than a bad
+ * predicate.
+ *
+ * Entries dated *after* `through` are left out rather than counted, which is
+ * the whole point of the bound: time can be logged against a future day, and a
+ * reading that included it would say the engagement had already spent money on
+ * work nobody has done.
+ *
+ * The `project_id, worked_on` index covers both halves of this one, unlike the
+ * range query below it: the project is the leading column and the date is a
+ * bound on the second, so the planner walks a contiguous stretch of the index
+ * rather than the table.
+ */
+export async function projectTimeTotalsThrough(
+  projectId: string,
+  through: string,
+  database: Database = db,
+): Promise<LoggedTotals> {
+  const onOrBefore = calendarDate(through, "totals through");
+
+  return loggedTotalsWhere(
+    and(
+      eq(timeEntries.projectId, projectId),
+      lte(timeEntries.workedOn, onOrBefore),
+    ),
+    database,
+  );
+}
+
+/**
  * A stretch of days, both ends included: what a timesheet asks for.
  *
  * Calendar dates rather than timestamps, because `worked_on` holds a day. Both
