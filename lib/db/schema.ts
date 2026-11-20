@@ -8,6 +8,10 @@ import {
 } from "drizzle-orm/sqlite-core";
 
 import {
+  BURN_SNAPSHOT_ORIGINS,
+  DEFAULT_BURN_SNAPSHOT_ORIGIN,
+} from "@/lib/burndown/origin";
+import {
   DEFAULT_DELIVERABLE_STATUS,
   DELIVERABLE_STATUSES,
 } from "@/lib/deliverables/status";
@@ -15,6 +19,7 @@ import {
   DEFAULT_PROJECT_STATUS,
   PROJECT_STATUSES,
 } from "@/lib/projects/status";
+import { RATE_SOURCES } from "@/lib/rates";
 import { RUNNING_TIMER_SLOT } from "@/lib/time/timer";
 
 /**
@@ -574,3 +579,120 @@ export const activeTimers = sqliteTable(
 
 export type ActiveTimer = typeof activeTimers.$inferSelect;
 export type NewActiveTimer = typeof activeTimers.$inferInsert;
+
+/**
+ * What one project had burned by the end of one day.
+ *
+ * Every other figure in the app is the present tense. The burn summary says
+ * what this engagement has consumed *now*, the health banner says what that
+ * means *now*, and both are recomputed from the rows every time the page is
+ * opened — which is right, because a figure about the present that was cached
+ * is a figure that is wrong. What none of them can say is when it happened: a
+ * project that burned its contract in the first fortnight and a project that
+ * burned it evenly over six months read identically on the overview, and they
+ * are not the same engagement at all. The first one was mis-sold and the
+ * second one is simply finishing.
+ *
+ * So this table is the one place in Keel that keeps the past tense. One row
+ * per project per day, holding the cumulative figures as at the end of that
+ * day, and a chart drawn from them is the shape of the engagement rather than
+ * its current state.
+ *
+ * It is stored rather than derived, and that is a deliberate cost. The minutes
+ * could be re-totalled from `time_entries` for any past day at any time —
+ * `worked_on` is a calendar date, so the query is trivial. What could not be
+ * recovered is the other two halves of the multiplication: the rate the hours
+ * were valued at and the price they were being set against, neither of which
+ * keeps a history. Correcting a client's default rate from $120 to $150 today
+ * would otherwise rewrite every point of every burn-down behind it, and a
+ * chart whose past changes when somebody edits a form is not a record of
+ * anything.
+ *
+ * Hence `contract_value_cents`, `rate_cents` and `rate_source` on every row,
+ * copied in the way a scope snapshot copies a deliverable's title. The
+ * difference from `scope_snapshots` is who presses the button: a scope
+ * snapshot is taken by a person at a moment they choose, and this is taken for
+ * them, one day at a time, for every project that has had any time logged
+ * against it.
+ *
+ * `burned_cents` and `chargeable_cents` are stored even though they are the
+ * product of two columns beside them. A reading is a record of what was said
+ * on the day, and the arithmetic that said it — the rounding in
+ * `costOfMinutes`, the question of whether a write-off counts — is code, which
+ * changes. The figures a chart plots should be the figures that were reported,
+ * not today's opinion about last March's minutes.
+ *
+ * What is **not** stored is anything that is a subtraction of two columns here:
+ * there is no `remaining_cents` and no `consumed_share`. Those are one
+ * expression over `contract_value_cents` and `burned_cents`, they are already
+ * written in `lib/burn.ts`, and a stored copy would be a second answer to a
+ * question that has one — the kind that eventually disagrees with the panel
+ * above the chart.
+ *
+ * `captured_at` is when the reading was taken, which is not the same as the
+ * day it describes. The day is `on_date`. A reading of today taken at lunch is
+ * provisional — the afternoon has not been logged yet — so unlike a scope
+ * snapshot this row *is* replaceable: recording the same project and day again
+ * overwrites it, and `captured_at` moves to say when. The unique index is what
+ * makes that a replacement rather than a second opinion.
+ *
+ * Rows cascade with the project, like every other table that records part of
+ * an engagement rather than a fact about the studio.
+ */
+export const burnSnapshots = sqliteTable(
+  "burn_snapshots",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    /** The day these figures are the end of: `YYYY-MM-DD`, no time of day. */
+    onDate: text("on_date").notNull(),
+    /** What the project was agreed for, in cents, as it stood that day. */
+    contractValueCents: integer("contract_value_cents").notNull(),
+    /** What an hour was worth that day, in cents. Zero means none was set. */
+    rateCents: integer("rate_cents").notNull(),
+    /** Which row the rate came from, so a zero can be told from a gap. */
+    rateSource: text("rate_source", { enum: RATE_SOURCES }).notNull(),
+    /** How many stretches of work the figures were built from, cumulative. */
+    entryCount: integer("entry_count").notNull(),
+    /** Every minute logged on this day or before it. */
+    loggedMinutes: integer("logged_minutes").notNull(),
+    /** The part of those minutes meant to reach an invoice. */
+    billableMinutes: integer("billable_minutes").notNull(),
+    /** What every one of those minutes came to at the rate, in cents. */
+    burnedCents: integer("burned_cents").notNull(),
+    /** What the chargeable part of them came to, in cents. */
+    chargeableCents: integer("chargeable_cents").notNull(),
+    /** Whether the reading was measured on the day or reconstructed later. */
+    origin: text("origin", { enum: BURN_SNAPSHOT_ORIGINS })
+      .notNull()
+      .default(DEFAULT_BURN_SNAPSHOT_ORIGIN),
+    /** When this reading was taken, which is not the day it describes. */
+    capturedAt: text("captured_at")
+      .notNull()
+      .default(sql`(current_timestamp)`),
+  },
+  /**
+   * One index, and it is both the constraint and the query.
+   *
+   * Unique on the pair, because two readings of one project's Tuesday are not
+   * two facts — they are one fact written twice, and a chart drawn over both
+   * would plot the day at two heights. The upsert in the data layer depends on
+   * this index existing: it is what `on conflict` conflicts with.
+   *
+   * It is also exactly how the table is read. A burn-down is one project's
+   * rows in date order, which is the index searched for the project and walked
+   * forwards — no sort, because the dates are unique within a project and
+   * there is no tie to break.
+   */
+  (table) => [
+    uniqueIndex("burn_snapshots_project_id_on_date_idx").on(
+      table.projectId,
+      table.onDate,
+    ),
+  ],
+);
+
+export type BurnSnapshot = typeof burnSnapshots.$inferSelect;
+export type NewBurnSnapshot = typeof burnSnapshots.$inferInsert;
