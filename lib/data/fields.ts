@@ -262,3 +262,27 @@ export function recordedCents(value: number, field: string): number {
 export function isRecordableCents(value: number): boolean {
   return Number.isSafeInteger(value);
 }
+
+/**
+ * A column holding a count of things: whole, never negative.
+ *
+ * The same arithmetic as `wholeMinutes` and a different meaning, which is why
+ * it is named rather than borrowed. A count is not a duration: minus one
+ * minute is a hand-edited estimate somebody has to repair, and minus one entry
+ * is not a quantity at all. More to the point, the message matters — "logged
+ * entries must be a whole count" sends a reader to the figure, where "must be
+ * whole minutes" sends them to a time entry that is perfectly fine.
+ *
+ * Safely whole, like every other number guard here: past 2^53 SQLite takes
+ * the write and the driver fails decoding it back, poisoning every later read
+ * of the table.
+ */
+export function wholeCount(value: number, field: string): number {
+  if (!Number.isSafeInteger(value)) {
+    throw new Error(`${field} must be a whole count, got ${value}`);
+  }
+  if (value < 0) {
+    throw new Error(`${field} cannot be negative, got ${value}`);
+  }
+  return value;
+}

@@ -15,6 +15,7 @@ import {
   recordedMinutes,
   requiredText,
   wholeCents,
+  wholeCount,
   wholeMinutes,
 } from "./fields";
 
@@ -469,5 +470,31 @@ describe("isRecordableCents", () => {
       })();
       expect(isRecordableCents(value)).toBe(guarded);
     }
+  });
+});
+
+describe("wholeCount", () => {
+  it("returns a count it can store", () => {
+    expect(wholeCount(19, "logged entries")).toBe(19);
+    expect(wholeCount(0, "logged entries")).toBe(0);
+  });
+
+  it("refuses a fraction of a thing", () => {
+    expect(() => wholeCount(1.5, "logged entries")).toThrow(/whole count/);
+  });
+
+  it("refuses a count below zero", () => {
+    expect(() => wholeCount(-1, "logged entries")).toThrow(/cannot be negative/);
+  });
+
+  it("refuses a count too large to read back", () => {
+    expect(() =>
+      wholeCount(Number.MAX_SAFE_INTEGER + 2, "logged entries"),
+    ).toThrow(/whole count/);
+  });
+
+  it("names the field in both refusals", () => {
+    expect(() => wholeCount(1.5, "logged entries")).toThrow(/logged entries/);
+    expect(() => wholeCount(-1, "logged entries")).toThrow(/logged entries/);
   });
 });
