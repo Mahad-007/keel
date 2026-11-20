@@ -1,3 +1,4 @@
+import type { BurnSummary } from "@/lib/burn";
 import { isCalendarDate } from "@/lib/dates";
 import type { LoggedTotals } from "@/lib/time/rollup";
 
@@ -133,3 +134,27 @@ export function accumulateBurnDays(days: readonly BurnDay[]): BurnDay[] {
     return { onDate, entryCount, loggedMinutes, billableMinutes };
   });
 }
+
+/**
+ * One point of a burn-down: a day, and the whole burn summary as it stood at
+ * the end of it.
+ *
+ * `BurnSummary` and a date, deliberately, rather than a narrower shape holding
+ * the two numbers a line needs. Every figure the overview panel puts on screen
+ * — the price, the burn, what is left, the share consumed, the rate it was all
+ * worked out at — is a figure somebody will want of a past day as soon as
+ * there is a chart to hover: "it was 80% gone by March" is the sentence, and
+ * it cannot be built from a plotted height. Carrying the summary also means
+ * every word in `lib/projects/burn-summary.ts` already applies to a point,
+ * which is what Day 036 renders its labels from rather than writing a second
+ * vocabulary for the past tense.
+ *
+ * The rate travels in the summary, as it does everywhere: a point of zero
+ * burned is a day nobody worked when a rate is set, and a day nobody has set a
+ * rate for when one is not. On a chart those are a flat line and an empty
+ * chart, and only the source can tell them apart.
+ */
+export type BurnPoint = BurnSummary & {
+  /** The day this reading is the end of: `YYYY-MM-DD`. */
+  readonly onDate: string;
+};
