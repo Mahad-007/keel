@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  axisDateLabel,
   axisMoneyLabel,
   compactMoneyLabel,
   moneyAxisTicks,
@@ -187,5 +188,31 @@ describe("moneyAxisTicks", () => {
     expect(
       ticks.every((tick, at) => at === 0 || tick.cents > ticks[at - 1].cents),
     ).toBe(true);
+  });
+});
+
+describe("axisDateLabel", () => {
+  it("names the month and the day", () => {
+    expect(axisDateLabel("2026-03-01")).toBe("Mar 1");
+    expect(axisDateLabel("2026-12-25")).toBe("Dec 25");
+  });
+
+  it("drops the leading zero a stored day carries", () => {
+    expect(axisDateLabel("2026-03-09")).toBe("Mar 9");
+  });
+
+  it("adds the year for a chart that crosses one", () => {
+    expect(axisDateLabel("2026-12-28", true)).toBe("Dec 28, 2026");
+    expect(axisDateLabel("2027-01-03", true)).toBe("Jan 3, 2027");
+  });
+
+  it("writes a year at the edge of the calendar in full", () => {
+    // `formatYear` pads, so a date in year seven is not labelled "Jan 3, 7".
+    expect(axisDateLabel("0007-01-03", true)).toBe("Jan 3, 0007");
+  });
+
+  it("hands back a day it cannot read, rather than failing to render", () => {
+    expect(axisDateLabel("not a day")).toBe("not a day");
+    expect(axisDateLabel("2026-13-01")).toBe("2026-13-01");
   });
 });
