@@ -10,10 +10,18 @@ import { describeLineEnd } from "@/lib/burndown/describe";
  * amount from running off the edge: a label anchored to the box grows
  * leftwards into the margin that was reserved for it, where one offset from
  * the dot would grow outwards into nothing.
+ *
+ * The exception is the dot that is not at the right-hand edge, which only
+ * happens on a chart of a single reading — `burnChartX` centres that one. A
+ * figure pinned to the far right of a picture whose only mark is in the
+ * middle reads as a caption rather than as that mark's value, so there the
+ * label follows the dot. It has the whole right half of the box to grow into
+ * and cannot overrun it.
  */
 const MONEY_LABEL_GAP = 10;
 const DAY_LABEL_DROP = 20;
 const END_LABEL_INSET = 8;
+const END_LABEL_GAP = 10;
 
 /**
  * Half the height of a line of axis text, for sitting a label on the middle
@@ -72,6 +80,7 @@ export function BurnDownChart({
   const { area, box, last } = chart;
   const inHandClip = `${idPrefix}-in-hand`;
   const overrunClip = `${idPrefix}-overrun`;
+  const endLabelFollowsDot = last.x < area.right;
 
   return (
     <svg
@@ -216,9 +225,13 @@ export function BurnDownChart({
         coloured text on a chart is how a figure becomes decoration.
       */}
       <text
-        x={box.width - END_LABEL_INSET}
+        x={
+          endLabelFollowsDot
+            ? last.x + END_LABEL_GAP
+            : box.width - END_LABEL_INSET
+        }
         y={last.y + TEXT_MIDDLE}
-        textAnchor="end"
+        textAnchor={endLabelFollowsDot ? "start" : "end"}
         fontSize={11}
         className="fill-zinc-900 tabular-nums dark:fill-zinc-100"
       >
