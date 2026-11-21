@@ -6,6 +6,7 @@ import {
   burnChartDomain,
   burnChartX,
   burnChartY,
+  burnLinePath,
   plotBurnReadings,
 } from "./chart";
 import { burnDownReading, type BurnReading } from "./reading";
@@ -310,5 +311,49 @@ describe("plotBurnReadings", () => {
   it("plots nothing for a project with no readings", () => {
     const domain = burnChartDomain([reading("2026-03-01", 100_000)])!;
     expect(plotBurnReadings([], domain, area)).toEqual([]);
+  });
+});
+
+/** The readings plotted in the standard box, for the path builders. */
+function plot(readings: readonly BurnReading[]) {
+  const domain = burnChartDomain(readings);
+  return domain === null
+    ? []
+    : plotBurnReadings(readings, domain, burnChartArea());
+}
+
+describe("burnLinePath", () => {
+  it("moves to the first reading and draws to each one after it", () => {
+    expect(
+      burnLinePath(
+        plot([
+          reading("2026-03-01", 0),
+          reading("2026-03-16", 250_000),
+          reading("2026-03-31", 500_000),
+        ]),
+      ),
+    ).toBe("M68 16 L340 123 L612 230");
+  });
+
+  it("joins the readings with straight segments and no curves", () => {
+    const path = burnLinePath(
+      plot([
+        reading("2026-03-01", 0),
+        reading("2026-03-10", 100_000),
+        reading("2026-03-31", 500_000),
+      ]),
+    );
+    expect(path).not.toMatch(/[CcSsQqTtAa]/);
+    expect(path.match(/L/g)).toHaveLength(2);
+  });
+
+  it("draws nothing for a project with no readings", () => {
+    expect(burnLinePath([])).toBe("");
+  });
+
+  it("is a bare move for a single reading, which is not a line", () => {
+    expect(burnLinePath(plot([reading("2026-03-01", 100_000)]))).toBe(
+      "M340 58.8",
+    );
   });
 });
