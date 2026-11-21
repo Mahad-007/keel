@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   axisDateLabel,
   axisMoneyLabel,
+  dateAxisTicks,
   compactMoneyLabel,
   moneyAxisTicks,
   moneyTickStep,
@@ -214,5 +215,63 @@ describe("axisDateLabel", () => {
   it("hands back a day it cannot read, rather than failing to render", () => {
     expect(axisDateLabel("not a day")).toBe("not a day");
     expect(axisDateLabel("2026-13-01")).toBe("2026-13-01");
+  });
+});
+
+describe("dateAxisTicks", () => {
+  it("names both ends and the middle of a long chart", () => {
+    expect(dateAxisTicks("2026-03-01", "2026-03-31")).toEqual([
+      { onDate: "2026-03-01", label: "Mar 1", anchor: "start" },
+      { onDate: "2026-03-16", label: "Mar 16", anchor: "middle" },
+      { onDate: "2026-03-31", label: "Mar 31", anchor: "end" },
+    ]);
+  });
+
+  it("names only the ends of a chart too short to halve", () => {
+    expect(dateAxisTicks("2026-03-01", "2026-03-03")).toEqual([
+      { onDate: "2026-03-01", label: "Mar 1", anchor: "start" },
+      { onDate: "2026-03-03", label: "Mar 3", anchor: "end" },
+    ]);
+  });
+
+  it("names the one day of a one-day chart, where its point is", () => {
+    expect(dateAxisTicks("2026-03-01", "2026-03-01")).toEqual([
+      { onDate: "2026-03-01", label: "Mar 1", anchor: "middle" },
+    ]);
+  });
+
+  it("hangs the first and last labels inwards, off their own ticks", () => {
+    const ticks = dateAxisTicks("2026-03-01", "2026-06-30");
+    expect(ticks[0].anchor).toBe("start");
+    expect(ticks[ticks.length - 1].anchor).toBe("end");
+  });
+
+  it("spells out the year on a chart that runs across one", () => {
+    expect(dateAxisTicks("2026-12-01", "2027-01-31").map((t) => t.label)).toEqual([
+      "Dec 1, 2026",
+      "Jan 1, 2027",
+      "Jan 31, 2027",
+    ]);
+  });
+
+  it("leaves the year off a chart that stays inside one", () => {
+    expect(
+      dateAxisTicks("2026-01-01", "2026-12-31").every(
+        (tick) => !tick.label.includes("2026"),
+      ),
+    ).toBe(true);
+  });
+
+  it("puts the middle tick in the middle of the calendar span", () => {
+    // Not the middle of the readings: the axis is calendar time.
+    expect(dateAxisTicks("2026-01-01", "2026-03-02")[1].onDate).toBe(
+      "2026-01-31",
+    );
+  });
+
+  it("refuses an end that is not a calendar date", () => {
+    expect(() => dateAxisTicks("2026-03-01", "not a day")).toThrow(
+      "not a calendar date",
+    );
   });
 });
