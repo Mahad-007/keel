@@ -232,3 +232,50 @@ export function burnChartY(
     area.bottom - ((cents - domain.bottomCents) / span) * area.height
   );
 }
+
+/**
+ * A coordinate rounded to the hundredth of a user unit.
+ *
+ * Two decimals is finer than a pixel at any width this chart is rendered at,
+ * and it keeps the path data out of the fifteen-digit territory that floating
+ * point produces by default — a two-year engagement is several hundred
+ * points, and the difference is kilobytes of markup on every page load.
+ *
+ * Rounded once, here, so the dot on the end of the line and the last point of
+ * the line itself are the same number rather than two numbers a hair apart.
+ */
+function plotUnit(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+/** A reading and where on the picture it goes. */
+export type PlottedBurnReading = {
+  /** The reading, whole, so a label or a table row can be built from it. */
+  readonly reading: BurnReading;
+  readonly x: number;
+  readonly y: number;
+};
+
+/**
+ * Every reading placed on the picture, in the order the line runs through
+ * them.
+ *
+ * The height is what the engagement had *left*, which is what makes this a
+ * burn-down rather than a burn-up. Both lines carry the same information and
+ * the difference is what the reader has to do with it: a climbing line of
+ * money spent has to be subtracted from a price held in the head, and a
+ * falling line of money left is read against a floor that is already on the
+ * axis. The question the page is asking — is there enough budget to finish —
+ * is answered by where the line is, not by how far it has come.
+ */
+export function plotBurnReadings(
+  readings: readonly BurnReading[],
+  domain: BurnChartDomain,
+  area: BurnChartArea,
+): PlottedBurnReading[] {
+  return readings.map((reading) => ({
+    reading,
+    x: plotUnit(burnChartX(reading.onDate, domain, area)),
+    y: plotUnit(burnChartY(reading.remainingCents, domain, area)),
+  }));
+}
