@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { burnDownReading, type StoredBurnReading } from "./reading";
+import {
+  burnDownReading,
+  burnDownReadings,
+  type StoredBurnReading,
+} from "./reading";
 
 /** A day's stored row, as the table holds it. */
 function stored(overrides: Partial<StoredBurnReading> = {}): StoredBurnReading {
@@ -72,5 +76,54 @@ describe("burnDownReading", () => {
     const reading = burnDownReading(stored({ burnedCents: 650_000 }));
     expect(reading.remainingCents).toBe(-150_000);
     expect(reading.consumedShare).toBeCloseTo(1.3);
+  });
+});
+
+describe("burnDownReadings", () => {
+  it("reads every row as a reading", () => {
+    const readings = burnDownReadings([
+      stored({ onDate: "2026-03-01", burnedCents: 60_000 }),
+      stored({ onDate: "2026-03-04", burnedCents: 120_000 }),
+    ]);
+    expect(readings.map((r) => [r.onDate, r.remainingCents])).toEqual([
+      ["2026-03-01", 440_000],
+      ["2026-03-04", 380_000],
+    ]);
+  });
+
+  it("puts the oldest reading first whatever order it arrived in", () => {
+    const readings = burnDownReadings([
+      stored({ onDate: "2026-03-04" }),
+      stored({ onDate: "2026-01-09" }),
+      stored({ onDate: "2026-03-01" }),
+    ]);
+    expect(readings.map((r) => r.onDate)).toEqual([
+      "2026-01-09",
+      "2026-03-01",
+      "2026-03-04",
+    ]);
+  });
+
+  it("drops a row whose day is not a day, and keeps the rest", () => {
+    const readings = burnDownReadings([
+      stored({ onDate: "2026-03-01" }),
+      stored({ onDate: "2026-02-30" }),
+      stored({ onDate: "not a day" }),
+      stored({ onDate: "2026-03-04T09:00:00.000Z" }),
+      stored({ onDate: "2026-03-04" }),
+    ]);
+    expect(readings.map((r) => r.onDate)).toEqual(["2026-03-01", "2026-03-04"]);
+  });
+
+  it("has nothing to say about a project with no readings", () => {
+    expect(burnDownReadings([])).toEqual([]);
+  });
+
+  it("keeps each reading's own origin through the sort", () => {
+    const readings = burnDownReadings([
+      stored({ onDate: "2026-03-04", origin: "recorded" }),
+      stored({ onDate: "2026-03-01", origin: "backfilled" }),
+    ]);
+    expect(readings.map((r) => r.origin)).toEqual(["backfilled", "recorded"]);
   });
 });
