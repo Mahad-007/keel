@@ -4,6 +4,7 @@ import {
   BURN_CHART_BOX,
   burnChartArea,
   burnChartDomain,
+  burnChartX,
 } from "./chart";
 import { burnDownReading, type BurnReading } from "./reading";
 
@@ -152,5 +153,58 @@ describe("burnChartDomain", () => {
       reading("2026-03-01", 0, { contractValueCents: -100_000 }),
     ]);
     expect(domain).toMatchObject({ topCents: 0, bottomCents: -100_000 });
+  });
+});
+
+describe("burnChartX", () => {
+  const area = burnChartArea();
+  const domain = burnChartDomain([
+    reading("2026-03-01", 0),
+    reading("2026-03-31", 60_000),
+  ])!;
+
+  it("puts the first day on the left edge of the plot", () => {
+    expect(burnChartX("2026-03-01", domain, area)).toBe(area.left);
+  });
+
+  it("puts the last day on the right edge of the plot", () => {
+    expect(burnChartX("2026-03-31", domain, area)).toBe(area.right);
+  });
+
+  it("puts the halfway day halfway across", () => {
+    expect(burnChartX("2026-03-16", domain, area)).toBeCloseTo(
+      area.left + area.width / 2,
+    );
+  });
+
+  it("spaces two days by the calendar between them, not by their turn", () => {
+    // Three readings, a day apart and then a month apart. The second sits
+    // near the left edge because that is where it happened.
+    const sparse = burnChartDomain([
+      reading("2026-03-01", 0),
+      reading("2026-03-02", 20_000),
+      reading("2026-04-01", 60_000),
+    ])!;
+    const second = burnChartX("2026-03-02", sparse, area);
+    expect(second).toBeCloseTo(area.left + area.width / 31);
+    expect(second).toBeLessThan(area.left + area.width / 4);
+  });
+
+  it("centres the single point of a one-day project", () => {
+    const oneDay = burnChartDomain([reading("2026-03-01", 60_000)])!;
+    expect(burnChartX("2026-03-01", oneDay, area)).toBe(
+      area.left + area.width / 2,
+    );
+  });
+
+  it("leaves a day outside the domain outside the plot", () => {
+    expect(burnChartX("2026-02-28", domain, area)).toBeLessThan(area.left);
+    expect(burnChartX("2026-04-02", domain, area)).toBeGreaterThan(area.right);
+  });
+
+  it("refuses a day that is not a calendar date", () => {
+    expect(() => burnChartX("not a day", domain, area)).toThrow(
+      "not a calendar date",
+    );
   });
 });
