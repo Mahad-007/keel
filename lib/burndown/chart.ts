@@ -203,3 +203,32 @@ export function burnChartX(
     (calendarDayGap(domain.from, onDate) / domain.days) * area.width
   );
 }
+
+/**
+ * Where an amount of money sits up the axis, in user units.
+ *
+ * Inverted, because SVG counts downwards from the top of the picture and
+ * money counts upwards from nothing: the top of the domain is the smallest
+ * `y` and the bottom of the domain is the largest. Doing that arithmetic in
+ * the markup is how a chart ends up drawn upside down, which is why it is
+ * here and tested.
+ *
+ * The domain always contains zero and is never empty — `burnChartDomain`
+ * refuses to produce one that is — so there is no division by zero to guard
+ * and no amount inside the domain that lands outside the plot.
+ *
+ * An amount outside the domain lands outside the plot, like a day outside the
+ * span. The chart clips what it draws to the plot rather than clamping what
+ * it is given: a clamped point would sit on an edge as though the figure were
+ * the edge's value, and a reader would believe it.
+ */
+export function burnChartY(
+  cents: number,
+  domain: BurnChartDomain,
+  area: BurnChartArea,
+): number {
+  const span = domain.topCents - domain.bottomCents;
+  return (
+    area.bottom - ((cents - domain.bottomCents) / span) * area.height
+  );
+}
