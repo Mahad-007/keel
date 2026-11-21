@@ -1032,15 +1032,15 @@ worked on nine times.
 ## Left alone deliberately
 
 - **Nothing schedules the daily reading.** There is no cron in this repo and no
-  job runner, so `captureProjectBurn` has no caller in `app/` today.
-  `updateProjectBurnHistory` is the operation a page calls to top one project up
-  — measure today, then reconstruct and repair everything before it — and Day
-  036 is the milestone that decides whether drawing the chart is what triggers
-  it. Both halves are idempotent, which is what makes that decision safe to
-  make later. The order matters and is tested: measuring first means the
-  reconstruction finds today recorded and agreeing, where the other way round
-  writes a reconstruction of today that the measurement replaces a moment
-  later and reports a day written that nothing kept.
+  job runner. `updateProjectBurnHistory` is the operation a page calls to top
+  one project up — measure today, then reconstruct and repair everything before
+  it — and Day 036 answered the open question by calling it from the page that
+  draws the chart; see "What triggers the daily reading" below. Both halves are
+  idempotent, which is what made that safe. The order matters and is tested:
+  measuring first means the reconstruction finds today recorded and agreeing,
+  where the other way round writes a reconstruction of today that the
+  measurement replaces a moment later and reports a day written that nothing
+  kept.
 - **Two unscoped reads.** `dailyTimeTotalsByProject` and
   `burnSnapshotDaysByProject` ask about the whole studio rather than one
   engagement, because the backfill is a studio-wide repair and a query per
@@ -1055,3 +1055,53 @@ worked on nine times.
   `burnDaysThrough` drops time logged against a future date rather than
   plotting money nobody has spent. Day 037 is the extrapolation, with its
   caveats.
+
+## What triggers the daily reading (Day 036)
+
+Day 035 stored the burn-down and left one question open: with no job runner in
+the repo, what causes a reading to be taken? Day 036 answered it the only way
+that ships a visible feature — **the page that draws the line keeps the line
+current.** `refreshedBurnSnapshots` measures today, reconstructs and repairs
+every day behind it, and then reads the rows back; the overview tab calls it
+where it would otherwise have called `listBurnSnapshots`.
+
+This is a write on a read, and it is not where it belongs. The right home is a
+nightly job across the studio, and `captureProjectBurn` is already shaped for
+one. The alternative until then was a chart that is empty for every project in
+the running app, and an empty chart is not a smaller version of the milestone —
+it is none of it.
+
+What makes it safe rather than merely expedient is that both halves are
+idempotent, and that is tested directly: a project opened nine times in an
+afternoon has one row for today, rewritten with the same figures, and the
+second read of the day plans no backfill at all. Time logged between two reads
+is picked up, because the repair compares stored totals against the entries.
+
+One consequence worth knowing: the capture does not ask whether anything
+happened, so a project nobody has logged against collects a row a day saying
+nothing did. `hasBurnDownToShow` is the rule that keeps those off the page — it
+asks for hours rather than for money, so the flat line of a project working at
+a rate of zero is still drawn, because that is a real finding.
+
+## Left alone deliberately (Day 036)
+
+- **No hover, no tooltip, no crosshair.** The chart is server-rendered SVG with
+  no client code at all, which is the milestone as written. The thing a hover
+  would give is a figure per reading, and the folded-away table under the chart
+  gives all of them at full precision, in a form that can also be read out,
+  searched and copied.
+- **The whole table ships with the page.** A two-year engagement is several
+  hundred rows of markup inside a collapsed `details`, which is the same
+  trade the Time tab already makes with its entries. Truncating would mean the
+  precise view was no longer the complete one, and the complete one is the
+  point of having it.
+- **One line, one colour.** The overrun below zero is the only second colour,
+  and it is a state rather than a series — the end of the line is labelled
+  "over" in words and every figure is in the table, so nothing is carried by
+  colour alone. The blue and the red were checked against both surfaces for
+  colour-vision separation and contrast before being written into
+  `globals.css`.
+- **The line starts at the first logged day, not the agreement.** No column
+  records when an engagement began, so the chart cannot draw the stretch
+  between being sold and being started. The sentence under the chart says so
+  rather than letting the reader infer two lost months.
