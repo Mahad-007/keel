@@ -9,7 +9,12 @@
  * which is the chart equivalent of shouting.
  */
 
-import { calendarDateParts, formatYear } from "@/lib/dates";
+import {
+  calendarDateParts,
+  calendarDayGap,
+  formatYear,
+  shiftCalendarDate,
+} from "@/lib/dates";
 import { withoutNegativeZero } from "@/lib/money";
 
 const DOLLARS = 100;
@@ -228,4 +233,71 @@ export function axisDateLabel(onDate: string, withYear = false): string {
   if (parts === null) return onDate;
   const day = `${parts.month} ${parts.day}`;
   return withYear ? `${day}, ${formatYear(parts.year)}` : day;
+}
+
+/**
+ * How long a chart has to be before a day is named in the middle of it.
+ *
+ * Four days. Below that the midpoint is a day either end is nearly touching,
+ * and three labels within a week of each other read as a chart that thinks
+ * its own span is more interesting than its line.
+ */
+const MIDDLE_TICK_FROM_DAYS = 4;
+
+/** A day named under the chart, and how its label sits over the tick. */
+export type DateTick = {
+  /** The day: `YYYY-MM-DD`. */
+  readonly onDate: string;
+  /** What the axis reads beneath it. */
+  readonly label: string;
+  /** Where the label hangs relative to its day, so it stays in the box. */
+  readonly anchor: "start" | "middle" | "end";
+};
+
+/**
+ * The days named along the bottom of the chart: both ends, and the middle of
+ * a span long enough to have one.
+ *
+ * Three labels at most, against a gridline for every round thousand up the
+ * other axis — deliberately lopsided. Money is what the reader is comparing
+ * and dates are what they are placing it in, and a date under every reading
+ * is both unreadable at this width and impossible to lay out on a server
+ * that cannot measure its own text.
+ *
+ * The anchors are what keep the labels inside the picture without measuring
+ * them. The first hangs off the left edge of its tick and the last off the
+ * right, so neither overruns the plot however wide the text turns out to be;
+ * only the middle one is centred, where there is room on both sides.
+ *
+ * A chart of a single day gets one label, centred, because that is where
+ * `burnChartX` puts its one point.
+ *
+ * Both ends have to be calendar dates. They come from readings that were
+ * checked on the way in, and a span that is not two days cannot be halved.
+ */
+export function dateAxisTicks(from: string, to: string): DateTick[] {
+  const days = calendarDayGap(from, to);
+  const withYear =
+    calendarDateParts(from)?.year !== calendarDateParts(to)?.year;
+
+  const start: DateTick = {
+    onDate: from,
+    label: axisDateLabel(from, withYear),
+    anchor: days === 0 ? "middle" : "start",
+  };
+  if (days === 0) return [start];
+
+  const end: DateTick = {
+    onDate: to,
+    label: axisDateLabel(to, withYear),
+    anchor: "end",
+  };
+  if (days < MIDDLE_TICK_FROM_DAYS) return [start, end];
+
+  const middle = shiftCalendarDate(from, Math.round(days / 2));
+  return [
+    start,
+    { onDate: middle, label: axisDateLabel(middle, withYear), anchor: "middle" },
+    end,
+  ];
 }
