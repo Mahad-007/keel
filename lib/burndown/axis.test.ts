@@ -7,6 +7,7 @@ import {
   compactMoneyLabel,
   moneyAxisTicks,
   moneyTickStep,
+  unitForAxis,
 } from "./axis";
 
 describe("axisMoneyLabel", () => {
@@ -165,6 +166,21 @@ describe("moneyAxisTicks", () => {
     ]);
   });
 
+  it("writes a million-dollar axis in one unit from top to bottom", () => {
+    // Stepped in $200,000, so picking a unit per tick would label the first
+    // four in thousands and the last two in millions.
+    const labels = moneyAxisTicks(0, 123_000_000).map((t) => t.label);
+    expect(labels).toEqual([
+      "$0",
+      "$0.2M",
+      "$0.4M",
+      "$0.6M",
+      "$0.8M",
+      "$1M",
+      "$1.2M",
+    ]);
+  });
+
   it("keeps one style down the whole axis", () => {
     // $12,000 is shortened, so the $2,000 above zero is shortened too rather
     // than two ticks of one axis reading as two different quantities.
@@ -273,5 +289,29 @@ describe("dateAxisTicks", () => {
     expect(() => dateAxisTicks("2026-03-01", "not a day")).toThrow(
       "not a calendar date",
     );
+  });
+});
+
+describe("unitForAxis", () => {
+  it("writes an axis of hundreds in dollars", () => {
+    expect(compactMoneyLabel(50_000, unitForAxis(99_900))).toBe("$500");
+  });
+
+  it("writes an axis of thousands in thousands", () => {
+    expect(compactMoneyLabel(200_000, unitForAxis(1_200_000))).toBe("$2K");
+  });
+
+  it("writes an axis of millions in millions, small ticks included", () => {
+    const unit = unitForAxis(123_000_000);
+    expect(compactMoneyLabel(20_000_000, unit)).toBe("$0.2M");
+    expect(compactMoneyLabel(120_000_000, unit)).toBe("$1.2M");
+  });
+
+  it("is chosen from the largest amount whichever end it is at", () => {
+    expect(unitForAxis(-123_000_000)).toBe(unitForAxis(123_000_000));
+  });
+
+  it("leaves zero as zero whatever unit the axis is in", () => {
+    expect(compactMoneyLabel(0, unitForAxis(123_000_000))).toBe("$0");
   });
 });

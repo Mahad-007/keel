@@ -53,16 +53,43 @@ export function axisMoneyLabel(amount: number): string {
 const THOUSAND = 1_000 * DOLLARS;
 const MILLION = 1_000 * THOUSAND;
 
+/** The three scales an axis amount can be written at. */
+export type MoneyUnit = typeof DOLLARS | typeof THOUSAND | typeof MILLION;
+
+/**
+ * The scale a whole axis should be written at, from the largest amount on
+ * it.
+ *
+ * Chosen once for the axis and passed to every label, which is the only way
+ * a column of figures reads as one quantity. Picking per amount is the bug
+ * this parameter exists to prevent: an axis reaching a million and a quarter
+ * would otherwise be labelled `$200K` four times and then `$1M`, and the
+ * reader has to notice the suffix changing halfway down to know the top two
+ * are not smaller than the ones above them.
+ */
+export function unitForAxis(largestCents: number): MoneyUnit {
+  const magnitude = Math.abs(largestCents);
+  if (magnitude >= MILLION) return MILLION;
+  if (magnitude >= THOUSAND) return THOUSAND;
+  return DOLLARS;
+}
+
 /**
  * An amount on an axis, shortened: twelve and a half thousand dollars as
  * `12.5K`, a million and a bit as `1.2M`.
  *
  * For the left-hand side of a chart whose axis runs into five figures, where
  * the amount written out four times down the margin is both hard to skim and
- * wide enough to squeeze the plot. One style per axis, decided once by
- * `moneyAxisTicks` — mixing a full figure and a shortened one down a single
- * column would make two ticks of the same axis look like two different
- * quantities.
+ * wide enough to squeeze the plot.
+ *
+ * The unit is an argument, and `moneyAxisTicks` decides it once for the whole
+ * axis — mixing thousands and millions down a single column would make two
+ * ticks of the same axis look like two different quantities. The default is
+ * the unit this amount alone would pick, for a caller shortening one figure
+ * rather than a column of them.
+ *
+ * Zero always comes out as `$0` whatever unit the axis is in, because it is
+ * the same nothing at every scale and `$0K` is not a figure.
  *
  * One decimal place, and a trailing zero is dropped: ten thousand is `10K`
  * rather than `10.0K`. Ticks land on round figures, so the decimal is only
@@ -73,14 +100,15 @@ const MILLION = 1_000 * THOUSAND;
  * the minus sign goes before the currency symbol, where `formatCents` puts it
  * too.
  */
-export function compactMoneyLabel(cents: number): string {
-  const magnitude = Math.abs(cents);
-  if (magnitude < THOUSAND) return axisMoneyLabel(cents);
+export function compactMoneyLabel(
+  cents: number,
+  unit: MoneyUnit = unitForAxis(cents),
+): string {
+  if (unit === DOLLARS || cents === 0) return axisMoneyLabel(cents);
 
-  const unit = magnitude >= MILLION ? MILLION : THOUSAND;
   const suffix = unit === MILLION ? "M" : "K";
-  const scaled = Math.round((magnitude / unit) * 10) / 10;
-  const sign = cents < 0 ? "-" : "";
+  const scaled = Math.round((Math.abs(cents) / unit) * 10) / 10;
+  const sign = withoutNegativeZero(cents) < 0 ? "-" : "";
   return sign + "$" + String(scaled) + suffix;
 }
 
@@ -193,8 +221,8 @@ export function moneyAxisTicks(
   if (!(topCents > bottomCents)) return [];
 
   const step = moneyTickStep(topCents - bottomCents);
-  const compact =
-    Math.max(Math.abs(topCents), Math.abs(bottomCents)) >= COMPACT_FROM_CENTS;
+  const largest = Math.max(Math.abs(topCents), Math.abs(bottomCents));
+  const unit = largest >= COMPACT_FROM_CENTS ? unitForAxis(largest) : DOLLARS;
 
   const ticks: MoneyTick[] = [];
   for (
@@ -202,10 +230,7 @@ export function moneyAxisTicks(
     cents <= topCents;
     cents += step
   ) {
-    ticks.push({
-      cents,
-      label: compact ? compactMoneyLabel(cents) : axisMoneyLabel(cents),
-    });
+    ticks.push({ cents, label: compactMoneyLabel(cents, unit) });
   }
   return ticks;
 }
