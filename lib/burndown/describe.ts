@@ -217,3 +217,31 @@ export function describeLineEnd(reading: BurnReading): string {
     ? `${formatCents(-reading.remainingCents)} over`
     : `${formatCents(reading.remainingCents)} left`;
 }
+
+/**
+ * Everything a reader has to be told before they read this line, in the
+ * order the line is read.
+ *
+ * Reconstruction first, because it is about the left-hand end and the body
+ * of the chart; staleness second, because it is about the right-hand end.
+ * Somebody working across the picture meets each caveat where it applies.
+ *
+ * An array rather than one paragraph, the arrangement `burnProblems` keeps:
+ * two things worth knowing are two things, and running them together would
+ * make a single hedge out of two specific statements. Usually it is empty,
+ * and an empty list is a chart that can be read as it stands.
+ *
+ * It deliberately does not repeat what the figures panel above already says.
+ * A project with no rate has a flat line and a panel that explains exactly
+ * why in the sentence above the chart; saying it twice on one tab is how a
+ * reader learns to skim the caveats.
+ */
+export function burnDownCaveats(
+  readings: readonly BurnReading[],
+  today: string,
+): string[] {
+  return [
+    describeReconstruction(readings),
+    describeStaleLine(readings, today),
+  ].filter((caveat): caveat is string => caveat !== null);
+}
