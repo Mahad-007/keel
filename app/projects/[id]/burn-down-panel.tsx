@@ -6,6 +6,7 @@ import {
   BURN_DOWN_IS_WHAT_WAS_LEFT,
   describeBurnDownLine,
   describeBurnDownSpan,
+  hasBurnDownToShow,
   NO_LINE_WITHOUT_A_PRICE,
 } from "@/lib/burndown/describe";
 import type { BurnReading } from "@/lib/burndown/reading";
@@ -45,12 +46,13 @@ export function BurnDownPanel({
   today: string;
 }) {
   /*
-    A project nothing has ever been logged against has no readings, and the
-    section is left out entirely — the figures panel above already says the
-    whole contract is still there, and a chart saying it again with no line in
-    it would be a box reporting that the project is new.
+    A project nothing has ever been logged against gets no section at all —
+    the figures panel above already says the whole contract is still there,
+    and a chart saying it again with no shape in it would be a box reporting
+    that the project is new. The rule is a fact about the readings rather than
+    about this tab, so it is named and tested in `lib/burndown/describe.ts`.
   */
-  if (readings.length === 0) return null;
+  if (!hasBurnDownToShow(readings)) return null;
 
   const chart = burnDownChart(readings);
 
