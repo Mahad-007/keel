@@ -4,6 +4,7 @@ import {
   BURN_DOWN_IS_WHAT_WAS_LEFT,
   describeBurnDownSpan,
   describeReconstruction,
+  describeStaleLine,
   RECONSTRUCTED_AT_PRESENT_FIGURES,
 } from "./describe";
 import { burnDownReading, type BurnReading } from "./reading";
@@ -135,5 +136,43 @@ describe("describeReconstruction", () => {
 
   it("says nothing about a project with no readings", () => {
     expect(describeReconstruction([])).toBeNull();
+  });
+});
+
+describe("describeStaleLine", () => {
+  const line = [reading("2026-03-01"), reading("2026-03-31")];
+
+  it("says nothing when the last reading is today's", () => {
+    expect(describeStaleLine(line, "2026-03-31")).toBeNull();
+  });
+
+  it("says nothing the morning after, before the day is read", () => {
+    expect(describeStaleLine(line, "2026-04-01")).toBeNull();
+  });
+
+  it("names the day and the gap once the line falls behind", () => {
+    expect(describeStaleLine(line, "2026-04-03")).toBe(
+      "The line stops at Mar 31, 2026, 3 days ago. Nothing has been recorded " +
+        "against this project since, so the chart says nothing about the days " +
+        "after it.",
+    );
+  });
+
+  it("counts the gap across a month boundary", () => {
+    expect(describeStaleLine(line, "2026-04-30")).toContain("30 days ago");
+  });
+
+  it("does not guess why the line stopped", () => {
+    const note = describeStaleLine(line, "2026-04-30");
+    expect(note).not.toContain("abandoned");
+    expect(note).not.toContain("finished");
+  });
+
+  it("says nothing about a project with no readings", () => {
+    expect(describeStaleLine([], "2026-04-30")).toBeNull();
+  });
+
+  it("says nothing about a line whose last reading is ahead of today", () => {
+    expect(describeStaleLine(line, "2026-03-01")).toBeNull();
   });
 });
