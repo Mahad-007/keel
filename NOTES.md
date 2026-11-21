@@ -1105,3 +1105,30 @@ a rate of zero is still drawn, because that is a real finding.
   records when an engagement began, so the chart cannot draw the stretch
   between being sold and being started. The sentence under the chart says so
   rather than letting the reader infer two lost months.
+
+## What the security pass found (Day 036)
+
+Two things, neither of them a hole today and both of them Phase 8's to close.
+
+- **The overview tab now writes on a GET.** `refreshedBurnSnapshots` upserts
+  today's reading when the page is rendered, so anything that causes a browser
+  to fetch `/projects/<id>` — a link, a prefetch, a third-party page — causes
+  that write. What it writes is derived from rows that are already there: no
+  caller-supplied value reaches a column, the upsert is keyed on the project
+  and the day, and running it again produces the same row. So the worst
+  available outcome is a row being rewritten with its own contents. Once there
+  is a session to forge, though, a write behind a GET is the wrong shape, and
+  the right fix is the nightly job this is standing in for rather than a token
+  on a page view.
+- **Nothing checks who is asking.** `refreshedBurnSnapshots` is scoped to one
+  project, so it is not one of the unscoped reads listed under Day 035 — but
+  the project it is scoped to is the id in the URL, like every other read on
+  this page. Day 084 is where ownership lands; this is one more query for it,
+  and it is a *write*, which makes it the more interesting one.
+
+Nothing user-supplied reaches the SVG. Every number in the markup is produced
+by the geometry in `lib/burndown/chart.ts`, every string by a formatter in
+`lib/burndown/`, and the one identifier interpolated into it — the clip-path
+prefix — is the project's generated id, which is lowercase letters, digits and
+one underscore by construction. React escapes it regardless; there is no
+`dangerouslySetInnerHTML` anywhere in the repo.
