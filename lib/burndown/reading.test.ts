@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   burnDownReading,
   burnDownReadings,
+  reconstructedRuns,
   type StoredBurnReading,
 } from "./reading";
 
@@ -125,5 +126,89 @@ describe("burnDownReadings", () => {
       stored({ onDate: "2026-03-01", origin: "backfilled" }),
     ]);
     expect(readings.map((r) => r.origin)).toEqual(["backfilled", "recorded"]);
+  });
+});
+
+describe("reconstructedRuns", () => {
+  /** A line of readings, each named by the day and how it was arrived at. */
+  function line(days: readonly [string, string][]) {
+    return burnDownReadings(
+      days.map(([onDate, origin]) => stored({ onDate, origin })),
+    );
+  }
+
+  it("finds the reconstructed stretch at the start of a line", () => {
+    expect(
+      reconstructedRuns(
+        line([
+          ["2026-03-01", "backfilled"],
+          ["2026-03-02", "backfilled"],
+          ["2026-03-05", "recorded"],
+        ]),
+      ),
+    ).toEqual([{ from: "2026-03-01", to: "2026-03-02" }]);
+  });
+
+  it("finds nothing on a line that was measured throughout", () => {
+    expect(
+      reconstructedRuns(
+        line([
+          ["2026-03-01", "recorded"],
+          ["2026-03-02", "recorded"],
+        ]),
+      ),
+    ).toEqual([]);
+  });
+
+  it("marks a whole line that was reconstructed throughout", () => {
+    expect(
+      reconstructedRuns(
+        line([
+          ["2026-03-01", "backfilled"],
+          ["2026-03-31", "backfilled"],
+        ]),
+      ),
+    ).toEqual([{ from: "2026-03-01", to: "2026-03-31" }]);
+  });
+
+  it("keeps a gap repaired later apart from the one at the start", () => {
+    expect(
+      reconstructedRuns(
+        line([
+          ["2026-03-01", "backfilled"],
+          ["2026-03-02", "backfilled"],
+          ["2026-03-05", "recorded"],
+          ["2026-03-06", "backfilled"],
+          ["2026-03-09", "recorded"],
+        ]),
+      ),
+    ).toEqual([
+      { from: "2026-03-01", to: "2026-03-02" },
+      { from: "2026-03-06", to: "2026-03-06" },
+    ]);
+  });
+
+  it("gives a single reconstructed day a stretch of one", () => {
+    expect(
+      reconstructedRuns(line([["2026-03-06", "backfilled"]])),
+    ).toEqual([{ from: "2026-03-06", to: "2026-03-06" }]);
+  });
+
+  it("holds a run across a month nothing was logged in", () => {
+    // The line across that gap is drawn from the figures of the first day,
+    // and those figures are the reconstruction.
+    expect(
+      reconstructedRuns(
+        line([
+          ["2026-03-01", "backfilled"],
+          ["2026-04-30", "backfilled"],
+          ["2026-05-01", "recorded"],
+        ]),
+      ),
+    ).toEqual([{ from: "2026-03-01", to: "2026-04-30" }]);
+  });
+
+  it("has nothing to mark on an empty line", () => {
+    expect(reconstructedRuns([])).toEqual([]);
   });
 });
