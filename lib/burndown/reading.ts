@@ -94,3 +94,52 @@ export function burnDownReadings(
     .map(burnDownReading)
     .sort((a, b) => a.onDate.localeCompare(b.onDate));
 }
+
+/** A stretch of the burn-down between two days, both ends included. */
+export type ReadingRun = {
+  /** The first day of the stretch: `YYYY-MM-DD`. */
+  readonly from: string;
+  /** The last day of it, which is the same day for a stretch of one. */
+  readonly to: string;
+};
+
+/**
+ * The stretches of a burn-down that were reconstructed rather than measured,
+ * oldest first.
+ *
+ * Runs rather than a flag per reading, because what a reader needs marking is
+ * a region of the chart and not a property of a point: "everything before
+ * April is a reconstruction" is one thing to say and one band to draw, where
+ * forty caveated points would be forty.
+ *
+ * Consecutive in the list, which is consecutive in time — the readings are
+ * sorted — but not necessarily contiguous on the calendar. Two reconstructed
+ * days a month apart with nothing between them are one run, because nothing
+ * is what lies between them: the line across that gap is drawn from the
+ * figures of the first, and the figures of the first are the reconstruction.
+ *
+ * Usually there is one run and it is at the start, because that is the shape
+ * the backfill leaves. More than one happens when a repair fills a gap a
+ * failed run left in the middle, and that is exactly the history a single
+ * "the early part is reconstructed" would be wrong about.
+ */
+export function reconstructedRuns(
+  readings: readonly BurnReading[],
+): ReadingRun[] {
+  const runs: ReadingRun[] = [];
+  let open: { from: string; to: string } | null = null;
+
+  for (const reading of readings) {
+    if (reading.origin === "backfilled") {
+      if (open === null) {
+        open = { from: reading.onDate, to: reading.onDate };
+        runs.push(open);
+      } else {
+        open.to = reading.onDate;
+      }
+    } else {
+      open = null;
+    }
+  }
+  return runs;
+}
