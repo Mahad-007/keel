@@ -134,3 +134,63 @@ export function moneyTickStep(spanCents: number): number {
   );
   return Math.max(1, magnitude * (chosen?.multiple ?? 1));
 }
+
+/**
+ * The point an axis starts shortening its labels: ten thousand dollars.
+ *
+ * Below it the figures are four characters and read instantly; above it they
+ * are eight or more and start to crowd the plot. The threshold is checked
+ * against the whole axis rather than each tick, so the labels down one side
+ * are all in one style.
+ */
+const COMPACT_FROM_CENTS = 10_000 * DOLLARS;
+
+/** A gridline on the money axis: the amount, and what it is labelled. */
+export type MoneyTick = {
+  /** The amount the gridline is drawn at, in cents. */
+  readonly cents: number;
+  /** What the margin reads beside it. */
+  readonly label: string;
+};
+
+/**
+ * The gridlines down the money axis, from the bottom of the range upwards.
+ *
+ * Every multiple of the step that falls inside the range, which always
+ * includes zero — the step divides it, and the range always contains it. That
+ * is not a coincidence worth leaving to chance: zero is the day the budget
+ * runs out, and it is the one line on a burn-down that has to be labelled.
+ *
+ * The ends of the range are not forced onto the list. A contract of $4,250
+ * gets gridlines at the round thousands and none at $4,250 itself, because
+ * the contract value is already on the page in words above the chart and a
+ * tick at an odd figure makes every other tick look approximate.
+ *
+ * A range that is empty or upside down has no gridlines rather than one at
+ * the bottom. Nothing reaches here with one — `burnChartDomain` refuses to
+ * build a domain with no height — and the alternative to answering is a loop
+ * that does not end.
+ */
+export function moneyAxisTicks(
+  bottomCents: number,
+  topCents: number,
+): MoneyTick[] {
+  if (!(topCents > bottomCents)) return [];
+
+  const step = moneyTickStep(topCents - bottomCents);
+  const compact =
+    Math.max(Math.abs(topCents), Math.abs(bottomCents)) >= COMPACT_FROM_CENTS;
+
+  const ticks: MoneyTick[] = [];
+  for (
+    let cents = Math.ceil(bottomCents / step) * step;
+    cents <= topCents;
+    cents += step
+  ) {
+    ticks.push({
+      cents,
+      label: compact ? compactMoneyLabel(cents) : axisMoneyLabel(cents),
+    });
+  }
+  return ticks;
+}
