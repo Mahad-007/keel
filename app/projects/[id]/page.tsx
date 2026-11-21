@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { getRunningTimer } from "@/lib/data/active-timers";
-import { listBurnSnapshots } from "@/lib/data/burn-snapshots";
+import { refreshedBurnSnapshots } from "@/lib/data/burn-snapshots";
 import { listDeliverableTemplates } from "@/lib/data/deliverable-templates";
 import { listDeliverables } from "@/lib/data/deliverables";
 import { listProjectStatusEvents } from "@/lib/data/project-status-events";
@@ -102,9 +102,16 @@ export default async function ProjectPage({
 
     The burn-down readings are the fourth, and they are the only history on
     the tab: the other three say what is true now, and a line needs what was
-    true on every day before it. One query, scoped to the project, and only on
-    the tab that draws it — a chart nobody is looking at is not worth a round
-    trip.
+    true on every day before it. Scoped to the project, and only on the tab
+    that draws it — a chart nobody is looking at is not worth the round trip.
+
+    That read is also the one write this page makes, which is the decision Day
+    035 left to Day 036: `refreshedBurnSnapshots` measures today and
+    reconstructs the days behind it before handing the line back, because
+    nothing in this repo schedules a nightly job and the alternative is a
+    chart that is always empty. It is idempotent, so opening the tab twice
+    writes once — the reasoning, and where this belongs instead, is on the
+    function.
 
     The scope list is the third, and it is the delivery half of the scope
     health verdict: the banner at the top of the tab sets what the hours have
@@ -126,7 +133,7 @@ export default async function ProjectPage({
           listProjectStatusEvents(project.id),
           projectTimeTotals(project.id),
           listDeliverables(project.id),
-          listBurnSnapshots(project.id),
+          refreshedBurnSnapshots(project.id),
         ])
       : [[], NO_TIME_LOGGED, [], []];
 
