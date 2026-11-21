@@ -25,10 +25,11 @@ const DOLLARS = 100;
  * the panel with the axis is comparing two renderings of the same amount.
  */
 export function axisMoneyLabel(cents: number): string {
+  const places = cents % DOLLARS === 0 ? 0 : 2;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: cents % DOLLARS === 0 ? 0 : 2,
+    minimumFractionDigits: places,
+    maximumFractionDigits: places,
   }).format(cents / DOLLARS);
 }
