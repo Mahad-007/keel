@@ -9,6 +9,7 @@
  * which is the chart equivalent of shouting.
  */
 
+import { calendarDateParts, formatYear } from "@/lib/dates";
 import { withoutNegativeZero } from "@/lib/money";
 
 const DOLLARS = 100;
@@ -202,4 +203,29 @@ export function moneyAxisTicks(
     });
   }
   return ticks;
+}
+
+/**
+ * A day along the bottom of the chart: `Mar 1`, or `Mar 1, 2026` on a chart
+ * that runs across New Year.
+ *
+ * Shorter than `formatDate`, which is right for a fact in a list and too long
+ * for three labels sharing an axis. The year is carried by the sentence under
+ * the chart, which names the whole span — so repeating it under every tick
+ * spends the width that keeps the labels from touching.
+ *
+ * It comes back when the chart itself crosses a year, because then the two
+ * ends really are different Marches and the axis would otherwise read as
+ * though the engagement had gone round in a circle. Decided once for the
+ * whole axis by `dateAxisTicks`, like the money style.
+ *
+ * A day that is not a calendar date is handed back as it stands, the same
+ * fallback `formatDate` makes: a label that looks wrong is easier to trace
+ * than a chart that will not render.
+ */
+export function axisDateLabel(onDate: string, withYear = false): string {
+  const parts = calendarDateParts(onDate);
+  if (parts === null) return onDate;
+  const day = `${parts.month} ${parts.day}`;
+  return withYear ? `${day}, ${formatYear(parts.year)}` : day;
 }
