@@ -300,3 +300,34 @@ export function burnLinePath(plotted: readonly PlottedBurnReading[]): string {
     .map((point, at) => `${at === 0 ? "M" : "L"}${point.x} ${point.y}`)
     .join(" ");
 }
+
+/**
+ * The `d` attribute of the wash under the line, closed on the day the money
+ * runs out rather than on the floor of the picture.
+ *
+ * The baseline is zero-left, which is the whole point of filling the shape at
+ * all: the wash is the budget still in hand, so it has to stop where the
+ * budget does. Closing it on the bottom of the plot would fill the overrun
+ * too, and an engagement that is $1,000 over would be drawn with more shading
+ * than one that is $1,000 up.
+ *
+ * Below the baseline the same path keeps going, which is what lets the
+ * component draw it twice against two clips — once above the line in the
+ * series colour and once below it in the colour of a problem — without the
+ * geometry being computed twice or the two halves meeting at a seam.
+ *
+ * Fewer than two readings gives an empty string. One point has no width, and
+ * a path with no area is an element that renders nothing and still has to be
+ * parsed.
+ */
+export function burnAreaPath(
+  plotted: readonly PlottedBurnReading[],
+  baselineY: number,
+): string {
+  const first = plotted[0];
+  const last = plotted[plotted.length - 1];
+  if (first === undefined || last === undefined || plotted.length < 2) {
+    return "";
+  }
+  return `${burnLinePath(plotted)} L${last.x} ${baselineY} L${first.x} ${baselineY} Z`;
+}
