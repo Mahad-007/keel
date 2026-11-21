@@ -19,7 +19,7 @@
 
 import { calendarDayGap } from "@/lib/dates";
 
-import type { BurnReading } from "./reading";
+import { reconstructedRuns, type BurnReading } from "./reading";
 
 /**
  * The drawing surface, in user units, with room reserved around the plot.
@@ -330,4 +330,49 @@ export function burnAreaPath(
     return "";
   }
   return `${burnLinePath(plotted)} L${last.x} ${baselineY} L${first.x} ${baselineY} Z`;
+}
+
+/**
+ * How narrow a reconstructed stretch is allowed to be drawn: four user units.
+ *
+ * A single reconstructed day in the middle of a measured line is a stretch of
+ * no width at all, and a band of no width marks nothing — the caveat under
+ * the chart would be pointing at something the reader cannot see. Four units
+ * is a sliver a few pixels wide: visible, and nowhere near wide enough to
+ * claim the day beside it was reconstructed too.
+ */
+const MIN_BAND_WIDTH = 4;
+
+/** A vertical stretch of the plot, shaded behind the line. */
+export type ChartBand = {
+  readonly x: number;
+  readonly width: number;
+};
+
+/**
+ * The stretches of the plot to shade as reconstruction rather than
+ * measurement.
+ *
+ * Behind the line rather than on it, which is the honest weight for this: the
+ * figures in a reconstructed stretch are real figures from real time entries,
+ * valued at a rate nobody can prove was the rate at the time. Recolouring the
+ * line there would say the readings are doubtful; a band behind it says the
+ * period is, which is what `lib/burndown/origin.ts` actually claims.
+ *
+ * A stretch too narrow to see is widened to a sliver and nudged back inside
+ * the plot, so a band never hangs off the end of the axis it is describing.
+ */
+export function reconstructedBands(
+  readings: readonly BurnReading[],
+  domain: BurnChartDomain,
+  area: BurnChartArea,
+): ChartBand[] {
+  return reconstructedRuns(readings).map((run) => {
+    const from = burnChartX(run.from, domain, area);
+    const to = burnChartX(run.to, domain, area);
+    const width = Math.max(to - from, MIN_BAND_WIDTH);
+    const centred = from - (width - (to - from)) / 2;
+    const x = Math.min(Math.max(centred, area.left), area.right - width);
+    return { x: plotUnit(x), width: plotUnit(width) };
+  });
 }
