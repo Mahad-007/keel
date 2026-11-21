@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   BURN_DOWN_IS_WHAT_WAS_LEFT,
+  burnDownCaveats,
   describeBurnDownLine,
   describeBurnDownSpan,
   describeLineEnd,
@@ -251,5 +252,52 @@ describe("describeLineEnd", () => {
     for (const burned of [0, 250_000, 500_000, 620_000]) {
       expect(describeLineEnd(reading("2026-03-31", burned))).not.toContain("-");
     }
+  });
+});
+
+describe("burnDownCaveats", () => {
+  it("says nothing about a measured, current line", () => {
+    expect(
+      burnDownCaveats(
+        [reading("2026-03-01"), reading("2026-03-31")],
+        "2026-03-31",
+      ),
+    ).toEqual([]);
+  });
+
+  it("raises the reconstruction before the staleness", () => {
+    const caveats = burnDownCaveats(
+      [
+        reading("2026-03-01", 0, { origin: "backfilled" }),
+        reading("2026-03-31"),
+      ],
+      "2026-04-30",
+    );
+    expect(caveats).toHaveLength(2);
+    expect(caveats[0]).toContain("reconstructed");
+    expect(caveats[1]).toContain("The line stops at");
+  });
+
+  it("raises only the one that applies", () => {
+    const reconstructed = burnDownCaveats(
+      [
+        reading("2026-03-01", 0, { origin: "backfilled" }),
+        reading("2026-03-31"),
+      ],
+      "2026-03-31",
+    );
+    expect(reconstructed).toHaveLength(1);
+    expect(reconstructed[0]).toContain("reconstructed");
+
+    const stale = burnDownCaveats(
+      [reading("2026-03-01"), reading("2026-03-31")],
+      "2026-04-30",
+    );
+    expect(stale).toHaveLength(1);
+    expect(stale[0]).toContain("The line stops at");
+  });
+
+  it("has nothing to raise about a project with no readings", () => {
+    expect(burnDownCaveats([], "2026-04-30")).toEqual([]);
   });
 });
