@@ -56,10 +56,10 @@ export type BurnChartBox = {
 };
 
 export const BURN_CHART_BOX: BurnChartBox = {
-  width: 720,
+  width: 740,
   height: 260,
   top: 16,
-  right: 108,
+  right: 128,
   bottom: 30,
   left: 68,
 };

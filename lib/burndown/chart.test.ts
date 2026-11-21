@@ -85,6 +85,16 @@ describe("burnChartArea", () => {
     });
   });
 
+  it("reserves the right margin for the longest end label", () => {
+    // Nothing on the server can measure text, so the margin is the only
+    // defence against the figure on the end of the line running over it. A
+    // seven-figure overrun written to the cent is about 110 units at the
+    // size the labels are drawn.
+    const room = BURN_CHART_BOX.width - burnChartArea().right;
+    expect(room).toBeGreaterThanOrEqual(120);
+    expect(room).toBeGreaterThan(BURN_CHART_BOX.left);
+  });
+
   it("is wider than it is tall, so a slope reads as a slope", () => {
     const area = burnChartArea();
     expect(area.width).toBeGreaterThan(area.height * 2);
