@@ -1,4 +1,5 @@
 import { calendarDayGap, formatDate, formatDaySpan } from "@/lib/dates";
+import { formatCents } from "@/lib/money";
 
 import { reconstructedRuns, type BurnReading } from "./reading";
 
@@ -153,4 +154,47 @@ export function describeStaleLine(
   if (behind <= LINE_IS_CURRENT_WITHIN_DAYS) return null;
 
   return `The line stops at ${formatDate(last.onDate)}, ${behind} days ago. Nothing has been recorded against this project since, so the chart says nothing about the days after it.`;
+}
+
+/**
+ * The chart in a sentence, for a reader who is not looking at it.
+ *
+ * The text alternative the SVG carries, and the thing that decides whether
+ * this chart is usable without eyes. A picture of a line has exactly one
+ * claim to make — it started here, it ended there, and this is the direction
+ * it went — and saying that in words costs a sentence.
+ *
+ * It names the direction rather than leaving it to be worked out from two
+ * amounts, because "falling" is the word somebody would use and subtracting
+ * one currency figure from another read out loud is not.
+ *
+ * A line that rose is not a mistake and is not hidden: a time entry deleted
+ * or corrected downwards gives back money the chart had already spent, and
+ * that is a real thing to have happened to an engagement.
+ *
+ * The overrun is spelled out as its own amount rather than left as a figure
+ * with a minus sign in front of it. "-$1,200.00 left" is a sentence a reader
+ * has to translate, and the translation is the whole point of the chart.
+ */
+export function describeBurnDownLine(
+  readings: readonly BurnReading[],
+): string | null {
+  const first = readings[0];
+  const last = readings[readings.length - 1];
+  if (first === undefined || last === undefined) return null;
+
+  const over =
+    last.remainingCents < 0
+      ? ` That is ${formatCents(-last.remainingCents)} past the contract value.`
+      : "";
+
+  if (readings.length === 1) {
+    return `One reading: ${formatCents(first.remainingCents)} of ${formatCents(first.contractedCents)} left at the end of ${formatDate(first.onDate)}.${over}`;
+  }
+  if (last.remainingCents === first.remainingCents) {
+    return `Flat at ${formatCents(first.remainingCents)} left, from ${formatDate(first.onDate)} to ${formatDate(last.onDate)}.${over}`;
+  }
+
+  const direction = last.remainingCents < first.remainingCents ? "Falling" : "Rising";
+  return `${direction} from ${formatCents(first.remainingCents)} left on ${formatDate(first.onDate)} to ${formatCents(last.remainingCents)} on ${formatDate(last.onDate)}.${over}`;
 }
