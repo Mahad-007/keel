@@ -132,11 +132,13 @@ const LINE_IS_CURRENT_WITHIN_DAYS = 1;
  * back into "nobody has recorded anything for three weeks", which is a
  * different conversation.
  *
- * It does not guess which of those it is. A gap at the end means no reading
- * was taken, and a reading is not taken for a day nobody logged time on — so
- * a quiet fortnight and a capture that stopped running leave the same mark.
- * Naming the date and the gap says what is known; anything beyond that would
- * be the chart inventing a reason.
+ * It does not guess which of those it is, and it is careful about what it
+ * claims: a missing reading is not a missing time entry. A gap at the end
+ * means nothing was *stored*, and a quiet fortnight and a capture that
+ * stopped running leave exactly the same mark — while the figures panel
+ * directly above is reading the entries live and may well be showing work
+ * done since. Naming the date and the gap says what is known; "nothing has
+ * been logged" would be the chart contradicting the panel above it.
  *
  * `today` is the caller's day rather than a clock read here, like everywhere
  * else in the codebase that compares against now — so a page renders one
@@ -153,7 +155,7 @@ export function describeStaleLine(
   const behind = calendarDayGap(last.onDate, today);
   if (behind <= LINE_IS_CURRENT_WITHIN_DAYS) return null;
 
-  return `The line stops at ${formatDate(last.onDate)}, ${behind} days ago. Nothing has been recorded against this project since, so the chart says nothing about the days after it.`;
+  return `The line stops at ${formatDate(last.onDate)}, ${behind} days ago. No reading has been stored for this project since, so the chart says nothing about the days after it.`;
 }
 
 /**

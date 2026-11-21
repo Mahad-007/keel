@@ -156,9 +156,9 @@ describe("describeStaleLine", () => {
 
   it("names the day and the gap once the line falls behind", () => {
     expect(describeStaleLine(line, "2026-04-03")).toBe(
-      "The line stops at Mar 31, 2026, 3 days ago. Nothing has been recorded " +
-        "against this project since, so the chart says nothing about the days " +
-        "after it.",
+      "The line stops at Mar 31, 2026, 3 days ago. No reading has been " +
+        "stored for this project since, so the chart says nothing about the " +
+        "days after it.",
     );
   });
 
@@ -170,6 +170,14 @@ describe("describeStaleLine", () => {
     const note = describeStaleLine(line, "2026-04-30");
     expect(note).not.toContain("abandoned");
     expect(note).not.toContain("finished");
+  });
+
+  it("claims a missing reading, not a missing time entry", () => {
+    // The figures panel above reads the entries live and may be showing work
+    // done since; a chart claiming nothing was logged would contradict it.
+    const note = describeStaleLine(line, "2026-04-30");
+    expect(note).toContain("No reading has been stored");
+    expect(note).not.toContain("logged");
   });
 
   it("says nothing about a project with no readings", () => {
