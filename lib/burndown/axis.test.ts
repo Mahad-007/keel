@@ -20,6 +20,12 @@ describe("axisMoneyLabel", () => {
     expect(axisMoneyLabel(-100_000)).toBe("-$1,000");
   });
 
+  it("writes minus nothing as nothing", () => {
+    // An axis that straddles zero reaches it by rounding a negative figure
+    // upwards, which lands on -0 rather than on zero.
+    expect(axisMoneyLabel(-0)).toBe("$0");
+  });
+
   it("keeps the cents of a tick that is not whole dollars", () => {
     // Only a very short axis lands here, and rounding would put the label at
     // a figure the gridline beside it is not drawn at.

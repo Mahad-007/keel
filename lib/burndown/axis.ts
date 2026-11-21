@@ -9,6 +9,8 @@
  * which is the chart equivalent of shouting.
  */
 
+import { withoutNegativeZero } from "@/lib/money";
+
 const DOLLARS = 100;
 
 /**
@@ -23,8 +25,15 @@ const DOLLARS = 100;
  * `Intl` rather than string surgery, so the thousands separators are the same
  * ones `formatCents` puts in the figures above the chart. A reader comparing
  * the panel with the axis is comparing two renderings of the same amount.
+ *
+ * Minus nothing is written as nothing. An axis that straddles zero reaches it
+ * by rounding a negative figure upwards, and that lands on `-0` rather than
+ * on zero — which `Intl` faithfully renders as a minus sign in front of the
+ * one number that has no sign. The gridline a reader most needs to find would
+ * be the one labelled wrong.
  */
-export function axisMoneyLabel(cents: number): string {
+export function axisMoneyLabel(amount: number): string {
+  const cents = withoutNegativeZero(amount);
   const places = cents % DOLLARS === 0 ? 0 : 2;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
