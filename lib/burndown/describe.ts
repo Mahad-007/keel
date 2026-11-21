@@ -198,3 +198,22 @@ export function describeBurnDownLine(
   const direction = last.remainingCents < first.remainingCents ? "Falling" : "Rising";
   return `${direction} from ${formatCents(first.remainingCents)} left on ${formatDate(first.onDate)} to ${formatCents(last.remainingCents)} on ${formatDate(last.onDate)}.${over}`;
 }
+
+/**
+ * The label beside the dot on the end of the line.
+ *
+ * The one direct label on the chart, and the only number printed on it. A
+ * figure beside every reading would be unreadable, and the axis plus the
+ * table below carry the rest — but the end of the line is where every reader
+ * looks first and the figure they will quote, so it is worth the ink.
+ *
+ * It says "left" or "over" rather than printing a signed amount. A minus sign
+ * on a currency figure is the kind of thing a reader's eye slides past, and
+ * the two states it distinguishes are the two the whole page exists to tell
+ * apart.
+ */
+export function describeLineEnd(reading: BurnReading): string {
+  return reading.remainingCents < 0
+    ? `${formatCents(-reading.remainingCents)} over`
+    : `${formatCents(reading.remainingCents)} left`;
+}
