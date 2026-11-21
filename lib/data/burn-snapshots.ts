@@ -914,3 +914,39 @@ export async function updateProjectBurnHistory(
     backfill: await backfillProjectBurn(projectId, { through }, database),
   };
 }
+
+/**
+ * One project's burn-down, brought up to the day it is being read on.
+ *
+ * The answer to the question Day 035 left open: nothing in this repo
+ * schedules the daily reading, so what triggers it is the page that draws the
+ * line. A reader opening the overview tab measures today, reconstructs every
+ * day before it that has no reading, repairs any that the entries have since
+ * outgrown, and then reads the line back.
+ *
+ * That is a write on a read, and it is not where this belongs. The right home
+ * is a job that runs once a night across the studio, and `captureProjectBurn`
+ * is already the shape of it — but until there is a runner, the choice is
+ * between a chart that is always empty and a page that keeps its own history
+ * current. An empty chart is not a smaller version of the feature; it is none
+ * of it.
+ *
+ * It is safe to do on a read because both halves are idempotent. The capture
+ * upserts on the project and the day, so a project opened nine times in an
+ * afternoon has one row for today, rewritten with the same figures. The
+ * backfill writes only the days with nothing stored and the days whose stored
+ * totals no longer match the entries, so the second visit of the day plans
+ * nothing at all.
+ *
+ * What it costs is a handful of statements before a page can be drawn, and
+ * what it buys is a line that is never behind. The refusals are deliberately
+ * dropped: a project whose figures no column can hold still has a history
+ * worth reading, and the chart's own caveat says where that history stops.
+ */
+export async function refreshedBurnSnapshots(
+  projectId: string,
+  database: Database = db,
+): Promise<BurnSnapshot[]> {
+  await updateProjectBurnHistory(projectId, {}, database);
+  return listBurnSnapshots(projectId, database);
+}
