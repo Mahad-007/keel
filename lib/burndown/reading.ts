@@ -1,3 +1,5 @@
+import { isCalendarDate } from "@/lib/dates";
+
 import {
   isBurnSnapshotOrigin,
   type BurnSnapshotOrigin,
@@ -63,4 +65,32 @@ export function burnDownReading(stored: StoredBurnReading): BurnReading {
     ...recordedBurnPoint(stored),
     origin: isBurnSnapshotOrigin(stored.origin) ? stored.origin : "backfilled",
   };
+}
+
+/**
+ * A project's stored rows read as the readings of its burn-down, oldest
+ * first.
+ *
+ * The list form, and the one a chart is handed. Two things happen here that
+ * are not worth repeating in every caller.
+ *
+ * The rows are sorted by date. The index the data layer reads them through
+ * already returns them in order, so this is almost always a sort of a sorted
+ * list — cheap, and the alternative is a chart whose line doubles back on
+ * itself because somebody changed an `order by` in another file.
+ *
+ * A row whose day is not a calendar date is dropped rather than plotted. The
+ * axis is measured in days from the first reading, and a string that is not a
+ * day has no distance from one — `calendarDayGap` throws on it rather than
+ * guessing, which is right there and would be a blank page here. Only a
+ * hand-edited row can be in that state, and losing it from the line is a
+ * smaller harm than losing the line.
+ */
+export function burnDownReadings(
+  stored: readonly StoredBurnReading[],
+): BurnReading[] {
+  return stored
+    .filter((row) => isCalendarDate(row.onDate))
+    .map(burnDownReading)
+    .sort((a, b) => a.onDate.localeCompare(b.onDate));
 }
