@@ -245,3 +245,22 @@ export function burnDownCaveats(
     describeStaleLine(readings, today),
   ].filter((caveat): caveat is string => caveat !== null);
 }
+
+/**
+ * What to say when there are readings but no line can be drawn from them.
+ *
+ * One case reaches this, and it is not an empty project: the readings exist,
+ * the days are real, and every amount on them is zero because no price was
+ * ever agreed and the hours have been valued at nothing. There is no axis to
+ * draw — a flat line along a floor would be the same picture as an engagement
+ * that has spent none of a real budget, and `burnChartDomain` refuses to
+ * produce one.
+ *
+ * It points at the table rather than apologising, because the readings are
+ * still the readings. What is missing is a price, and the figures panel above
+ * says where that is set.
+ */
+export const NO_LINE_WITHOUT_A_PRICE =
+  "There is no contract value for this project and the hours have come to " +
+  "nothing against it, so there is no line to draw. The readings behind it " +
+  "are listed below.";

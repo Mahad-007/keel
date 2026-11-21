@@ -8,6 +8,7 @@ import {
   describeLineEnd,
   describeReconstruction,
   describeStaleLine,
+  NO_LINE_WITHOUT_A_PRICE,
   RECONSTRUCTED_AT_PRESENT_FIGURES,
 } from "./describe";
 import { burnDownReading, type BurnReading } from "./reading";
@@ -299,5 +300,15 @@ describe("burnDownCaveats", () => {
 
   it("has nothing to raise about a project with no readings", () => {
     expect(burnDownCaveats([], "2026-04-30")).toEqual([]);
+  });
+});
+
+describe("NO_LINE_WITHOUT_A_PRICE", () => {
+  it("names the missing price rather than blaming the readings", () => {
+    expect(NO_LINE_WITHOUT_A_PRICE).toContain("no contract value");
+  });
+
+  it("points at the readings that do exist", () => {
+    expect(NO_LINE_WITHOUT_A_PRICE).toContain("listed below");
   });
 });
