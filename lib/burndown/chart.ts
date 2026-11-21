@@ -170,3 +170,36 @@ export function burnChartDomain(
     bottomCents,
   };
 }
+
+/**
+ * Where a day sits along the axis, in user units.
+ *
+ * Positioned by the calendar rather than by its place in the list, which is
+ * the one decision in this file that changes what the chart means. Readings
+ * exist only for days work was logged, so a project touched on the 1st and
+ * then again in April has two readings — and plotting them a step apart would
+ * draw a month of silence as a single stride. Spaced by the days between
+ * them, the same two readings draw what actually happened: a long flat run
+ * and then a move.
+ *
+ * A project with one day of readings has a domain zero days wide, and its one
+ * point goes in the middle of the plot rather than hard against the left
+ * edge. There is no slope to read either way; centred, it reads as a single
+ * measurement, and flush left it reads as a line whose remainder is missing.
+ *
+ * Days outside the domain come back outside the plot, which is deliberate —
+ * clamping would stack every stray reading on one edge and draw a vertical
+ * wall. Nothing should hand this a day the domain does not cover; a caller
+ * that does gets a coordinate that looks as wrong as it is.
+ */
+export function burnChartX(
+  onDate: string,
+  domain: BurnChartDomain,
+  area: BurnChartArea,
+): number {
+  if (domain.days === 0) return area.left + area.width / 2;
+  return (
+    area.left +
+    (calendarDayGap(domain.from, onDate) / domain.days) * area.width
+  );
+}
