@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { getRunningTimer } from "@/lib/data/active-timers";
+import { listBurnSnapshots } from "@/lib/data/burn-snapshots";
 import { listDeliverableTemplates } from "@/lib/data/deliverable-templates";
 import { listDeliverables } from "@/lib/data/deliverables";
 import { listProjectStatusEvents } from "@/lib/data/project-status-events";
@@ -15,6 +16,7 @@ import {
   listScopeSnapshots,
   listSnapshotLines,
 } from "@/lib/data/scope-snapshots";
+import { utcCalendarDate } from "@/lib/dates";
 import { parseProjectTabParam } from "@/lib/projects/detail";
 import { PROJECT_TAB_LABELS } from "@/lib/projects/tabs";
 import { chosenSnapshot, readSnapshotParam } from "@/lib/snapshots/selection";
@@ -98,6 +100,12 @@ export default async function ProjectPage({
     list, so only the overview pays for them: the other four tabs render a
     sentence apiece and have no business running three queries to do it.
 
+    The burn-down readings are the fourth, and they are the only history on
+    the tab: the other three say what is true now, and a line needs what was
+    true on every day before it. One query, scoped to the project, and only on
+    the tab that draws it — a chart nobody is looking at is not worth a round
+    trip.
+
     The scope list is the third, and it is the delivery half of the scope
     health verdict: the banner at the top of the tab sets what the hours have
     burned against what the estimates say is done, and the second of those is
@@ -112,14 +120,15 @@ export default async function ProjectPage({
     All three together, because none depends on another and awaiting them in
     sequence would make the tab wait for the sum of three round trips.
   */
-  const [statusEvents, timeTotals, overviewScope] =
+  const [statusEvents, timeTotals, overviewScope, burnSnapshots] =
     tab === "overview"
       ? await Promise.all([
           listProjectStatusEvents(project.id),
           projectTimeTotals(project.id),
           listDeliverables(project.id),
+          listBurnSnapshots(project.id),
         ])
-      : [[], NO_TIME_LOGGED, []];
+      : [[], NO_TIME_LOGGED, [], []];
 
   /*
     Same rule for the scope tab, which reads two things: the project's own list
@@ -204,6 +213,8 @@ export default async function ProjectPage({
             statusEvents={statusEvents}
             timeTotals={timeTotals}
             scopeLines={overviewScope}
+            burnSnapshots={burnSnapshots}
+            today={utcCalendarDate(now)}
           />
         ) : tab === "scope" ? (
           <ScopePanel

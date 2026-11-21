@@ -1,8 +1,13 @@
 import type { ReactNode } from "react";
 
 import { summariseBurn } from "@/lib/burn";
+import { burnDownReadings } from "@/lib/burndown/reading";
 import type { ProjectWithClient } from "@/lib/data/projects";
-import type { Deliverable, ProjectStatusEvent } from "@/lib/db/schema";
+import type {
+  BurnSnapshot,
+  Deliverable,
+  ProjectStatusEvent,
+} from "@/lib/db/schema";
 import { formatDate } from "@/lib/dates";
 import { describeRateOverride } from "@/lib/projects/detail";
 import type { DuplicateFormState } from "@/lib/projects/duplicate-form";
@@ -11,6 +16,7 @@ import type { LoggedTotals } from "@/lib/time/rollup";
 
 import { writeDuplicatedProject } from "./duplicate-writes";
 
+import { BurnDownPanel } from "./burn-down-panel";
 import { BurnPanel } from "./burn-panel";
 import { ScopeHealthBanner } from "./scope-health-banner";
 import { DuplicateSection } from "./duplicate-section";
@@ -49,6 +55,8 @@ export function OverviewPanel({
   statusEvents,
   timeTotals,
   scopeLines,
+  burnSnapshots,
+  today,
 }: {
   project: ProjectWithClient;
   /** The project's status trail, newest first. */
@@ -76,6 +84,26 @@ export function OverviewPanel({
    * hand is a figure that can disagree with the list beside it.
    */
   scopeLines: readonly Deliverable[];
+  /**
+   * The project's stored burn readings, oldest first: one row per day its
+   * burn was measured or reconstructed.
+   *
+   * The rows rather than a chart, because turning a row into a point is a
+   * decision about how much to trust it — `burnDownReadings` drops a day that
+   * is not a day and reads an unknown origin as a reconstruction — and that
+   * decision belongs beside the arithmetic rather than in the query.
+   */
+  burnSnapshots: readonly BurnSnapshot[];
+  /**
+   * The day this page is being rendered on, for judging how old the end of
+   * the burn-down is.
+   *
+   * Passed in rather than read here, so the one reading of the clock the page
+   * takes is the one every panel on it uses — a chart that said the line was
+   * three days old while the timer beside it had rolled over midnight would
+   * be two different todays on one screen.
+   */
+  today: string;
 }) {
   /*
     Built here rather than by the page, the same arrangement the time tab
@@ -126,6 +154,17 @@ export function OverviewPanel({
         the tab keeps: what is true now, then what has happened.
       */}
       <BurnPanel summary={burn} />
+      {/*
+        Directly under the figures it is the history of. A reader who finds the
+        share surprising looks at the shape next: the same 60% consumed means
+        one thing over five months and another over a fortnight, and the panel
+        above cannot tell them apart.
+      */}
+      <BurnDownPanel
+        projectId={project.id}
+        readings={burnDownReadings(burnSnapshots)}
+        today={today}
+      />
       {/*
         History before the controls, for the same reason the archive sits at
         the bottom of a client form: a reader arrives wanting to know what has
