@@ -266,3 +266,28 @@ export const NO_LINE_WITHOUT_A_PRICE =
   "There is no contract value for this project and the hours have come to " +
   "nothing against it, so there is no line to draw. The readings behind it " +
   "are listed below.";
+
+/**
+ * Whether a project has a burn-down worth showing at all.
+ *
+ * Two ways not to. No readings is the obvious one: nothing has ever been
+ * recorded, so there is no history to draw and the figures panel above
+ * already says the whole contract is still there.
+ *
+ * The other is readings with no hours in them, and it is the one worth
+ * naming. A reading is taken for the day a page is opened on as well as for
+ * the days somebody worked, so a project nobody has logged against collects a
+ * row a day saying nothing happened — and a chart of those is a flat line at
+ * the contract value, which is a picture of an engagement that has not
+ * started. The reader is told that in one sentence by the panel above; a
+ * chart repeating it with no shape in it is a box reporting that the project
+ * is new.
+ *
+ * Deliberately about the hours rather than the money. A project with a rate
+ * of zero has logged hours and burned nothing, and its flat line is a real
+ * finding — somebody has worked a fortnight on an engagement that bills for
+ * none of it. That chart stays.
+ */
+export function hasBurnDownToShow(readings: readonly BurnReading[]): boolean {
+  return readings.some((reading) => reading.loggedMinutes !== 0);
+}

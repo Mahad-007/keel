@@ -8,6 +8,7 @@ import {
   describeLineEnd,
   describeReconstruction,
   describeStaleLine,
+  hasBurnDownToShow,
   NO_LINE_WITHOUT_A_PRICE,
   RECONSTRUCTED_AT_PRESENT_FIGURES,
 } from "./describe";
@@ -21,6 +22,7 @@ function reading(
     contractValueCents?: number;
     rateCents?: number;
     origin?: string;
+    loggedMinutes?: number;
   } = {},
 ): BurnReading {
   const rateCents = overrides.rateCents ?? 12_000;
@@ -30,8 +32,8 @@ function reading(
     rateCents,
     rateSource: rateCents === 0 ? "none" : "project",
     entryCount: 1,
-    loggedMinutes: 60,
-    billableMinutes: 60,
+    loggedMinutes: overrides.loggedMinutes ?? 60,
+    billableMinutes: overrides.loggedMinutes ?? 60,
     burnedCents,
     chargeableCents: burnedCents,
     origin: overrides.origin ?? "recorded",
@@ -318,5 +320,43 @@ describe("NO_LINE_WITHOUT_A_PRICE", () => {
 
   it("points at the readings that do exist", () => {
     expect(NO_LINE_WITHOUT_A_PRICE).toContain("listed below");
+  });
+});
+
+describe("hasBurnDownToShow", () => {
+  it("shows a project with hours behind it", () => {
+    expect(hasBurnDownToShow([reading("2026-03-01", 60_000)])).toBe(true);
+  });
+
+  it("shows nothing for a project with no readings", () => {
+    expect(hasBurnDownToShow([])).toBe(false);
+  });
+
+  it("shows nothing when every reading is a day nobody worked", () => {
+    // A reading is taken for the day the page is opened on, so a project
+    // nobody has logged against collects a row a day saying nothing happened.
+    expect(
+      hasBurnDownToShow([
+        reading("2026-03-01", 0, { loggedMinutes: 0 }),
+        reading("2026-03-02", 0, { loggedMinutes: 0 }),
+      ]),
+    ).toBe(false);
+  });
+
+  it("shows a line once one day of work is behind it", () => {
+    expect(
+      hasBurnDownToShow([
+        reading("2026-03-01", 0, { loggedMinutes: 0 }),
+        reading("2026-03-02", 60_000, { loggedMinutes: 30 }),
+      ]),
+    ).toBe(true);
+  });
+
+  it("keeps the flat line of hours that bill for nothing", () => {
+    // A rate of zero is a real finding, not an empty chart: somebody has
+    // worked a fortnight on an engagement that charges for none of it.
+    expect(
+      hasBurnDownToShow([reading("2026-03-01", 0, { rateCents: 0 })]),
+    ).toBe(true);
   });
 });
