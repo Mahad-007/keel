@@ -73,7 +73,7 @@ export function describeBurnDownSpan(
  * because no column has ever recorded either — so it values the past at the
  * figures of the present and says so.
  */
-export const RECONSTRUCTED_AT_TODAY_S_FIGURES =
+export const RECONSTRUCTED_AT_PRESENT_FIGURES =
   "The hours are the hours that were logged, but they are valued at the rate " +
   "and the contract value the project carries now — nothing recorded what " +
   "either of those was at the time.";
@@ -100,10 +100,10 @@ export function describeReconstruction(
   if (only === undefined) return null;
 
   if (readings.every((reading) => reading.origin === "backfilled")) {
-    return `Every reading on this chart was reconstructed after the fact. ${RECONSTRUCTED_AT_TODAY_S_FIGURES}`;
+    return `Every reading on this chart was reconstructed after the fact. ${RECONSTRUCTED_AT_PRESENT_FIGURES}`;
   }
   if (runs.length === 1) {
-    return `The shaded stretch, ${formatDaySpan(only.from, only.to)}, was reconstructed after the fact. ${RECONSTRUCTED_AT_TODAY_S_FIGURES}`;
+    return `The shaded stretch, ${formatDaySpan(only.from, only.to)}, was reconstructed after the fact. ${RECONSTRUCTED_AT_PRESENT_FIGURES}`;
   }
-  return `The ${runs.length} shaded stretches were reconstructed after the fact. ${RECONSTRUCTED_AT_TODAY_S_FIGURES}`;
+  return `The ${runs.length} shaded stretches were reconstructed after the fact. ${RECONSTRUCTED_AT_PRESENT_FIGURES}`;
 }
