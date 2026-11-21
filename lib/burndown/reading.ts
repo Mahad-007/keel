@@ -1,0 +1,66 @@
+import {
+  isBurnSnapshotOrigin,
+  type BurnSnapshotOrigin,
+} from "./origin";
+import { recordedBurnPoint, type BurnPoint, type RecordedBurn } from "./series";
+
+/**
+ * A stored burn reading as a chart reads it: the point, and how much of a
+ * measurement it is.
+ *
+ * Day 035 stores the figures; this is the other direction, and the one thing
+ * it adds to `recordedBurnPoint` is the origin. A chart draws a line through
+ * every reading it is given, and a line says nothing about where its points
+ * came from — so the stretch of history that was reconstructed after the fact
+ * has to travel with the point or it cannot be marked, and a reader would take
+ * a reconstruction of March for a measurement of it.
+ *
+ * `capturedAt` is deliberately absent. It is a fact about the row rather than
+ * about the day, and the one question it answers — how stale the end of the
+ * line is — is better answered by the last reading's own date against today,
+ * which is what a reader can see on the axis.
+ */
+export type BurnReading = BurnPoint & {
+  /** Whether the reading was measured on its day or reconstructed later. */
+  readonly origin: BurnSnapshotOrigin;
+};
+
+/**
+ * What a reading needs of a stored row: the nine columns a point is built
+ * from, and the word that says how it was arrived at.
+ *
+ * A structural subset of the `burn_snapshots` row, extending the subset
+ * `recordedBurnPoint` already takes, so a whole row satisfies it and so does a
+ * literal in a test. The id, the project and the capture time are left out
+ * because nothing a chart draws depends on them.
+ *
+ * `origin` is `string` rather than the union, which is the point of taking it
+ * separately. The column is declared with an enum, but SQLite does not enforce
+ * one: Drizzle types the value back as an origin whether or not the row holds
+ * a word that is one.
+ */
+export type StoredBurnReading = RecordedBurn & {
+  /** The origin column, as it comes back, which may be neither origin. */
+  readonly origin: string;
+};
+
+/**
+ * A stored row read as a reading of the burn-down.
+ *
+ * The figures go through `recordedBurnPoint` unchanged — the money comes back
+ * as it was reported on the day, at the price and rate of the day — and this
+ * adds the one judgement the chart needs on top of it.
+ *
+ * An origin the table does not know is read as `backfilled`, the weaker claim.
+ * That is the safe direction and the only one worth defending: the caveat a
+ * reconstruction carries costs a reader a sentence, and treating an unreadable
+ * row as a measurement costs them a figure they would have quoted. The rows
+ * that can reach here with a third word are hand-written ones, and a row
+ * somebody wrote by hand is exactly the row not to vouch for.
+ */
+export function burnDownReading(stored: StoredBurnReading): BurnReading {
+  return {
+    ...recordedBurnPoint(stored),
+    origin: isBurnSnapshotOrigin(stored.origin) ? stored.origin : "backfilled",
+  };
+}
