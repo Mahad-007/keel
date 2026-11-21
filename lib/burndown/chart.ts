@@ -36,14 +36,23 @@
  * air — a line that reaches the top of its own axis should not touch the edge
  * of the picture.
  */
-export const BURN_CHART_BOX = {
+export type BurnChartBox = {
+  readonly width: number;
+  readonly height: number;
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly left: number;
+};
+
+export const BURN_CHART_BOX: BurnChartBox = {
   width: 720,
   height: 260,
   top: 16,
   right: 108,
   bottom: 30,
   left: 68,
-} as const;
+};
 
 /** The rectangle the line itself is drawn in: the box less its margins. */
 export type BurnChartArea = {
@@ -67,7 +76,9 @@ export type BurnChartArea = {
  * Derived from the box rather than written out beside it, so moving a margin
  * moves everything that depends on it and the two cannot disagree.
  */
-export function burnChartArea(box = BURN_CHART_BOX): BurnChartArea {
+export function burnChartArea(
+  box: BurnChartBox = BURN_CHART_BOX,
+): BurnChartArea {
   return {
     left: box.left,
     right: box.width - box.right,
