@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   BURN_DOWN_IS_WHAT_WAS_LEFT,
+  describeBurnDownLine,
   describeBurnDownSpan,
   describeReconstruction,
   describeStaleLine,
@@ -174,5 +175,56 @@ describe("describeStaleLine", () => {
 
   it("says nothing about a line whose last reading is ahead of today", () => {
     expect(describeStaleLine(line, "2026-03-01")).toBeNull();
+  });
+});
+
+describe("describeBurnDownLine", () => {
+  it("names the direction, both ends and both amounts", () => {
+    expect(
+      describeBurnDownLine([
+        reading("2026-03-01", 0),
+        reading("2026-03-31", 250_000),
+      ]),
+    ).toBe(
+      "Falling from $5,000.00 left on Mar 1, 2026 to $2,500.00 on Mar 31, 2026.",
+    );
+  });
+
+  it("calls a line that gave money back a rising one", () => {
+    // A corrected or deleted time entry hands back money already spent.
+    expect(
+      describeBurnDownLine([
+        reading("2026-03-01", 250_000),
+        reading("2026-03-31", 100_000),
+      ]),
+    ).toContain("Rising from $2,500.00 left");
+  });
+
+  it("calls a line that never moved flat", () => {
+    expect(
+      describeBurnDownLine([
+        reading("2026-03-01", 100_000),
+        reading("2026-03-31", 100_000),
+      ]),
+    ).toBe("Flat at $4,000.00 left, from Mar 1, 2026 to Mar 31, 2026.");
+  });
+
+  it("spells an overrun out as the amount it is over by", () => {
+    const sentence = describeBurnDownLine([
+      reading("2026-03-01", 0),
+      reading("2026-03-31", 620_000),
+    ]);
+    expect(sentence).toContain("to -$1,200.00 on Mar 31, 2026.");
+    expect(sentence).toContain("That is $1,200.00 past the contract value.");
+  });
+
+  it("describes a single reading as the one measurement it is", () => {
+    expect(describeBurnDownLine([reading("2026-03-01", 100_000)])).toBe(
+      "One reading: $4,000.00 of $5,000.00 left at the end of Mar 1, 2026.",
+    );
+  });
+
+  it("has nothing to describe for a project with no readings", () => {
+    expect(describeBurnDownLine([])).toBeNull();
   });
 });
