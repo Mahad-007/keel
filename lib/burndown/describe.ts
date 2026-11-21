@@ -1,6 +1,6 @@
 import { formatDate, formatDaySpan } from "@/lib/dates";
 
-import type { BurnReading } from "./reading";
+import { reconstructedRuns, type BurnReading } from "./reading";
 
 /**
  * The sentences that go around the burn-down chart.
@@ -60,4 +60,50 @@ export function describeBurnDownSpan(
     return `One reading, on ${formatDate(first.onDate)}.`;
   }
   return `${readings.length} readings, ${formatDaySpan(first.onDate, last.onDate)}.`;
+}
+
+/**
+ * Why a reconstructed stretch is worth less than a measured one.
+ *
+ * The honest half of the caveat, and the half that is easy to get wrong in
+ * the direction of alarm: nothing about the hours is in doubt. The time
+ * entries carry the day they were worked on, so a reconstruction knows
+ * exactly how many minutes went in on each past day. What it cannot know is
+ * what the project was sold for in March, or what an hour billed at then,
+ * because no column has ever recorded either — so it values the past at the
+ * figures of the present and says so.
+ */
+export const RECONSTRUCTED_AT_TODAY_S_FIGURES =
+  "The hours are the hours that were logged, but they are valued at the rate " +
+  "and the contract value the project carries now — nothing recorded what " +
+  "either of those was at the time.";
+
+/**
+ * The caveat for the stretches of the line that were reconstructed, or null
+ * when every reading was taken on its own day.
+ *
+ * Three sentences rather than one assembled from fragments, because the
+ * difference between them is not a word: a chart that is entirely a
+ * reconstruction is a different thing to look at than one with a repaired
+ * gap in the middle, and a reader deciding whether to quote a figure needs to
+ * know which they have.
+ *
+ * The stretch is named by its days as well as shaded, so the caveat still
+ * says something to a reader who cannot see the shading — on a printout, in
+ * forced colours, or with the chart read out to them.
+ */
+export function describeReconstruction(
+  readings: readonly BurnReading[],
+): string | null {
+  const runs = reconstructedRuns(readings);
+  const [only] = runs;
+  if (only === undefined) return null;
+
+  if (readings.every((reading) => reading.origin === "backfilled")) {
+    return `Every reading on this chart was reconstructed after the fact. ${RECONSTRUCTED_AT_TODAY_S_FIGURES}`;
+  }
+  if (runs.length === 1) {
+    return `The shaded stretch, ${formatDaySpan(only.from, only.to)}, was reconstructed after the fact. ${RECONSTRUCTED_AT_TODAY_S_FIGURES}`;
+  }
+  return `The ${runs.length} shaded stretches were reconstructed after the fact. ${RECONSTRUCTED_AT_TODAY_S_FIGURES}`;
 }
