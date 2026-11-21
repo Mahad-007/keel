@@ -53,24 +53,30 @@ export function BurnDownPanel({
   if (readings.length === 0) return null;
 
   const chart = burnDownChart(readings);
-  const caveats = burnDownCaveats(readings, today);
 
   return (
     <section className="mt-10 border-t border-zinc-200 pt-6 dark:border-zinc-800">
       <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
         Burn-down
       </h3>
-      {caveats.map((caveat) => (
-        <CaveatNote key={caveat} className="mt-2">
-          {caveat}
-        </CaveatNote>
-      ))}
+      {/*
+        The caveats belong to the chart and are rendered with it. Both of them
+        are about the picture — one names a shaded stretch and the other says
+        where the line stops — so a project with no line to draw gets the
+        sentence explaining that instead, and the table below marks its
+        reconstructed readings in a column of its own.
+      */}
       {chart === null ? (
         <p className="mt-2 max-w-prose text-sm leading-6 text-zinc-500 dark:text-zinc-400">
           {NO_LINE_WITHOUT_A_PRICE}
         </p>
       ) : (
         <>
+          {burnDownCaveats(readings, today).map((caveat) => (
+            <CaveatNote key={caveat} className="mt-2">
+              {caveat}
+            </CaveatNote>
+          ))}
           <BurnDownChart
             chart={chart}
             description={describeBurnDownLine(readings) ?? ""}
