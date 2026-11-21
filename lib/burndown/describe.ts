@@ -1,4 +1,4 @@
-import { formatDate, formatDaySpan } from "@/lib/dates";
+import { calendarDayGap, formatDate, formatDaySpan } from "@/lib/dates";
 
 import { reconstructedRuns, type BurnReading } from "./reading";
 
@@ -106,4 +106,51 @@ export function describeReconstruction(
     return `The shaded stretch, ${formatDaySpan(only.from, only.to)}, was reconstructed after the fact. ${RECONSTRUCTED_AT_PRESENT_FIGURES}`;
   }
   return `The ${runs.length} shaded stretches were reconstructed after the fact. ${RECONSTRUCTED_AT_PRESENT_FIGURES}`;
+}
+
+/**
+ * How far behind the day the end of the line is allowed to be before the
+ * chart says so: one day.
+ *
+ * A reading is taken for a day once that day is over, so the newest point on
+ * a chart looked at this morning is yesterday's, and that is the chart
+ * working rather than the chart being stale. Two days is the first gap that
+ * means something — either nobody has worked on the project, or nothing has
+ * been recorded about it, and the chart cannot tell those apart.
+ */
+const LINE_IS_CURRENT_WITHIN_DAYS = 1;
+
+/**
+ * The note for a line that stops short of today, or null for one that does
+ * not.
+ *
+ * The end of a burn-down is the figure a reader takes away, and it is the one
+ * figure on the chart that silently goes out of date: the line simply stops,
+ * and a line that stops looks exactly like a project that has settled down.
+ * Saying how old the last point is turns "this project is holding steady"
+ * back into "nobody has recorded anything for three weeks", which is a
+ * different conversation.
+ *
+ * It does not guess which of those it is. A gap at the end means no reading
+ * was taken, and a reading is not taken for a day nobody logged time on — so
+ * a quiet fortnight and a capture that stopped running leave the same mark.
+ * Naming the date and the gap says what is known; anything beyond that would
+ * be the chart inventing a reason.
+ *
+ * `today` is the caller's day rather than a clock read here, like everywhere
+ * else in the codebase that compares against now — so a page renders one
+ * reading of the date and the sentence cannot disagree with the heading above
+ * it.
+ */
+export function describeStaleLine(
+  readings: readonly BurnReading[],
+  today: string,
+): string | null {
+  const last = readings[readings.length - 1];
+  if (last === undefined) return null;
+
+  const behind = calendarDayGap(last.onDate, today);
+  if (behind <= LINE_IS_CURRENT_WITHIN_DAYS) return null;
+
+  return `The line stops at ${formatDate(last.onDate)}, ${behind} days ago. Nothing has been recorded against this project since, so the chart says nothing about the days after it.`;
 }
