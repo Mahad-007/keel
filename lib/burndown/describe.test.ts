@@ -4,6 +4,7 @@ import {
   BURN_DOWN_IS_WHAT_WAS_LEFT,
   describeBurnDownLine,
   describeBurnDownSpan,
+  describeLineEnd,
   describeReconstruction,
   describeStaleLine,
   RECONSTRUCTED_AT_PRESENT_FIGURES,
@@ -226,5 +227,29 @@ describe("describeBurnDownLine", () => {
 
   it("has nothing to describe for a project with no readings", () => {
     expect(describeBurnDownLine([])).toBeNull();
+  });
+});
+
+describe("describeLineEnd", () => {
+  it("says how much is left while there is some", () => {
+    expect(describeLineEnd(reading("2026-03-31", 250_000))).toBe(
+      "$2,500.00 left",
+    );
+  });
+
+  it("says how much it is over once there is not", () => {
+    expect(describeLineEnd(reading("2026-03-31", 620_000))).toBe(
+      "$1,200.00 over",
+    );
+  });
+
+  it("calls an exhausted budget nothing left rather than nothing over", () => {
+    expect(describeLineEnd(reading("2026-03-31", 500_000))).toBe("$0.00 left");
+  });
+
+  it("never prints a currency figure with a minus sign in front", () => {
+    for (const burned of [0, 250_000, 500_000, 620_000]) {
+      expect(describeLineEnd(reading("2026-03-31", burned))).not.toContain("-");
+    }
   });
 });
