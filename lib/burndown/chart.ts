@@ -19,6 +19,12 @@
 
 import { calendarDayGap } from "@/lib/dates";
 
+import {
+  dateAxisTicks,
+  moneyAxisTicks,
+  type DateTick,
+  type MoneyTick,
+} from "./axis";
 import { reconstructedRuns, type BurnReading } from "./reading";
 
 /**
@@ -375,4 +381,119 @@ export function reconstructedBands(
     const x = Math.min(Math.max(centred, area.left), area.right - width);
     return { x: plotUnit(x), width: plotUnit(width) };
   });
+}
+
+/** A rectangle of the plot, used to clip a fill to one side of a line. */
+export type ChartClip = {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+};
+
+/**
+ * A slice of the plot between two heights, or null when it has no height.
+ *
+ * Null rather than a rectangle of zero height, so a chart with nothing below
+ * the baseline leaves the whole apparatus out — a clip path, a fill and an
+ * element — rather than shipping one that covers nothing.
+ */
+function clipBetween(
+  area: BurnChartArea,
+  top: number,
+  bottom: number,
+): ChartClip | null {
+  if (!(bottom > top)) return null;
+  return {
+    x: area.left,
+    y: plotUnit(top),
+    width: area.width,
+    height: plotUnit(bottom - top),
+  };
+}
+
+/** A gridline across the plot: the amount, its label and where it sits. */
+export type PlottedMoneyTick = MoneyTick & { readonly y: number };
+
+/** A day named under the plot, with the position of its tick. */
+export type PlottedDateTick = DateTick & { readonly x: number };
+
+/**
+ * Everything the component needs to draw one project's burn-down, or null
+ * when there is nothing worth drawing.
+ *
+ * One function, called once, returning a whole picture's worth of
+ * coordinates — so the component is a list of elements with numbers in them
+ * and holds no arithmetic of its own. That is what makes the chart testable:
+ * everything that can be wrong about where a line goes is decided here, and
+ * everything decided here is covered by the tests above.
+ *
+ * The two clips are how the wash under the line gets two colours without the
+ * path being cut in two. The same closed shape is drawn twice, once through
+ * each clip, so the budget still in hand and the part spent past it meet
+ * exactly on the baseline rather than along a seam computed twice.
+ *
+ * `last` is the end of the line, pulled out because three things hang off it:
+ * the dot, the label beside the dot, and the sentence under the chart. It is
+ * never null, because a chart with no readings has no domain and this has
+ * already returned.
+ */
+export type BurnDownChart = {
+  readonly box: BurnChartBox;
+  readonly area: BurnChartArea;
+  readonly domain: BurnChartDomain;
+  /** Every reading, placed, in the order the line runs through them. */
+  readonly points: readonly PlottedBurnReading[];
+  /** The last of them: where the dot and the end label go. */
+  readonly last: PlottedBurnReading;
+  /** The `d` of the line itself. */
+  readonly linePath: string;
+  /** The `d` of the wash, closed on the baseline. */
+  readonly areaPath: string;
+  /** Where the money runs out, in user units down the picture. */
+  readonly baselineY: number;
+  /** The part of the plot above the baseline, or null if there is none. */
+  readonly inHand: ChartClip | null;
+  /** The part below it, or null for an engagement still inside its price. */
+  readonly overrun: ChartClip | null;
+  readonly moneyTicks: readonly PlottedMoneyTick[];
+  readonly dateTicks: readonly PlottedDateTick[];
+  /** The stretches that were reconstructed rather than measured. */
+  readonly reconstructed: readonly ChartBand[];
+};
+
+export function burnDownChart(
+  readings: readonly BurnReading[],
+  box: BurnChartBox = BURN_CHART_BOX,
+): BurnDownChart | null {
+  const domain = burnChartDomain(readings);
+  if (domain === null) return null;
+
+  const area = burnChartArea(box);
+  const points = plotBurnReadings(readings, domain, area);
+  const last = points[points.length - 1];
+  if (last === undefined) return null;
+
+  const baselineY = plotUnit(burnChartY(0, domain, area));
+
+  return {
+    box,
+    area,
+    domain,
+    points,
+    last,
+    linePath: burnLinePath(points),
+    areaPath: burnAreaPath(points, baselineY),
+    baselineY,
+    inHand: clipBetween(area, area.top, baselineY),
+    overrun: clipBetween(area, baselineY, area.bottom),
+    moneyTicks: moneyAxisTicks(domain.bottomCents, domain.topCents).map(
+      (tick) => ({ ...tick, y: plotUnit(burnChartY(tick.cents, domain, area)) }),
+    ),
+    dateTicks: dateAxisTicks(domain.from, domain.to).map((tick) => ({
+      ...tick,
+      x: plotUnit(burnChartX(tick.onDate, domain, area)),
+    })),
+    reconstructed: reconstructedBands(readings, domain, area),
+  };
 }
