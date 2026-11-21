@@ -5,6 +5,7 @@ import {
   burnChartArea,
   burnChartDomain,
   burnChartX,
+  burnChartY,
 } from "./chart";
 import { burnDownReading, type BurnReading } from "./reading";
 
@@ -206,5 +207,45 @@ describe("burnChartX", () => {
     expect(() => burnChartX("not a day", domain, area)).toThrow(
       "not a calendar date",
     );
+  });
+});
+
+describe("burnChartY", () => {
+  const area = burnChartArea();
+  const domain = burnChartDomain([reading("2026-03-01", 100_000)])!;
+
+  it("puts the contract value at the top of the plot", () => {
+    expect(burnChartY(500_000, domain, area)).toBe(area.top);
+  });
+
+  it("puts nothing left at the bottom of the plot", () => {
+    expect(burnChartY(0, domain, area)).toBe(area.bottom);
+  });
+
+  it("puts half the contract halfway up", () => {
+    expect(burnChartY(250_000, domain, area)).toBeCloseTo(
+      area.top + area.height / 2,
+    );
+  });
+
+  it("counts upwards: more money left is higher on the picture", () => {
+    expect(burnChartY(400_000, domain, area)).toBeLessThan(
+      burnChartY(100_000, domain, area),
+    );
+  });
+
+  it("drops an overrun below the line it blew through", () => {
+    const overrun = burnChartDomain([
+      reading("2026-03-01", 100_000),
+      reading("2026-03-04", 600_000),
+    ])!;
+    const zero = burnChartY(0, overrun, area);
+    expect(burnChartY(-100_000, overrun, area)).toBeGreaterThan(zero);
+    expect(burnChartY(-100_000, overrun, area)).toBe(area.bottom);
+  });
+
+  it("leaves an amount outside the domain outside the plot", () => {
+    expect(burnChartY(600_000, domain, area)).toBeLessThan(area.top);
+    expect(burnChartY(-1, domain, area)).toBeGreaterThan(area.bottom);
   });
 });
