@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   axisMoneyLabel,
   compactMoneyLabel,
+  moneyAxisTicks,
   moneyTickStep,
 } from "./axis";
 
@@ -113,5 +114,78 @@ describe("moneyTickStep", () => {
   it("gives a range of nothing a step that can still be divided by", () => {
     expect(moneyTickStep(0)).toBe(1);
     expect(moneyTickStep(-500_000)).toBe(1);
+  });
+});
+
+describe("moneyAxisTicks", () => {
+  it("runs from the bottom of the range to the top", () => {
+    expect(moneyAxisTicks(0, 500_000).map((tick) => tick.label)).toEqual([
+      "$0",
+      "$1,000",
+      "$2,000",
+      "$3,000",
+      "$4,000",
+      "$5,000",
+    ]);
+  });
+
+  it("puts a gridline on the day the money runs out", () => {
+    for (const [bottom, top] of [
+      [0, 500_000],
+      [-120_000, 500_000],
+      [-40_000, 0],
+    ]) {
+      expect(moneyAxisTicks(bottom, top).map((t) => t.cents)).toContain(0);
+    }
+  });
+
+  it("labels an overrun below the line", () => {
+    expect(moneyAxisTicks(-300_000, 500_000).map((t) => t.label)).toEqual([
+      "-$2,000",
+      "$0",
+      "$2,000",
+      "$4,000",
+    ]);
+  });
+
+  it("stops short of a contract value that is not a round figure", () => {
+    const ticks = moneyAxisTicks(0, 425_000);
+    expect(ticks[ticks.length - 1].cents).toBe(400_000);
+  });
+
+  it("shortens every label once the axis reaches five figures", () => {
+    expect(moneyAxisTicks(0, 8_000_000).map((t) => t.label)).toEqual([
+      "$0",
+      "$20K",
+      "$40K",
+      "$60K",
+      "$80K",
+    ]);
+  });
+
+  it("keeps one style down the whole axis", () => {
+    // $12,000 is shortened, so the $2,000 above zero is shortened too rather
+    // than two ticks of one axis reading as two different quantities.
+    const labels = moneyAxisTicks(0, 1_200_000).map((t) => t.label);
+    expect(labels).toContain("$2K");
+    expect(labels).not.toContain("$2,000");
+  });
+
+  it("writes a four-figure axis out in full", () => {
+    expect(
+      moneyAxisTicks(0, 500_000).every((t) => t.label.includes(",") || t.label === "$0"),
+    ).toBe(true);
+  });
+
+  it("has no gridlines for a range with no height", () => {
+    expect(moneyAxisTicks(0, 0)).toEqual([]);
+    expect(moneyAxisTicks(500_000, 0)).toEqual([]);
+  });
+
+  it("steps upwards, each tick above the one before", () => {
+    const ticks = moneyAxisTicks(-120_000, 500_000);
+    expect(
+      ticks.every((tick, at) => at === 0 || tick.cents > ticks[at - 1].cents),
+    ).toBe(true);
   });
 });
