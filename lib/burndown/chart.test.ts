@@ -9,6 +9,7 @@ import {
   burnAreaPath,
   burnLinePath,
   plotBurnReadings,
+  burnDownChart,
   reconstructedBands,
 } from "./chart";
 import { burnDownReading, type BurnReading } from "./reading";
@@ -507,5 +508,131 @@ describe("reconstructedBands", () => {
     expect(bands).toHaveLength(2);
     expect(bands[0].x).toBe(area.left);
     expect(bands[1].x).toBeGreaterThan(bands[0].x + bands[0].width);
+  });
+});
+
+describe("burnDownChart", () => {
+  const area = burnChartArea();
+
+  /** A month of an engagement that spent half its budget. */
+  const halfSpent = [
+    reading("2026-03-01", 0),
+    reading("2026-03-16", 125_000),
+    reading("2026-03-31", 250_000),
+  ];
+
+  it("has nothing to draw for a project with no readings", () => {
+    expect(burnDownChart([])).toBeNull();
+  });
+
+  it("has nothing to draw when no money ever moved", () => {
+    expect(
+      burnDownChart([reading("2026-03-01", 0, { contractValueCents: 0 })]),
+    ).toBeNull();
+  });
+
+  it("carries the line, the wash and the plot they are drawn in", () => {
+    const chart = burnDownChart(halfSpent)!;
+    expect(chart.linePath).toBe("M68 16 L340 69.5 L612 123");
+    expect(chart.areaPath).toBe("M68 16 L340 69.5 L612 123 L612 230 L68 230 Z");
+    expect(chart.area).toEqual(area);
+  });
+
+  it("ends the line on the last reading, for the dot and the label", () => {
+    const chart = burnDownChart(halfSpent)!;
+    expect(chart.last.reading.onDate).toBe("2026-03-31");
+    expect(chart.last.x).toBe(area.right);
+    expect(chart.last).toBe(chart.points[chart.points.length - 1]);
+  });
+
+  it("puts the baseline on the floor while the budget holds", () => {
+    const chart = burnDownChart(halfSpent)!;
+    expect(chart.baselineY).toBe(area.bottom);
+    expect(chart.overrun).toBeNull();
+    expect(chart.inHand).toEqual({
+      x: area.left,
+      y: area.top,
+      width: area.width,
+      height: area.height,
+    });
+  });
+
+  it("lifts the baseline off the floor for an engagement that overran", () => {
+    const chart = burnDownChart([
+      reading("2026-03-01", 0),
+      reading("2026-03-31", 620_000),
+    ])!;
+    expect(chart.baselineY).toBeLessThan(area.bottom);
+    expect(chart.overrun).toMatchObject({ y: chart.baselineY });
+    expect(chart.inHand?.height).toBeGreaterThan(0);
+    expect(chart.overrun!.height).toBeGreaterThan(0);
+  });
+
+  it("meets the two halves of the wash exactly on the baseline", () => {
+    const chart = burnDownChart([
+      reading("2026-03-01", 0),
+      reading("2026-03-31", 620_000),
+    ])!;
+    expect(chart.inHand!.y + chart.inHand!.height).toBe(chart.overrun!.y);
+  });
+
+  it("labels the money axis and places each gridline", () => {
+    const chart = burnDownChart(halfSpent)!;
+    expect(chart.moneyTicks.map((tick) => tick.label)).toEqual([
+      "$0",
+      "$1,000",
+      "$2,000",
+      "$3,000",
+      "$4,000",
+      "$5,000",
+    ]);
+    expect(chart.moneyTicks[0].y).toBe(area.bottom);
+    expect(chart.moneyTicks[5].y).toBe(area.top);
+  });
+
+  it("labels the days and places each tick along the bottom", () => {
+    const chart = burnDownChart(halfSpent)!;
+    expect(chart.dateTicks.map((tick) => [tick.label, tick.x])).toEqual([
+      ["Mar 1", area.left],
+      ["Mar 16", 340],
+      ["Mar 31", area.right],
+    ]);
+  });
+
+  it("marks the stretch that was reconstructed", () => {
+    const chart = burnDownChart([
+      reading("2026-03-01", 0, { origin: "backfilled" }),
+      reading("2026-03-16", 125_000, { origin: "backfilled" }),
+      reading("2026-03-31", 250_000),
+    ])!;
+    expect(chart.reconstructed).toEqual([{ x: area.left, width: 272 }]);
+  });
+
+  it("marks nothing on a line that was measured throughout", () => {
+    expect(burnDownChart(halfSpent)!.reconstructed).toEqual([]);
+  });
+
+  it("draws a single reading as a point with no line or wash", () => {
+    const chart = burnDownChart([reading("2026-03-01", 125_000)])!;
+    expect(chart.points).toHaveLength(1);
+    expect(chart.linePath).toBe("M340 69.5");
+    expect(chart.areaPath).toBe("");
+    expect(chart.dateTicks).toEqual([
+      { onDate: "2026-03-01", label: "Mar 1", anchor: "middle", x: 340 },
+    ]);
+  });
+
+  it("draws into whatever box it is given", () => {
+    const chart = burnDownChart(halfSpent, {
+      width: 400,
+      height: 200,
+      top: 10,
+      right: 20,
+      bottom: 30,
+      left: 40,
+    })!;
+    expect(chart.box.width).toBe(400);
+    expect(chart.last.x).toBe(380);
+    expect(chart.baselineY).toBe(170);
   });
 });

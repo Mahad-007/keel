@@ -418,26 +418,7 @@ export type PlottedMoneyTick = MoneyTick & { readonly y: number };
 /** A day named under the plot, with the position of its tick. */
 export type PlottedDateTick = DateTick & { readonly x: number };
 
-/**
- * Everything the component needs to draw one project's burn-down, or null
- * when there is nothing worth drawing.
- *
- * One function, called once, returning a whole picture's worth of
- * coordinates — so the component is a list of elements with numbers in them
- * and holds no arithmetic of its own. That is what makes the chart testable:
- * everything that can be wrong about where a line goes is decided here, and
- * everything decided here is covered by the tests above.
- *
- * The two clips are how the wash under the line gets two colours without the
- * path being cut in two. The same closed shape is drawn twice, once through
- * each clip, so the budget still in hand and the part spent past it meet
- * exactly on the baseline rather than along a seam computed twice.
- *
- * `last` is the end of the line, pulled out because three things hang off it:
- * the dot, the label beside the dot, and the sentence under the chart. It is
- * never null, because a chart with no readings has no domain and this has
- * already returned.
- */
+/** A whole burn-down picture: every coordinate the component needs. */
 export type BurnDownChart = {
   readonly box: BurnChartBox;
   readonly area: BurnChartArea;
@@ -462,6 +443,26 @@ export type BurnDownChart = {
   readonly reconstructed: readonly ChartBand[];
 };
 
+/**
+ * Everything the component needs to draw one project's burn-down, or null
+ * when there is nothing worth drawing.
+ *
+ * One function, called once, returning a whole picture's worth of
+ * coordinates — so the component is a list of elements with numbers in them
+ * and holds no arithmetic of its own. That is what makes the chart testable:
+ * everything that can be wrong about where a line goes is decided here, and
+ * everything decided here is covered by the tests above.
+ *
+ * The two clips are how the wash under the line gets two colours without the
+ * path being cut in two. The same closed shape is drawn twice, once through
+ * each clip, so the budget still in hand and the part spent past it meet
+ * exactly on the baseline rather than along a seam computed twice.
+ *
+ * `last` is the end of the line, pulled out because three things hang off it:
+ * the dot, the label beside the dot, and the sentence under the chart. It is
+ * never null, because a chart with no readings has no domain and this has
+ * already returned.
+ */
 export function burnDownChart(
   readings: readonly BurnReading[],
   box: BurnChartBox = BURN_CHART_BOX,
