@@ -185,6 +185,50 @@ export function shiftCalendarDate(value: string, days: number): string {
   return utcCalendarDate(moment);
 }
 
+/** Milliseconds in a day, which is exact between two UTC midnights. */
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * How many days lie between two calendar dates: `calendarDayGap("2026-03-01",
+ * "2026-03-04")` is 3.
+ *
+ * The inverse of `shiftCalendarDate`, and the reading of a date that a chart
+ * needs and a format cannot give. A burn-down is plotted along calendar time
+ * rather than along the list of days that happen to carry a reading, because
+ * a project worked on Monday and then not again until April has one long flat
+ * stretch and not a single step — spacing the points evenly would draw that
+ * stretch as a cliff, and the shape of the line is the only thing a chart says
+ * that a total does not.
+ *
+ * Counted from midnight to midnight UTC, which makes it exact: both ends are
+ * days rather than moments, so there is no hour to lose to a clock change and
+ * the division can never land between two integers. UTC for the same reason
+ * `shiftCalendarDate` uses it — a `Date` built from a bare date in a local
+ * zone is a different day for half the world.
+ *
+ * Signed, deliberately: the gap is `to` minus `from`, so a date before the one
+ * it is measured against comes back negative rather than as its distance. A
+ * caller plotting a point dated before the start of its own axis wants a
+ * position off the left edge, not a mirror image of one.
+ *
+ * Both ends have to be calendar dates, and it throws when either is not — like
+ * `shiftCalendarDate`, and for the same reason. A timestamp carries a time of
+ * day that this does not keep, and truncating one to its first ten characters
+ * would answer for a different day than the caller asked about.
+ */
+export function calendarDayGap(from: string, to: string): number {
+  if (!isCalendarDate(from)) {
+    throw new Error(`not a calendar date: ${from}`);
+  }
+  if (!isCalendarDate(to)) {
+    throw new Error(`not a calendar date: ${to}`);
+  }
+
+  const start = new Date(`${from}T00:00:00.000Z`).getTime();
+  const end = new Date(`${to}T00:00:00.000Z`).getTime();
+  return (end - start) / MS_PER_DAY;
+}
+
 /**
  * The UTC calendar date a moment falls on.
  *
