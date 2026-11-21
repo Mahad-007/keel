@@ -17,6 +17,7 @@ import {
   burnSnapshotDaysByProject,
   listBurnSnapshots,
   recordBurnSnapshot,
+  refreshedBurnSnapshots,
   updateProjectBurnHistory,
 } from "./burn-snapshots";
 import { createClient, updateClient } from "./clients";
@@ -1144,5 +1145,73 @@ describe("backfillProjectBurn over time logged after the fact", () => {
 
     expect(report).toMatchObject({ written: 0, repaired: 1, refused: 0 });
     expect((await listBurnSnapshots(projectId, db))[0].loggedMinutes).toBe(120);
+  });
+});
+
+describe("refreshedBurnSnapshots", () => {
+  /** The day the page is being read on, as the function reads it. */
+  const today = utcCalendarDate(new Date());
+
+  beforeEach(async () => {
+    await updateProject(projectId, { rateCents: 15_000 }, db);
+  });
+
+  it("gives an unrecorded project a line on its first read", async () => {
+    await createTimeEntry(
+      { projectId, minutes: 120, workedOn: shiftCalendarDate(today, -3) },
+      db,
+    );
+
+    expect(await listBurnSnapshots(projectId, db)).toEqual([]);
+    const rows = await refreshedBurnSnapshots(projectId, db);
+
+    expect(rows.map((row) => row.onDate)).toEqual([
+      shiftCalendarDate(today, -3),
+      today,
+    ]);
+  });
+
+  it("reconstructs the past and measures the present", async () => {
+    await createTimeEntry(
+      { projectId, minutes: 120, workedOn: shiftCalendarDate(today, -3) },
+      db,
+    );
+    const rows = await refreshedBurnSnapshots(projectId, db);
+
+    expect(rows.map((row) => row.origin)).toEqual(["backfilled", "recorded"]);
+    expect(rows.map((row) => row.burnedCents)).toEqual([30_000, 30_000]);
+  });
+
+  it("writes no second row for today when the page is opened again", async () => {
+    await createTimeEntry({ projectId, minutes: 120, workedOn: today }, db);
+    await refreshedBurnSnapshots(projectId, db);
+    const second = await refreshedBurnSnapshots(projectId, db);
+
+    expect(second).toHaveLength(1);
+    expect(second[0].onDate).toBe(today);
+  });
+
+  it("picks up time logged between two reads of the page", async () => {
+    await createTimeEntry({ projectId, minutes: 120, workedOn: today }, db);
+    await refreshedBurnSnapshots(projectId, db);
+
+    await createTimeEntry({ projectId, minutes: 60, workedOn: today }, db);
+    const [row] = await refreshedBurnSnapshots(projectId, db);
+
+    expect(row.loggedMinutes).toBe(180);
+    expect(row.burnedCents).toBe(45_000);
+  });
+
+  it("records a day for a project nobody has logged against", async () => {
+    // The capture does not ask whether anything happened, so the row exists
+    // and reads as nothing burned. What to do with it is the panel's rule.
+    const rows = await refreshedBurnSnapshots(projectId, db);
+
+    expect(rows.map((row) => row.onDate)).toEqual([today]);
+    expect(rows[0].loggedMinutes).toBe(0);
+  });
+
+  it("reads back nothing for a project that is not there", async () => {
+    expect(await refreshedBurnSnapshots("prj_gone", db)).toEqual([]);
   });
 });
