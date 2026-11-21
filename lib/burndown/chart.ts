@@ -279,3 +279,24 @@ export function plotBurnReadings(
     y: plotUnit(burnChartY(reading.remainingCents, domain, area)),
   }));
 }
+
+/**
+ * The `d` attribute of the line through every plotted reading.
+ *
+ * Straight segments, not a curve. A spline through these points would invent
+ * money: between two readings a week apart the budget did not ease downwards
+ * along a cubic, it sat still and then moved, and a curve that overshoots
+ * would draw a day where less was left than any reading recorded. Straight
+ * segments are the honest interpolation — they say "somewhere between these
+ * two figures", which is all that is known.
+ *
+ * An empty series gives an empty string, which is a path that draws nothing
+ * rather than an element that fails to parse. A single reading gives a bare
+ * `M`, which also draws nothing: one point is not a line, and the dot on the
+ * end of the series is what puts it on screen.
+ */
+export function burnLinePath(plotted: readonly PlottedBurnReading[]): string {
+  return plotted
+    .map((point, at) => `${at === 0 ? "M" : "L"}${point.x} ${point.y}`)
+    .join(" ");
+}
