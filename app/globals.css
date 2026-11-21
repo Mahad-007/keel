@@ -19,6 +19,36 @@
   }
 }
 
+/*
+  The burn-down chart's colours, by the job each one does rather than by the
+  hue it happens to be, so the light and dark values swap in one place and the
+  SVG is written against roles.
+
+  The series blue and the overrun red are a validated pair: they clear the
+  colour-vision separation and the three-to-one contrast against both
+  surfaces, which matters here because the overrun is the one thing on the
+  chart that means something by being a different colour. It never means it
+  alone — the line is labelled "over" where it crosses, and the table below
+  carries every figure.
+*/
+:root {
+  --chart-surface: #ffffff;
+  --chart-line: #2a78d6;
+  --chart-over: #d03b3b;
+  --chart-grid: #e4e4e7;
+  --chart-band: #f4f4f5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --chart-surface: #0a0a0a;
+    --chart-line: #3987e5;
+    --chart-over: #d03b3b;
+    --chart-grid: #27272a;
+    --chart-band: #18181b;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
