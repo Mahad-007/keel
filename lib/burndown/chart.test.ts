@@ -6,6 +6,7 @@ import {
   burnChartDomain,
   burnChartX,
   burnChartY,
+  burnAreaPath,
   burnLinePath,
   plotBurnReadings,
 } from "./chart";
@@ -355,5 +356,59 @@ describe("burnLinePath", () => {
     expect(burnLinePath(plot([reading("2026-03-01", 100_000)]))).toBe(
       "M340 58.8",
     );
+  });
+});
+
+describe("burnAreaPath", () => {
+  it("closes the line down to the baseline and back", () => {
+    const plotted = plot([
+      reading("2026-03-01", 0),
+      reading("2026-03-31", 250_000),
+    ]);
+    expect(burnAreaPath(plotted, 230)).toBe(
+      "M68 16 L612 123 L612 230 L68 230 Z",
+    );
+  });
+
+  it("starts with the same line the series is drawn with", () => {
+    const plotted = plot([
+      reading("2026-03-01", 0),
+      reading("2026-03-16", 250_000),
+      reading("2026-03-31", 500_000),
+    ]);
+    expect(burnAreaPath(plotted, 230).startsWith(burnLinePath(plotted))).toBe(
+      true,
+    );
+  });
+
+  it("keeps going below the baseline, for the half drawn as a problem", () => {
+    // The engagement went $1,200 past a $5,000 price, so the last reading is
+    // below the baseline and the closed shape spans both sides of it.
+    const readings = [
+      reading("2026-03-01", 0),
+      reading("2026-03-31", 620_000),
+    ];
+    const domain = burnChartDomain(readings)!;
+    const area = burnChartArea();
+    const baseline = burnChartY(0, domain, area);
+    const plotted = plotBurnReadings(readings, domain, area);
+    expect(plotted[1].y).toBeGreaterThan(baseline);
+    expect(burnAreaPath(plotted, baseline)).toContain(`L612 ${baseline}`);
+  });
+
+  it("has no area to fill for a single reading", () => {
+    expect(burnAreaPath(plot([reading("2026-03-01", 100_000)]), 230)).toBe("");
+  });
+
+  it("has no area to fill for no readings at all", () => {
+    expect(burnAreaPath([], 230)).toBe("");
+  });
+
+  it("closes the shape, so it fills rather than outlines", () => {
+    const plotted = plot([
+      reading("2026-03-01", 0),
+      reading("2026-03-31", 250_000),
+    ]);
+    expect(burnAreaPath(plotted, 230).endsWith("Z")).toBe(true);
   });
 });
