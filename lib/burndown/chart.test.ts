@@ -9,6 +9,7 @@ import {
   burnAreaPath,
   burnLinePath,
   plotBurnReadings,
+  reconstructedBands,
 } from "./chart";
 import { burnDownReading, type BurnReading } from "./reading";
 
@@ -410,5 +411,101 @@ describe("burnAreaPath", () => {
       reading("2026-03-31", 250_000),
     ]);
     expect(burnAreaPath(plotted, 230).endsWith("Z")).toBe(true);
+  });
+});
+
+describe("reconstructedBands", () => {
+  const area = burnChartArea();
+
+  /** A month of readings, each named by the day and how it was arrived at. */
+  function line(days: readonly [string, string][]): BurnReading[] {
+    return days.map(([onDate, origin], at) =>
+      reading(onDate, at * 20_000, { origin }),
+    );
+  }
+
+  it("shades the reconstructed opening of a line", () => {
+    const readings = line([
+      ["2026-03-01", "backfilled"],
+      ["2026-03-16", "backfilled"],
+      ["2026-03-31", "recorded"],
+    ]);
+    expect(
+      reconstructedBands(readings, burnChartDomain(readings)!, area),
+    ).toEqual([{ x: area.left, width: 272 }]);
+  });
+
+  it("shades nothing on a line that was measured throughout", () => {
+    const readings = line([
+      ["2026-03-01", "recorded"],
+      ["2026-03-31", "recorded"],
+    ]);
+    expect(
+      reconstructedBands(readings, burnChartDomain(readings)!, area),
+    ).toEqual([]);
+  });
+
+  it("widens a single reconstructed day into something visible", () => {
+    const readings = line([
+      ["2026-03-01", "recorded"],
+      ["2026-03-16", "backfilled"],
+      ["2026-03-31", "recorded"],
+    ]);
+    const [band] = reconstructedBands(
+      readings,
+      burnChartDomain(readings)!,
+      area,
+    );
+    expect(band.width).toBe(4);
+    // Centred on the day itself, which is halfway across the plot.
+    expect(band.x).toBe(338);
+  });
+
+  it("keeps a sliver at the start of the line inside the plot", () => {
+    const readings = line([
+      ["2026-03-01", "backfilled"],
+      ["2026-03-16", "recorded"],
+      ["2026-03-31", "recorded"],
+    ]);
+    const [band] = reconstructedBands(
+      readings,
+      burnChartDomain(readings)!,
+      area,
+    );
+    expect(band.x).toBe(area.left);
+    expect(band.x + band.width).toBeLessThanOrEqual(area.right);
+  });
+
+  it("keeps a sliver at the end of the line inside the plot", () => {
+    const readings = line([
+      ["2026-03-01", "recorded"],
+      ["2026-03-16", "recorded"],
+      ["2026-03-31", "backfilled"],
+    ]);
+    const [band] = reconstructedBands(
+      readings,
+      burnChartDomain(readings)!,
+      area,
+    );
+    expect(band.x + band.width).toBe(area.right);
+    expect(band.x).toBeGreaterThanOrEqual(area.left);
+  });
+
+  it("shades a repaired gap separately from the opening", () => {
+    const readings = line([
+      ["2026-03-01", "backfilled"],
+      ["2026-03-09", "backfilled"],
+      ["2026-03-16", "recorded"],
+      ["2026-03-24", "backfilled"],
+      ["2026-03-31", "recorded"],
+    ]);
+    const bands = reconstructedBands(
+      readings,
+      burnChartDomain(readings)!,
+      area,
+    );
+    expect(bands).toHaveLength(2);
+    expect(bands[0].x).toBe(area.left);
+    expect(bands[1].x).toBeGreaterThan(bands[0].x + bands[0].width);
   });
 });
