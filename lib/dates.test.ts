@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   calendarDateParts,
+  calendarDayGap,
   endOfMonth,
   formatDate,
   formatDaySpan,
@@ -383,5 +384,60 @@ describe("endOfMonth", () => {
   it("holds at both ends of the calendar", () => {
     expect(endOfMonth("9999-12-01")).toBe("9999-12-31");
     expect(endOfMonth("0000-02-01")).toBe("0000-02-29");
+  });
+});
+
+describe("calendarDayGap", () => {
+  it("counts the days from one date to another", () => {
+    expect(calendarDayGap("2026-03-01", "2026-03-04")).toBe(3);
+  });
+
+  it("is zero between a date and itself", () => {
+    expect(calendarDayGap("2026-03-01", "2026-03-01")).toBe(0);
+  });
+
+  it("comes back negative when the gap runs backwards", () => {
+    expect(calendarDayGap("2026-03-04", "2026-03-01")).toBe(-3);
+  });
+
+  it("counts across a month boundary", () => {
+    expect(calendarDayGap("2026-01-31", "2026-02-01")).toBe(1);
+  });
+
+  it("counts across a leap day, and across the year without one", () => {
+    expect(calendarDayGap("2024-02-28", "2024-03-01")).toBe(2);
+    expect(calendarDayGap("2026-02-28", "2026-03-01")).toBe(1);
+    expect(calendarDayGap("2024-01-01", "2025-01-01")).toBe(366);
+    expect(calendarDayGap("2026-01-01", "2027-01-01")).toBe(365);
+  });
+
+  it("is the inverse of shifting by the gap it reports", () => {
+    const gap = calendarDayGap("2026-03-01", "2026-09-21");
+    expect(shiftCalendarDate("2026-03-01", gap)).toBe("2026-09-21");
+  });
+
+  it("counts whole days across a spring clock change", () => {
+    // The last Sunday in March is 23 hours long in London. Both ends are
+    // days rather than moments, so the gap is still one.
+    expect(calendarDayGap("2026-03-29", "2026-03-30")).toBe(1);
+  });
+
+  it("spans the whole calendar without losing a day", () => {
+    expect(calendarDayGap("0000-01-01", "9999-12-31")).toBe(3652424);
+  });
+
+  it("refuses an end that is not a calendar date", () => {
+    expect(() => calendarDayGap("2026-03-01", "2026-03-32")).toThrow(
+      "not a calendar date: 2026-03-32",
+    );
+    expect(() => calendarDayGap("not a day", "2026-03-01")).toThrow(
+      "not a calendar date: not a day",
+    );
+  });
+
+  it("refuses a timestamp rather than reading the day off its front", () => {
+    expect(() =>
+      calendarDayGap("2026-03-01T23:00:00.000Z", "2026-03-04"),
+    ).toThrow("not a calendar date");
   });
 });
