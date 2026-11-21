@@ -81,15 +81,26 @@ const TICK_INTERVALS = 4;
 
 /**
  * The steps a money axis is allowed to count in, as multiples of a power of
- * ten.
+ * ten, each against the point it starts winning from.
  *
- * Ten is in the list as well as one, so a step that lands just above the top
- * of the range still has somewhere to go rather than falling off the end.
- * Two and a half is deliberately absent: it is a legitimate axis step, but it
- * produces fractional cents at the smallest magnitudes and a column of
- * figures that have to be read rather than recognised.
+ * The thresholds are the geometric midpoints between one multiple and the
+ * next — the square roots of two, ten and fifty — which is what makes the
+ * choice "nearest" rather than "next one up". Rounding a step up every time
+ * is the version of this that looks right and reads wrong: a five-thousand
+ * dollar contract wants four gaps of a thousand and would be given two and a
+ * half gaps of two thousand, and an axis labelled in two-thousands is an axis
+ * whose top figure is not on it.
+ *
+ * Two and a half is deliberately not among them. It is a legitimate axis
+ * step, but it produces fractional cents at the smallest magnitudes and a
+ * column of figures that have to be read rather than recognised.
  */
-const TICK_MULTIPLES = [1, 2, 5, 10];
+const TICK_MULTIPLES = [
+  { from: Math.sqrt(50), multiple: 10 },
+  { from: Math.sqrt(10), multiple: 5 },
+  { from: Math.sqrt(2), multiple: 2 },
+  { from: 0, multiple: 1 },
+];
 
 /**
  * How far apart the gridlines go, in cents: the smallest round step that cuts
@@ -100,6 +111,12 @@ const TICK_MULTIPLES = [1, 2, 5, 10];
  * stepped by the range divided by four would be labelled in eighths of an odd
  * contract value, and every gridline would need reading rather than
  * recognising.
+ *
+ * "About four" is a hint and not a promise. The step is the round figure
+ * nearest a quarter of the range, which can leave five or six gaps rather
+ * than four — and that is the right way round, because a reader notices an
+ * axis labelled in odd figures long before they notice one with an extra
+ * gridline on it.
  *
  * Never below a cent, because the axis is drawn in integer cents like every
  * other amount here and a step of half a cent would put two gridlines on one
@@ -112,9 +129,8 @@ export function moneyTickStep(spanCents: number): number {
 
   const rough = spanCents / TICK_INTERVALS;
   const magnitude = Math.max(1, 10 ** Math.floor(Math.log10(rough)));
-  for (const multiple of TICK_MULTIPLES) {
-    const step = magnitude * multiple;
-    if (step >= rough) return step;
-  }
-  return magnitude * 10;
+  const chosen = TICK_MULTIPLES.find(
+    (candidate) => rough / magnitude >= candidate.from,
+  );
+  return Math.max(1, magnitude * (chosen?.multiple ?? 1));
 }
