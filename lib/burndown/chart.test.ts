@@ -6,6 +6,7 @@ import {
   burnChartDomain,
   burnChartX,
   burnChartY,
+  plotBurnReadings,
 } from "./chart";
 import { burnDownReading, type BurnReading } from "./reading";
 
@@ -247,5 +248,67 @@ describe("burnChartY", () => {
   it("leaves an amount outside the domain outside the plot", () => {
     expect(burnChartY(600_000, domain, area)).toBeLessThan(area.top);
     expect(burnChartY(-1, domain, area)).toBeGreaterThan(area.bottom);
+  });
+});
+
+describe("plotBurnReadings", () => {
+  const area = burnChartArea();
+
+  it("runs the line from the first day to the last", () => {
+    const readings = [
+      reading("2026-03-01", 0),
+      reading("2026-03-16", 250_000),
+      reading("2026-03-31", 500_000),
+    ];
+    const plotted = plotBurnReadings(readings, burnChartDomain(readings)!, area);
+    expect(plotted.map((p) => p.x)).toEqual([area.left, 340, area.right]);
+  });
+
+  it("falls as the money goes", () => {
+    const readings = [
+      reading("2026-03-01", 0),
+      reading("2026-03-16", 250_000),
+      reading("2026-03-31", 500_000),
+    ];
+    const plotted = plotBurnReadings(readings, burnChartDomain(readings)!, area);
+    expect(plotted.map((p) => p.y)).toEqual([area.top, 123, area.bottom]);
+  });
+
+  it("holds its height across a day where nothing was burned", () => {
+    const readings = [
+      reading("2026-03-01", 100_000),
+      reading("2026-03-02", 100_000),
+    ];
+    const plotted = plotBurnReadings(readings, burnChartDomain(readings)!, area);
+    expect(plotted[0].y).toBe(plotted[1].y);
+  });
+
+  it("carries the whole reading, so a label can be built from it", () => {
+    const readings = [reading("2026-03-01", 100_000)];
+    const [point] = plotBurnReadings(
+      readings,
+      burnChartDomain(readings)!,
+      area,
+    );
+    expect(point.reading.onDate).toBe("2026-03-01");
+    expect(point.reading.remainingCents).toBe(400_000);
+  });
+
+  it("rounds coordinates to the hundredth of a unit", () => {
+    const readings = [
+      reading("2026-03-01", 0),
+      reading("2026-03-08", 123_457),
+      reading("2026-03-22", 500_000),
+    ];
+    const plotted = plotBurnReadings(readings, burnChartDomain(readings)!, area);
+    for (const { x, y } of plotted) {
+      expect(x).toBe(Math.round(x * 100) / 100);
+      expect(y).toBe(Math.round(y * 100) / 100);
+    }
+  });
+
+  it("plots nothing for a project with no readings", () => {
+    const domain = burnChartDomain([reading("2026-03-01", 100_000)])!;
+    expect(plotBurnReadings([], domain, area)).toEqual([]);
   });
 });
