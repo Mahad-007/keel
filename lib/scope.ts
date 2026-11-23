@@ -150,6 +150,35 @@ export function unestimatedDeliveredCount(lines: readonly ScopeLine[]): number {
 }
 
 /**
+ * How many lines of the scope list are still open with no estimate on them.
+ *
+ * The other half of `unestimatedDeliveredCount`, and the half a forecast
+ * needs. An unsized line that is done costs the delivered share its
+ * precision and nothing else: the work happened, and the hours it took are in
+ * the burn whether anybody sized it or not. An unsized line that is still
+ * *open* is work that has not happened, is going to cost something, and
+ * contributes nought to `remainingEstimatedMinutes` — so every figure
+ * extrapolated from the remaining estimate is a floor rather than an estimate,
+ * and the direction it is wrong in is known.
+ *
+ * Knowing the direction is what makes this worth counting separately rather
+ * than reading `unestimatedCount`. "Some of the list is unsized" leaves a
+ * reader to work out which way the forecast is wrong; "two unfinished lines
+ * are unsized, so the projection is a floor" tells them, and tells them which
+ * form to go and open.
+ *
+ * Beside the count it mirrors, for the same reason that one sits here: it is a
+ * fact about a scope list rather than a judgement about a project.
+ */
+export function unestimatedUndeliveredCount(
+  lines: readonly ScopeLine[],
+): number {
+  return lines.filter(
+    (line) => !isDelivered(line) && !isEstimated(line.estimatedMinutes),
+  ).length;
+}
+
+/**
  * What the scope list says is still to do, in whole minutes.
  *
  * The estimate of every line not marked done — including the ones in
