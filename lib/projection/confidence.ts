@@ -258,21 +258,28 @@ export const MEASURABLE_PACE_READINGS = 3;
  * How far behind today the readings may fall before the pace stops being a
  * statement about now: three days.
  *
- * A reading is written when the project page is opened, so a project nobody
- * has looked at since Friday is three days behind by Monday morning without
- * anything having gone wrong. Flagging that would put an amber note on half
- * the portfolio every Monday, and the notes that matter would be read as
- * weekend noise.
+ * Worth saying plainly where this can and cannot fire. The project page reads
+ * its readings through `refreshedBurnSnapshots`, which records today before it
+ * hands them back — so from that caller the last reading is always today and
+ * this caveat is unreachable by construction. It is here for the readers that
+ * do not write: the portfolio Day 039 ranks every active project in cannot
+ * afford a capture per row, and a pace measured to a fortnight ago is exactly
+ * what it will be ranking on.
+ *
+ * Three days for those readers, because a project nobody has opened since
+ * Friday is three days behind when a Monday-morning portfolio reads it, and
+ * nothing has gone wrong. Flagging that would put a note on half the list
+ * every Monday, and the notes that matter would be read as weekend noise.
  *
  * Past three days the pace is about a stretch that has ended. It is still the
  * best pace there is — `recentBurnRate` deliberately measures to the last
  * reading rather than to today, so the figure survives — but a date counted
- * forward from today using a pace that stopped a fortnight ago is a forecast
- * with a gap in the middle of it, and the gap is what this names.
+ * forward from today at a pace that stopped a fortnight ago is a forecast with
+ * a gap in the middle of it, and the gap is what this names.
  *
  * Deliberately a day looser than the burn-down chart's own staleness note,
  * which flags anything over a day. That sentence is about a *line*, and a line
- * that stops short is visible on the chart whether or not it matters; this is
+ * stopping short is visible on the chart whether or not it matters; this is
  * about whether to believe a date, and a weekend should not change the answer.
  */
 export const READINGS_CURRENT_WITHIN_DAYS = 3;
