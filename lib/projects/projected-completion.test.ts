@@ -9,7 +9,11 @@ import {
   CAVEAT_SENTENCE,
   CONFIDENCE_LABEL,
   CONFIDENCE_LEAD,
+  BEYOND_HORIZON_LABEL,
+  CONTRACT_ALREADY_GONE_LABEL,
+  describeForecastDate,
   describePaceBasis,
+  describeProjectedRemaining,
   projectionCaveatSentences,
   formatPace,
   hasProjectedCost,
@@ -268,5 +272,47 @@ describe("projectionCaveatSentences", () => {
     expect(sentences).toHaveLength(2);
     expect(sentences[0]).toContain("days of readings");
     expect(sentences[1]).toContain("floor");
+  });
+});
+
+describe("describeProjectedRemaining", () => {
+  it("says what is left when the project lands inside its price", () => {
+    expect(describeProjectedRemaining(projection().forecast)).toBe(
+      "$3,600.00 left",
+    );
+  });
+
+  it("flips the sign and says over when it does not", () => {
+    expect(
+      describeProjectedRemaining({
+        ...projection().forecast,
+        projectedRemainingCents: -400_000,
+      }),
+    ).toBe("$4,000.00 over");
+  });
+
+  it("reads a project landing exactly on its price as nothing left", () => {
+    expect(
+      describeProjectedRemaining({
+        ...projection().forecast,
+        projectedRemainingCents: 0,
+      }),
+    ).toBe("$0.00 left");
+  });
+});
+
+describe("describeForecastDate", () => {
+  it("formats the day when there is one", () => {
+    expect(describeForecastDate(70, "2026-05-23")).toBe("May 23, 2026");
+  });
+
+  it("says the money is gone when there are no days left to count", () => {
+    expect(describeForecastDate(null, null)).toBe(CONTRACT_ALREADY_GONE_LABEL);
+  });
+
+  it("says a day past the horizon is out of range, not absent", () => {
+    // The arithmetic ran and the count is enormous, which is a different
+    // fact from the question not applying.
+    expect(describeForecastDate(40_000, null)).toBe(BEYOND_HORIZON_LABEL);
   });
 });
