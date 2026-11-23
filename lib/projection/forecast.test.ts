@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { EffectiveRate } from "@/lib/rates";
 
-import { remainingWorkCents } from "./forecast";
+import { daysToBurn, remainingWorkCents } from "./forecast";
 
 /** $120.00 an hour, set on the project. */
 const RATE: EffectiveRate = { cents: 12_000, source: "project" };
@@ -36,5 +36,43 @@ describe("remainingWorkCents", () => {
     const hourly: EffectiveRate = { cents: 10_000, source: "project" };
     expect(remainingWorkCents(60, hourly)).toBe(10_000);
     expect(remainingWorkCents(20, hourly) * 3).toBe(9_999);
+  });
+});
+
+describe("daysToBurn", () => {
+  it("divides the amount by the pace", () => {
+    expect(daysToBurn(70_000, 10_000)).toBe(7);
+  });
+
+  it("rounds a part day up", () => {
+    // A date rounded down would arrive a day before the money ran out.
+    expect(daysToBurn(70_001, 10_000)).toBe(8);
+    expect(daysToBurn(1, 10_000)).toBe(1);
+  });
+
+  it("is today for an amount of nothing", () => {
+    // A project with no work left finishes now, not at some point in the past.
+    expect(daysToBurn(0, 10_000)).toBe(0);
+  });
+
+  it("is today for a budget already overspent", () => {
+    // It ran out in the past, and the overrun figure says by how much in
+    // cents. Counting backwards would date it from a pace that has moved.
+    expect(daysToBurn(-50_000, 10_000)).toBe(0);
+  });
+
+  it("has no answer at a pace of nothing", () => {
+    // Never, not in a very long time — and infinity is not a number of days.
+    expect(daysToBurn(70_000, 0)).toBeNull();
+  });
+
+  it("has no answer at a pace that runs backwards", () => {
+    expect(daysToBurn(70_000, -10_000)).toBeNull();
+  });
+
+  it("takes a fractional pace without rounding it first", () => {
+    // The pace is a ratio, so it arrives unrounded: $33.33 a day over three
+    // days reaches $100.00 on the third.
+    expect(daysToBurn(10_000, 10_000 / 3)).toBe(3);
   });
 });
