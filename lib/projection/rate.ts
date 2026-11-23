@@ -64,3 +64,35 @@ export type BurnRate = {
   /** How many stored readings the span was measured from. */
   readonly readingCount: number;
 };
+
+/**
+ * The pace a burn over a span comes to, in cents per day, or null when the
+ * span cannot be divided by.
+ *
+ * Null rather than zero for a span of no days, for the reason `consumedShare`
+ * refuses a contract of nothing: dividing by it gives infinity, and a project
+ * reporting an infinite burn rate because its dates arrived backwards is a
+ * page blaming the reader for a bug. A span of nought or fewer days is only
+ * reachable from a caller that measured its ends the wrong way round, and
+ * there is no honest pace to report for it.
+ *
+ * The burn itself is divided as it comes, sign and all. A negative accrual is
+ * reachable — a time entry deleted between two readings leaves the later one
+ * holding fewer minutes than the earlier — and it comes back as a negative
+ * pace rather than being clamped at nought, because a project whose burn went
+ * *down* is a fact somebody should see rather than a project that stood still.
+ * `hasBurnRate` is what refuses to forecast from it.
+ *
+ * Unrounded, and it is the one figure in the repo that is allowed not to be a
+ * whole number of cents. It is a ratio rather than an amount: rounding
+ * £1,234.56 over seven days to the nearest cent costs nothing, but rounding it
+ * and then multiplying by ninety days compounds the error into real money.
+ * Everything built on it rounds at the end instead.
+ */
+export function centsPerDay(
+  burnedCents: number,
+  elapsedDays: number,
+): number | null {
+  if (elapsedDays <= 0) return null;
+  return burnedCents / elapsedDays;
+}
