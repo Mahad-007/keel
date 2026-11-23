@@ -306,5 +306,16 @@ export function projectionCaveats(
     caveats.push("pace-changed");
   }
 
+  /*
+    Any reconstructed reading at all, not a majority of them. A backfilled day
+    values the hours that were logged at the rate and the price the project
+    carries *now*, because nothing recorded what either was at the time — so a
+    rate that has been raised since makes the early days of the pace look
+    steeper than they were, and one that has been cut makes them flatter. One
+    such day in a fortnight's window is enough to move the forecast, and the
+    reader cannot tell which days they are from the figure.
+  */
+  if (evidence.reconstructedCount > 0) caveats.push("reconstructed-history");
+
   return caveats;
 }
