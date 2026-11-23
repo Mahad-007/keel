@@ -282,5 +282,18 @@ export function projectionCaveats(
     caveats.push("few-readings");
   }
 
+  /*
+    Only once the history is long enough to be worth measuring. A project three
+    days old has already been told its history is short, and adding that there
+    is no second span to compare it against says the same thing twice and gives
+    a reader nothing further to do about it.
+  */
+  if (
+    evidence.wholeHistoryWindow &&
+    evidence.paceDays >= MEASURABLE_PACE_DAYS
+  ) {
+    caveats.push("no-window");
+  }
+
   return caveats;
 }
