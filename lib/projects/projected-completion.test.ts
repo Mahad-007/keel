@@ -541,3 +541,19 @@ describe("CAVEAT_SENTENCE for a pace the forecast did not use", () => {
     expect(sentence).not.toContain("sooner");
   });
 });
+
+describe("CAVEAT_SENTENCE survives a copied projection", () => {
+  it("does not decide which pace was used by object identity", () => {
+    // A projection spread through any boundary — a cache, a return value, a
+    // fixture — has a `pace` that is equal to `recentPace` and not the same
+    // object. The sentence has to read the same.
+    const original = projection({
+      evidence: { ...projection().evidence, paceShift: "faster" },
+    });
+    const copied = { ...original, pace: { ...original.pace } };
+    expect(CAVEAT_SENTENCE["pace-changed"](copied)).toBe(
+      CAVEAT_SENTENCE["pace-changed"](original),
+    );
+    expect(CAVEAT_SENTENCE["pace-changed"](copied)).toContain("later");
+  });
+});

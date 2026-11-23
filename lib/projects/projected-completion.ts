@@ -5,7 +5,7 @@ import type {
   ProjectionConfidence,
 } from "@/lib/projection/confidence";
 import type { BurnForecast } from "@/lib/projection/forecast";
-import type { BurnRate } from "@/lib/projection/rate";
+import { hasBurnRate, type BurnRate } from "@/lib/projection/rate";
 
 import { NO_PRICE_TO_SHARE_LABEL } from "./burn-summary";
 import type { PanelFigure } from "./figure";
@@ -193,8 +193,8 @@ export const CAVEAT_SENTENCE: Record<
 
   "pace-changed": (projection) => {
     /*
-      The recent pace, not `pace`. The two are usually the same object —
-      `forecastPace` prefers the recent figure — but not when the recent window
+      The recent pace, not `pace`. The two are usually the same figure —
+      `forecastPace` prefers the recent one — but not when the recent window
       was quiet, and that is exactly a project this caveat fires on. Naming
       `pace` there would say the last fortnight ran at the average, which is
       the one number it did not run at.
@@ -209,7 +209,14 @@ export const CAVEAT_SENTENCE: Record<
             projection.overallPace.centsPerDay,
           )} across the whole project. `;
 
-    if (projection.pace !== recent) {
+    /*
+      The same question `forecastPace` asked, asked again rather than inferred
+      from which object came back. Comparing identities would be right today
+      and would flip an accelerating project to "nothing has been burned
+      recently" the first time a projection crossed a boundary that copied it
+      — a server action's return value, a cache, a test fixture spread.
+    */
+    if (!hasBurnRate(recent)) {
       return `${comparison}Nothing has been burned recently, so the dates below are counted at the whole-project pace rather than the recent one — they assume the work picks up again.`;
     }
     return `${comparison}The dates below come from the recent figure, so they would sit ${
