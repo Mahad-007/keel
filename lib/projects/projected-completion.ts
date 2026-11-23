@@ -481,3 +481,51 @@ export function projectionFigures(
     ...dates,
   ];
 }
+
+/**
+ * Where the project lands, in one sentence, at the top of the panel.
+ *
+ * The milestone in a line. A reader who gets no further than this has the
+ * figure the whole day was built to produce — whether this engagement is
+ * expected to cost more than it was sold for, and by how much — and they have
+ * it with "at this pace" in front of it rather than as a bare amount.
+ *
+ * The overage leads when there is one, because it is the news. A project
+ * landing inside its contract gets the remainder instead, in the same shape,
+ * rather than the overage of nought that `overspentCents` would hand it: "no
+ * overage expected" is a sentence that invites nobody to read the caveats, and
+ * the remainder is the figure that says how much room there is.
+ *
+ * Both readings name the agreed price. It is in the header four inches up, and
+ * repeating it is what makes the sentence checkable where it is read — a
+ * figure a reader has to scroll to verify is one they verify once.
+ *
+ * With no scope list the sentence says what the panel cannot do rather than
+ * dressing up what it can. The cost rows are withheld in that case, and a
+ * lead sentence that quoted a projected cost of exactly the burn would be the
+ * one place the withholding leaked.
+ */
+export function describeProjectedOutcome(
+  projection: ProjectProjection,
+): string {
+  const { forecast } = projection;
+  const agreed = formatCents(forecast.contractedCents);
+
+  if (!hasProjectedCost(projection)) {
+    return `There are no deliverables to project the remaining work from, so nothing here says what this project will end up costing — only how long the ${agreed} agreed lasts at the pace it is being spent.`;
+  }
+
+  if (forecast.projectedOverageCents > 0) {
+    return `At this pace, and if the remaining estimates are right, this project is expected to cost ${formatCents(
+      forecast.projectedFinalCents,
+    )} — ${formatCents(
+      forecast.projectedOverageCents,
+    )} more than the ${agreed} agreed.`;
+  }
+
+  return `At this pace, and if the remaining estimates are right, this project is expected to cost ${formatCents(
+    forecast.projectedFinalCents,
+  )}, which leaves ${formatCents(
+    forecast.projectedRemainingCents,
+  )} of the ${agreed} agreed.`;
+}
