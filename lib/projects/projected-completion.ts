@@ -443,3 +443,41 @@ export function paceFigure(projection: ProjectProjection): PanelFigure {
     note: describePaceBasis(projection.pace),
   };
 }
+
+/**
+ * The whole panel's figures, in the order they are read.
+ *
+ * Conclusions first and the working last, which is the order every figures
+ * panel in this app keeps. The cost, then what it does to the contract, then
+ * the share — the three in increasing order of how much they commit to — then
+ * the two dates, then the pace they were counted at.
+ *
+ * The first three drop out when there is no scope list to project from, for
+ * the reason `hasProjectedCost` gives: with nothing in the scope list those
+ * rows would read as a project expecting no overage, which is the one figure
+ * on this panel that would be wrong in the reassuring direction. The dates
+ * stay, because the day the money runs out needs no opinion about what the
+ * work is, and the caveat above the figures says which rows are missing and
+ * why. The same arrangement `burnFigures` makes when nobody has set a price.
+ *
+ * One array rather than six calls from the component, so the order is a
+ * decision taken once in the place that explains it and a row added later
+ * cannot land in a different position on a different screen.
+ */
+export function projectionFigures(
+  projection: ProjectProjection,
+): PanelFigure[] {
+  const dates = [
+    contractRunsOutFigure(projection),
+    workPaidForFigure(projection),
+    paceFigure(projection),
+  ];
+  if (!hasProjectedCost(projection)) return dates;
+
+  return [
+    projectedCostFigure(projection),
+    projectedContractFigure(projection),
+    projectedShareFigure(projection),
+    ...dates,
+  ];
+}
