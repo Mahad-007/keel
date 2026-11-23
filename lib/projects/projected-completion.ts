@@ -468,13 +468,19 @@ export function paceFigure(projection: ProjectProjection): PanelFigure {
  * the share — the three in increasing order of how much they commit to — then
  * the two dates, then the pace they were counted at.
  *
- * The first three drop out when there is no scope list to project from, for
+ * Four of the six drop out when there is no scope list to project from, for
  * the reason `hasProjectedCost` gives: with nothing in the scope list those
  * rows would read as a project expecting no overage, which is the one figure
- * on this panel that would be wrong in the reassuring direction. The dates
- * stay, because the day the money runs out needs no opinion about what the
- * work is, and the caveat above the figures says which rows are missing and
- * why. The same arrangement `burnFigures` makes when nobody has set a price.
+ * on this panel that would be wrong in the reassuring direction. The same
+ * arrangement `burnFigures` makes when nobody has set a price.
+ *
+ * "Remaining work paid for" goes with them, and it is the one easiest to think
+ * of as a date rather than as a cost. It is not: the day is the remaining
+ * estimates divided by the pace, so with no estimates it is nought days and it
+ * prints *today* — a project with three months of work ahead of it reporting
+ * that its remaining work is paid for already. The only row that genuinely
+ * survives an empty scope list is the day the money runs out, which needs no
+ * opinion about what the work is, and the pace it was counted at.
  *
  * One array rather than six calls from the component, so the order is a
  * decision taken once in the place that explains it and a row added later
@@ -483,18 +489,17 @@ export function paceFigure(projection: ProjectProjection): PanelFigure {
 export function projectionFigures(
   projection: ProjectProjection,
 ): PanelFigure[] {
-  const dates = [
-    contractRunsOutFigure(projection),
-    workPaidForFigure(projection),
-    paceFigure(projection),
-  ];
-  if (!hasProjectedCost(projection)) return dates;
+  if (!hasProjectedCost(projection)) {
+    return [contractRunsOutFigure(projection), paceFigure(projection)];
+  }
 
   return [
     projectedCostFigure(projection),
     projectedContractFigure(projection),
     projectedShareFigure(projection),
-    ...dates,
+    contractRunsOutFigure(projection),
+    workPaidForFigure(projection),
+    paceFigure(projection),
   ];
 }
 

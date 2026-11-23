@@ -457,14 +457,15 @@ describe("projectionFigures", () => {
     ]);
   });
 
-  it("drops the cost rows when there is no scope list to project from", () => {
-    // They would read as a project expecting no overage, which is the one
-    // figure here that would be wrong in the reassuring direction.
+  it("drops every row the scope list speaks for when there is none", () => {
+    // Including the date the work is paid for, which is the remaining
+    // estimates over the pace: with no estimates it is nought days, and it
+    // would print today on a project with three months of work ahead.
     expect(
       projectionFigures(projection({ caveats: ["no-scope"] })).map(
         (row) => row.label,
       ),
-    ).toEqual(["Contract runs out", "Remaining work paid for", "Burn rate"]);
+    ).toEqual(["Contract runs out", "Burn rate"]);
   });
 
   it("gives every row a label, a value and a note", () => {
