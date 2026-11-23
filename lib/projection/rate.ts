@@ -228,3 +228,75 @@ export function rateWindowStart(toDate: string, windowDays: number): string {
   }
   return shiftCalendarDate(toDate, -(windowDays - 1));
 }
+
+/**
+ * The pace a project has burned at over the recent window, or null when there
+ * is no history to measure.
+ *
+ * The same arithmetic as `overallBurnRate` over a shorter span, and it exists
+ * to disagree with it. A project three months in that has spent the last
+ * fortnight at twice its average pace is the project Day 037 is for, and an
+ * average is exactly the figure that hides it: the busy fortnight is one
+ * sixth of the span, so it moves the average by a sixth of the difference and
+ * the forecast lands a month late. Measuring both and saying when they part
+ * company is cheaper than choosing, and more honest than either.
+ *
+ * The window is a fixed stretch of calendar days ending at the **last stored
+ * reading**, clamped so it never reaches back past the first one. Both halves
+ * of that matter:
+ *
+ *   - Ending at the last reading rather than at today means a project whose
+ *     rows have gone quiet still has a measurable recent pace. A window ending
+ *     today would be empty for it, and an empty window is not a pace of
+ *     nothing — it is no reading at all, which would withdraw the forecast
+ *     from precisely the projects nobody has looked at. The gap between that
+ *     last reading and today is a caveat instead, and it is said out loud.
+ *   - Clamping the start at the first reading means a project five days old
+ *     is measured over five days and not fourteen. Without it the nine days
+ *     before the engagement existed would be counted as nine days of nothing,
+ *     and a brand-new project burning hard would report a third of its real
+ *     pace — the forecast would be wrong in the direction that reassures.
+ *
+ * The baseline is the last reading *before* the window opened, because a
+ * stored figure is cumulative: what the window burned is what the project has
+ * burned now less what it had burned when the window opened. Nought when no
+ * reading precedes the window, which is the clamped case and makes this the
+ * same figure as the overall pace — two names for one measurement, which is
+ * the truth about a project younger than the window and something the
+ * confidence layer says rather than hides.
+ *
+ * A reading dated before the window with no reading between it and the window
+ * is taken at its word: the rows are written on the days work was logged, so
+ * nothing recorded in between means nothing known to have been burned in
+ * between. That is the assumption this file makes, it is the same one the
+ * chart's flat stretches make, and it is the reason the window can be a fixed
+ * number of days rather than a span the data chooses.
+ */
+export function recentBurnRate(
+  readings: readonly BurnReading[],
+  windowDays: number = RECENT_RATE_WINDOW_DAYS,
+): BurnRate | null {
+  const first = readings[0];
+  const last = readings[readings.length - 1];
+  if (first === undefined || last === undefined) return null;
+
+  const windowStart = rateWindowStart(last.onDate, windowDays);
+  const fromDate = windowStart < first.onDate ? first.onDate : windowStart;
+
+  const before = readings.filter((reading) => reading.onDate < fromDate);
+  const baselineCents = before[before.length - 1]?.burnedCents ?? 0;
+
+  const elapsedDays = inclusiveDayCount(fromDate, last.onDate);
+  const burned = last.burnedCents - baselineCents;
+  const perDay = centsPerDay(burned, elapsedDays);
+  if (perDay === null) return null;
+
+  return {
+    fromDate,
+    toDate: last.onDate,
+    elapsedDays,
+    burnedCents: burned,
+    centsPerDay: perDay,
+    readingCount: readings.length - before.length,
+  };
+}
