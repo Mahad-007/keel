@@ -331,3 +331,62 @@ export function paceChangeRatio(
   if (overall.centsPerDay <= 0) return null;
   return recent.centsPerDay / overall.centsPerDay;
 }
+
+/**
+ * How the recent pace stands against the average: the same, faster, or
+ * slower.
+ *
+ * Three words rather than the ratio, because the ratio is what the forecast is
+ * sensitive to and not what anybody needs to read. A projection built on an
+ * average is trustworthy exactly to the extent that the recent weeks resemble
+ * it, and "faster" is the whole of what a reader has to know to distrust the
+ * date on the page — the figure behind it is there for the ones who want it.
+ */
+export const PACE_SHIFTS = ["steady", "faster", "slower"] as const;
+
+export type PaceShift = (typeof PACE_SHIFTS)[number];
+
+/**
+ * How far the recent pace has to part from the average before it is worth
+ * saying so: a quarter, either way.
+ *
+ * Below that, two paces measured over different spans of the same engagement
+ * are the same pace with different amounts of a quiet weekend in them. A
+ * fortnight containing one bank holiday is ten percent off its own average
+ * before anybody has changed how they work, and a page that reported that as a
+ * slowdown would cry wolf on every project every other week — at which point
+ * the one project that really has doubled its pace is one amber note among
+ * forty.
+ *
+ * Symmetrical in the ratio rather than in the forecast it implies, which is
+ * worth naming because the two are not the same. A quarter faster brings a
+ * date forward by a fifth; a quarter slower pushes it back by a third. The
+ * threshold is about whether the two measurements disagree, not about how much
+ * the disagreement costs, so the test is on the pace and the cost is left to
+ * the figures.
+ *
+ * Exported, like `NEARLY_SPENT_SHARE` and the window beside it, because Day
+ * 038 is where these become per-client settings.
+ */
+export const PACE_SHIFT_THRESHOLD = 0.25;
+
+/**
+ * Which way the pace has moved, or null when there is no ratio to judge.
+ *
+ * Null rather than `steady` for a missing ratio, which is the distinction this
+ * file keeps everywhere: "the two paces agree" is a measurement and "there are
+ * not two paces to compare" is a gap, and a page that printed the first when
+ * it meant the second would be vouching for a comparison nobody made.
+ *
+ * The bounds are inclusive on both sides, so a pace exactly a quarter up is
+ * faster and one exactly a quarter down is slower. An arbitrary choice at the
+ * boundary, taken in the direction of saying something: the threshold is there
+ * to suppress noise, and a figure that has reached it exactly is no longer
+ * noise.
+ */
+export function classifyPaceShift(ratio: number | null): PaceShift | null {
+  if (ratio === null) return null;
+  if (ratio >= 1 + PACE_SHIFT_THRESHOLD) return "faster";
+  if (ratio <= 1 - PACE_SHIFT_THRESHOLD) return "slower";
+  return "steady";
+}
