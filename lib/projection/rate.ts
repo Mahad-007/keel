@@ -390,3 +390,31 @@ export function classifyPaceShift(ratio: number | null): PaceShift | null {
   if (ratio <= 1 - PACE_SHIFT_THRESHOLD) return "slower";
   return "steady";
 }
+
+/**
+ * Whether the recent window reaches back over the whole of the project's
+ * history, which makes the two paces one measurement.
+ *
+ * A project younger than the window has no recent pace distinct from its
+ * average, and the ratio between them is exactly one. Read without this, that
+ * one is indistinguishable from a three-month engagement whose last fortnight
+ * happened to match its average — and the two deserve opposite amounts of
+ * belief. The second is a corroboration: two spans, same answer. The first is
+ * a single short measurement reported twice, and a page that let it pass for
+ * agreement would be quoting one reading as though it were two.
+ *
+ * Compared on the elapsed days rather than on the dates, because that is the
+ * span each pace was actually divided by — and `recentBurnRate` clamps its
+ * start at the first reading, so the two spans coincide exactly when the clamp
+ * bit. Greater *or equal* rather than equal, so a window longer than the
+ * history reads the same as one that matches it; nothing produces that today,
+ * and a predicate that failed open on it would fail in the direction of
+ * claiming corroboration.
+ */
+export function windowCoversWholeHistory(
+  overall: BurnRate | null,
+  recent: BurnRate | null,
+): boolean {
+  if (overall === null || recent === null) return false;
+  return recent.elapsedDays >= overall.elapsedDays;
+}
