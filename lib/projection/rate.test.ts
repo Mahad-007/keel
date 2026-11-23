@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { BurnReading } from "@/lib/burndown/reading";
 
-import { centsPerDay, overallBurnRate } from "./rate";
+import { centsPerDay, hasBurnRate, overallBurnRate } from "./rate";
 
 /**
  * A stored reading, as the chart gets it.
@@ -149,5 +149,31 @@ describe("overallBurnRate", () => {
     ]);
     expect(rate?.burnedCents).toBe(25_000);
     expect(rate?.elapsedDays).toBe(2);
+  });
+});
+
+describe("hasBurnRate", () => {
+  it("accepts a pace above nothing", () => {
+    expect(hasBurnRate(overallBurnRate([reading("2026-03-01", 12_000)]))).toBe(
+      true,
+    );
+  });
+
+  it("refuses a pace of nothing", () => {
+    // Infinity downstream: the contract would last for ever and the project
+    // with unvalued hours would be the one with nothing to worry about.
+    expect(hasBurnRate(overallBurnRate([reading("2026-03-01", 0)]))).toBe(
+      false,
+    );
+  });
+
+  it("refuses a pace that runs backwards", () => {
+    expect(hasBurnRate(overallBurnRate([reading("2026-03-01", -500)]))).toBe(
+      false,
+    );
+  });
+
+  it("refuses an absent pace", () => {
+    expect(hasBurnRate(null)).toBe(false);
   });
 });
