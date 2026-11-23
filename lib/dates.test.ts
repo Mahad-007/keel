@@ -7,6 +7,7 @@ import {
   formatDate,
   formatDaySpan,
   formatYear,
+  inclusiveDayCount,
   isCalendarDate,
   localCalendarDate,
   shiftCalendarDate,
@@ -438,6 +439,50 @@ describe("calendarDayGap", () => {
   it("refuses a timestamp rather than reading the day off its front", () => {
     expect(() =>
       calendarDayGap("2026-03-01T23:00:00.000Z", "2026-03-04"),
+    ).toThrow("not a calendar date");
+  });
+});
+
+describe("inclusiveDayCount", () => {
+  it("counts both ends of a span", () => {
+    // The first and the fourth, and the two days between them.
+    expect(inclusiveDayCount("2026-03-01", "2026-03-04")).toBe(4);
+  });
+
+  it("is one day for a span that starts and ends on the same day", () => {
+    // The case the whole function exists for: a project read once has burned
+    // over a day, and dividing by the gap would divide by nought.
+    expect(inclusiveDayCount("2026-03-01", "2026-03-01")).toBe(1);
+  });
+
+  it("counts across a month boundary", () => {
+    expect(inclusiveDayCount("2026-01-31", "2026-02-02")).toBe(3);
+  });
+
+  it("counts a leap day in the span it covers", () => {
+    expect(inclusiveDayCount("2024-02-28", "2024-03-01")).toBe(3);
+    expect(inclusiveDayCount("2026-02-28", "2026-03-01")).toBe(2);
+  });
+
+  it("is one more than the gap it is built from", () => {
+    expect(inclusiveDayCount("2026-03-01", "2026-09-21")).toBe(
+      calendarDayGap("2026-03-01", "2026-09-21") + 1,
+    );
+  });
+
+  it("comes back at nought or below for a span handed over backwards", () => {
+    // Not a span of no days — a caller with its ends the wrong way round. The
+    // division downstream refuses both, which is the point of not repairing it.
+    expect(inclusiveDayCount("2026-03-02", "2026-03-01")).toBe(0);
+    expect(inclusiveDayCount("2026-03-04", "2026-03-01")).toBe(-2);
+  });
+
+  it("refuses a value that is not a calendar date", () => {
+    expect(() => inclusiveDayCount("2026-03", "2026-03-04")).toThrow(
+      "not a calendar date",
+    );
+    expect(() =>
+      inclusiveDayCount("2026-03-01", "2026-03-04T12:00:00.000Z"),
     ).toThrow("not a calendar date");
   });
 });
