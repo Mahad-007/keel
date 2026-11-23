@@ -70,3 +70,34 @@ export const CONFIDENCE_LABEL: Record<ProjectionConfidence, string> = {
   indicative: "Indicative",
   weak: "Weak basis",
 };
+
+/**
+ * What the grade means, in a sentence, under the figures.
+ *
+ * One per grade, and all three say the same thing first: this is an
+ * extrapolation. `firm` does not get a free pass — the inputs being in good
+ * order says nothing about whether next month resembles last month, and a
+ * panel that dropped the qualifier for its best projects would be at its most
+ * confident exactly where it had least right to be.
+ *
+ * What differs is what to do about it. A firm basis can be quoted with the
+ * qualifier attached. An indicative one is a shape rather than a figure — the
+ * direction is right and the number will move. A weak one should not leave the
+ * screen: the figures are shown because a frightening pace on a three-day-old
+ * project is worth seeing, and they are not worth repeating to anybody.
+ */
+export const CONFIDENCE_LEAD: Record<ProjectionConfidence, string> = {
+  firm:
+    "This is an extrapolation, not a plan: it assumes the project carries on " +
+    "at the pace it has been going and that the remaining estimates are " +
+    "right. Every input it needs is present and was measured as it happened.",
+  indicative:
+    "This is an extrapolation, and the inputs behind it are approximate — " +
+    "read the shape of it rather than the figures. What follows says which " +
+    "parts are soft.",
+  weak:
+    "There is not enough measured history behind this to extrapolate from " +
+    "with any confidence. It is shown because a pace worth worrying about is " +
+    "worth seeing early, and it is not a figure to quote. What follows says " +
+    "why.",
+};
