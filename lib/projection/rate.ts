@@ -1,3 +1,6 @@
+import type { BurnReading } from "@/lib/burndown/reading";
+import { inclusiveDayCount } from "@/lib/dates";
+
 /**
  * How fast a project is spending its contract, measured from its own history.
  *
@@ -95,4 +98,58 @@ export function centsPerDay(
 ): number | null {
   if (elapsedDays <= 0) return null;
   return burnedCents / elapsedDays;
+}
+
+/**
+ * The pace a project has burned at across its whole recorded history, or null
+ * when there is no history to measure.
+ *
+ * The baseline is nought, not the first reading's own figure, and that is the
+ * decision worth defending. A stored reading holds what the *whole*
+ * engagement had burned by the end of its day, so the first one already
+ * contains the first day's work — subtracting it would throw that day away and
+ * answer a rate of nothing for a project worked on exactly once. The span is
+ * counted the matching way, with both ends included, so the first day is
+ * divided by as well as counted: one reading of twelve thousand cents is a
+ * pace of twelve thousand cents a day, which is the only reading of it that
+ * reconciles with the figure on the chart.
+ *
+ * Measured from the ends of the list rather than by summing the differences
+ * between consecutive readings. They come to the same total, and the ends are
+ * the pair that cannot drift: a reading deleted from the middle changes
+ * nothing, and a figure that depended on which days happened to carry a row
+ * would move every time the backfill filled a gap in.
+ *
+ * It is the pace for the days the project was *observed*, not for the days
+ * since it was agreed. The burn-down starts on the first day time was logged,
+ * because that is the first thing the rows know about — a project signed in
+ * January and started in March has burned its March money over March, and
+ * dividing it across the two idle months would halve the pace and double the
+ * forecast. The sentence under the chart already says the line starts where it
+ * starts; this inherits the same honesty, and the words module says so again.
+ *
+ * Null for an empty list, which is a project nothing has been logged against:
+ * no pace, as opposed to a pace of nothing. The distinction is the same one
+ * `consumedShare` draws, and it matters here for the same reason — a forecast
+ * built on a pace of nought would promise the contract would last for ever.
+ */
+export function overallBurnRate(
+  readings: readonly BurnReading[],
+): BurnRate | null {
+  const first = readings[0];
+  const last = readings[readings.length - 1];
+  if (first === undefined || last === undefined) return null;
+
+  const elapsedDays = inclusiveDayCount(first.onDate, last.onDate);
+  const perDay = centsPerDay(last.burnedCents, elapsedDays);
+  if (perDay === null) return null;
+
+  return {
+    fromDate: first.onDate,
+    toDate: last.onDate,
+    elapsedDays,
+    burnedCents: last.burnedCents,
+    centsPerDay: perDay,
+    readingCount: readings.length,
+  };
 }
