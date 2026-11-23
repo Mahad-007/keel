@@ -18,6 +18,7 @@ import { writeDuplicatedProject } from "./duplicate-writes";
 
 import { BurnDownPanel } from "./burn-down-panel";
 import { BurnPanel } from "./burn-panel";
+import { ProjectionPanel } from "./projection-panel";
 import { ScopeHealthBanner } from "./scope-health-banner";
 import { DuplicateSection } from "./duplicate-section";
 import { StatusHistory } from "./status-history";
@@ -119,6 +120,15 @@ export function OverviewPanel({
   );
 
   /*
+    Read once for the two panels that need them. The chart draws them and the
+    projection measures its pace off them, and `burnDownReadings` is where a
+    row that is not a day gets dropped and an unreadable origin is read as a
+    reconstruction — so calling it twice would risk a line and a forecast built
+    on different days.
+  */
+  const readings = burnDownReadings(burnSnapshots);
+
+  /*
     The project is captured here rather than bound onto the write, for the same
     reason the scope tab's presses are: `.bind` serialises what it carries in
     the clear, so the project that got copied would be whatever the caller
@@ -160,9 +170,22 @@ export function OverviewPanel({
         one thing over five months and another over a fortnight, and the panel
         above cannot tell them apart.
       */}
-      <BurnDownPanel
-        projectId={project.id}
-        readings={burnDownReadings(burnSnapshots)}
+      <BurnDownPanel projectId={project.id} readings={readings} today={today} />
+      {/*
+        After the history, because the history is its working: the pace every
+        date in it is counted at was measured off the readings the chart above
+        draws. A reader who finds a projected date surprising has the shape it
+        came from an inch up the page.
+
+        The same readings object, not a second call: `burnDownReadings` drops
+        rows and reads unknown origins as reconstructions, and two panels
+        deciding that separately could plot a line from one set of days and
+        forecast from another.
+      */}
+      <ProjectionPanel
+        summary={burn}
+        lines={scopeLines}
+        readings={readings}
         today={today}
       />
       {/*
