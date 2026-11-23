@@ -5,6 +5,8 @@ import { PROJECTION_CONFIDENCE } from "@/lib/projection/confidence";
 import {
   CONFIDENCE_LABEL,
   CONFIDENCE_LEAD,
+  describePaceBasis,
+  formatPace,
   hasProjectedCost,
 } from "./projected-completion";
 import type { ProjectProjection } from "./projection";
@@ -104,5 +106,48 @@ describe("CONFIDENCE_LEAD", () => {
 
   it("says a weak basis is not a figure to quote", () => {
     expect(CONFIDENCE_LEAD.weak).toContain("not a figure to quote");
+  });
+});
+
+describe("formatPace", () => {
+  it("says the pace as money a day", () => {
+    expect(formatPace(85_714)).toBe("$857.14 a day");
+  });
+
+  it("rounds to the cent for display only", () => {
+    expect(formatPace(400_000 / 59)).toBe("$67.80 a day");
+  });
+
+  it("says a pace of nothing as nothing a day", () => {
+    expect(formatPace(0)).toBe("$0.00 a day");
+  });
+});
+
+describe("describePaceBasis", () => {
+  it("names the span, the end and the number of readings", () => {
+    expect(describePaceBasis(projection().pace)).toBe(
+      "Measured across 14 days to Mar 14, 2026, from 8 readings.",
+    );
+  });
+
+  it("says one day and one reading in the singular", () => {
+    expect(
+      describePaceBasis({
+        ...projection().pace,
+        elapsedDays: 1,
+        readingCount: 1,
+      }),
+    ).toBe("Measured across one day to Mar 14, 2026, from one reading.");
+  });
+
+  it("says nothing about whether the basis is enough", () => {
+    // That is the caveats' job, and a reader should not meet it twice.
+    const basis = describePaceBasis({
+      ...projection().pace,
+      elapsedDays: 2,
+      readingCount: 2,
+    });
+    expect(basis).not.toContain("too");
+    expect(basis).not.toContain("short");
   });
 });
