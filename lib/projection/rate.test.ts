@@ -7,6 +7,7 @@ import {
   type BurnRate,
   centsPerDay,
   classifyPaceShift,
+  forecastPace,
   hasBurnRate,
   overallBurnRate,
   paceChangeRatio,
@@ -520,5 +521,37 @@ describe("windowCoversWholeHistory", () => {
         recentBurnRate(young, 14),
       ),
     ).toBe(true);
+  });
+});
+
+describe("forecastPace", () => {
+  it("carries the recent pace forward when there is one", () => {
+    const overall = overallBurnRate(ACCELERATING) as BurnRate;
+    const recent = recentBurnRate(ACCELERATING, 14);
+    expect(forecastPace(overall, recent)).toBe(recent);
+  });
+
+  it("falls back to the average when the window was quiet", () => {
+    // The work in the scope list has not gone away because somebody took a
+    // holiday, and "no projected finish" would be worse than the average.
+    const quiet = [
+      reading("2026-02-01", 10_000),
+      reading("2026-02-10", 80_000),
+      reading("2026-03-14", 80_000),
+    ];
+    const overall = overallBurnRate(quiet) as BurnRate;
+    expect(recentBurnRate(quiet, 14)?.centsPerDay).toBe(0);
+    expect(forecastPace(overall, recentBurnRate(quiet, 14))).toBe(overall);
+  });
+
+  it("falls back to the average when there is no recent pace at all", () => {
+    const overall = overallBurnRate(ACCELERATING) as BurnRate;
+    expect(forecastPace(overall, null)).toBe(overall);
+  });
+
+  it("always hands back a pace that is one of the two it was given", () => {
+    const overall = overallBurnRate(ACCELERATING) as BurnRate;
+    const recent = recentBurnRate(ACCELERATING, 14);
+    expect([overall, recent]).toContain(forecastPace(overall, recent));
   });
 });
