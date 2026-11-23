@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { PROJECTION_CONFIDENCE } from "@/lib/projection/confidence";
+import {
+  PROJECTION_CAVEATS,
+  PROJECTION_CONFIDENCE,
+} from "@/lib/projection/confidence";
 
 import {
+  CAVEAT_SENTENCE,
   CONFIDENCE_LABEL,
   CONFIDENCE_LEAD,
   describePaceBasis,
+  projectionCaveatSentences,
   formatPace,
   hasProjectedCost,
 } from "./projected-completion";
@@ -149,5 +154,119 @@ describe("describePaceBasis", () => {
     });
     expect(basis).not.toContain("too");
     expect(basis).not.toContain("short");
+  });
+});
+
+describe("CAVEAT_SENTENCE", () => {
+  it("has words for every caveat the list declares", () => {
+    for (const caveat of PROJECTION_CAVEATS) {
+      expect(CAVEAT_SENTENCE[caveat](projection()).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("puts the span in the short-history sentence", () => {
+    const sentence = CAVEAT_SENTENCE["short-history"](
+      projection({
+        evidence: { ...projection().evidence, paceDays: 3 },
+      }),
+    );
+    expect(sentence).toContain("3 days");
+  });
+
+  it("says a single day of readings in the singular", () => {
+    expect(
+      CAVEAT_SENTENCE["short-history"](
+        projection({ evidence: { ...projection().evidence, paceDays: 1 } }),
+      ),
+    ).toContain("a single day");
+  });
+
+  it("calls one reading a point rather than a slope", () => {
+    expect(
+      CAVEAT_SENTENCE["few-readings"](
+        projection({ evidence: { ...projection().evidence, readingCount: 1 } }),
+      ),
+    ).toContain("a point rather than a slope");
+  });
+
+  it("names both paces and which way the dates would move", () => {
+    const sentence = CAVEAT_SENTENCE["pace-changed"](
+      projection({
+        evidence: { ...projection().evidence, paceShift: "faster" },
+      }),
+    );
+    // $1,200.00 over a fortnight against $4,000.00 over fifty-nine days.
+    expect(sentence).toContain("$85.71 a day");
+    expect(sentence).toContain("$67.80 a day");
+    expect(sentence).toContain("later");
+  });
+
+  it("says the dates would come sooner when the project has slowed", () => {
+    const sentence = CAVEAT_SENTENCE["pace-changed"](
+      projection({
+        evidence: { ...projection().evidence, paceShift: "slower" },
+      }),
+    );
+    expect(sentence).toContain("sooner");
+  });
+
+  it("counts the reconstructed readings against the whole pace", () => {
+    const sentence = CAVEAT_SENTENCE["reconstructed-history"](
+      projection({
+        evidence: { ...projection().evidence, reconstructedCount: 3 },
+      }),
+    );
+    expect(sentence).toContain("3 of the 8 readings");
+  });
+
+  it("says how many days the readings have been quiet for", () => {
+    expect(
+      CAVEAT_SENTENCE["stale-readings"](
+        projection({
+          evidence: { ...projection().evidence, daysSinceLastReading: 11 },
+        }),
+      ),
+    ).toContain("11 days");
+  });
+
+  it("says the expected cost is a floor when scope is unsized", () => {
+    const sentence = CAVEAT_SENTENCE["unsized-scope"](
+      projection({
+        evidence: { ...projection().evidence, unsizedUndeliveredCount: 2 },
+      }),
+    );
+    expect(sentence).toContain("2 unfinished deliverables carry");
+    expect(sentence).toContain("floor");
+  });
+
+  it("says one unfinished deliverable in the singular", () => {
+    expect(
+      CAVEAT_SENTENCE["unsized-scope"](
+        projection({
+          evidence: { ...projection().evidence, unsizedUndeliveredCount: 1 },
+        }),
+      ),
+    ).toContain("One unfinished deliverable carries");
+  });
+
+  it("says what is withheld when there is no scope list", () => {
+    expect(CAVEAT_SENTENCE["no-scope"](projection())).toContain(
+      "when the money runs out, not when the project ends",
+    );
+  });
+});
+
+describe("projectionCaveatSentences", () => {
+  it("says nothing at all for a projection with no caveats", () => {
+    expect(projectionCaveatSentences(projection())).toEqual([]);
+  });
+
+  it("keeps the order the caveats were reported in", () => {
+    const sentences = projectionCaveatSentences(
+      projection({ caveats: ["short-history", "unsized-scope"] }),
+    );
+    expect(sentences).toHaveLength(2);
+    expect(sentences[0]).toContain("days of readings");
+    expect(sentences[1]).toContain("floor");
   });
 });
