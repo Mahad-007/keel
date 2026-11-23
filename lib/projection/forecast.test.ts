@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { EffectiveRate } from "@/lib/rates";
 
-import { daysToBurn, remainingWorkCents } from "./forecast";
+import {
+  daysToBurn,
+  FORECAST_HORIZON_DAYS,
+  forecastDate,
+  remainingWorkCents,
+} from "./forecast";
 
 /** $120.00 an hour, set on the project. */
 const RATE: EffectiveRate = { cents: 12_000, source: "project" };
@@ -74,5 +79,48 @@ describe("daysToBurn", () => {
     // The pace is a ratio, so it arrives unrounded: $33.33 a day over three
     // days reaches $100.00 on the third.
     expect(daysToBurn(10_000, 10_000 / 3)).toBe(3);
+  });
+});
+
+describe("forecastDate", () => {
+  it("lands the day count on the calendar", () => {
+    expect(forecastDate("2026-03-14", 7)).toBe("2026-03-21");
+  });
+
+  it("is today itself for a count of nothing", () => {
+    expect(forecastDate("2026-03-14", 0)).toBe("2026-03-14");
+  });
+
+  it("crosses a month and a year end", () => {
+    expect(forecastDate("2026-03-30", 3)).toBe("2026-04-02");
+    expect(forecastDate("2026-12-30", 3)).toBe("2027-01-02");
+  });
+
+  it("names a date right up to the horizon", () => {
+    expect(forecastDate("2026-03-14", FORECAST_HORIZON_DAYS)).toBe(
+      "2036-03-11",
+    );
+  });
+
+  it("names no date past the horizon", () => {
+    // Not a clamped date at the horizon, which would read as a forecast of
+    // that date: what is known is "not within ten years".
+    expect(forecastDate("2026-03-14", FORECAST_HORIZON_DAYS + 1)).toBeNull();
+  });
+
+  it("names no date for a count that would land in the past", () => {
+    expect(forecastDate("2026-03-14", -1)).toBeNull();
+  });
+
+  it("does not throw on a projection of millions of days", () => {
+    // The whole reason for the cap: a page with one surprising estimate on it
+    // should not be a page that fails to render.
+    expect(forecastDate("2026-03-14", 50_000_000)).toBeNull();
+  });
+
+  it("refuses a today that is not a calendar date", () => {
+    expect(() => forecastDate("2026-03-14T09:00:00.000Z", 7)).toThrow(
+      "not a calendar date",
+    );
   });
 });
