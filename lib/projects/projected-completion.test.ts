@@ -7,6 +7,7 @@ import {
 
 import {
   CAVEAT_SENTENCE,
+  contractRunsOutFigure,
   CONFIDENCE_LABEL,
   CONFIDENCE_LEAD,
   BEYOND_HORIZON_LABEL,
@@ -14,7 +15,13 @@ import {
   describeForecastDate,
   describePaceBasis,
   describeProjectedRemaining,
+  paceFigure,
+  projectedContractFigure,
+  projectedCostFigure,
+  projectedShareFigure,
   projectionCaveatSentences,
+  projectionFigures,
+  workPaidForFigure,
   formatPace,
   hasProjectedCost,
 } from "./projected-completion";
@@ -317,5 +324,150 @@ describe("describeForecastDate", () => {
     // The arithmetic ran and the count is enormous, which is a different
     // fact from the question not applying.
     expect(describeForecastDate(40_000, null)).toBe(BEYOND_HORIZON_LABEL);
+  });
+});
+
+describe("projectedCostFigure", () => {
+  it("shows the total and breaks it into its two halves", () => {
+    const figure = projectedCostFigure(projection());
+    expect(figure.value).toBe("$6,400.00");
+    expect(figure.note).toContain("$4,000.00 of hours already logged");
+    expect(figure.note).toContain("$2,400.00 of unfinished estimates");
+  });
+});
+
+describe("projectedContractFigure", () => {
+  it("names the price a project landing inside it was measured against", () => {
+    const figure = projectedContractFigure(projection());
+    expect(figure.value).toBe("$3,600.00 left");
+    expect(figure.note).toBe("Of the $10,000.00 agreed, on this projection.");
+  });
+
+  it("says what an overage means in practice", () => {
+    const figure = projectedContractFigure(
+      projection({
+        forecast: {
+          ...projection().forecast,
+          projectedOverageCents: 400_000,
+          projectedRemainingCents: -400_000,
+        },
+      }),
+    );
+    expect(figure.value).toBe("$4,000.00 over");
+    expect(figure.note).toContain("nobody is paying for");
+  });
+});
+
+describe("projectedShareFigure", () => {
+  it("shows the projected share and what has gone already", () => {
+    const figure = projectedShareFigure(projection());
+    expect(figure.value).toBe("64%");
+    expect(figure.note).toContain("$4,000.00 of the $10,000.00 agreed");
+  });
+
+  it("leaves a projection past the contract unclamped", () => {
+    expect(
+      projectedShareFigure(
+        projection({
+          forecast: { ...projection().forecast, projectedShare: 1.68 },
+        }),
+      ).value,
+    ).toBe("168%");
+  });
+
+  it("stands in for a share there is no price to take", () => {
+    expect(
+      projectedShareFigure(
+        projection({
+          forecast: { ...projection().forecast, projectedShare: null },
+        }),
+      ).value,
+    ).toBe("No price set");
+  });
+});
+
+describe("contractRunsOutFigure", () => {
+  it("dates the end of the money and says how far off it is", () => {
+    const figure = contractRunsOutFigure(projection());
+    expect(figure.value).toBe("May 23, 2026");
+    expect(figure.note).toBe("70 days of contract left at this pace.");
+  });
+
+  it("says there is no day left to count to once the money has gone", () => {
+    const figure = contractRunsOutFigure(
+      projection({
+        forecast: {
+          ...projection().forecast,
+          daysOfContractLeft: null,
+          contractRunsOutOn: null,
+        },
+      }),
+    );
+    expect(figure.value).toBe("Already gone");
+    expect(figure.note).toContain("already passed the contract value");
+  });
+
+  it("says one day in the singular", () => {
+    expect(
+      contractRunsOutFigure(
+        projection({
+          forecast: { ...projection().forecast, daysOfContractLeft: 1 },
+        }),
+      ).note,
+    ).toBe("One day of contract left at this pace.");
+  });
+});
+
+describe("workPaidForFigure", () => {
+  it("dates the end of the work and says what is left to pay for", () => {
+    const figure = workPaidForFigure(projection());
+    expect(figure.value).toBe("Apr 11, 2026");
+    expect(figure.note).toBe(
+      "$2,400.00 of estimates left, which is 28 days at this pace.",
+    );
+  });
+
+  it("does not claim to know when anything will be delivered", () => {
+    // The forecast knows what the estimates come to, not what anybody plans.
+    expect(workPaidForFigure(projection()).label).not.toContain("Finish");
+  });
+});
+
+describe("paceFigure", () => {
+  it("shows the pace and how it was measured", () => {
+    const figure = paceFigure(projection());
+    expect(figure.value).toBe("$85.71 a day");
+    expect(figure.note).toContain("Measured across 14 days");
+  });
+});
+
+describe("projectionFigures", () => {
+  it("puts the conclusions before the working", () => {
+    expect(projectionFigures(projection()).map((row) => row.label)).toEqual([
+      "Expected to cost",
+      "Against the contract",
+      "Projected consumption",
+      "Contract runs out",
+      "Remaining work paid for",
+      "Burn rate",
+    ]);
+  });
+
+  it("drops the cost rows when there is no scope list to project from", () => {
+    // They would read as a project expecting no overage, which is the one
+    // figure here that would be wrong in the reassuring direction.
+    expect(
+      projectionFigures(projection({ caveats: ["no-scope"] })).map(
+        (row) => row.label,
+      ),
+    ).toEqual(["Contract runs out", "Remaining work paid for", "Burn rate"]);
+  });
+
+  it("gives every row a label, a value and a note", () => {
+    for (const row of projectionFigures(projection())) {
+      expect(row.label.length).toBeGreaterThan(0);
+      expect(row.value.length).toBeGreaterThan(0);
+      expect(row.note).not.toBeNull();
+    }
   });
 });
