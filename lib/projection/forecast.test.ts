@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import type { EffectiveRate } from "@/lib/rates";
 
 import {
+  forecastBurn,
+  type ForecastBasis,
   daysToBurn,
   FORECAST_HORIZON_DAYS,
   forecastDate,
@@ -122,5 +124,79 @@ describe("forecastDate", () => {
     expect(() => forecastDate("2026-03-14T09:00:00.000Z", 7)).toThrow(
       "not a calendar date",
     );
+  });
+});
+
+/**
+ * A project halfway through a $10,000.00 contract: $4,000.00 burned, another
+ * $4,000.00 of estimates still to work through, at $200.00 a day.
+ */
+function basis(overrides: Partial<ForecastBasis> = {}): ForecastBasis {
+  return {
+    today: "2026-03-14",
+    contractedCents: 1_000_000,
+    burnedCents: 400_000,
+    remainingWorkCents: 400_000,
+    centsPerDay: 20_000,
+    ...overrides,
+  };
+}
+
+describe("forecastBurn", () => {
+  it("adds what is left to do to what has gone already", () => {
+    expect(forecastBurn(basis()).projectedFinalCents).toBe(800_000);
+  });
+
+  it("reports no overage for a project that lands inside its contract", () => {
+    expect(forecastBurn(basis()).projectedOverageCents).toBe(0);
+  });
+
+  it("reports what is left of the contract at the end, with its sign", () => {
+    expect(forecastBurn(basis()).projectedRemainingCents).toBe(200_000);
+  });
+
+  it("works out the overage when the remaining work passes the price", () => {
+    // $4,000.00 burned and $8,000.00 still to do on a $10,000.00 contract.
+    const forecast = forecastBurn(basis({ remainingWorkCents: 800_000 }));
+    expect(forecast.projectedFinalCents).toBe(1_200_000);
+    expect(forecast.projectedOverageCents).toBe(200_000);
+    expect(forecast.projectedRemainingCents).toBe(-200_000);
+  });
+
+  it("reports the projected share of the contract", () => {
+    expect(forecastBurn(basis()).projectedShare).toBeCloseTo(0.8, 6);
+    expect(
+      forecastBurn(basis({ remainingWorkCents: 800_000 })).projectedShare,
+    ).toBeCloseTo(1.2, 6);
+  });
+
+  it("has no share to report when nothing set a price", () => {
+    // The same reading `consumedShare` takes: a share of nought is a gap, not
+    // a measurement, and infinity is not a percentage.
+    expect(
+      forecastBurn(basis({ contractedCents: 0 })).projectedShare,
+    ).toBeNull();
+  });
+
+  it("counts the whole remaining cost as overage when there is no price", () => {
+    // Arithmetically true and useless to say out loud, which is why the panel
+    // asks whether there is a price before it prints this.
+    expect(
+      forecastBurn(basis({ contractedCents: 0 })).projectedOverageCents,
+    ).toBe(800_000);
+  });
+
+  it("projects a project with nothing left to do at what it has cost", () => {
+    const forecast = forecastBurn(basis({ remainingWorkCents: 0 }));
+    expect(forecast.projectedFinalCents).toBe(400_000);
+    expect(forecast.projectedOverageCents).toBe(0);
+  });
+
+  it("projects a project already past its price as still over", () => {
+    const forecast = forecastBurn(
+      basis({ burnedCents: 1_200_000, remainingWorkCents: 0 }),
+    );
+    expect(forecast.projectedOverageCents).toBe(200_000);
+    expect(forecast.projectedShare).toBeCloseTo(1.2, 6);
   });
 });
