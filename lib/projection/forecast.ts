@@ -150,3 +150,76 @@ export function forecastDate(today: string, days: number): string | null {
   if (days < 0 || days > FORECAST_HORIZON_DAYS) return null;
   return shiftCalendarDate(today, days);
 }
+
+/**
+ * What a forecast is worked out from: today, the money, and the pace.
+ *
+ * Five plain numbers and a date rather than a project, a client, a scope list
+ * and a set of readings. Everything that had to be decided — which rate
+ * applies, what counts as delivered, which days the pace was measured over —
+ * has been decided by the time the arguments get here, which is what makes the
+ * arithmetic testable without a database and reviewable without holding four
+ * other files in mind. `lib/projects/projection.ts` is where the rows turn
+ * into this.
+ *
+ * `burnedCents` is the live figure from the burn summary rather than the last
+ * stored reading, and the distinction matters on the day. A reading is the
+ * state at the end of its day; the summary includes an hour logged ten minutes
+ * ago. Forecasting from the reading would quietly ignore today's work, and
+ * today's work is the most likely thing to have prompted somebody to open the
+ * page.
+ *
+ * `centsPerDay` arrives as a bare number rather than as a `BurnRate` because
+ * the forecast does not care which span it was measured over — that is a
+ * question about how much to believe the answer, and it belongs to the
+ * confidence layer and the words. Taking the rate whole here would invite this
+ * file to start having opinions about it.
+ */
+export type ForecastBasis = {
+  /** The day the forecast is made on: `YYYY-MM-DD`. */
+  readonly today: string;
+  /** What the engagement was agreed for, in cents. */
+  readonly contractedCents: number;
+  /** What the hours logged so far have come to, in cents. */
+  readonly burnedCents: number;
+  /** What the unfinished estimates are expected to cost, in cents. */
+  readonly remainingWorkCents: number;
+  /** The pace to carry forward: cents per day, unrounded. */
+  readonly centsPerDay: number;
+};
+
+/**
+ * Where the project lands: what it will have cost, by how much that passes
+ * the contract, and when.
+ *
+ * Four money figures and two dates, every one of them derived from the same
+ * basis so they cannot disagree with each other. A panel showing an overage
+ * worked out from one set of assumptions and a date worked out from another is
+ * the failure this shape exists to prevent — and it is an easy one to reach,
+ * because the two come from different tables.
+ *
+ * The dates are nullable and the figures are not, which is the asymmetry of
+ * the two extrapolations. What the work will cost needs an estimate and a
+ * rate, and both are in hand by the time a forecast is made at all. *When*
+ * needs a pace as well, and a project can have a price, a rate and a scope
+ * list while having burned nothing — at which point the cost is knowable and
+ * the date is not.
+ */
+export type BurnForecast = {
+  /** What the project is expected to have cost when the work is done. */
+  readonly projectedFinalCents: number;
+  /** How far that passes the contract value, in cents. Nought if it does not. */
+  readonly projectedOverageCents: number;
+  /** Contracted less the projected final cost. Below zero means an overage. */
+  readonly projectedRemainingCents: number;
+  /** The projected final cost as a share of the contract, or null with no price. */
+  readonly projectedShare: number | null;
+  /** Days of work left at this pace, or null when the pace cannot get there. */
+  readonly daysOfWorkLeft: number | null;
+  /** The day the remaining work is expected to be paid for, within the horizon. */
+  readonly workPaidForOn: string | null;
+  /** Days until the contract value is all burned, or null when it already is. */
+  readonly daysOfContractLeft: number | null;
+  /** The day the contract value runs out, within the horizon. */
+  readonly contractRunsOutOn: string | null;
+};
