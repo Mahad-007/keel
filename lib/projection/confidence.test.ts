@@ -212,3 +212,31 @@ describe("projectionCaveats: the recent window", () => {
     ).toBe("indicative");
   });
 });
+
+describe("projectionCaveats: the pace shift", () => {
+  it("caveats a project burning faster than its average", () => {
+    expect(projectionCaveats(evidence({ paceShift: "faster" }))).toContain(
+      "pace-changed",
+    );
+  });
+
+  it("caveats a project that has slowed as well", () => {
+    // Slowing moves the date too, and in the direction that reassures — so
+    // it is the one more worth saying out loud, not less.
+    expect(projectionCaveats(evidence({ paceShift: "slower" }))).toContain(
+      "pace-changed",
+    );
+  });
+
+  it("says nothing when the two paces agree", () => {
+    expect(projectionCaveats(evidence({ paceShift: "steady" }))).not.toContain(
+      "pace-changed",
+    );
+  });
+
+  it("says nothing when there was no comparison to make", () => {
+    expect(projectionCaveats(evidence({ paceShift: null }))).not.toContain(
+      "pace-changed",
+    );
+  });
+});
