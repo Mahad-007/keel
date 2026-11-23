@@ -4,6 +4,7 @@ import type {
   ProjectionCaveat,
   ProjectionConfidence,
 } from "@/lib/projection/confidence";
+import type { BurnForecast } from "@/lib/projection/forecast";
 import type { BurnRate } from "@/lib/projection/rate";
 
 import type { ProjectProjection } from "./projection";
@@ -233,4 +234,51 @@ export function projectionCaveatSentences(
   return projection.caveats.map((caveat) =>
     CAVEAT_SENTENCE[caveat](projection),
   );
+}
+
+/**
+ * What is left of the contract when the work is done, with the sign read out
+ * loud.
+ *
+ * Two words rather than a minus sign, for the reason `describeLineEnd` gives
+ * about the end of the burn-down line: "-$4,000.00" in a column of amounts is
+ * a figure a reader has to decode, and the decoding is the whole meaning.
+ * "$4,000.00 over" is the sentence somebody repeats.
+ *
+ * The amount is flipped rather than printed negative, so the two readings are
+ * the same shape and a column of them lines up on the digits.
+ */
+export function describeProjectedRemaining(forecast: BurnForecast): string {
+  if (forecast.projectedRemainingCents < 0) {
+    return `${formatCents(-forecast.projectedRemainingCents)} over`;
+  }
+  return `${formatCents(forecast.projectedRemainingCents)} left`;
+}
+
+/** What a date row says when the contract value has already gone. */
+export const CONTRACT_ALREADY_GONE_LABEL = "Already gone";
+
+/** What a date row says when the day it would name is past the horizon. */
+export const BEYOND_HORIZON_LABEL = "Not within ten years";
+
+/**
+ * A forecast date, or the words that stand in for one.
+ *
+ * Three answers, and the two that are not a date are different facts. Past the
+ * horizon means the arithmetic ran — there is a day count, and it is enormous
+ * — so the words say the figure is out of range rather than absent. No day
+ * count at all means the question did not apply, which for the contract row
+ * means the money has already gone and for the work row cannot happen on a
+ * projection this panel would draw.
+ *
+ * Takes the pair rather than the forecast, so the two rows share one function
+ * instead of one branching on which row it is drawing.
+ */
+export function describeForecastDate(
+  days: number | null,
+  onDate: string | null,
+): string {
+  if (onDate !== null) return formatDate(onDate);
+  if (days === null) return CONTRACT_ALREADY_GONE_LABEL;
+  return BEYOND_HORIZON_LABEL;
 }
