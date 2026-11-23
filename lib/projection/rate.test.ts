@@ -13,6 +13,7 @@ import {
   PACE_SHIFT_THRESHOLD,
   rateWindowStart,
   recentBurnRate,
+  windowCoversWholeHistory,
   RECENT_RATE_WINDOW_DAYS,
 } from "./rate";
 
@@ -464,5 +465,60 @@ describe("classifyPaceShift", () => {
         ),
       ),
     ).toBe("faster");
+  });
+});
+
+describe("windowCoversWholeHistory", () => {
+  it("is true for a project younger than the window", () => {
+    const young = [reading("2026-03-10", 10_000), reading("2026-03-14", 50_000)];
+    expect(
+      windowCoversWholeHistory(
+        overallBurnRate(young),
+        recentBurnRate(young, 14),
+      ),
+    ).toBe(true);
+  });
+
+  it("is true for a project exactly as old as the window", () => {
+    const exact = [reading("2026-03-01", 10_000), reading("2026-03-14", 50_000)];
+    expect(
+      windowCoversWholeHistory(
+        overallBurnRate(exact),
+        recentBurnRate(exact, 14),
+      ),
+    ).toBe(true);
+  });
+
+  it("is false once there is history outside the window", () => {
+    expect(
+      windowCoversWholeHistory(
+        overallBurnRate(ACCELERATING),
+        recentBurnRate(ACCELERATING, 14),
+      ),
+    ).toBe(false);
+  });
+
+  it("is false when either pace is missing", () => {
+    expect(windowCoversWholeHistory(null, recentBurnRate(ACCELERATING))).toBe(
+      false,
+    );
+    expect(windowCoversWholeHistory(overallBurnRate(ACCELERATING), null)).toBe(
+      false,
+    );
+  });
+
+  it("separates one short reading from two spans agreeing", () => {
+    const young = [reading("2026-03-10", 10_000), reading("2026-03-14", 50_000)];
+    // Both ratios are one; only this predicate says which of them is a
+    // corroboration and which is a single measurement reported twice.
+    expect(
+      paceChangeRatio(overallBurnRate(young), recentBurnRate(young, 14)),
+    ).toBe(1);
+    expect(
+      windowCoversWholeHistory(
+        overallBurnRate(young),
+        recentBurnRate(young, 14),
+      ),
+    ).toBe(true);
   });
 });
