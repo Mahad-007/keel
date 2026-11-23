@@ -8,6 +8,7 @@ import {
   hasBurnRate,
   overallBurnRate,
   rateWindowStart,
+  recentBurnRate,
   RECENT_RATE_WINDOW_DAYS,
 } from "./rate";
 
@@ -229,5 +230,126 @@ describe("rateWindowStart", () => {
         "2026-03-14",
       ),
     ).toBe(RECENT_RATE_WINDOW_DAYS);
+  });
+});
+
+describe("recentBurnRate", () => {
+  it("measures the window ending at the last reading", () => {
+    // Burn stood at $200.00 on the day the fortnight opened and $600.00 at
+    // the end of it: $400.00 across fourteen days.
+    const rate = recentBurnRate(
+      [
+        reading("2026-02-20", 20_000),
+        reading("2026-03-01", 30_000),
+        reading("2026-03-14", 60_000),
+      ],
+      14,
+    );
+    expect(rate).toMatchObject({
+      fromDate: "2026-03-01",
+      toDate: "2026-03-14",
+      elapsedDays: 14,
+      burnedCents: 40_000,
+      centsPerDay: 40_000 / 14,
+    });
+  });
+
+  it("baselines on the last reading before the window opened", () => {
+    // The reading on the 20th is outside the window, so its figure is what
+    // the window started from rather than part of what it burned.
+    const rate = recentBurnRate(
+      [reading("2026-02-20", 50_000), reading("2026-03-14", 60_000)],
+      14,
+    );
+    expect(rate?.burnedCents).toBe(10_000);
+  });
+
+  it("counts only the readings inside the window", () => {
+    const rate = recentBurnRate(
+      [
+        reading("2026-02-10", 10_000),
+        reading("2026-02-20", 20_000),
+        reading("2026-03-02", 30_000),
+        reading("2026-03-14", 60_000),
+      ],
+      14,
+    );
+    expect(rate?.readingCount).toBe(2);
+  });
+
+  it("ends at the last reading even when it is months old", () => {
+    // A window ending today would be empty, and an empty window would
+    // silently withdraw the forecast from the project nobody has looked at.
+    const rate = recentBurnRate(
+      [reading("2025-11-01", 10_000), reading("2025-11-14", 40_000)],
+      14,
+    );
+    expect(rate).toMatchObject({
+      fromDate: "2025-11-01",
+      toDate: "2025-11-14",
+      elapsedDays: 14,
+    });
+  });
+
+  it("does not reach back past the first reading", () => {
+    // Five days old, so measured over five days. Dividing by fourteen would
+    // report a third of the real pace — wrong in the reassuring direction.
+    const rate = recentBurnRate(
+      [reading("2026-03-10", 10_000), reading("2026-03-14", 50_000)],
+      14,
+    );
+    expect(rate).toMatchObject({
+      fromDate: "2026-03-10",
+      elapsedDays: 5,
+      burnedCents: 50_000,
+      centsPerDay: 10_000,
+    });
+  });
+
+  it("is the same reading as the overall pace below the window length", () => {
+    const readings = [
+      reading("2026-03-10", 10_000),
+      reading("2026-03-14", 50_000),
+    ];
+    expect(recentBurnRate(readings, 14)).toEqual(overallBurnRate(readings));
+  });
+
+  it("includes a reading dated exactly on the day the window opens", () => {
+    const rate = recentBurnRate(
+      [
+        reading("2026-03-01", 10_000),
+        reading("2026-03-02", 20_000),
+        reading("2026-03-14", 60_000),
+      ],
+      14,
+    );
+    // The first of March opens the window, so its figure is burned inside it.
+    expect(rate?.burnedCents).toBe(60_000);
+    expect(rate?.readingCount).toBe(3);
+  });
+
+  it("reports no pace at all for a project with no readings", () => {
+    expect(recentBurnRate([], 14)).toBeNull();
+  });
+
+  it("reports a pace of nothing for a window nothing moved in", () => {
+    // Work three weeks ago and none since. A real slowdown, and the figure
+    // says so rather than carrying the old pace forward.
+    const rate = recentBurnRate(
+      [reading("2026-02-10", 50_000), reading("2026-03-14", 50_000)],
+      14,
+    );
+    expect(rate?.centsPerDay).toBe(0);
+    expect(hasBurnRate(rate)).toBe(false);
+  });
+
+  it("defaults to the fortnight window", () => {
+    const readings = [
+      reading("2026-02-20", 20_000),
+      reading("2026-03-14", 60_000),
+    ];
+    expect(recentBurnRate(readings)).toEqual(
+      recentBurnRate(readings, RECENT_RATE_WINDOW_DAYS),
+    );
   });
 });
