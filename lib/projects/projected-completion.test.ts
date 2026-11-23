@@ -13,6 +13,7 @@ import {
   BEYOND_HORIZON_LABEL,
   CONTRACT_ALREADY_GONE_LABEL,
   describeForecastDate,
+  describeProjectedOutcome,
   describePaceBasis,
   describeProjectedRemaining,
   paceFigure,
@@ -469,5 +470,52 @@ describe("projectionFigures", () => {
       expect(row.value.length).toBeGreaterThan(0);
       expect(row.note).not.toBeNull();
     }
+  });
+});
+
+describe("describeProjectedOutcome", () => {
+  it("leads with the overage when the project is heading over", () => {
+    const sentence = describeProjectedOutcome(
+      projection({
+        forecast: {
+          ...projection().forecast,
+          projectedFinalCents: 1_400_000,
+          projectedOverageCents: 400_000,
+          projectedRemainingCents: -400_000,
+        },
+      }),
+    );
+    expect(sentence).toContain("$14,000.00");
+    expect(sentence).toContain("$4,000.00 more than the $10,000.00 agreed");
+  });
+
+  it("gives the remainder for a project landing inside its price", () => {
+    // Not "no overage expected", which would invite nobody to read on.
+    const sentence = describeProjectedOutcome(projection());
+    expect(sentence).toContain("$6,400.00");
+    expect(sentence).toContain("leaves $3,600.00 of the $10,000.00 agreed");
+  });
+
+  it("qualifies the figure rather than stating it flat", () => {
+    expect(describeProjectedOutcome(projection())).toContain("At this pace");
+    expect(describeProjectedOutcome(projection())).toContain(
+      "if the remaining estimates are right",
+    );
+  });
+
+  it("says what it cannot do when there is no scope list", () => {
+    const sentence = describeProjectedOutcome(
+      projection({ caveats: ["no-scope"] }),
+    );
+    expect(sentence).toContain("no deliverables");
+    expect(sentence).not.toContain("expected to cost");
+  });
+
+  it("does not leak a projected cost the figures withheld", () => {
+    // The cost rows are dropped with no scope list, and a lead sentence
+    // quoting a projected cost of exactly the burn would leak them back.
+    expect(
+      describeProjectedOutcome(projection({ caveats: ["no-scope"] })),
+    ).not.toContain("$6,400.00");
   });
 });
