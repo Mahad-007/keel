@@ -298,3 +298,52 @@ describe("projectionCaveats: stale readings", () => {
     );
   });
 });
+
+describe("projectionCaveats: what the scope list can say", () => {
+  it("caveats unfinished lines nobody has sized", () => {
+    expect(
+      projectionCaveats(evidence({ unsizedUndeliveredCount: 2 })),
+    ).toContain("unsized-scope");
+  });
+
+  it("says nothing when every unfinished line carries an estimate", () => {
+    expect(
+      projectionCaveats(evidence({ unsizedUndeliveredCount: 0 })),
+    ).not.toContain("unsized-scope");
+  });
+
+  it("caveats a project with no deliverables at all", () => {
+    expect(projectionCaveats(evidence({ lineCount: 0 }))).toContain("no-scope");
+  });
+
+  it("grades a project with no scope list weak", () => {
+    // The projected overage would read as no overage for a project with
+    // three months of work ahead of it.
+    expect(
+      projectionConfidence(projectionCaveats(evidence({ lineCount: 0 }))),
+    ).toBe("weak");
+  });
+
+  it("reports the caveats in the order the list declares them", () => {
+    const caveats = projectionCaveats(
+      evidence({
+        paceDays: 2,
+        readingCount: 1,
+        reconstructedCount: 3,
+        daysSinceLastReading: 9,
+        paceShift: "faster",
+        lineCount: 0,
+        unsizedUndeliveredCount: 1,
+      }),
+    );
+    expect(caveats).toEqual([
+      "short-history",
+      "few-readings",
+      "pace-changed",
+      "reconstructed-history",
+      "stale-readings",
+      "unsized-scope",
+      "no-scope",
+    ]);
+  });
+});
