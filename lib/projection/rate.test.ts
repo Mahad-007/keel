@@ -6,9 +6,11 @@ import { inclusiveDayCount } from "@/lib/dates";
 import {
   type BurnRate,
   centsPerDay,
+  classifyPaceShift,
   hasBurnRate,
   overallBurnRate,
   paceChangeRatio,
+  PACE_SHIFT_THRESHOLD,
   rateWindowStart,
   recentBurnRate,
   RECENT_RATE_WINDOW_DAYS,
@@ -414,5 +416,53 @@ describe("paceChangeRatio", () => {
         recentBurnRate(flat, 14),
       ),
     ).toBeNull();
+  });
+});
+
+describe("classifyPaceShift", () => {
+  it("calls a pace within a quarter of its average steady", () => {
+    expect(classifyPaceShift(1)).toBe("steady");
+    expect(classifyPaceShift(1.1)).toBe("steady");
+    expect(classifyPaceShift(0.9)).toBe("steady");
+  });
+
+  it("calls a pace a quarter or more above its average faster", () => {
+    expect(classifyPaceShift(1 + PACE_SHIFT_THRESHOLD)).toBe("faster");
+    expect(classifyPaceShift(2)).toBe("faster");
+  });
+
+  it("calls a pace a quarter or more below its average slower", () => {
+    expect(classifyPaceShift(1 - PACE_SHIFT_THRESHOLD)).toBe("slower");
+    expect(classifyPaceShift(0.1)).toBe("slower");
+  });
+
+  it("holds the line just inside the threshold either way", () => {
+    expect(classifyPaceShift(1.2499)).toBe("steady");
+    expect(classifyPaceShift(0.7501)).toBe("steady");
+  });
+
+  it("reads a window nothing moved in as slower rather than steady", () => {
+    expect(classifyPaceShift(0)).toBe("slower");
+  });
+
+  it("reads a burn that went backwards as slower", () => {
+    expect(classifyPaceShift(-0.4)).toBe("slower");
+  });
+
+  it("has no verdict when there is no ratio to judge", () => {
+    // Not "steady": two paces agreeing is a measurement, and no second pace
+    // to compare is a gap.
+    expect(classifyPaceShift(null)).toBeNull();
+  });
+
+  it("calls an accelerating project faster from its own readings", () => {
+    expect(
+      classifyPaceShift(
+        paceChangeRatio(
+          overallBurnRate(ACCELERATING),
+          recentBurnRate(ACCELERATING, 14),
+        ),
+      ),
+    ).toBe("faster");
   });
 });
