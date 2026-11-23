@@ -28,19 +28,22 @@ import {
 } from "./projected-completion";
 import type { ProjectProjection } from "./projection";
 
+/** $1,200.00 across the fortnight to 14 March, from eight readings. */
+const RECENT_PACE = {
+  fromDate: "2026-03-01",
+  toDate: "2026-03-14",
+  elapsedDays: 14,
+  burnedCents: 120_000,
+  centsPerDay: 120_000 / 14,
+  readingCount: 8,
+};
+
 /** A projection with only the fields a words function reads. */
 function projection(
   overrides: Partial<ProjectProjection> = {},
 ): ProjectProjection {
   return {
-    pace: {
-      fromDate: "2026-03-01",
-      toDate: "2026-03-14",
-      elapsedDays: 14,
-      burnedCents: 120_000,
-      centsPerDay: 120_000 / 14,
-      readingCount: 8,
-    },
+    pace: RECENT_PACE,
     overallPace: {
       fromDate: "2026-01-15",
       toDate: "2026-03-14",
@@ -49,7 +52,7 @@ function projection(
       centsPerDay: 400_000 / 59,
       readingCount: 20,
     },
-    recentPace: null,
+    recentPace: RECENT_PACE,
     evidence: {
       paceDays: 14,
       readingCount: 8,
@@ -517,5 +520,23 @@ describe("describeProjectedOutcome", () => {
     expect(
       describeProjectedOutcome(projection({ caveats: ["no-scope"] })),
     ).not.toContain("$6,400.00");
+  });
+});
+
+describe("CAVEAT_SENTENCE for a pace the forecast did not use", () => {
+  it("names the recent pace, not the one the dates came from", () => {
+    // A quiet fortnight: `forecastPace` fell back to the average, and a
+    // sentence naming the pace it used would say the fortnight ran at the
+    // one figure it did not run at.
+    const sentence = CAVEAT_SENTENCE["pace-changed"](
+      projection({
+        pace: projection().overallPace,
+        recentPace: { ...RECENT_PACE, burnedCents: 0, centsPerDay: 0 },
+        evidence: { ...projection().evidence, paceShift: "slower" },
+      }),
+    );
+    expect(sentence).toContain("$0.00 a day");
+    expect(sentence).toContain("whole-project pace");
+    expect(sentence).not.toContain("sooner");
   });
 });

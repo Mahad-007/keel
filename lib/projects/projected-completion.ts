@@ -106,10 +106,11 @@ export const CONFIDENCE_LEAD: Record<ProjectionConfidence, string> = {
     "read the shape of it rather than the figures. What follows says which " +
     "parts are soft.",
   weak:
-    "There is not enough measured history behind this to extrapolate from " +
-    "with any confidence. It is shown because a pace worth worrying about is " +
-    "worth seeing early, and it is not a figure to quote. What follows says " +
-    "why.",
+    "There is not enough behind this to extrapolate from with any " +
+    "confidence — either too little measured history or nothing that says " +
+    "how much work is left. It is shown because a pace worth worrying about " +
+    "is worth seeing early, and it is not a figure to quote. What follows " +
+    "says why.",
 };
 
 /**
@@ -190,16 +191,31 @@ export const CAVEAT_SENTENCE: Record<
   "no-window": (projection) =>
     `The project has ${projection.evidence.paceDays} days of readings, so the recent fortnight this panel would normally check against the average is the whole history. There is one pace, and nothing corroborates it.`,
 
-  "pace-changed": (projection) =>
-    `The last stretch ran at ${formatPace(
-      projection.pace.centsPerDay,
-    )} against ${formatPace(
-      projection.overallPace.centsPerDay,
-    )} across the whole project. The dates come from the ${
-      projection.evidence.paceShift === "faster" ? "faster" : "slower"
-    } recent figure, so they would sit ${
+  "pace-changed": (projection) => {
+    /*
+      The recent pace, not `pace`. The two are usually the same object —
+      `forecastPace` prefers the recent figure — but not when the recent window
+      was quiet, and that is exactly a project this caveat fires on. Naming
+      `pace` there would say the last fortnight ran at the average, which is
+      the one number it did not run at.
+    */
+    const recent = projection.recentPace;
+    const comparison =
+      recent === null
+        ? ""
+        : `The last stretch ran at ${formatPace(
+            recent.centsPerDay,
+          )} against ${formatPace(
+            projection.overallPace.centsPerDay,
+          )} across the whole project. `;
+
+    if (projection.pace !== recent) {
+      return `${comparison}Nothing has been burned recently, so the dates below are counted at the whole-project pace rather than the recent one — they assume the work picks up again.`;
+    }
+    return `${comparison}The dates below come from the recent figure, so they would sit ${
       projection.evidence.paceShift === "faster" ? "later" : "sooner"
-    } if the project returned to its average.`,
+    } if the project returned to its average.`;
+  },
 
   "reconstructed-history": (projection) =>
     `${projection.evidence.reconstructedCount} of the ${projection.evidence.readingCount} readings behind this pace were reconstructed after the fact rather than measured on the day. Their hours are the hours that were logged, but valued at the rate and contract value the project carries now — so a rate that has moved since tilts the pace.`,
