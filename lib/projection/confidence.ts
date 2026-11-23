@@ -253,3 +253,34 @@ export const MEASURABLE_PACE_DAYS = 7;
  * which is the chart's own problem and a different sentence.
  */
 export const MEASURABLE_PACE_READINGS = 3;
+
+/**
+ * What is wrong with a forecast built on this evidence, worst basis first.
+ *
+ * The one function that turns measurements into caveats, and it is written as
+ * a sequence of independent tests rather than a chain: a project can have a
+ * short history *and* unsized scope, and a reader who was told only the first
+ * would go and wait a week to fix a problem that a form would have fixed.
+ * `creepBlindSpots` is the same shape for the same reason.
+ *
+ * The order is the declaration order of `PROJECTION_CAVEATS`, which runs from
+ * the basis of the forecast outwards. It is not severity order and does not
+ * need to be — the grade is folded separately, so the list can be ordered for
+ * reading rather than for ranking.
+ */
+export function projectionCaveats(
+  evidence: ProjectionEvidence,
+): ProjectionCaveat[] {
+  const caveats: ProjectionCaveat[] = [];
+
+  // Days first: the span the pace was divided by is the most fundamental
+  // thing about it, and a pace measured over two days is not improved by
+  // having four readings in it.
+  if (evidence.paceDays < MEASURABLE_PACE_DAYS) caveats.push("short-history");
+
+  if (evidence.readingCount < MEASURABLE_PACE_READINGS) {
+    caveats.push("few-readings");
+  }
+
+  return caveats;
+}
