@@ -4,9 +4,11 @@ import type { BurnReading } from "@/lib/burndown/reading";
 import { inclusiveDayCount } from "@/lib/dates";
 
 import {
+  type BurnRate,
   centsPerDay,
   hasBurnRate,
   overallBurnRate,
+  paceChangeRatio,
   rateWindowStart,
   recentBurnRate,
   RECENT_RATE_WINDOW_DAYS,
@@ -351,5 +353,66 @@ describe("recentBurnRate", () => {
     expect(recentBurnRate(readings)).toEqual(
       recentBurnRate(readings, RECENT_RATE_WINDOW_DAYS),
     );
+  });
+});
+
+/** A fortnight at nearly twice the pace of the two months before it. */
+const ACCELERATING: BurnReading[] = [
+  reading("2026-01-15", 10_000),
+  reading("2026-02-28", 60_000),
+  reading("2026-03-14", 110_000),
+];
+
+describe("paceChangeRatio", () => {
+  it("divides the recent pace by the overall one", () => {
+    const overall = overallBurnRate(ACCELERATING);
+    const recent = recentBurnRate(ACCELERATING, 14);
+    expect(paceChangeRatio(overall, recent)).toBeCloseTo(
+      (recent?.centsPerDay ?? 0) / (overall?.centsPerDay ?? 1),
+      6,
+    );
+  });
+
+  it("reports a project burning faster than its average above one", () => {
+    expect(
+      paceChangeRatio(
+        overallBurnRate(ACCELERATING),
+        recentBurnRate(ACCELERATING, 14),
+      ),
+    ).toBeGreaterThan(1.9);
+  });
+
+  it("reports a project that has gone quiet below one", () => {
+    const slowing = [
+      reading("2026-01-15", 10_000),
+      reading("2026-02-28", 100_000),
+      reading("2026-03-14", 105_000),
+    ];
+    expect(
+      paceChangeRatio(overallBurnRate(slowing), recentBurnRate(slowing, 14)),
+    ).toBeLessThan(0.5);
+  });
+
+  it("is one when the window covers the whole history", () => {
+    const young = [reading("2026-03-10", 10_000), reading("2026-03-14", 50_000)];
+    expect(
+      paceChangeRatio(overallBurnRate(young), recentBurnRate(young, 14)),
+    ).toBe(1);
+  });
+
+  it("has no ratio when either pace is missing", () => {
+    expect(paceChangeRatio(null, recentBurnRate(ACCELERATING, 14))).toBeNull();
+    expect(paceChangeRatio(overallBurnRate(ACCELERATING), null)).toBeNull();
+  });
+
+  it("has no ratio when the overall pace is nothing", () => {
+    // Infinity otherwise, and "only just started" is the honest reading.
+    const flat = [reading("2026-03-01", 0), reading("2026-03-14", 5_000)];
+    expect(
+      paceChangeRatio(
+        { ...(overallBurnRate(flat) as BurnRate), centsPerDay: 0 },
+        recentBurnRate(flat, 14),
+      ),
+    ).toBeNull();
   });
 });
