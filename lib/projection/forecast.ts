@@ -1,3 +1,8 @@
+import {
+  consumedShare,
+  overspentCents,
+  remainingContractCents,
+} from "@/lib/burn";
 import { shiftCalendarDate } from "@/lib/dates";
 import { burnedCents, type EffectiveRate } from "@/lib/rates";
 
@@ -99,10 +104,7 @@ export function remainingWorkCents(
  * days. The caller that has something to say about that case asks `hasBurnRate`
  * first; this one refuses to make up a figure for it.
  */
-export function daysToBurn(
-  cents: number,
-  centsPerDay: number,
-): number | null {
+export function daysToBurn(cents: number, centsPerDay: number): number | null {
   if (centsPerDay <= 0) return null;
   if (cents <= 0) return 0;
   return Math.ceil(cents / centsPerDay);
@@ -223,3 +225,72 @@ export type BurnForecast = {
   /** The day the contract value runs out, within the horizon. */
   readonly contractRunsOutOn: string | null;
 };
+
+/**
+ * The whole forecast for one project: what it will cost, what that costs
+ * against the contract, and when it arrives.
+ *
+ * Every money figure goes through the functions `lib/burn.ts` already uses for
+ * the present-tense versions — `overspentCents`, `remainingContractCents`,
+ * `consumedShare` — with the projected final cost in place of the burn. That
+ * is the point of reusing them rather than writing three more subtractions:
+ * the projected share and the current share are the same arithmetic over
+ * different inputs, so the panel can set one beside the other and the reader
+ * is comparing like with like. It also means the three decisions those
+ * functions encode — that a remainder may go below zero, that an overrun may
+ * not, that a share of a price of nothing is absent rather than nought — are
+ * taken once for both tenses.
+ *
+ * The two dates answer two different questions and are deliberately both here.
+ * "When does the work get paid for" is the end of the engagement: the point at
+ * which the remaining estimates have been worked through. "When does the
+ * contract run out" is the end of the money, and on a project heading for an
+ * overage it comes first — the gap between the two dates is the stretch that
+ * gets worked for nothing, and it is the most actionable thing on the page.
+ *
+ * The contract date is null once the money has already gone, rather than
+ * today. `daysToBurn` floors at nought, so without this the page would say the
+ * budget runs out today for a project that overspent it in February — a
+ * sentence that is wrong in the one direction that matters, because it reads
+ * as a deadline rather than as a fact. The overage figures are what speak for
+ * that project, and they are exact.
+ */
+export function forecastBurn(basis: ForecastBasis): BurnForecast {
+  const projectedFinalCents = basis.burnedCents + basis.remainingWorkCents;
+  const daysOfWorkLeft = daysToBurn(
+    basis.remainingWorkCents,
+    basis.centsPerDay,
+  );
+
+  const contractLeftNow = remainingContractCents(
+    basis.contractedCents,
+    basis.burnedCents,
+  );
+  const daysOfContractLeft =
+    contractLeftNow <= 0
+      ? null
+      : daysToBurn(contractLeftNow, basis.centsPerDay);
+
+  return {
+    projectedFinalCents,
+    projectedOverageCents: overspentCents(
+      basis.contractedCents,
+      projectedFinalCents,
+    ),
+    projectedRemainingCents: remainingContractCents(
+      basis.contractedCents,
+      projectedFinalCents,
+    ),
+    projectedShare: consumedShare(basis.contractedCents, projectedFinalCents),
+    daysOfWorkLeft,
+    workPaidForOn:
+      daysOfWorkLeft === null
+        ? null
+        : forecastDate(basis.today, daysOfWorkLeft),
+    daysOfContractLeft,
+    contractRunsOutOn:
+      daysOfContractLeft === null
+        ? null
+        : forecastDate(basis.today, daysOfContractLeft),
+  };
+}
