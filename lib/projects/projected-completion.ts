@@ -369,3 +369,77 @@ export function projectedShareFigure(
     )} agreed has gone so far.`,
   };
 }
+
+/**
+ * The day the contract value runs out at this pace.
+ *
+ * The most actionable row on the panel, and the one with the shortest half
+ * life. It is not the end of the project: it is the day the money stops, and
+ * on an engagement heading over it comes first. Everything after it is worked
+ * for nothing.
+ *
+ * The note says how many days away that is, because a date and a distance are
+ * read differently — "May 23" is a thing to put in a calendar and "seventy
+ * days" is a thing to weigh against the work left. Both, and the distance is
+ * what makes the date checkable against the pace above it.
+ */
+export function contractRunsOutFigure(
+  projection: ProjectProjection,
+): PanelFigure {
+  const days = projection.forecast.daysOfContractLeft;
+  return {
+    label: "Contract runs out",
+    value: describeForecastDate(days, projection.forecast.contractRunsOutOn),
+    note:
+      days === null
+        ? "The hours logged have already passed the contract value, so there is no day left to count to."
+        : `${days === 1 ? "One day" : `${days} days`} of contract left at this pace.`,
+  };
+}
+
+/**
+ * The day the remaining work is expected to be paid for.
+ *
+ * The other end of the engagement, and the pair with the row above it is the
+ * point: the gap between the two dates is the stretch that gets worked for
+ * nothing, and a reader who can see both can decide whether to raise a change
+ * order now or let it run.
+ *
+ * "Paid for" rather than "finished", deliberately. The forecast knows what the
+ * remaining estimates come to and how fast money is being spent; it does not
+ * know when anybody intends to deliver. A row labelled "Finishes" would be a
+ * claim about a plan nobody has typed in, and the one thing worse than no
+ * delivery date is one the app invented.
+ */
+export function workPaidForFigure(projection: ProjectProjection): PanelFigure {
+  const days = projection.forecast.daysOfWorkLeft;
+  return {
+    label: "Remaining work paid for",
+    value: describeForecastDate(days, projection.forecast.workPaidForOn),
+    note:
+      days === null
+        ? "There is no pace to count the remaining work forward at."
+        : `${formatCents(
+            projection.forecast.remainingWorkCents,
+          )} of estimates left, which is ${
+            days === 1 ? "one day" : `${days} days`
+          } at this pace.`,
+  };
+}
+
+/**
+ * The pace the two dates were counted forward at.
+ *
+ * Last, because it is the working rather than the conclusion — the same place
+ * the burn panel keeps its own explanation. A reader who accepts the dates
+ * never needs this row; a reader who finds one surprising needs it before
+ * anything else on the panel, and it is one line down from where they are
+ * already looking.
+ */
+export function paceFigure(projection: ProjectProjection): PanelFigure {
+  return {
+    label: "Burn rate",
+    value: formatPace(projection.pace.centsPerDay),
+    note: describePaceBasis(projection.pace),
+  };
+}
