@@ -178,3 +178,37 @@ describe("projectionCaveats", () => {
     ).toBe("weak");
   });
 });
+
+describe("projectionCaveats: the recent window", () => {
+  it("caveats a pace the recent window cannot corroborate", () => {
+    expect(
+      projectionCaveats(evidence({ paceDays: 10, wholeHistoryWindow: true })),
+    ).toContain("no-window");
+  });
+
+  it("says nothing about the window once there is history outside it", () => {
+    expect(
+      projectionCaveats(evidence({ wholeHistoryWindow: false })),
+    ).not.toContain("no-window");
+  });
+
+  it("does not say it twice to a project too young to measure", () => {
+    // Already told its history is three days; a second sentence about the
+    // window it fits inside gives it nothing further to do.
+    const caveats = projectionCaveats(
+      evidence({ paceDays: 3, wholeHistoryWindow: true }),
+    );
+    expect(caveats).toContain("short-history");
+    expect(caveats).not.toContain("no-window");
+  });
+
+  it("grades a pace with no corroboration indicative, not weak", () => {
+    // The pace is real and measured over a fortnight. It is just the only
+    // reading there is.
+    expect(
+      projectionConfidence(
+        projectionCaveats(evidence({ paceDays: 14, wholeHistoryWindow: true })),
+      ),
+    ).toBe("indicative");
+  });
+});
