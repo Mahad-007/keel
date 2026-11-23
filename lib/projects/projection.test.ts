@@ -165,7 +165,7 @@ describe("projectProjection", () => {
     );
     expect(projection?.pace).toEqual(projection?.recentPace);
     expect(projection?.overallPace?.elapsedDays).toBe(59);
-    expect(projection?.paceShift).toBe("faster");
+    expect(projection?.evidence.paceShift).toBe("faster");
   });
 
   it("grades a forecast built on a fortnight of measured rows", () => {

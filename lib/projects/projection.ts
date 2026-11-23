@@ -22,7 +22,6 @@ import {
   recentBurnRate,
   windowCoversWholeHistory,
   type BurnRate,
-  type PaceShift,
 } from "@/lib/projection/rate";
 import {
   allDelivered,
@@ -80,8 +79,21 @@ export type ProjectProjection = {
   readonly overallPace: BurnRate;
   /** The pace over the recent window, or null when there was none to measure. */
   readonly recentPace: BurnRate | null;
-  /** How the recent pace stands against the average, or null with no comparison. */
-  readonly paceShift: PaceShift | null;
+  /**
+   * The counts the caveats were read off.
+   *
+   * Carried rather than consumed, because a caveat is only worth printing
+   * quantified. "Some unfinished deliverables have no estimate" leaves a
+   * reader to go and count them; "two of the five unfinished lines are
+   * unsized" tells them how much of the forecast is a floor and which form to
+   * open. The words module reads these rather than taking the scope list and
+   * the readings again, so the sentence under a caveat and the caveat itself
+   * can never be about different numbers.
+   *
+   * It also carries `paceShift`, which is the comparison the words name when
+   * they explain which pace the date came from.
+   */
+  readonly evidence: ProjectionEvidence;
   /** Where the project lands if it carries on this way. */
   readonly forecast: BurnForecast;
   /** Everything wrong with the basis of that forecast, in reading order. */
@@ -199,7 +211,7 @@ export function projectProjection(
     pace,
     overallPace,
     recentPace,
-    paceShift: evidence.paceShift,
+    evidence,
     forecast: forecastBurn({
       today,
       contractedCents: summary.contractedCents,
