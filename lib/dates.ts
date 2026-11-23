@@ -230,6 +230,35 @@ export function calendarDayGap(from: string, to: string): number {
 }
 
 /**
+ * How many days a span covers with both of its ends counted — the elapsed
+ * days of a stretch rather than the distance between its edges.
+ *
+ * `calendarDayGap` answers the distance, which is what a chart axis wants: two
+ * points dated a day apart sit one unit apart. A rate wants the other reading.
+ * A project whose first and last readings are both dated Monday has burned
+ * whatever it burned over *one* day, not over nought of them, and dividing by
+ * the gap would answer infinity for the most ordinary case there is — a
+ * project worked on once.
+ *
+ * So this is the gap plus one, and it is a separate function rather than a
+ * `+ 1` at each caller because the two readings are easy to confuse and only
+ * one of them can be divided by. The name says which: a span *covers* the days
+ * at both of its ends.
+ *
+ * Signed in the same direction as the gap, and one more than it, so a `to`
+ * before `from` comes back as nought or less. That is a caller passing a span
+ * backwards rather than a span of no days, and reporting it as nought lets the
+ * division refuse it along with the genuinely empty case instead of answering
+ * a negative rate.
+ *
+ * Both ends have to be calendar dates, and it throws when either is not,
+ * because it is `calendarDayGap` that does the counting.
+ */
+export function inclusiveDayCount(from: string, to: string): number {
+  return calendarDayGap(from, to) + 1;
+}
+
+/**
  * The UTC calendar date a moment falls on.
  *
  * The counterpart of `localCalendarDate`, and the one a server component has
