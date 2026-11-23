@@ -6,6 +6,7 @@ import {
   MEASURABLE_PACE_READINGS,
   type ProjectionEvidence,
   projectionCaveats,
+  READINGS_CURRENT_WITHIN_DAYS,
   confidenceSeverity,
   PROJECTION_CAVEATS,
   projectionConfidence,
@@ -263,5 +264,37 @@ describe("projectionCaveats: reconstructed readings", () => {
         projectionCaveats(evidence({ reconstructedCount: 20 })),
       ),
     ).toBe("indicative");
+  });
+});
+
+describe("projectionCaveats: stale readings", () => {
+  it("says nothing about a reading stored today", () => {
+    expect(
+      projectionCaveats(evidence({ daysSinceLastReading: 0 })),
+    ).not.toContain("stale-readings");
+  });
+
+  it("tolerates a weekend without flagging the pace", () => {
+    // A reading is written when the page is opened, so a project nobody
+    // looked at since Friday is three days behind by Monday.
+    expect(
+      projectionCaveats(
+        evidence({ daysSinceLastReading: READINGS_CURRENT_WITHIN_DAYS }),
+      ),
+    ).not.toContain("stale-readings");
+  });
+
+  it("caveats a pace whose readings stop further back than that", () => {
+    expect(
+      projectionCaveats(
+        evidence({ daysSinceLastReading: READINGS_CURRENT_WITHIN_DAYS + 1 }),
+      ),
+    ).toContain("stale-readings");
+  });
+
+  it("caveats a pace a month out of date", () => {
+    expect(projectionCaveats(evidence({ daysSinceLastReading: 30 }))).toContain(
+      "stale-readings",
+    );
   });
 });
