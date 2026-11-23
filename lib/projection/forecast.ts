@@ -71,3 +71,38 @@ export function remainingWorkCents(
 ): number {
   return burnedCents(remainingMinutes, rate);
 }
+
+/**
+ * How many days it takes to burn an amount at a pace, or null when the pace
+ * cannot get there.
+ *
+ * Rounded up, which is the one place in this file the arithmetic is
+ * deliberately pessimistic — and the opposite direction from
+ * `remainingMinutesAtRate`, which floors. Both err towards the warning. That
+ * figure says how much more work the budget can afford and must never offer a
+ * minute there is no money for; this says when the money runs out, and a date
+ * rounded down would arrive a day before it had to. Whole days, because the
+ * readings are stored a day at a time and a forecast to the nearest hour would
+ * claim a precision the rows do not have.
+ *
+ * Nought for an amount of nothing or less, not a negative number of days. A
+ * project with no work left finishes today rather than last week, and a budget
+ * already overspent ran out in the past — which is a real fact, but one the
+ * overrun figure states in cents and states exactly. Counting backwards from
+ * today to guess the day it happened would be a date derived from a pace that
+ * has since changed, printed next to the figures that actually know.
+ *
+ * Null when the pace is nought or below, which is `hasBurnRate`'s rule written
+ * out in the only other place it is needed. At no pace the amount is never
+ * burned: not in a very long time — never, and infinity is not a number of
+ * days. The caller that has something to say about that case asks `hasBurnRate`
+ * first; this one refuses to make up a figure for it.
+ */
+export function daysToBurn(
+  cents: number,
+  centsPerDay: number,
+): number | null {
+  if (centsPerDay <= 0) return null;
+  if (cents <= 0) return 0;
+  return Math.ceil(cents / centsPerDay);
+}
