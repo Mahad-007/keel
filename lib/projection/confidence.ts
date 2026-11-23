@@ -344,5 +344,30 @@ export function projectionCaveats(
     caveats.push("stale-readings");
   }
 
+  /*
+    Unfinished lines with no estimate make the projected cost a *floor* rather
+    than an estimate: the work is coming, and nothing says what it costs. That
+    is the one caveat here whose direction is known, and knowing the direction
+    is what makes it worth a sentence of its own — every other weakness could
+    move the figure either way, and this one can only move it up.
+
+    Only the unfinished ones. A delivered line with no estimate costs the
+    delivery share its precision, which is the scope panel's problem and
+    already its sentence; it costs the forecast nothing, because the work is
+    done and the hours it took are in the burn.
+  */
+  if (evidence.unsizedUndeliveredCount > 0) caveats.push("unsized-scope");
+
+  /*
+    No deliverables at all is the strongest caveat in the file, and it is the
+    one most easily mistaken for good news. With nothing in the scope list the
+    remaining work costs nothing, so the projected final cost is the burn, the
+    projected overage is whatever has already been overspent, and a project
+    with three months of work ahead of it reports a forecast of no overage.
+    That is the present tense wearing a future tense's label, and the words
+    module withholds the figure rather than printing it caveated.
+  */
+  if (evidence.lineCount === 0) caveats.push("no-scope");
+
   return caveats;
 }
