@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import type { BurnReading } from "@/lib/burndown/reading";
+import { inclusiveDayCount } from "@/lib/dates";
 
-import { centsPerDay, hasBurnRate, overallBurnRate } from "./rate";
+import {
+  centsPerDay,
+  hasBurnRate,
+  overallBurnRate,
+  rateWindowStart,
+  RECENT_RATE_WINDOW_DAYS,
+} from "./rate";
 
 /**
  * A stored reading, as the chart gets it.
@@ -175,5 +182,52 @@ describe("hasBurnRate", () => {
 
   it("refuses an absent pace", () => {
     expect(hasBurnRate(null)).toBe(false);
+  });
+});
+
+describe("rateWindowStart", () => {
+  it("counts both ends of the window", () => {
+    // A fortnight ending on the 14th starts on the 1st, not the previous
+    // month: shifting back the whole window would cover fifteen days.
+    expect(rateWindowStart("2026-03-14", 14)).toBe("2026-03-01");
+  });
+
+  it("is the day itself for a window of one", () => {
+    expect(rateWindowStart("2026-03-14", 1)).toBe("2026-03-14");
+  });
+
+  it("reaches back across a month boundary", () => {
+    expect(rateWindowStart("2026-03-05", 14)).toBe("2026-02-20");
+  });
+
+  it("reaches back across a leap day", () => {
+    expect(rateWindowStart("2024-03-01", 3)).toBe("2024-02-28");
+  });
+
+  it("refuses a window of no days", () => {
+    expect(() => rateWindowStart("2026-03-14", 0)).toThrow(
+      "not a window of whole days",
+    );
+  });
+
+  it("refuses a window that runs forwards", () => {
+    expect(() => rateWindowStart("2026-03-14", -7)).toThrow(
+      "not a window of whole days",
+    );
+  });
+
+  it("refuses a window of part of a day", () => {
+    expect(() => rateWindowStart("2026-03-14", 7.5)).toThrow(
+      "not a window of whole days",
+    );
+  });
+
+  it("covers the fortnight the default window promises", () => {
+    expect(
+      inclusiveDayCount(
+        rateWindowStart("2026-03-14", RECENT_RATE_WINDOW_DAYS),
+        "2026-03-14",
+      ),
+    ).toBe(RECENT_RATE_WINDOW_DAYS);
   });
 });
