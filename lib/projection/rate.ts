@@ -418,3 +418,35 @@ export function windowCoversWholeHistory(
   if (overall === null || recent === null) return false;
   return recent.elapsedDays >= overall.elapsedDays;
 }
+
+/**
+ * Which of the two paces to carry forward: the recent one when it is usable,
+ * else the average.
+ *
+ * The recent fortnight is the better predictor of the next fortnight, and by a
+ * long way on an engagement that has changed shape. A project five months in
+ * that has spent its last two weeks at six times its average pace has an
+ * average that is five-sixths history: forecasting from it lands the date
+ * months late, which is the one direction a warning must not be wrong in.
+ *
+ * It falls back when the recent window is unusable rather than reporting no
+ * pace, and the case that matters is a fortnight nobody worked. A pace of
+ * nothing there is a true measurement and a terrible forecast — the work in
+ * the scope list has not gone away because somebody took a holiday, and a
+ * project whose remaining estimates would take four months reading "no
+ * projected finish" is worse than one reading a date from its average. So a
+ * quiet window defers to the whole history, which is the longest-standing
+ * evidence there is.
+ *
+ * Which pace was used is not recorded in the result, deliberately. Both are
+ * carried side by side into the projection and the words name the one the date
+ * came from, so a reader can see the choice rather than having to trust it —
+ * and the `pace-changed` caveat fires off the comparison whichever way the
+ * choice went.
+ */
+export function forecastPace(
+  overall: BurnRate,
+  recent: BurnRate | null,
+): BurnRate {
+  return hasBurnRate(recent) && recent !== null ? recent : overall;
+}
