@@ -277,3 +277,16 @@ describe("forecastBurn dates", () => {
     expect(forecast.daysOfWorkLeft).toBe(21);
   });
 });
+
+describe("forecastBurn basis", () => {
+  it("echoes the two halves of the sum back through", () => {
+    // A projected cost is money spent plus money guessed, and a reader who
+    // finds the total surprising wants to know which half surprised them.
+    const forecast = forecastBurn(basis());
+    expect(forecast.burnedCents).toBe(400_000);
+    expect(forecast.remainingWorkCents).toBe(400_000);
+    expect(forecast.burnedCents + forecast.remainingWorkCents).toBe(
+      forecast.projectedFinalCents,
+    );
+  });
+});

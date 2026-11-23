@@ -53,6 +53,8 @@ function projection(
       unsizedUndeliveredCount: 0,
     },
     forecast: {
+      burnedCents: 400_000,
+      remainingWorkCents: 240_000,
       projectedFinalCents: 640_000,
       projectedOverageCents: 0,
       projectedRemainingCents: 360_000,
