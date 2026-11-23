@@ -200,3 +200,80 @@ describe("forecastBurn", () => {
     expect(forecast.projectedShare).toBeCloseTo(1.2, 6);
   });
 });
+
+describe("forecastBurn dates", () => {
+  it("dates the end of the work from the pace", () => {
+    // $4,000.00 of estimates left at $200.00 a day: twenty days.
+    const forecast = forecastBurn(basis());
+    expect(forecast.daysOfWorkLeft).toBe(20);
+    expect(forecast.workPaidForOn).toBe("2026-04-03");
+  });
+
+  it("dates the end of the money separately from the end of the work", () => {
+    // $6,000.00 of contract left at $200.00 a day: thirty days, which is
+    // after the work is done — this project lands inside its price.
+    const forecast = forecastBurn(basis());
+    expect(forecast.daysOfContractLeft).toBe(30);
+    expect(forecast.contractRunsOutOn).toBe("2026-04-13");
+  });
+
+  it("runs the money out before the work on a project heading over", () => {
+    // The gap between the two dates is the stretch worked for nothing.
+    const forecast = forecastBurn(basis({ remainingWorkCents: 1_000_000 }));
+    expect(forecast.contractRunsOutOn).toBe("2026-04-13");
+    expect(forecast.workPaidForOn).toBe("2026-05-03");
+  });
+
+  it("names no contract date for a project that has already overspent", () => {
+    // Not today: that would read as a deadline for a project that passed its
+    // price in February. The overage figure speaks for it instead.
+    const forecast = forecastBurn(basis({ burnedCents: 1_200_000 }));
+    expect(forecast.daysOfContractLeft).toBeNull();
+    expect(forecast.contractRunsOutOn).toBeNull();
+  });
+
+  it("names no contract date when nothing set a price", () => {
+    const forecast = forecastBurn(basis({ contractedCents: 0 }));
+    expect(forecast.daysOfContractLeft).toBeNull();
+    expect(forecast.contractRunsOutOn).toBeNull();
+  });
+
+  it("dates the end of the work today when there is none left", () => {
+    const forecast = forecastBurn(basis({ remainingWorkCents: 0 }));
+    expect(forecast.daysOfWorkLeft).toBe(0);
+    expect(forecast.workPaidForOn).toBe("2026-03-14");
+  });
+
+  it("names no date at all at a pace of nothing", () => {
+    const forecast = forecastBurn(basis({ centsPerDay: 0 }));
+    expect(forecast.daysOfWorkLeft).toBeNull();
+    expect(forecast.workPaidForOn).toBeNull();
+    expect(forecast.daysOfContractLeft).toBeNull();
+    expect(forecast.contractRunsOutOn).toBeNull();
+  });
+
+  it("still reports the money at a pace of nothing", () => {
+    // The cost is knowable without a pace; only the date is not.
+    expect(forecastBurn(basis({ centsPerDay: 0 })).projectedOverageCents).toBe(
+      0,
+    );
+    expect(forecastBurn(basis({ centsPerDay: 0 })).projectedFinalCents).toBe(
+      800_000,
+    );
+  });
+
+  it("counts the days but names no date beyond the horizon", () => {
+    // A cent a day and $4,000.00 to go: forty thousand days, which is a
+    // number worth printing and a date that would not be.
+    const forecast = forecastBurn(basis({ centsPerDay: 10 }));
+    expect(forecast.daysOfWorkLeft).toBe(40_000);
+    expect(forecast.workPaidForOn).toBeNull();
+  });
+
+  it("rounds a part day of work up", () => {
+    const forecast = forecastBurn(
+      basis({ remainingWorkCents: 400_001, centsPerDay: 20_000 }),
+    );
+    expect(forecast.daysOfWorkLeft).toBe(21);
+  });
+});
