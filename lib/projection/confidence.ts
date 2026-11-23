@@ -1,3 +1,5 @@
+import type { PaceShift } from "./rate";
+
 /**
  * What is wrong with the forecast, and how much of it to believe.
  *
@@ -180,3 +182,74 @@ export function projectionConfidence(
     "firm",
   );
 }
+
+/**
+ * Everything the caveats are read off: how the pace was measured, how old the
+ * rows are, and what the scope list can say.
+ *
+ * Counts and flags rather than the readings, the rates and the deliverables
+ * themselves. Three reasons, and the third is the important one.
+ *
+ * It keeps this file out of the business of measuring. Whether a reading was
+ * reconstructed is `burnDownReading`'s judgement, whether a line is sized is
+ * `isEstimated`'s, and whether two paces disagree is `classifyPaceShift`'s —
+ * each of those is argued out where it belongs, and a second opinion formed
+ * here would be the one a reader saw.
+ *
+ * It makes every rule below a comparison between two numbers, which is a thing
+ * a test can pin to the boundary and a reader can check against the page.
+ *
+ * And it means the same evidence shape serves a project and, later, a row of
+ * Day 039's portfolio, where the readings are not in hand at all.
+ */
+export type ProjectionEvidence = {
+  /** Days the pace was measured across, both ends counted. */
+  readonly paceDays: number;
+  /** How many stored readings the pace was measured from. */
+  readonly readingCount: number;
+  /** How many of those readings were reconstructed rather than measured. */
+  readonly reconstructedCount: number;
+  /** How far behind today the last reading is, in days. */
+  readonly daysSinceLastReading: number;
+  /** Whether the recent pace parts from the average, or null with no comparison. */
+  readonly paceShift: PaceShift | null;
+  /** Whether the recent window is the whole history over again. */
+  readonly wholeHistoryWindow: boolean;
+  /** How many deliverables the project has at all. */
+  readonly lineCount: number;
+  /** How many unfinished deliverables carry no estimate. */
+  readonly unsizedUndeliveredCount: number;
+};
+
+/**
+ * The shortest history a pace is worth measuring over: a week.
+ *
+ * Under a week the pace is a statement about particular days rather than about
+ * the engagement. Two hard days at the start of a project divide into a pace
+ * that, carried across a quarter, forecasts five times the contract — and the
+ * project may simply have had a kick-off workshop. A week is the shortest span
+ * that contains both a Monday and a Friday and at least one of whatever the
+ * team does weekly.
+ *
+ * It does not withhold the forecast, which would be the other way of handling
+ * it and the worse one. A project three days old with a frightening pace is
+ * worth looking at precisely because it is three days old; the figure is shown
+ * and graded `weak`, and the sentence says the pace is three days of evidence.
+ */
+export const MEASURABLE_PACE_DAYS = 7;
+
+/**
+ * The fewest readings a pace is worth measuring from: three.
+ *
+ * Days and readings are different things and both can be too few. A fortnight
+ * holding two rows is a straight line drawn between two points, and a straight
+ * line between two points is not evidence of a trend — it is the definition of
+ * one, which is the problem. Three is the first number that can disagree with
+ * itself.
+ *
+ * Separate from the day count rather than folded into it, because the two
+ * failures look identical in the result and are fixed differently. A short
+ * history needs time; a sparse one means the snapshots have not been written,
+ * which is the chart's own problem and a different sentence.
+ */
+export const MEASURABLE_PACE_READINGS = 3;
