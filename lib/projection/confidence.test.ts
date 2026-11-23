@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   CAVEAT_CONFIDENCE,
+  MEASURABLE_PACE_DAYS,
+  MEASURABLE_PACE_READINGS,
+  type ProjectionEvidence,
+  projectionCaveats,
   confidenceSeverity,
   PROJECTION_CAVEATS,
   projectionConfidence,
@@ -107,5 +111,70 @@ describe("projectionConfidence", () => {
     for (const caveat of PROJECTION_CAVEATS) {
       expect(projectionConfidence([caveat])).toBe(CAVEAT_CONFIDENCE[caveat]);
     }
+  });
+});
+
+/**
+ * A project with nothing wrong with its forecast: two months of measured
+ * readings, a steady pace, and every unfinished line sized.
+ */
+function evidence(
+  overrides: Partial<ProjectionEvidence> = {},
+): ProjectionEvidence {
+  return {
+    paceDays: 59,
+    readingCount: 30,
+    reconstructedCount: 0,
+    daysSinceLastReading: 0,
+    paceShift: "steady",
+    wholeHistoryWindow: false,
+    lineCount: 6,
+    unsizedUndeliveredCount: 0,
+    ...overrides,
+  };
+}
+
+describe("projectionCaveats", () => {
+  it("finds nothing wrong with a well-measured project", () => {
+    expect(projectionCaveats(evidence())).toEqual([]);
+  });
+
+  it("caveats a pace measured over fewer days than a week", () => {
+    expect(projectionCaveats(evidence({ paceDays: 3 }))).toContain(
+      "short-history",
+    );
+  });
+
+  it("accepts a pace measured over exactly a week", () => {
+    expect(
+      projectionCaveats(evidence({ paceDays: MEASURABLE_PACE_DAYS })),
+    ).not.toContain("short-history");
+  });
+
+  it("caveats a pace measured from fewer than three readings", () => {
+    // A straight line between two points is not evidence of a trend.
+    expect(projectionCaveats(evidence({ readingCount: 2 }))).toContain(
+      "few-readings",
+    );
+  });
+
+  it("accepts a pace measured from exactly three readings", () => {
+    expect(
+      projectionCaveats(evidence({ readingCount: MEASURABLE_PACE_READINGS })),
+    ).not.toContain("few-readings");
+  });
+
+  it("reports a short and a sparse history as two separate caveats", () => {
+    // A reader told only about the span would wait a week for a problem the
+    // snapshot writes would have fixed.
+    expect(
+      projectionCaveats(evidence({ paceDays: 2, readingCount: 2 })),
+    ).toEqual(["short-history", "few-readings"]);
+  });
+
+  it("grades a short history weak", () => {
+    expect(
+      projectionConfidence(projectionCaveats(evidence({ paceDays: 2 }))),
+    ).toBe("weak");
   });
 });
