@@ -4,6 +4,7 @@ import {
   burnDownReading,
   burnDownReadings,
   reconstructedRuns,
+  reconstructedSince,
   type StoredBurnReading,
 } from "./reading";
 
@@ -210,5 +211,53 @@ describe("reconstructedRuns", () => {
 
   it("has nothing to mark on an empty line", () => {
     expect(reconstructedRuns([])).toEqual([]);
+  });
+});
+
+describe("reconstructedSince", () => {
+  /** A reading, as the chart gets it, with only the two fields this reads. */
+  function at(onDate: string, origin: "recorded" | "backfilled") {
+    return burnDownReading(stored({ onDate, origin }));
+  }
+
+  it("counts the reconstructed readings on or after the day", () => {
+    expect(
+      reconstructedSince(
+        [
+          at("2026-03-01", "backfilled"),
+          at("2026-03-05", "backfilled"),
+          at("2026-03-06", "recorded"),
+        ],
+        "2026-03-05",
+      ),
+    ).toBe(1);
+  });
+
+  it("includes a reading dated exactly on the day the span opens", () => {
+    expect(
+      reconstructedSince([at("2026-03-05", "backfilled")], "2026-03-05"),
+    ).toBe(1);
+  });
+
+  it("ignores reconstructions before the span, which it did not divide by", () => {
+    expect(
+      reconstructedSince(
+        [at("2026-01-01", "backfilled"), at("2026-03-06", "recorded")],
+        "2026-03-01",
+      ),
+    ).toBe(0);
+  });
+
+  it("counts nothing when every reading in the span was measured", () => {
+    expect(
+      reconstructedSince(
+        [at("2026-03-01", "recorded"), at("2026-03-02", "recorded")],
+        "2026-03-01",
+      ),
+    ).toBe(0);
+  });
+
+  it("counts nothing on an empty list", () => {
+    expect(reconstructedSince([], "2026-03-01")).toBe(0);
   });
 });
