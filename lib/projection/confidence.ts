@@ -295,5 +295,16 @@ export function projectionCaveats(
     caveats.push("no-window");
   }
 
+  /*
+    A pace that has moved is the caveat with the most bearing on the figure
+    below it, because the forecast used one of the two paces and the other one
+    would have given a different date. `null` is not a shift — there was no
+    comparison to make — and `steady` is a comparison that agreed, which is
+    the one case here worth nothing being said about.
+  */
+  if (evidence.paceShift === "faster" || evidence.paceShift === "slower") {
+    caveats.push("pace-changed");
+  }
+
   return caveats;
 }
