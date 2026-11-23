@@ -1,5 +1,5 @@
 import type { BurnReading } from "@/lib/burndown/reading";
-import { inclusiveDayCount } from "@/lib/dates";
+import { inclusiveDayCount, shiftCalendarDate } from "@/lib/dates";
 
 /**
  * How fast a project is spending its contract, measured from its own history.
@@ -174,4 +174,57 @@ export function overallBurnRate(
  */
 export function hasBurnRate(rate: BurnRate | null): boolean {
   return rate !== null && rate.centsPerDay > 0;
+}
+
+/**
+ * How many days back the recent pace is measured over.
+ *
+ * A fortnight, which is the shortest window that survives a week off. Shorter
+ * and the figure moves every time somebody takes a Friday; longer and it stops
+ * being recent — a month-long window on a three-month engagement is most of
+ * the average it is supposed to be compared against, and the comparison it
+ * exists to make would always agree.
+ *
+ * Measured in calendar days rather than in readings, deliberately. Fourteen
+ * readings on a project worked every day is a fortnight; fourteen readings on
+ * a project worked one day a week is a quarter, and a "recent" pace reaching
+ * back to the spring would be the opposite of what the word promises. Idle
+ * days are part of the pace — a project that did nothing for ten days has
+ * genuinely slowed — so the window has to count them.
+ *
+ * One constant, exported, because Day 038 is where thresholds become
+ * configurable per client and per project and this is one of the numbers that
+ * will move there. Until then it is a default with its reasoning attached
+ * rather than a number inlined at its only caller.
+ */
+export const RECENT_RATE_WINDOW_DAYS = 14;
+
+/**
+ * The first day a window of `windowDays` ending on `toDate` covers.
+ *
+ * One less than the window, not the whole window, because both ends are
+ * counted: a fortnight ending on the 14th starts on the 1st, and shifting back
+ * a full fourteen would reach the previous month and measure fifteen days.
+ * That is the same off-by-one `inclusiveDayCount` exists to settle, from the
+ * other direction, which is why it is written down here rather than at the
+ * caller.
+ *
+ * Ends on the last day a reading was stored, not on today, and the caller is
+ * what decides that. A project whose last reading is three weeks old would
+ * have an empty window if the window ended today, and an empty window is not a
+ * pace of nothing — it is no measurement at all, which would silently withdraw
+ * the forecast from exactly the projects whose readings have gone quiet. The
+ * staleness is a caveat instead, said out loud, and the pace is measured over
+ * the days that were actually observed.
+ *
+ * Throws on a window of fewer than one day, like the date helpers throw on a
+ * string that is not a date: a window of nought covers no days, a negative one
+ * covers days after its own end, and both are a mistake in code rather than a
+ * state a row can reach.
+ */
+export function rateWindowStart(toDate: string, windowDays: number): string {
+  if (!Number.isInteger(windowDays) || windowDays < 1) {
+    throw new Error(`not a window of whole days: ${windowDays}`);
+  }
+  return shiftCalendarDate(toDate, -(windowDays - 1));
 }
