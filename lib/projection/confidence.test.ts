@@ -240,3 +240,28 @@ describe("projectionCaveats: the pace shift", () => {
     );
   });
 });
+
+describe("projectionCaveats: reconstructed readings", () => {
+  it("caveats a pace with a single reconstructed day in it", () => {
+    // Not a majority: one backfilled day valued at a rate that has since
+    // moved is enough to tilt the pace, and the figure cannot show which.
+    expect(projectionCaveats(evidence({ reconstructedCount: 1 }))).toContain(
+      "reconstructed-history",
+    );
+  });
+
+  it("says nothing when every reading was measured on its day", () => {
+    expect(
+      projectionCaveats(evidence({ reconstructedCount: 0 })),
+    ).not.toContain("reconstructed-history");
+  });
+
+  it("grades a reconstructed history indicative", () => {
+    // The ordinary case, since nothing in this repo runs a nightly job.
+    expect(
+      projectionConfidence(
+        projectionCaveats(evidence({ reconstructedCount: 20 })),
+      ),
+    ).toBe("indicative");
+  });
+});
