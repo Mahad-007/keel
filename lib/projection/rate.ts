@@ -153,3 +153,25 @@ export function overallBurnRate(
     readingCount: readings.length,
   };
 }
+
+/**
+ * Whether this pace can actually be forecast from.
+ *
+ * Above nought, not merely present, which is the same test `hasRate` makes of
+ * a rate and for the same reason. A pace of nothing divides into any remaining
+ * amount as infinity: the contract would last for ever, the project would
+ * never finish, and the page would report the most alarming kind of project —
+ * one with hours logged that nobody can value — as the one with no end date to
+ * worry about. A pace below nought is worse and gets the same answer, because
+ * extrapolating it forecasts a project that pays its own contract back.
+ *
+ * Takes the nullable rate rather than a `BurnRate`, so a caller holding the
+ * result of a measurement can ask one question instead of two. The absent case
+ * and the unusable case are different facts — the words module tells them
+ * apart — but every arithmetical caller treats them the same, and making each
+ * one spell out `rate !== null && rate.centsPerDay > 0` is three chances to
+ * get the second half wrong.
+ */
+export function hasBurnRate(rate: BurnRate | null): boolean {
+  return rate !== null && rate.centsPerDay > 0;
+}
