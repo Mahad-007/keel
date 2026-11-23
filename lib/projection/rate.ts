@@ -300,3 +300,34 @@ export function recentBurnRate(
     readingCount: readings.length - before.length,
   };
 }
+
+/**
+ * The recent pace as a multiple of the overall one, or null when there is
+ * nothing to divide by.
+ *
+ * A ratio rather than a difference in cents, because what a reader needs is
+ * the shape of the change and not its size: "twice as fast as its average" is
+ * a sentence somebody acts on at any scale, and "$1,840.00 a day faster" is a
+ * figure they have to hold the average beside before it means anything. It is
+ * also the form the threshold is expressed in, so a small project and a large
+ * one are judged by the same number.
+ *
+ * Both paces have to be present and the overall one has to be above nothing.
+ * Dividing by a pace of nought gives infinity, and a project that burned
+ * nothing on average but something recently is better described by saying the
+ * work has only just started than by a ratio of infinity — which the
+ * confidence layer does, because it can see the reading count.
+ *
+ * A negative recent pace divides through to a negative ratio rather than being
+ * refused. It means the burn went backwards in the window, which happens when
+ * an entry is deleted, and the classifier below reads anything that far below
+ * one as a project that has slowed — which it has, past standing still.
+ */
+export function paceChangeRatio(
+  overall: BurnRate | null,
+  recent: BurnRate | null,
+): number | null {
+  if (overall === null || recent === null) return null;
+  if (overall.centsPerDay <= 0) return null;
+  return recent.centsPerDay / overall.centsPerDay;
+}
