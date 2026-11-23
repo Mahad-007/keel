@@ -255,6 +255,29 @@ export const MEASURABLE_PACE_DAYS = 7;
 export const MEASURABLE_PACE_READINGS = 3;
 
 /**
+ * How far behind today the readings may fall before the pace stops being a
+ * statement about now: three days.
+ *
+ * A reading is written when the project page is opened, so a project nobody
+ * has looked at since Friday is three days behind by Monday morning without
+ * anything having gone wrong. Flagging that would put an amber note on half
+ * the portfolio every Monday, and the notes that matter would be read as
+ * weekend noise.
+ *
+ * Past three days the pace is about a stretch that has ended. It is still the
+ * best pace there is — `recentBurnRate` deliberately measures to the last
+ * reading rather than to today, so the figure survives — but a date counted
+ * forward from today using a pace that stopped a fortnight ago is a forecast
+ * with a gap in the middle of it, and the gap is what this names.
+ *
+ * Deliberately a day looser than the burn-down chart's own staleness note,
+ * which flags anything over a day. That sentence is about a *line*, and a line
+ * that stops short is visible on the chart whether or not it matters; this is
+ * about whether to believe a date, and a weekend should not change the answer.
+ */
+export const READINGS_CURRENT_WITHIN_DAYS = 3;
+
+/**
  * What is wrong with a forecast built on this evidence, worst basis first.
  *
  * The one function that turns measurements into caveats, and it is written as
@@ -316,6 +339,10 @@ export function projectionCaveats(
     reader cannot tell which days they are from the figure.
   */
   if (evidence.reconstructedCount > 0) caveats.push("reconstructed-history");
+
+  if (evidence.daysSinceLastReading > READINGS_CURRENT_WITHIN_DAYS) {
+    caveats.push("stale-readings");
+  }
 
   return caveats;
 }
