@@ -143,3 +143,31 @@ export function reconstructedRuns(
   }
   return runs;
 }
+
+/**
+ * How many readings on or after a given day were reconstructed rather than
+ * measured.
+ *
+ * `reconstructedRuns` answers the chart's question — which *stretches* to
+ * shade — and a count answers the forecast's: whether the pace it measured was
+ * built on days that were valued after the fact. Those are different
+ * questions, and the second one cannot be read off the first without summing
+ * the runs and intersecting them with a window, which is this function with
+ * more steps and a worse name.
+ *
+ * Bounded at one end only, because a pace always runs to the last reading.
+ * `from` is the day the span opened; anything before it was not divided by and
+ * is not this span's problem, however it was arrived at.
+ *
+ * Compared on the strings, which is exact for `YYYY-MM-DD` and the comparison
+ * the rest of the burn-down already makes. The readings reaching here have
+ * been through `burnDownReadings`, which drops anything that is not a day.
+ */
+export function reconstructedSince(
+  readings: readonly BurnReading[],
+  from: string,
+): number {
+  return readings.filter(
+    (reading) => reading.onDate >= from && reading.origin === "backfilled",
+  ).length;
+}
