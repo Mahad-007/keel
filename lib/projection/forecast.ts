@@ -1,3 +1,4 @@
+import { shiftCalendarDate } from "@/lib/dates";
 import { burnedCents, type EffectiveRate } from "@/lib/rates";
 
 /**
@@ -105,4 +106,47 @@ export function daysToBurn(
   if (centsPerDay <= 0) return null;
   if (cents <= 0) return 0;
   return Math.ceil(cents / centsPerDay);
+}
+
+/**
+ * How far ahead a forecast is allowed to name a date: ten years.
+ *
+ * Past that there is no useful difference between a date and "never". A
+ * project with four hours of estimate left and a pace of a few cents a day
+ * works out at a date in the 2050s, and printing it would be the page's least
+ * honest moment of the day — a precise-looking Thursday derived from a pace
+ * that will not survive the week, sitting next to figures that are measured.
+ * The day count is still reported, because "sixteen thousand days at this
+ * pace" says exactly what is wrong; it is the date that would be a lie.
+ *
+ * It is also what keeps the arithmetic inside the dates the helpers can
+ * represent. `shiftCalendarDate` refuses a year past 9999 rather than wrapping,
+ * which is right, and a projection of a few million days would reach it and
+ * throw — turning a page with one surprising estimate on it into a page that
+ * does not render. Ten years is far enough that nothing real is lost and near
+ * enough that nothing can overflow.
+ */
+export const FORECAST_HORIZON_DAYS = 3650;
+
+/**
+ * The date a number of days from today lands on, or null when it is further
+ * off than a forecast can honestly name.
+ *
+ * Today itself for nought days, which is what `daysToBurn` answers for work
+ * that is already done or a budget already gone. A caller that wants to say
+ * something different about those cases has the figures to tell them apart;
+ * this one answers the question it was asked.
+ *
+ * Null rather than a clamped date at the horizon, because a date at the
+ * horizon would be read as a forecast of that date. "Not within ten years" is
+ * what is actually known, and only an absent date can say it.
+ *
+ * Null for a negative day count too, which nothing produces — `daysToBurn`
+ * floors at nought — but which would otherwise forecast a date in the past,
+ * and a date in the past read as a projection is the one mistake here that
+ * would look authoritative.
+ */
+export function forecastDate(today: string, days: number): string | null {
+  if (days < 0 || days > FORECAST_HORIZON_DAYS) return null;
+  return shiftCalendarDate(today, days);
 }
