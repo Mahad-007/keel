@@ -1,19 +1,37 @@
+import type { BurnSummary } from "@/lib/burn";
 import { reconstructedSince, type BurnReading } from "@/lib/burndown/reading";
 import { calendarDayGap } from "@/lib/dates";
-import type {
-  ProjectionCaveat,
-  ProjectionConfidence,
-  ProjectionEvidence,
+import {
+  projectionCaveats,
+  projectionConfidence,
+  type ProjectionCaveat,
+  type ProjectionConfidence,
+  type ProjectionEvidence,
 } from "@/lib/projection/confidence";
-import type { BurnForecast } from "@/lib/projection/forecast";
+import {
+  forecastBurn,
+  remainingWorkCents,
+  type BurnForecast,
+} from "@/lib/projection/forecast";
 import {
   classifyPaceShift,
+  forecastPace,
+  hasBurnRate,
+  overallBurnRate,
   paceChangeRatio,
+  recentBurnRate,
   windowCoversWholeHistory,
   type BurnRate,
   type PaceShift,
 } from "@/lib/projection/rate";
-import { unestimatedUndeliveredCount, type ScopeLine } from "@/lib/scope";
+import {
+  allDelivered,
+  remainingEstimatedMinutes,
+  unestimatedUndeliveredCount,
+  type ScopeLine,
+} from "@/lib/scope";
+
+import { hasPriceToMeasureAgainst } from "./burn-summary";
 
 /**
  * Where a project's projection comes from.
@@ -111,5 +129,88 @@ export function projectionEvidence(
     wholeHistoryWindow: windowCoversWholeHistory(overallPace, recentPace),
     lineCount: lines.length,
     unsizedUndeliveredCount: unestimatedUndeliveredCount(lines),
+  };
+}
+
+/**
+ * A project's whole projection, or null when there is nothing to project.
+ *
+ * Four refusals, in the order that costs the least to check, and each one is a
+ * state where a figure would be worse than no figure:
+ *
+ *   - **No readings.** A project nothing has been logged against has no pace,
+ *     and a forecast of nought a day would promise the contract lasts for
+ *     ever. The burn panel above already says the whole contract is intact.
+ *   - **No usable pace.** Readings that have burned nothing, or burned
+ *     backwards. Dividing by that pace is `daysToBurn`'s refusal, and every
+ *     date would come back absent — a panel of empty rows, which says less
+ *     than no panel.
+ *   - **No price.** An overage is an amount past the contract value, and with
+ *     no contract value every cent of the projected cost is past it. The
+ *     figure would be arithmetically true and would read as a catastrophe on
+ *     a project nobody has priced yet. `hasPriceToMeasureAgainst` is the same
+ *     test the burn panel's own comparisons wait on.
+ *   - **Everything delivered.** There is no remaining work, so the forecast is
+ *     the present tense: it would say the project finishes today at what it
+ *     has already cost, which is true, and which the panel above has said in
+ *     plainer words. A finished project does not need a projection; it needs
+ *     an invoice.
+ *
+ * Null rather than a projection carrying a "nothing to say" flag, because
+ * every one of those cases is a reason for the panel not to exist rather than
+ * a caveat on its contents. The caveats are for a forecast that *is* worth
+ * printing — which is most of them, and the thin ones are graded `weak` and
+ * shown, because withholding the figure from the project with three days of
+ * frightening readings would be the one refusal that costs somebody money.
+ *
+ * The scope list arrives as rows rather than as a remaining total, because
+ * three different things are read off it: what the remaining work costs, how
+ * many lines there are at all, and how many unfinished ones nobody sized. A
+ * caller handing over one total could not produce the other two, and a caller
+ * handing over all three could get them out of step.
+ */
+export function projectProjection(
+  summary: BurnSummary,
+  lines: readonly ScopeLine[],
+  readings: readonly BurnReading[],
+  today: string,
+): ProjectProjection | null {
+  const overallPace = overallBurnRate(readings);
+  if (overallPace === null) return null;
+
+  const recentPace = recentBurnRate(readings);
+  const pace = forecastPace(overallPace, recentPace);
+  if (!hasBurnRate(pace)) return null;
+
+  if (!hasPriceToMeasureAgainst(summary)) return null;
+  if (allDelivered(lines)) return null;
+
+  const evidence = projectionEvidence(
+    pace,
+    overallPace,
+    recentPace,
+    readings,
+    lines,
+    today,
+  );
+  const caveats = projectionCaveats(evidence);
+
+  return {
+    pace,
+    overallPace,
+    recentPace,
+    paceShift: evidence.paceShift,
+    forecast: forecastBurn({
+      today,
+      contractedCents: summary.contractedCents,
+      burnedCents: summary.burnedCents,
+      remainingWorkCents: remainingWorkCents(
+        remainingEstimatedMinutes(lines),
+        summary.rate,
+      ),
+      centsPerDay: pace.centsPerDay,
+    }),
+    caveats,
+    confidence: projectionConfidence(caveats),
   };
 }
