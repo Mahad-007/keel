@@ -235,6 +235,17 @@ describe("CAVEAT_SENTENCE", () => {
       }),
     );
     expect(sentence).toContain("3 of the 8 readings");
+    expect(sentence).toContain("readings behind this pace were");
+  });
+
+  it("agrees with its verb when only one reading was reconstructed", () => {
+    expect(
+      CAVEAT_SENTENCE["reconstructed-history"](
+        projection({
+          evidence: { ...projection().evidence, reconstructedCount: 1 },
+        }),
+      ),
+    ).toContain("1 of the 8 readings behind this pace was reconstructed");
   });
 
   it("says how many days the readings have been quiet for", () => {

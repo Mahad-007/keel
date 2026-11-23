@@ -225,7 +225,11 @@ export const CAVEAT_SENTENCE: Record<
   },
 
   "reconstructed-history": (projection) =>
-    `${projection.evidence.reconstructedCount} of the ${projection.evidence.readingCount} readings behind this pace were reconstructed after the fact rather than measured on the day. Their hours are the hours that were logged, but valued at the rate and contract value the project carries now — so a rate that has moved since tilts the pace.`,
+    `${projection.evidence.reconstructedCount} of the ${
+      projection.evidence.readingCount
+    } readings behind this pace ${
+      projection.evidence.reconstructedCount === 1 ? "was" : "were"
+    } reconstructed after the fact rather than measured on the day. Those hours are the hours that were logged, but valued at the rate and contract value the project carries now — so a rate that has moved since tilts the pace.`,
 
   "stale-readings": (projection) =>
     `No reading has been stored for this project for ${projection.evidence.daysSinceLastReading} days. The pace is a statement about a stretch that has already ended, and the dates are counted forward from today regardless.`,
