@@ -1,4 +1,7 @@
+import { formatDate } from "@/lib/dates";
+import { formatCents } from "@/lib/money";
 import type { ProjectionConfidence } from "@/lib/projection/confidence";
+import type { BurnRate } from "@/lib/projection/rate";
 
 import type { ProjectProjection } from "./projection";
 
@@ -101,3 +104,41 @@ export const CONFIDENCE_LEAD: Record<ProjectionConfidence, string> = {
     "worth seeing early, and it is not a figure to quote. What follows says " +
     "why.",
 };
+
+/**
+ * A pace, as an amount of money a day.
+ *
+ * Per day because that is the unit the arithmetic is in: the readings are
+ * stored a day apart, the division is by days, and every date on the panel is
+ * a day count added to today. A figure per week would read more naturally and
+ * would be a seventh of a lie — it would invite a reader to multiply it by the
+ * weeks remaining and get an answer the panel disagrees with by whatever a
+ * weekend is worth.
+ *
+ * Rounded to the cent only for display. The pace itself stays fractional
+ * everywhere it is divided by, which is why this is the only place it is
+ * rounded at all — a pace rounded before the forecast would compound over
+ * ninety days.
+ */
+export function formatPace(centsPerDay: number): string {
+  return `${formatCents(Math.round(centsPerDay))} a day`;
+}
+
+/**
+ * How a pace was arrived at: over how long, and from how many readings.
+ *
+ * The sentence that makes a pace checkable rather than merely stated. Both
+ * numbers are needed and neither implies the other — a fortnight holding two
+ * readings and a fortnight holding fourteen divide to the same figure and
+ * deserve different amounts of belief — and the end date is there because a
+ * pace measured to a week ago is a different claim from one measured to today.
+ *
+ * It says nothing about whether any of that is *enough*. That is the caveats'
+ * job, and a sentence that did both would be a caveat a reader met twice.
+ */
+export function describePaceBasis(pace: BurnRate): string {
+  const days = pace.elapsedDays === 1 ? "one day" : `${pace.elapsedDays} days`;
+  const readings =
+    pace.readingCount === 1 ? "one reading" : `${pace.readingCount} readings`;
+  return `Measured across ${days} to ${formatDate(pace.toDate)}, from ${readings}.`;
+}
