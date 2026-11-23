@@ -200,13 +200,16 @@ export type ForecastBasis = {
  * the failure this shape exists to prevent — and it is an easy one to reach,
  * because the two come from different tables.
  *
- * The two halves of the sum are echoed through rather than consumed, the
+ * The price and the two halves of the sum are echoed through rather than
+ * consumed, the
  * choice `BurnSummary` makes about the rate it valued its hours at. A
  * projected cost is a sum of two very different things — money that has been
  * spent and money that is a guess — and a reader who finds the total
  * surprising wants to know which half surprised them. The words under the
  * figure say so, and they would otherwise have to be handed the basis
- * separately and could be handed a different one.
+ * separately and could be handed a different one. The price travels for the
+ * same reason: every comparison on the panel is against it, and a caller that
+ * had to supply it alongside could supply a different one.
  *
  * The dates are nullable and the figures are not, which is the asymmetry of
  * the two extrapolations. What the work will cost needs an estimate and a
@@ -216,6 +219,8 @@ export type ForecastBasis = {
  * the date is not.
  */
 export type BurnForecast = {
+  /** What the engagement was agreed for, as the basis carried it. */
+  readonly contractedCents: number;
   /** What the hours logged so far had come to, as the basis carried it. */
   readonly burnedCents: number;
   /** What the unfinished estimates are expected to cost, as the basis carried it. */
@@ -284,6 +289,7 @@ export function forecastBurn(basis: ForecastBasis): BurnForecast {
       : daysToBurn(contractLeftNow, basis.centsPerDay);
 
   return {
+    contractedCents: basis.contractedCents,
     burnedCents: basis.burnedCents,
     remainingWorkCents: basis.remainingWorkCents,
     projectedFinalCents,

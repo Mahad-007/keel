@@ -283,10 +283,14 @@ describe("forecastBurn basis", () => {
     // A projected cost is money spent plus money guessed, and a reader who
     // finds the total surprising wants to know which half surprised them.
     const forecast = forecastBurn(basis());
+    expect(forecast.contractedCents).toBe(1_000_000);
     expect(forecast.burnedCents).toBe(400_000);
     expect(forecast.remainingWorkCents).toBe(400_000);
     expect(forecast.burnedCents + forecast.remainingWorkCents).toBe(
       forecast.projectedFinalCents,
+    );
+    expect(forecast.contractedCents - forecast.projectedFinalCents).toBe(
+      forecast.projectedRemainingCents,
     );
   });
 });
