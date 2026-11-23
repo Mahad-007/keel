@@ -1,6 +1,9 @@
 import { formatDate } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
-import type { ProjectionConfidence } from "@/lib/projection/confidence";
+import type {
+  ProjectionCaveat,
+  ProjectionConfidence,
+} from "@/lib/projection/confidence";
 import type { BurnRate } from "@/lib/projection/rate";
 
 import type { ProjectProjection } from "./projection";
@@ -141,4 +144,93 @@ export function describePaceBasis(pace: BurnRate): string {
   const readings =
     pace.readingCount === 1 ? "one reading" : `${pace.readingCount} readings`;
   return `Measured across ${days} to ${formatDate(pace.toDate)}, from ${readings}.`;
+}
+
+/**
+ * What each caveat says, with the project's own numbers in it.
+ *
+ * A record of sentence-builders over the whole union, so a caveat added
+ * without words is a compile error rather than an empty bullet. The same shape
+ * `BLIND_SPOT_SENTENCE` takes, with one difference that earns its keep: these
+ * are functions of the projection rather than fixed strings, because a caveat
+ * without its figure is a disclaimer.
+ *
+ * "Some of the scope is unsized" is something a reader skims. "Two of the five
+ * unfinished deliverables carry no estimate, so the figure above is a floor"
+ * is something they can check against the scope tab and fix with a form. The
+ * difference between those two sentences is most of what this milestone is
+ * worth, so every one of these carries the count, the span or the pair of
+ * paces it was decided on.
+ *
+ * Each ends by saying what it does to the figures, not merely what is wrong
+ * with the data. A reader who has been told the history was reconstructed
+ * still has to work out whether that makes the date early or late; a reader
+ * told the rate it was valued at has somewhere to go.
+ */
+export const CAVEAT_SENTENCE: Record<
+  ProjectionCaveat,
+  (projection: ProjectProjection) => string
+> = {
+  "short-history": (projection) =>
+    `The pace behind this is ${
+      projection.evidence.paceDays === 1
+        ? "a single day"
+        : `${projection.evidence.paceDays} days`
+    } of readings. A stretch that short says more about which days they were than about the engagement, and carrying it across a quarter multiplies whatever was unusual about them.`,
+
+  "few-readings": (projection) =>
+    projection.evidence.readingCount === 1
+      ? "It rests on one reading, which is a point rather than a slope. The pace is that day's burn, assumed to be every day's."
+      : `It rests on ${projection.evidence.readingCount} readings, which is a straight line drawn through ${projection.evidence.readingCount} points. Nothing in it could have disagreed with itself.`,
+
+  "no-window": (projection) =>
+    `The project has ${projection.evidence.paceDays} days of readings, so the recent fortnight this panel would normally check against the average is the whole history. There is one pace, and nothing corroborates it.`,
+
+  "pace-changed": (projection) =>
+    `The last stretch ran at ${formatPace(
+      projection.pace.centsPerDay,
+    )} against ${formatPace(
+      projection.overallPace.centsPerDay,
+    )} across the whole project. The dates come from the ${
+      projection.evidence.paceShift === "faster" ? "faster" : "slower"
+    } recent figure, so they would sit ${
+      projection.evidence.paceShift === "faster" ? "later" : "sooner"
+    } if the project returned to its average.`,
+
+  "reconstructed-history": (projection) =>
+    `${projection.evidence.reconstructedCount} of the ${projection.evidence.readingCount} readings behind this pace were reconstructed after the fact rather than measured on the day. Their hours are the hours that were logged, but valued at the rate and contract value the project carries now — so a rate that has moved since tilts the pace.`,
+
+  "stale-readings": (projection) =>
+    `No reading has been stored for this project for ${projection.evidence.daysSinceLastReading} days. The pace is a statement about a stretch that has already ended, and the dates are counted forward from today regardless.`,
+
+  "unsized-scope": (projection) =>
+    `${
+      projection.evidence.unsizedUndeliveredCount === 1
+        ? "One unfinished deliverable carries"
+        : `${projection.evidence.unsizedUndeliveredCount} unfinished deliverables carry`
+    } no estimate, and an unsized line adds nothing to the remaining work. The expected cost is a floor: the work is coming and nothing says what it costs.`,
+
+  "no-scope": () =>
+    "This project has no deliverables, so nothing says how much work is left. The expected cost and the overage are left out rather than shown as nought — the date below is when the money runs out, not when the project ends.",
+};
+
+/**
+ * Every caveat on this projection, in words, in reading order.
+ *
+ * The order is `projectionCaveats`' own, which runs from the basis of the
+ * forecast outwards: a reader who stops after the first bullet has read the
+ * most fundamental thing wrong with the figures. Not sorted by grade, because
+ * two `weak` caveats are not ranked against each other and a list that
+ * reordered itself per project would stop being skimmable.
+ *
+ * Empty for a firm projection, and the panel renders nothing rather than a
+ * bullet saying there is nothing to say. The lead sentence has already done
+ * the qualifying that every grade needs.
+ */
+export function projectionCaveatSentences(
+  projection: ProjectProjection,
+): string[] {
+  return projection.caveats.map((caveat) =>
+    CAVEAT_SENTENCE[caveat](projection),
+  );
 }
