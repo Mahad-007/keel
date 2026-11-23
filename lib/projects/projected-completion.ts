@@ -7,7 +7,10 @@ import type {
 import type { BurnForecast } from "@/lib/projection/forecast";
 import type { BurnRate } from "@/lib/projection/rate";
 
+import { NO_PRICE_TO_SHARE_LABEL } from "./burn-summary";
+import type { PanelFigure } from "./figure";
 import type { ProjectProjection } from "./projection";
+import { formatSharePercent } from "./scope-summary";
 
 /**
  * The projection, in words a reader can act on.
@@ -281,4 +284,88 @@ export function describeForecastDate(
   if (onDate !== null) return formatDate(onDate);
   if (days === null) return CONTRACT_ALREADY_GONE_LABEL;
   return BEYOND_HORIZON_LABEL;
+}
+
+/**
+ * What the project is expected to have cost once the work is done.
+ *
+ * The first row, because everything under it is a reading of it. It is
+ * deliberately a *cost* where the row above it on the tab is a *price*: a
+ * reader setting the two side by side is making the comparison this whole
+ * phase exists for.
+ *
+ * The note breaks the total back into its two halves, and they are not the
+ * same kind of number. The burn is measured — those hours were logged, at a
+ * rate somebody set. The rest is an estimate written before the work started.
+ * A total that hid the split would invite a reader to trust all of it as much
+ * as they trust the measured half.
+ */
+export function projectedCostFigure(
+  projection: ProjectProjection,
+): PanelFigure {
+  return {
+    label: "Expected to cost",
+    value: formatCents(projection.forecast.projectedFinalCents),
+    note: `${formatCents(
+      projection.forecast.burnedCents,
+    )} of hours already logged, plus ${formatCents(
+      projection.forecast.remainingWorkCents,
+    )} of unfinished estimates valued at this project's rate.`,
+  };
+}
+
+/**
+ * Where that leaves the contract: money still in it, or money past it.
+ *
+ * The row the milestone is named for. It is the subtraction a reader would
+ * otherwise do between the row above and the contract value in the header, and
+ * it earns a row because the sign is the whole answer and a sign is the
+ * easiest thing to get wrong in your head.
+ *
+ * The note names the price it was taken against, so the figure can be checked
+ * without scrolling, and an overage gets the consequence rather than a
+ * restatement: hours past that point are hours nobody is paying for, which is
+ * the sentence that makes somebody act.
+ */
+export function projectedContractFigure(
+  projection: ProjectProjection,
+): PanelFigure {
+  const agreed = formatCents(projection.forecast.contractedCents);
+  return {
+    label: "Against the contract",
+    value: describeProjectedRemaining(projection.forecast),
+    note:
+      projection.forecast.projectedOverageCents > 0
+        ? `Past the ${agreed} agreed. Hours beyond that point are hours nobody is paying for.`
+        : `Of the ${agreed} agreed, on this projection.`,
+  };
+}
+
+/**
+ * The projected cost as a share of the contract.
+ *
+ * The figure that travels: a percentage is what gets said out loud, and the
+ * amounts above are what somebody checks it against afterwards. Through
+ * `formatSharePercent`, so this share and the burn panel's own Consumed row an
+ * inch above it round the same way — two roundings of one fraction on one
+ * screen is the fastest way to make a reader distrust both.
+ *
+ * Unclamped, like the burn's. A projection of 168% is the single most useful
+ * number this panel can print, and nothing stands between it and the reader.
+ *
+ * The note sets it against what has gone already, because the pair is the
+ * point: 64% consumed now and 80% projected is a project with room, and 64%
+ * now and 140% projected is the same first figure and a different engagement.
+ */
+export function projectedShareFigure(
+  projection: ProjectProjection,
+): PanelFigure {
+  const share = projection.forecast.projectedShare;
+  return {
+    label: "Projected consumption",
+    value: share === null ? NO_PRICE_TO_SHARE_LABEL : formatSharePercent(share),
+    note: `${formatCents(projection.forecast.burnedCents)} of the ${formatCents(
+      projection.forecast.contractedCents,
+    )} agreed has gone so far.`,
+  };
 }
