@@ -12,6 +12,7 @@ import {
   deliveredCount,
   negativeEstimateCount,
   unestimatedDeliveredCount,
+  unestimatedUndeliveredCount,
   deliveredEstimatedMinutes,
   deliveredShare,
   estimatedHours,
@@ -95,6 +96,38 @@ describe("unestimatedCount", () => {
         describeEstimate(minutes) === UNESTIMATED_LABEL ? 1 : 0,
       );
     }
+  });
+});
+
+describe("unestimatedUndeliveredCount", () => {
+  it("counts an open line with no estimate on it", () => {
+    expect(unestimatedUndeliveredCount([line(0), line(60)])).toBe(1);
+  });
+
+  it("counts a started line with no estimate, which is still to come", () => {
+    expect(unestimatedUndeliveredCount([line(0, "started")])).toBe(1);
+  });
+
+  it("counts nothing when the unsized lines are all delivered", () => {
+    // Their hours are in the burn whether anybody sized them or not.
+    expect(
+      unestimatedUndeliveredCount([line(0, "done"), line(0, "done")]),
+    ).toBe(0);
+  });
+
+  it("counts nothing on an empty scope list", () => {
+    expect(unestimatedUndeliveredCount([])).toBe(0);
+  });
+
+  it("treats an open negative row as estimated, badly, not missing", () => {
+    expect(unestimatedUndeliveredCount([line(-30)])).toBe(0);
+  });
+
+  it("splits the unsized lines with the delivered count and nothing over", () => {
+    const lines = [line(0, "done"), line(0), line(0, "started"), line(60)];
+    expect(
+      unestimatedUndeliveredCount(lines) + unestimatedDeliveredCount(lines),
+    ).toBe(unestimatedCount(lines));
   });
 });
 
