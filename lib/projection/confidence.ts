@@ -79,3 +79,104 @@ export function worstConfidence(
 ): ProjectionConfidence {
   return confidenceSeverity(a) >= confidenceSeverity(b) ? a : b;
 }
+
+/**
+ * Everything that can be wrong with a forecast, named.
+ *
+ * A closed list of machine-readable reasons rather than a list of sentences,
+ * the same shape `CREEP_REASONS` and `CREEP_BLIND_SPOTS` take. The sentences
+ * live in the words module, which means the portfolio view Day 039 builds can
+ * count how many projects have unsized scope without parsing English, and a
+ * caveat cannot be rendered in one place and forgotten in another.
+ *
+ * Each one is a specific fact about a specific column, and most of them are a
+ * thing somebody can go and fix:
+ *
+ *   - `short-history` — too few days of readings to measure a pace over. A
+ *     project worked hard on Monday and Tuesday has a pace of two days, and
+ *     extrapolating it over a quarter is arithmetic, not a forecast.
+ *   - `few-readings` — enough days, too few rows. A fortnight holding two
+ *     readings is two points and a straight line drawn between them.
+ *   - `no-window` — the recent window reaches back over the whole history, so
+ *     there is only one pace and nothing corroborates it.
+ *   - `pace-changed` — there are two paces and they disagree. The forecast
+ *     used one of them, and which one would have changed the answer.
+ *   - `reconstructed-history` — some readings were backfilled, so the pace is
+ *     built partly from hours valued at today's rate rather than the day's.
+ *   - `stale-readings` — the last reading is old, so the pace is a statement
+ *     about a stretch that has ended.
+ *   - `unsized-scope` — unfinished deliverables carry no estimate, so the
+ *     remaining cost is a floor rather than an estimate.
+ *   - `no-scope` — there are no deliverables at all. Nothing says how much
+ *     work is left, so there is no end of the work to forecast — only an end
+ *     of the money.
+ *
+ * Order is the order they are reported in, and it runs from the basis of the
+ * forecast outwards: what the pace was measured from, then what the pace is
+ * worth, then what the scope can say. A reader who stops after the first one
+ * has read the most fundamental thing wrong with the figures.
+ */
+export const PROJECTION_CAVEATS = [
+  "short-history",
+  "few-readings",
+  "no-window",
+  "pace-changed",
+  "reconstructed-history",
+  "stale-readings",
+  "unsized-scope",
+  "no-scope",
+] as const;
+
+export type ProjectionCaveat = (typeof PROJECTION_CAVEATS)[number];
+
+/**
+ * How much each caveat costs the forecast's standing.
+ *
+ * A record over the whole union rather than a chain of conditions, so a
+ * caveat added without a grade is a compile error here rather than a weakness
+ * that silently reads as firm.
+ *
+ * The three that grade `weak` are the ones that undermine the *basis* rather
+ * than the precision. Too few days and too few readings mean there is no
+ * measured pace to carry forward — the figures are a line through two points —
+ * and no deliverables means nothing at all says how much work is left, so the
+ * projected cost is the present tense wearing a future tense's label.
+ *
+ * The rest grade `indicative`: the forecast is built on something real and
+ * will move. A reconstructed history is the ordinary case rather than a fault
+ * — nothing in this repo runs a nightly job, so most projects' early readings
+ * were worked out after the fact — and it is still worth saying, because those
+ * days are valued at today's rate and a rate that has changed since moves the
+ * pace.
+ */
+export const CAVEAT_CONFIDENCE: Record<ProjectionCaveat, ProjectionConfidence> =
+  {
+    "short-history": "weak",
+    "few-readings": "weak",
+    "no-window": "indicative",
+    "pace-changed": "indicative",
+    "reconstructed-history": "indicative",
+    "stale-readings": "indicative",
+    "unsized-scope": "indicative",
+    "no-scope": "weak",
+  };
+
+/**
+ * The grade a set of caveats comes to: the worst of them, or `firm` for none.
+ *
+ * `firm` is the starting point rather than a case, which is the honest way
+ * round: a forecast is as good as its inputs and the inputs are what the
+ * caveats are about, so nothing wrong with them is nothing to deduct.
+ *
+ * It is still a forecast at `firm`, and the sentence the panel leads with says
+ * so in every grade. The grade is about the evidence, not about whether the
+ * future is knowable.
+ */
+export function projectionConfidence(
+  caveats: readonly ProjectionCaveat[],
+): ProjectionConfidence {
+  return caveats.reduce<ProjectionConfidence>(
+    (worst, caveat) => worstConfidence(worst, CAVEAT_CONFIDENCE[caveat]),
+    "firm",
+  );
+}
