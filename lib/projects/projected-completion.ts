@@ -127,9 +127,19 @@ export const CONFIDENCE_LEAD: Record<ProjectionConfidence, string> = {
  * everywhere it is divided by, which is why this is the only place it is
  * rounded at all — a pace rounded before the forecast would compound over
  * ninety days.
+ *
+ * A pace that rounds away is written as less than a cent rather than as
+ * nought, the same way `formatSharePercent` writes "less than 1%". It takes a
+ * rate of a cent or two an hour to reach, so it is a row somebody mistyped
+ * rather than a project — but "$0.00 a day" sitting beside a date counted
+ * forward at a positive pace is the one line on this panel that would look
+ * like a contradiction, and a reader who found it would be right to distrust
+ * everything above it.
  */
 export function formatPace(centsPerDay: number): string {
-  return `${formatCents(Math.round(centsPerDay))} a day`;
+  const cents = Math.round(centsPerDay);
+  if (cents === 0 && centsPerDay > 0) return "less than a cent a day";
+  return `${formatCents(cents)} a day`;
 }
 
 /**

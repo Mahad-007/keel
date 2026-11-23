@@ -144,6 +144,12 @@ describe("formatPace", () => {
   it("says a pace of nothing as nothing a day", () => {
     expect(formatPace(0)).toBe("$0.00 a day");
   });
+
+  it("writes a pace that rounds away as less than a cent", () => {
+    // "$0.00 a day" beside a date counted forward at a positive pace is the
+    // one line here that would read as a contradiction.
+    expect(formatPace(0.3)).toBe("less than a cent a day");
+  });
 });
 
 describe("describePaceBasis", () => {
