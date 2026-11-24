@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { summariseBurn, type BurnSummary } from "@/lib/burn";
 import type { BurnReading } from "@/lib/burndown/reading";
 import { burnDownReading } from "@/lib/burndown/reading";
-import type { EffectiveRate } from "@/lib/rates";
+import { UNRATED, type EffectiveRate } from "@/lib/rates";
 import type { ScopeLine } from "@/lib/scope";
 
 import { projectionEvidence, projectProjection } from "./projection";
@@ -250,5 +250,35 @@ describe("projectProjection", () => {
     );
     expect(projection?.caveats).toContain("no-scope");
     expect(projection?.forecast.contractRunsOutOn).not.toBeNull();
+  });
+
+  it("caveats a scope list of lines that nothing has sized", () => {
+    // Two lines still to do and no estimate between them. The remaining work
+    // comes to nothing, so the projected cost is the burn — which is the one
+    // figure here that would be wrong in the reassuring direction.
+    const projection = projectProjection(
+      burn(400_000),
+      [line(0), line(0, "started")],
+      HISTORY,
+      "2026-03-14",
+    );
+    expect(projection?.evidence.remainingWorkCents).toBe(0);
+    expect(projection?.caveats).toContain("unvalued-scope");
+    expect(projection?.confidence).toBe("weak");
+  });
+
+  it("caveats sized lines on a project with no rate to value them at", () => {
+    // The stored readings carry a burn, so there is a pace to forecast at.
+    // The rate has since been cleared, so the twenty hours still to do value
+    // at nothing and the projected cost is as empty as an unsized list's.
+    const projection = projectProjection(
+      burn(0, 1_000_000, UNRATED),
+      LINES,
+      HISTORY,
+      "2026-03-14",
+    );
+    expect(projection?.evidence.remainingWorkCents).toBe(0);
+    expect(projection?.caveats).toContain("unvalued-scope");
+    expect(projection?.caveats).not.toContain("unsized-scope");
   });
 });
