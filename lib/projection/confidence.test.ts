@@ -78,6 +78,14 @@ describe("CAVEAT_CONFIDENCE", () => {
     expect(CAVEAT_CONFIDENCE["short-history"]).toBe("weak");
     expect(CAVEAT_CONFIDENCE["few-readings"]).toBe("weak");
     expect(CAVEAT_CONFIDENCE["no-scope"]).toBe("weak");
+    expect(CAVEAT_CONFIDENCE["unvalued-scope"]).toBe("weak");
+  });
+
+  it("grades a floor of nought worse than a floor", () => {
+    // An unsized line beside sized ones costs the forecast its precision; a
+    // list where nothing left comes to anything leaves no forecast at all.
+    expect(CAVEAT_CONFIDENCE["unsized-scope"]).toBe("indicative");
+    expect(CAVEAT_CONFIDENCE["unvalued-scope"]).toBe("weak");
   });
 });
 
@@ -323,6 +331,54 @@ describe("projectionCaveats: what the scope list can say", () => {
     expect(
       projectionConfidence(projectionCaveats(evidence({ lineCount: 0 }))),
     ).toBe("weak");
+  });
+
+  it("caveats a scope list whose remaining work comes to nothing", () => {
+    expect(
+      projectionCaveats(evidence({ lineCount: 3, remainingWorkCents: 0 })),
+    ).toContain("unvalued-scope");
+  });
+
+  it("says nothing when the work left carries a value", () => {
+    expect(
+      projectionCaveats(evidence({ lineCount: 3, remainingWorkCents: 1 })),
+    ).not.toContain("unvalued-scope");
+  });
+
+  it("counts a remainder below nothing as nothing to project", () => {
+    // Reachable from a hand-edited negative estimate, and a projected cost
+    // under the burn is no more a forecast than one equal to it.
+    expect(
+      projectionCaveats(evidence({ lineCount: 3, remainingWorkCents: -5_000 })),
+    ).toContain("unvalued-scope");
+  });
+
+  it("does not say the same gap twice to a project with no lines", () => {
+    const caveats = projectionCaveats(
+      evidence({ lineCount: 0, remainingWorkCents: 0 }),
+    );
+    expect(caveats).toContain("no-scope");
+    expect(caveats).not.toContain("unvalued-scope");
+  });
+
+  it("grades a project with nothing left to value weak", () => {
+    expect(
+      projectionConfidence(
+        projectionCaveats(evidence({ lineCount: 3, remainingWorkCents: 0 })),
+      ),
+    ).toBe("weak");
+  });
+
+  it("reports the two scope caveats in the declared order", () => {
+    expect(
+      projectionCaveats(
+        evidence({
+          lineCount: 3,
+          unsizedUndeliveredCount: 3,
+          remainingWorkCents: 0,
+        }),
+      ),
+    ).toEqual(["unsized-scope", "unvalued-scope"]);
   });
 
   it("reports the caveats in the order the list declares them", () => {
