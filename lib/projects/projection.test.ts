@@ -150,6 +150,15 @@ describe("projectionEvidence", () => {
     expect(evidenceFor(HISTORY, LINES, 0).remainingWorkCents).toBe(0);
     expect(evidenceFor(HISTORY, LINES, 95_000).remainingWorkCents).toBe(95_000);
   });
+
+  it("totals the remaining minutes off the lines themselves", () => {
+    // The unvalued pair: minutes from the column, money from the valuation.
+    // Twenty hours still to do across the two unfinished lines.
+    expect(evidenceFor(HISTORY, LINES, 0).remainingWorkMinutes).toBe(1200);
+    expect(
+      evidenceFor(HISTORY, [line(600, "done")], 0).remainingWorkMinutes,
+    ).toBe(0);
+  });
 });
 
 describe("projectProjection", () => {
@@ -278,6 +287,9 @@ describe("projectProjection", () => {
       "2026-03-14",
     );
     expect(projection?.evidence.remainingWorkCents).toBe(0);
+    // The hours are written down; it is the rate that values them at nothing,
+    // which is the pair the caveat's sentence reads to name the right fix.
+    expect(projection?.evidence.remainingWorkMinutes).toBe(1200);
     expect(projection?.caveats).toContain("unvalued-scope");
     expect(projection?.caveats).not.toContain("unsized-scope");
   });
