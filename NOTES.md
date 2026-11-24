@@ -1132,3 +1132,106 @@ by the geometry in `lib/burndown/chart.ts`, every string by a formatter in
 prefix — is the project's generated id, which is lowercase letters, digits and
 one underscore by construction. React escapes it regardless; there is no
 `dangerouslySetInnerHTML` anywhere in the repo.
+
+## Day 037 ran twice, for the reason Days 013, 020, 023, 025, 026 and 029 did
+
+Day 037 — the projected completion panel: a burn rate measured off the stored
+readings, a forecast of what the project lands at, and the caveats that say how
+much of it to believe — was built on 2026-11-23 in 82 commits
+(`850dced..4b8a8b7`), and pushed. The box in `ROADMAP.md` was never ticked, so
+the workflow picked Day 037 again on 2026-11-24.
+
+So 2026-11-24 audited what was there rather than rebuilding it or padding the
+history. `npm run verify` was green on arrival — 173 files, 4715 tests — and
+the milestone was complete: `lib/projection/{rate,forecast,confidence}.ts`, the
+assembly in `lib/projects/projection.ts`, the words in
+`lib/projects/projected-completion.ts`, and the panel under the burn-down on
+the overview tab. The audit is 18 commits, and it is short on purpose.
+
+`/security-review` was not run. The day adds no query, no action, no form and
+no new parameter: every input is a row the overview tab had already read, and
+the two files the audit touched are a pure sentence builder and a pure
+classifier. Day 036's security note already records what the overview tab's
+read-that-writes owes Phase 8, and nothing here changes it.
+
+## What the Day 037 audit changed
+
+`/code-review` on `850dced..HEAD` found one real bug and one rendering fault; a
+second pass over the audit's own diff found three more, two of them in the fix
+for the first. As on Day 023, every pass after the first was reviewing the
+audit rather than the day, and every pass found something.
+
+- **The projection was withheld for an empty scope list but not for a
+  worthless one.** With no deliverables at all, the cost rows and the lead
+  sentence drop out, because the remaining work comes to nothing and a
+  projected cost of exactly the burn would read as a project expecting no
+  overage. A project *with* deliverables whose unfinished lines are all unsized
+  reaches the identical state — `remainingEstimatedMinutes` counts an unsized
+  line as nought — and printed the figures: "expected to cost $2,000.00, which
+  leaves $3,000.00 of the $5,000.00 agreed", and a "Remaining work paid for"
+  date of today, on a project with two lines still to do. Wrong in the
+  reassuring direction, which is the one direction this panel must not be wrong
+  in.
+
+  The fix is a ninth caveat, `unvalued-scope`, rather than a second condition
+  inside the words: the gate was already asked of the caveats, so that the
+  sentence explaining a gap cannot appear without the rows being withheld, and
+  one more place deciding what an unprojectable scope list means would be the
+  one a reader saw. It grades `weak` beside `no-scope`, because a floor of
+  nought is not a forecast — where an unsized line *beside sized ones* only
+  costs the forecast precision, which is what `unsized-scope` already says at
+  `indicative`.
+
+  The second way in is a project whose rate has been cleared: the stored
+  readings still carry a burn, so there is a pace, and the sized lines value at
+  nothing. That is why the caveat is read off the money rather than off the
+  count of unsized lines, and why `ProjectionEvidence` now carries
+  `remainingWorkCents` — valued once in `projectProjection`, for the forecast
+  and the caveat alike, so the figure and the rule that withholds it cannot
+  come from two different valuations.
+
+- **A pace that went backwards by less than a cent rendered as "-$0.00 a
+  day".** Reachable inside the `pace-changed` comparison when an entry is
+  deleted between two readings: the window's burn falls, `Math.round` lands on
+  `-0`, and `Intl` keeps the sign. No date is ever counted at a negative pace —
+  `hasBurnRate` refuses it — so nought is the honest rendering, through
+  `withoutNegativeZero`. "Less than a cent a day" stays for the positive
+  direction, where a date really does sit beside the figure and "$0.00 a day"
+  would look like a contradiction.
+
+- **Two caveats promised a date the panel does not always show.** Both scope
+  sentences ended "the date below is when the money runs out", and on a project
+  that has already overspent the only surviving figure row reads "Already
+  gone". The same mistake in miniature as a forecast with no caveats: the words
+  claiming more than the figures. One clause now, read by both sentences,
+  branching on the field the lead sentence branches on.
+
+- **The valueless-remainder sentence counted the wrong lines.** It named
+  `lineCount` while explaining a figure valued from the *unfinished* lines, so
+  a reader with eight sized delivered lines was told their ten deliverables
+  come to nothing. The useful count is the unsized one, which `unsized-scope`
+  reports one sentence above whenever it applies — so this sentence drops the
+  count, and stops hedging about a rate when the caveat above has already named
+  the estimates.
+
+- **"14 of the 14 readings behind this pace were reconstructed."** The
+  ordinary case, not the extreme one: nothing in this repo runs a nightly job,
+  so a project read for the first time has its whole history worked out after
+  the fact. A share is only worth spelling out when it is a share.
+
+## Left alone deliberately (Day 037)
+
+- **A projection does not know whether the project is closed.** A closed
+  project with unfinished scope still gets a forecast counted forward from
+  today. Every figure in this phase is status-agnostic — the burn panel, the
+  health banner and the burn-down chart all draw for a closed project — and
+  `projectProjection` takes a `BurnSummary` rather than a project, so the
+  status is not even in reach. Day 039 ranks *active* projects and is where the
+  distinction first has to be made; making it here, for one panel, would put
+  the rule in the wrong file and leave the other three disagreeing with it.
+- **Up to six caveat boxes can stack on one panel.** Each is a separate thing
+  wrong with the basis, each carries its own figures, and each sends a reader
+  somewhere different — which is why they are separate notes rather than one
+  paragraph, the same decision the burn panel's problems take. A weak-basis
+  project genuinely has that much wrong with it, and folding them into one box
+  would make the list shorter without making any of it less true.
