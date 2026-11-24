@@ -255,12 +255,24 @@ export const CAVEAT_SENTENCE: Record<
   "stale-readings": (projection) =>
     `No reading has been stored for this project for ${projection.evidence.daysSinceLastReading} days. The pace is a statement about a stretch that has already ended, and the dates are counted forward from today regardless.`,
 
-  "unsized-scope": (projection) =>
-    `${
+  "unsized-scope": (projection) => {
+    const subject =
       projection.evidence.unsizedUndeliveredCount === 1
         ? "One unfinished deliverable carries"
-        : `${projection.evidence.unsizedUndeliveredCount} unfinished deliverables carry`
-    } no estimate, and an unsized line adds nothing to the remaining work. The expected cost is a floor: the work is coming and nothing says what it costs.`,
+        : `${projection.evidence.unsizedUndeliveredCount} unfinished deliverables carry`;
+    const problem = `${subject} no estimate, and an unsized line adds nothing to the remaining work.`;
+
+    /*
+      The consequence is only this caveat's to state while there is a figure
+      to qualify. When nothing left in the list carries a value the cost rows
+      are withheld altogether, and `unvalued-scope` — which fires on exactly
+      that project, immediately below this — is the sentence that says so.
+      Saying "the expected cost is a floor" there would point at a row that is
+      not on the panel, and point at it first.
+    */
+    if (!hasProjectedCost(projection)) return problem;
+    return `${problem} The expected cost is a floor: the work is coming and nothing says what it costs.`;
+  },
 
   "unvalued-scope": (projection) =>
     `The work left in this project's ${
