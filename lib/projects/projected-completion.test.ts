@@ -651,6 +651,23 @@ describe("describeProjectedOutcome", () => {
     }
   });
 
+  it("says the money has gone rather than how long it lasts", () => {
+    // The surviving figure row reads "Already gone" on this project, so a
+    // lead offering a date would be answered by its own panel.
+    const sentence = describeProjectedOutcome(
+      projection({
+        caveats: ["unvalued-scope"],
+        forecast: {
+          ...projection().forecast,
+          daysOfContractLeft: null,
+          contractRunsOutOn: null,
+        },
+      }),
+    );
+    expect(sentence).toContain("has already gone in hours logged");
+    expect(sentence).not.toContain("lasts at the pace");
+  });
+
   it("does not leak a projected cost the figures withheld", () => {
     // The cost rows are dropped with no scope list, and a lead sentence
     // quoting a projected cost of exactly the burn would leak them back.
