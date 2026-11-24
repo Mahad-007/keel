@@ -255,12 +255,36 @@ export const CAVEAT_SENTENCE: Record<
     } if the project returned to its average.`;
   },
 
-  "reconstructed-history": (projection) =>
-    `${projection.evidence.reconstructedCount} of the ${
-      projection.evidence.readingCount
-    } readings behind this pace ${
-      projection.evidence.reconstructedCount === 1 ? "was" : "were"
-    } reconstructed after the fact rather than measured on the day. Those hours are the hours that were logged, but valued at the rate and contract value the project carries now — so a rate that has moved since tilts the pace.`,
+  "reconstructed-history": (projection) => {
+    const { reconstructedCount: reconstructed, readingCount: total } =
+      projection.evidence;
+    const consequence =
+      "Those hours are the hours that were logged, but valued at the rate and contract value the project carries now — so a rate that has moved since tilts the pace.";
+
+    /*
+      All of them is the ordinary case rather than the extreme one — nothing in
+      this repo runs a nightly job, so a project read for the first time has
+      its whole history worked out after the fact — and "14 of the 14 readings"
+      is not how anybody says that. The share is only worth spelling out when
+      it is a share.
+
+      Greater *or equal*, though nothing produces greater: both counts are read
+      off the same span in `projectionEvidence`, so a reconstruction cannot
+      exceed a reading. If some later caller assembles the evidence otherwise,
+      this says "all of them" rather than "nine of the eight".
+    */
+    if (reconstructed >= total) {
+      const subject =
+        total === 1
+          ? "The one reading behind this pace was"
+          : `All ${total} readings behind this pace were`;
+      return `${subject} reconstructed after the fact rather than measured on the day. ${consequence}`;
+    }
+
+    return `${reconstructed} of the ${total} readings behind this pace ${
+      reconstructed === 1 ? "was" : "were"
+    } reconstructed after the fact rather than measured on the day. ${consequence}`;
+  },
 
   "stale-readings": (projection) =>
     `No reading has been stored for this project for ${projection.evidence.daysSinceLastReading} days. The pace is a statement about a stretch that has already ended, and the dates are counted forward from today regardless.`,
