@@ -92,6 +92,14 @@ describe("hasProjectedCost", () => {
     expect(hasProjectedCost(projection({ caveats: ["no-scope"] }))).toBe(false);
   });
 
+  it("is false when the work left in the list comes to nothing", () => {
+    // Lines in the scope list, none of them valued: the projected cost would
+    // be the burn under a future tense's label.
+    expect(hasProjectedCost(projection({ caveats: ["unvalued-scope"] }))).toBe(
+      false,
+    );
+  });
+
   it("is unmoved by the other caveats", () => {
     expect(
       hasProjectedCost(
@@ -290,6 +298,34 @@ describe("CAVEAT_SENTENCE", () => {
       "when the money runs out, not when the project ends",
     );
   });
+
+  it("counts the lines a project has when none of them is valued", () => {
+    // The count is what sends a reader to the scope tab: five lines and no
+    // estimate between them is a different job from one.
+    const sentence = CAVEAT_SENTENCE["unvalued-scope"](projection());
+    expect(sentence).toContain("5 deliverables");
+    expect(sentence).toContain("comes to nothing");
+  });
+
+  it("says a single deliverable in the singular", () => {
+    expect(
+      CAVEAT_SENTENCE["unvalued-scope"](
+        projection({ evidence: { ...projection().evidence, lineCount: 1 } }),
+      ),
+    ).toContain("one deliverable");
+  });
+
+  it("names both ways the work left can come to nothing", () => {
+    const sentence = CAVEAT_SENTENCE["unvalued-scope"](projection());
+    expect(sentence).toContain("no estimate");
+    expect(sentence).toContain("no rate");
+  });
+
+  it("says what is withheld and why it is not a forecast", () => {
+    const sentence = CAVEAT_SENTENCE["unvalued-scope"](projection());
+    expect(sentence).toContain("left out");
+    expect(sentence).toContain("floor of nought is not a forecast");
+  });
 });
 
 describe("projectionCaveatSentences", () => {
@@ -486,6 +522,17 @@ describe("projectionFigures", () => {
     ).toEqual(["Contract runs out", "Burn rate"]);
   });
 
+  it("drops the same rows when the lines are there but value nothing", () => {
+    // "Remaining work paid for" is the one that looks like a date and is
+    // really a cost: nought of estimates over the pace is nought days, which
+    // prints today.
+    expect(
+      projectionFigures(projection({ caveats: ["unvalued-scope"] })).map(
+        (row) => row.label,
+      ),
+    ).toEqual(["Contract runs out", "Burn rate"]);
+  });
+
   it("gives every row a label, a value and a note", () => {
     for (const row of projectionFigures(projection())) {
       expect(row.label.length).toBeGreaterThan(0);
@@ -533,12 +580,31 @@ describe("describeProjectedOutcome", () => {
     expect(sentence).not.toContain("expected to cost");
   });
 
+  it("says which gap it is when the lines value nothing", () => {
+    const sentence = describeProjectedOutcome(
+      projection({ caveats: ["unvalued-scope"] }),
+    );
+    expect(sentence).toContain("comes to nothing to project from");
+    expect(sentence).not.toContain("no deliverables");
+    expect(sentence).not.toContain("expected to cost");
+  });
+
+  it("still says how long the money lasts when the cost is withheld", () => {
+    for (const caveat of ["no-scope", "unvalued-scope"] as const) {
+      expect(
+        describeProjectedOutcome(projection({ caveats: [caveat] })),
+      ).toContain("lasts at the pace it is being spent");
+    }
+  });
+
   it("does not leak a projected cost the figures withheld", () => {
     // The cost rows are dropped with no scope list, and a lead sentence
     // quoting a projected cost of exactly the burn would leak them back.
-    expect(
-      describeProjectedOutcome(projection({ caveats: ["no-scope"] })),
-    ).not.toContain("$6,400.00");
+    for (const caveat of ["no-scope", "unvalued-scope"] as const) {
+      expect(
+        describeProjectedOutcome(projection({ caveats: [caveat] })),
+      ).not.toContain("$6,400.00");
+    }
   });
 });
 
