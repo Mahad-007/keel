@@ -200,6 +200,25 @@ describe("a project's projection, from the rows", () => {
     expect(projection?.confidence).toBe("indicative");
   });
 
+  it("withholds the cost when the open lines are all unsized", async () => {
+    await workAndRecord("2026-10-05", 240);
+    await workAndRecord("2026-10-11", 240);
+    // Two lines still to do, neither of them sized. The column has no null,
+    // so an unsized line is stored as nought minutes.
+    await createDeliverable({ projectId, title: "Migration" }, db);
+    await createDeliverable({ projectId, title: "Launch" }, db);
+
+    const projection = await projectionOn("2026-10-11");
+
+    expect(projection).not.toBeNull();
+    expect(projection?.forecast.remainingWorkCents).toBe(0);
+    expect(projection?.caveats).toContain("unvalued-scope");
+    expect(projection?.confidence).toBe("weak");
+    // The end of the money survives: it needs the pace and the price, and
+    // neither of those has an opinion about what the work is.
+    expect(projection?.forecast.contractRunsOutOn).not.toBeNull();
+  });
+
   it("has nothing to project for a project nobody has logged against", async () => {
     await createDeliverable(
       { projectId, title: "Migration", estimatedMinutes: 600 },
