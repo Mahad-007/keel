@@ -1159,8 +1159,18 @@ read-that-writes owes Phase 8, and nothing here changes it.
 `/code-review` on `850dced..HEAD` found one real bug and one rendering fault; a
 second pass over the audit's own diff found three more, two of them in the fix
 for the first; a third pass over those fixes found two more, both in the
-sentence the first fix had added. As on Day 023, every pass after the first was
-reviewing the audit rather than the day, and every pass found something.
+sentence the first fix had added; a fourth found that same sentence still
+over-claiming, in both of its halves. As on Day 023, every pass after the first
+was reviewing the audit rather than the day, and every pass found something.
+
+The sentence that took four passes is worth naming for what it is: eight words
+of prose about why a figure is missing, rewritten three times because each
+version asserted a cause the two numbers behind it could not establish. "No
+estimates" cannot be read off a count of unsized lines; "no rate" cannot be
+read off a count of minutes. What survived says what the figures show and
+points at where to look, which is as far as a count honestly goes — and that
+is the same discipline the whole panel is built on, applied to the panel's own
+excuses.
 
 - **The projection was withheld for an empty scope list but not for a
   worthless one.** With no deliverables at all, the cost rows and the lead
@@ -1232,6 +1242,19 @@ reviewing the audit rather than the day, and every pass found something.
   — so the evidence carries both. The minutes are totalled off the lines inside
   `projectionEvidence` while the money is passed in: a valuation is a decision
   two callers can take differently, and a total of a column of minutes is not.
+
+- **And then both halves of that still claimed too much.** No hours left is
+  unsized lines *or* estimates that cancel each other out, which is a pair of
+  rows somebody can type and `negativeEstimateCount` already tracks. Hours that
+  value at nothing is a rate of nought, a rate below it, *or* a rate so small
+  that `costOfMinutes` rounds the lot away — twenty-five minutes at a cent an
+  hour is nought cents at a positive rate. Each half now states the figure and
+  names where to look rather than which row is at fault.
+
+- **The evidence fields are no longer counted in the prose.** The doc comment
+  said eight, then nine, then was wrong again at ten within the same day, which
+  teaches a reader to stop believing the sentences around it. The type is the
+  list.
 
 - **"14 of the 14 readings behind this pace were reconstructed."** The
   ordinary case, not the extreme one: nothing in this repo runs a nightly job,
