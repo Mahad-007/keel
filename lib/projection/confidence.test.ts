@@ -131,6 +131,7 @@ function evidence(
     wholeHistoryWindow: false,
     lineCount: 6,
     unsizedUndeliveredCount: 0,
+    remainingWorkCents: 240_000,
     ...overrides,
   };
 }

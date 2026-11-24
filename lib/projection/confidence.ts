@@ -219,6 +219,23 @@ export type ProjectionEvidence = {
   readonly lineCount: number;
   /** How many unfinished deliverables carry no estimate. */
   readonly unsizedUndeliveredCount: number;
+  /**
+   * What the unfinished estimates come to in money, which is the figure the
+   * projected cost is built out of.
+   *
+   * Cents rather than minutes, because money is what the forecast adds to the
+   * burn and money is where the two ways of having nothing to project meet. A
+   * list whose open lines are all unsized comes to nothing; so does a list of
+   * sized lines on a project whose rate has been cleared. Those are different
+   * things to go and fix and the same thing to a forecast — there is no
+   * remaining cost, so the projected cost is the burn with a future tense's
+   * label on it.
+   *
+   * Read off the same number the forecast is given, not computed a second time
+   * from the lines, so a rule about whether there is a cost to project and the
+   * cost itself cannot come from different arithmetic.
+   */
+  readonly remainingWorkCents: number;
 };
 
 /**

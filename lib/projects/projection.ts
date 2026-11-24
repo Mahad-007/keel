@@ -113,6 +113,11 @@ export type ProjectProjection = {
  * vouching for days the arithmetic never touched. The reconstruction count is
  * bounded the same way, by the span the pace was measured over.
  *
+ * `remainingWorkCents` arrives already valued rather than being worked out
+ * from the lines here, because `projectProjection` has to hand the same figure
+ * to the forecast. Two valuations of one scope list is how a panel ends up
+ * withholding a cost it has already printed.
+ *
  * `daysSinceLastReading` is measured from the last reading rather than from the
  * pace's own end date, and the two are the same day — both paces run to the
  * last reading, by construction. Reading it off the list is what makes that an
@@ -127,6 +132,7 @@ export function projectionEvidence(
   recentPace: BurnRate | null,
   readings: readonly BurnReading[],
   lines: readonly ScopeLine[],
+  remainingCents: number,
   today: string,
 ): ProjectionEvidence {
   const last = readings[readings.length - 1];
@@ -141,6 +147,7 @@ export function projectionEvidence(
     wholeHistoryWindow: windowCoversWholeHistory(overallPace, recentPace),
     lineCount: lines.length,
     unsizedUndeliveredCount: unestimatedUndeliveredCount(lines),
+    remainingWorkCents: remainingCents,
   };
 }
 
@@ -197,12 +204,24 @@ export function projectProjection(
   if (!hasPriceToMeasureAgainst(summary)) return null;
   if (allDelivered(lines)) return null;
 
+  /*
+    Valued once, for the forecast and for the evidence alike. The caveat that
+    says there is no cost to project is read off this figure and so is the cost
+    itself, and a second valuation here is how the panel would come to withhold
+    a figure it had already printed.
+  */
+  const remainingCents = remainingWorkCents(
+    remainingEstimatedMinutes(lines),
+    summary.rate,
+  );
+
   const evidence = projectionEvidence(
     pace,
     overallPace,
     recentPace,
     readings,
     lines,
+    remainingCents,
     today,
   );
   const caveats = projectionCaveats(evidence);
@@ -216,10 +235,7 @@ export function projectProjection(
       today,
       contractedCents: summary.contractedCents,
       burnedCents: summary.burnedCents,
-      remainingWorkCents: remainingWorkCents(
-        remainingEstimatedMinutes(lines),
-        summary.rate,
-      ),
+      remainingWorkCents: remainingCents,
       centsPerDay: pace.centsPerDay,
     }),
     caveats,

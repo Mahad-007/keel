@@ -62,6 +62,7 @@ function projection(
       wholeHistoryWindow: false,
       lineCount: 5,
       unsizedUndeliveredCount: 0,
+      remainingWorkCents: 240_000,
     },
     forecast: {
       contractedCents: 1_000_000,

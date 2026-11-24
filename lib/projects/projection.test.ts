@@ -75,6 +75,7 @@ describe("projectionEvidence", () => {
   function evidenceFor(
     readings: readonly BurnReading[],
     lines: readonly ScopeLine[] = LINES,
+    remainingCents = 240_000,
     today = "2026-03-14",
   ) {
     const overall = overallBurnRate(readings) as BurnRate;
@@ -85,6 +86,7 @@ describe("projectionEvidence", () => {
       recent,
       readings,
       lines,
+      remainingCents,
       today,
     );
   }
@@ -110,9 +112,9 @@ describe("projectionEvidence", () => {
   });
 
   it("measures the staleness from the last reading to today", () => {
-    expect(evidenceFor(HISTORY, LINES, "2026-03-20").daysSinceLastReading).toBe(
-      6,
-    );
+    expect(
+      evidenceFor(HISTORY, LINES, 240_000, "2026-03-20").daysSinceLastReading,
+    ).toBe(6);
   });
 
   it("classifies the pace shift from the two paces", () => {
