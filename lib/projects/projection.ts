@@ -37,7 +37,7 @@ import { hasPriceToMeasureAgainst } from "./burn-summary";
  *
  * `lib/projection/` is three modules of arithmetic that know nothing about
  * each other's inputs: the rate reads a list of readings, the forecast reads
- * six numbers, and the confidence reads nine counts. That is right for all
+ * six numbers, and the confidence reads a set of counts. That is right for all
  * three — each is testable on its own and none of them can form a second
  * opinion about the others — and it leaves exactly one job undone, which is
  * reading four sources in the right order and putting the answers in the right
@@ -103,8 +103,13 @@ export type ProjectProjection = {
 };
 
 /**
- * The nine counts the caveats are read off, gathered from the readings, the
- * scope list, the valued remainder and the clock.
+ * The counts the caveats are read off, gathered from the readings, the scope
+ * list, the valued remainder and the clock.
+ *
+ * Not numbered in the prose. The count has been wrong twice today alone —
+ * eight, then nine — because a field arrives and the sentence above it does
+ * not, and a doc comment that goes stale every time the type grows teaches a
+ * reader to stop believing the rest of it. The type is the list.
  *
  * The two history counts come from the pace that was actually used rather than
  * from the readings as a whole, which is the point of passing it in. A project
