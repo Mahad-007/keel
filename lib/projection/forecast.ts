@@ -201,15 +201,14 @@ export type ForecastBasis = {
  * because the two come from different tables.
  *
  * The price and the two halves of the sum are echoed through rather than
- * consumed, the
- * choice `BurnSummary` makes about the rate it valued its hours at. A
- * projected cost is a sum of two very different things — money that has been
- * spent and money that is a guess — and a reader who finds the total
- * surprising wants to know which half surprised them. The words under the
- * figure say so, and they would otherwise have to be handed the basis
- * separately and could be handed a different one. The price travels for the
- * same reason: every comparison on the panel is against it, and a caller that
- * had to supply it alongside could supply a different one.
+ * consumed. A projected cost is a sum of two very different things — money
+ * that has been spent and money that is a guess — and a reader who finds the
+ * total surprising wants to know which half surprised them. The words under
+ * the figure say so, and without the halves travelling with the total they
+ * would have to be handed the basis separately and could be handed a
+ * different one. The price travels for the same reason: every comparison on
+ * the panel is against it, and a caller that had to supply it alongside could
+ * supply a different one.
  *
  * The dates are nullable and the figures are not, which is the asymmetry of
  * the two extrapolations. What the work will cost needs an estimate and a
