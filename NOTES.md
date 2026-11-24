@@ -1158,8 +1158,9 @@ read-that-writes owes Phase 8, and nothing here changes it.
 
 `/code-review` on `850dced..HEAD` found one real bug and one rendering fault; a
 second pass over the audit's own diff found three more, two of them in the fix
-for the first. As on Day 023, every pass after the first was reviewing the
-audit rather than the day, and every pass found something.
+for the first; a third pass over those fixes found two more, both in the
+sentence the first fix had added. As on Day 023, every pass after the first was
+reviewing the audit rather than the day, and every pass found something.
 
 - **The projection was withheld for an empty scope list but not for a
   worthless one.** With no deliverables at all, the cost rows and the lead
@@ -1213,6 +1214,24 @@ audit rather than the day, and every pass found something.
   reports one sentence above whenever it applies — so this sentence drops the
   count, and stops hedging about a rate when the caveat above has already named
   the estimates.
+
+- **The clause pointing at the surviving row had two answers for three
+  states.** "Already gone" was handled; "Not within ten years" was not, so a
+  project with a mistyped rate — a pace of a cent or two a day puts the day the
+  money runs out in the 2050s, where `forecastDate` refuses to name it — was
+  told to read a date that is not there. The clause now takes
+  `describeForecastDate`'s three answers in prose.
+
+- **The sentence blamed the scope list for a cleared rate.** It read the unsized
+  count to decide what had gone wrong, and *some* open lines being unsized does
+  not mean none of them is sized: a project with twenty hours of sized work
+  left and no rate to value it at was told nothing unfinished carries an
+  estimate. The only pair that tells the two apart is the remaining minutes
+  against the remaining money — minutes of nought is a scope list that says
+  nothing about the work left, minutes above nought valued at nought is a rate
+  — so the evidence carries both. The minutes are totalled off the lines inside
+  `projectionEvidence` while the money is passed in: a valuation is a decision
+  two callers can take differently, and a total of a column of minutes is not.
 
 - **"14 of the 14 readings behind this pace were reconstructed."** The
   ordinary case, not the extreme one: nothing in this repo runs a nightly job,
