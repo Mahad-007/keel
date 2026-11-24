@@ -293,6 +293,19 @@ describe("CAVEAT_SENTENCE", () => {
     ).toContain("One unfinished deliverable carries");
   });
 
+  it("leaves the consequence out when the figure is withheld", () => {
+    // Every open line unsized: the cost rows are gone, so a sentence calling
+    // them a floor would qualify a row the panel does not draw.
+    const sentence = CAVEAT_SENTENCE["unsized-scope"](
+      projection({
+        caveats: ["unsized-scope", "unvalued-scope"],
+        evidence: { ...projection().evidence, unsizedUndeliveredCount: 5 },
+      }),
+    );
+    expect(sentence).toContain("adds nothing to the remaining work");
+    expect(sentence).not.toContain("floor");
+  });
+
   it("says what is withheld when there is no scope list", () => {
     expect(CAVEAT_SENTENCE["no-scope"](projection())).toContain(
       "when the money runs out, not when the project ends",
