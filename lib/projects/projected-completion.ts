@@ -183,6 +183,28 @@ export function describePaceBasis(pace: BurnRate): string {
 }
 
 /**
+ * What the one surviving figure row says, for the two caveats that point at
+ * it.
+ *
+ * Both scope caveats end by naming what is left on the panel once the cost
+ * rows are withheld, and on a project that has already overspent that row is
+ * not a date — `contractRunsOutFigure` reads "Already gone". A sentence
+ * promising a date two inches above a row that refuses to give one is the same
+ * mistake in miniature as a forecast with no caveats: the words claiming more
+ * than the figures.
+ *
+ * One clause, read by both sentences, so the pair cannot drift apart. It is
+ * the same branch `describeProjectedOutcome` takes on the same field, and for
+ * the same reason.
+ */
+function describeSurvivingRow(projection: ProjectProjection): string {
+  if (projection.forecast.daysOfContractLeft === null) {
+    return "The row below says the contract value has already gone; nothing here says when the project ends.";
+  }
+  return "The date below is when the money runs out, not when the project ends.";
+}
+
+/**
  * What each caveat says, with the project's own numbers in it.
  *
  * A record of sentence-builders over the whole union, so a caveat added
@@ -308,15 +330,28 @@ export const CAVEAT_SENTENCE: Record<
     return `${problem} The expected cost is a floor: the work is coming and nothing says what it costs.`;
   },
 
-  "unvalued-scope": (projection) =>
-    `The work left in this project's ${
-      projection.evidence.lineCount === 1
-        ? "one deliverable"
-        : `${projection.evidence.lineCount} deliverables`
-    } comes to nothing — the unfinished lines carry no estimate, or there is no rate to value them at. The expected cost and the overage are left out rather than shown as the hours already logged: a floor of nought is not a forecast. The date below is when the money runs out, not when the project ends.`,
+  "unvalued-scope": (projection) => {
+    /*
+      No count of the lines. The figure this explains is valued from the
+      *unfinished* ones, and a sentence counting the whole list would say "the
+      work left in this project's ten deliverables comes to nothing" to
+      somebody looking at a scope tab where eight of the ten are done and
+      sized. The count that is worth having is the unsized one, and
+      `unsized-scope` reports it one sentence above whenever it applies.
 
-  "no-scope": () =>
-    "This project has no deliverables, so nothing says how much work is left. The expected cost and the overage are left out rather than shown as nought — the date below is when the money runs out, not when the project ends.",
+      Which is also why the cause is not hedged both ways every time: when
+      that caveat has already named the unsized lines, repeating "or there is
+      no rate" invites a reader to go and check a rate that is fine.
+    */
+    const cause =
+      projection.evidence.unsizedUndeliveredCount > 0
+        ? "nothing unfinished in it carries an estimate the forecast can add"
+        : "either there is no rate to value the estimates at, or they come to nothing between them";
+    return `The work still to do in the scope list comes to nothing: ${cause}. The expected cost and the overage are left out rather than shown as the hours already logged — a floor of nought is not a forecast. ${describeSurvivingRow(projection)}`;
+  },
+
+  "no-scope": (projection) =>
+    `This project has no deliverables, so nothing says how much work is left. The expected cost and the overage are left out rather than shown as nought. ${describeSurvivingRow(projection)}`,
 };
 
 /**

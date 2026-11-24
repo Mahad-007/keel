@@ -353,32 +353,56 @@ describe("CAVEAT_SENTENCE", () => {
     );
   });
 
-  it("counts the lines a project has when none of them is valued", () => {
-    // The count is what sends a reader to the scope tab: five lines and no
-    // estimate between them is a different job from one.
-    const sentence = CAVEAT_SENTENCE["unvalued-scope"](projection());
-    expect(sentence).toContain("5 deliverables");
-    expect(sentence).toContain("comes to nothing");
+  it("blames the unsized lines when there are some", () => {
+    // Counting the whole list instead would tell somebody looking at eight
+    // sized delivered lines that their ten deliverables come to nothing.
+    const sentence = CAVEAT_SENTENCE["unvalued-scope"](
+      projection({
+        evidence: { ...projection().evidence, unsizedUndeliveredCount: 2 },
+      }),
+    );
+    expect(sentence).toContain("nothing unfinished in it carries an estimate");
+    expect(sentence).not.toContain("no rate");
   });
 
-  it("says a single deliverable in the singular", () => {
-    expect(
-      CAVEAT_SENTENCE["unvalued-scope"](
-        projection({ evidence: { ...projection().evidence, lineCount: 1 } }),
-      ),
-    ).toContain("one deliverable");
+  it("looks to the rate when every unfinished line is sized", () => {
+    // `unsized-scope` has not fired, so the estimates are there and it is
+    // what they are valued at that comes to nothing.
+    const sentence = CAVEAT_SENTENCE["unvalued-scope"](projection());
+    expect(sentence).toContain("no rate to value the estimates at");
   });
 
-  it("names both ways the work left can come to nothing", () => {
-    const sentence = CAVEAT_SENTENCE["unvalued-scope"](projection());
-    expect(sentence).toContain("no estimate");
-    expect(sentence).toContain("no rate");
+  it("does not count the lines it is not valuing", () => {
+    expect(CAVEAT_SENTENCE["unvalued-scope"](projection())).not.toContain(
+      "5 deliverables",
+    );
   });
 
   it("says what is withheld and why it is not a forecast", () => {
     const sentence = CAVEAT_SENTENCE["unvalued-scope"](projection());
     expect(sentence).toContain("left out");
     expect(sentence).toContain("floor of nought is not a forecast");
+  });
+
+  it("points at the row that is left, whichever row that is", () => {
+    for (const caveat of ["unvalued-scope", "no-scope"] as const) {
+      expect(CAVEAT_SENTENCE[caveat](projection())).toContain(
+        "The date below is when the money runs out",
+      );
+      // On a project whose money has gone, that row reads "Already gone", so
+      // the sentence cannot promise a date.
+      const gone = CAVEAT_SENTENCE[caveat](
+        projection({
+          forecast: {
+            ...projection().forecast,
+            daysOfContractLeft: null,
+            contractRunsOutOn: null,
+          },
+        }),
+      );
+      expect(gone).toContain("has already gone");
+      expect(gone).not.toContain("date below");
+    }
   });
 });
 
