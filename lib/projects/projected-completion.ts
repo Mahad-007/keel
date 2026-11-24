@@ -42,23 +42,34 @@ import { formatSharePercent } from "./scope-summary";
 /**
  * Whether the projected cost figures mean anything for this project.
  *
- * They need a scope list. With nothing in it the remaining work costs nothing,
- * so the projected final cost is the burn and the projected overage is
- * whatever has already been overspent — and a project with three months of
+ * They need remaining work with a value on it. Without one the remaining cost
+ * is nought, so the projected final cost is the burn and the projected overage
+ * is whatever has already been overspent — and a project with three months of
  * work ahead of it would read as expecting no overage at all. That is the one
  * place in this panel where a figure would be worse than a gap, because it is
  * wrong in the reassuring direction and looks like a measurement.
+ *
+ * Two states reach it and both are withheld. An empty scope list says nothing
+ * about the work at all. A list whose open lines are all unsized — or whose
+ * sized lines value at nought, on a project whose rate has been cleared — says
+ * as little, and it is the more dangerous of the two because the lines are
+ * there and the panel looks fully informed. The caveats tell a reader which,
+ * in a sentence, with the count in it.
  *
  * The date the contract runs out survives, which is why the panel is still
  * drawn: it is worked out from the pace and the money, and neither of those
  * needs to know what the work is.
  *
- * Asked of the caveat rather than of the line count, so there is one place
- * that decides what an empty scope list means to a forecast and the sentence
- * explaining the gap cannot appear without the rows being withheld.
+ * Asked of the caveats rather than of the figures, so there is one place that
+ * decides what a scope list with nothing to project means to a forecast and
+ * the sentence explaining the gap cannot appear without the rows being
+ * withheld.
  */
 export function hasProjectedCost(projection: ProjectProjection): boolean {
-  return !projection.caveats.includes("no-scope");
+  return !(
+    projection.caveats.includes("no-scope") ||
+    projection.caveats.includes("unvalued-scope")
+  );
 }
 
 /**
@@ -250,6 +261,13 @@ export const CAVEAT_SENTENCE: Record<
         ? "One unfinished deliverable carries"
         : `${projection.evidence.unsizedUndeliveredCount} unfinished deliverables carry`
     } no estimate, and an unsized line adds nothing to the remaining work. The expected cost is a floor: the work is coming and nothing says what it costs.`,
+
+  "unvalued-scope": (projection) =>
+    `The work left in this project's ${
+      projection.evidence.lineCount === 1
+        ? "one deliverable"
+        : `${projection.evidence.lineCount} deliverables`
+    } comes to nothing — the unfinished lines carry no estimate, or there is no rate to value them at. The expected cost and the overage are left out rather than shown as the hours already logged: a floor of nought is not a forecast. The date below is when the money runs out, not when the project ends.`,
 
   "no-scope": () =>
     "This project has no deliverables, so nothing says how much work is left. The expected cost and the overage are left out rather than shown as nought — the date below is when the money runs out, not when the project ends.",
@@ -542,10 +560,12 @@ export function projectionFigures(
  * repeating it is what makes the sentence checkable where it is read — a
  * figure a reader has to scroll to verify is one they verify once.
  *
- * With no scope list the sentence says what the panel cannot do rather than
- * dressing up what it can. The cost rows are withheld in that case, and a
- * lead sentence that quoted a projected cost of exactly the burn would be the
- * one place the withholding leaked.
+ * With nothing to project the remaining work from, the sentence says what the
+ * panel cannot do rather than dressing up what it can. The cost rows are
+ * withheld in that case, and a lead sentence that quoted a projected cost of
+ * exactly the burn would be the one place the withholding leaked. Which of the
+ * two gaps it is changes the clause, because "no deliverables" and "no
+ * estimates on the ones there are" send a reader to different forms.
  */
 export function describeProjectedOutcome(
   projection: ProjectProjection,
@@ -554,7 +574,10 @@ export function describeProjectedOutcome(
   const agreed = formatCents(forecast.contractedCents);
 
   if (!hasProjectedCost(projection)) {
-    return `There are no deliverables to project the remaining work from, so nothing here says what this project will end up costing — only how long the ${agreed} agreed lasts at the pace it is being spent.`;
+    const gap = projection.caveats.includes("no-scope")
+      ? "There are no deliverables to project the remaining work from"
+      : "The work left in the scope list comes to nothing to project from";
+    return `${gap}, so nothing here says what this project will end up costing — only how long the ${agreed} agreed lasts at the pace it is being spent.`;
   }
 
   if (forecast.projectedOverageCents > 0) {

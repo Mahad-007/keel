@@ -109,6 +109,9 @@ export function worstConfidence(
  *     about a stretch that has ended.
  *   - `unsized-scope` — unfinished deliverables carry no estimate, so the
  *     remaining cost is a floor rather than an estimate.
+ *   - `unvalued-scope` — there are deliverables, and the work left in them
+ *     comes to nothing. A floor of nought is not a forecast: the projected
+ *     cost would be the burn with a future tense's label on it.
  *   - `no-scope` — there are no deliverables at all. Nothing says how much
  *     work is left, so there is no end of the work to forecast — only an end
  *     of the money.
@@ -126,6 +129,7 @@ export const PROJECTION_CAVEATS = [
   "reconstructed-history",
   "stale-readings",
   "unsized-scope",
+  "unvalued-scope",
   "no-scope",
 ] as const;
 
@@ -138,11 +142,19 @@ export type ProjectionCaveat = (typeof PROJECTION_CAVEATS)[number];
  * caveat added without a grade is a compile error here rather than a weakness
  * that silently reads as firm.
  *
- * The three that grade `weak` are the ones that undermine the *basis* rather
+ * The four that grade `weak` are the ones that undermine the *basis* rather
  * than the precision. Too few days and too few readings mean there is no
  * measured pace to carry forward — the figures are a line through two points —
- * and no deliverables means nothing at all says how much work is left, so the
+ * and the two scope ones mean nothing says how much work is left, so the
  * projected cost is the present tense wearing a future tense's label.
+ *
+ * `unvalued-scope` grades with `no-scope` rather than with `unsized-scope`,
+ * which is the distinction worth defending. An unsized line beside sized ones
+ * costs the forecast its precision: the remaining cost is a floor, and a floor
+ * is still a forecast. A list where *nothing* left comes to anything has a
+ * floor of nought, which is not a forecast of anything — it is the burn, and
+ * grading it `indicative` would put a measured-sounding label on the one
+ * figure this panel refuses to print.
  *
  * The rest grade `indicative`: the forecast is built on something real and
  * will move. A reconstructed history is the ordinary case rather than a fault
@@ -160,6 +172,7 @@ export const CAVEAT_CONFIDENCE: Record<ProjectionCaveat, ProjectionConfidence> =
     "reconstructed-history": "indicative",
     "stale-readings": "indicative",
     "unsized-scope": "indicative",
+    "unvalued-scope": "weak",
     "no-scope": "weak",
   };
 
@@ -381,6 +394,28 @@ export function projectionCaveats(
     done and the hours it took are in the burn.
   */
   if (evidence.unsizedUndeliveredCount > 0) caveats.push("unsized-scope");
+
+  /*
+    A scope list that values nothing is the same hole as an empty one, and it
+    is the one that looks like data. The lines are there, so the page cannot
+    say the scope is missing; the money they come to is nought, so the
+    remaining cost is nought, the projected final cost is the burn, and a
+    project with a quarter of work ahead of it reports that it lands inside its
+    contract. Two things reach it — every open line unsized, or a rate cleared
+    to nothing so sized lines value at nought — and a reader needs to know
+    which, so the sentence names both and the scope tab shows which one it is.
+
+    Only with lines in the list, so this and `no-scope` cannot both fire: an
+    empty list already has its own sentence and a reader told twice that
+    nothing says how much work is left has learned nothing the second time. A
+    list whose lines are *all delivered* would reach here too, and
+    `projectProjection` refuses that project before any of this is asked —
+    there is no remaining work to forecast and the burn panel has already said
+    what it cost.
+  */
+  if (evidence.lineCount > 0 && evidence.remainingWorkCents <= 0) {
+    caveats.push("unvalued-scope");
+  }
 
   /*
     No deliverables at all is the strongest caveat in the file, and it is the
