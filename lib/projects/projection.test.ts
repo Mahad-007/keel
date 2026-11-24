@@ -142,6 +142,14 @@ describe("projectionEvidence", () => {
     expect(evidence.lineCount).toBe(4);
     expect(evidence.unsizedUndeliveredCount).toBe(2);
   });
+
+  it("reports the remaining work at the value it was handed", () => {
+    // Not recomputed from the lines: it is the figure the forecast adds to
+    // the burn, so the caveat about there being no cost to project and the
+    // cost itself read the same number.
+    expect(evidenceFor(HISTORY, LINES, 0).remainingWorkCents).toBe(0);
+    expect(evidenceFor(HISTORY, LINES, 95_000).remainingWorkCents).toBe(95_000);
+  });
 });
 
 describe("projectProjection", () => {
