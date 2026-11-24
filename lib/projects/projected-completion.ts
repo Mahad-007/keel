@@ -623,6 +623,19 @@ export function describeProjectedOutcome(
     const gap = projection.caveats.includes("no-scope")
       ? "There are no deliverables to project the remaining work from"
       : "The work left in the scope list comes to nothing to project from";
+
+    /*
+      The one row that survives the withholding is the day the money runs out,
+      and on a project that has already overspent there is no such day — the
+      figures row says "Already gone". Promising a reader how long the contract
+      lasts and then answering that two inches below is the whole panel's
+      argument inverted: the sentence has to offer what the figures can
+      actually show.
+    */
+    if (forecast.daysOfContractLeft === null) {
+      return `${gap}, so nothing here says what this project will end up costing. The ${agreed} agreed has already gone in hours logged, and every hour from here is past it.`;
+    }
+
     return `${gap}, so nothing here says what this project will end up costing — only how long the ${agreed} agreed lasts at the pace it is being spent.`;
   }
 
