@@ -156,7 +156,7 @@ export function forecastDate(today: string, days: number): string | null {
 /**
  * What a forecast is worked out from: today, the money, and the pace.
  *
- * Five plain numbers and a date rather than a project, a client, a scope list
+ * Four plain numbers and a date rather than a project, a client, a scope list
  * and a set of readings. Everything that had to be decided — which rate
  * applies, what counts as delivered, which days the pace was measured over —
  * has been decided by the time the arguments get here, which is what makes the

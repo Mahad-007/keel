@@ -36,8 +36,8 @@ import { hasPriceToMeasureAgainst } from "./burn-summary";
  * Where a project's projection comes from.
  *
  * `lib/projection/` is three modules of arithmetic that know nothing about
- * each other's inputs: the rate reads a list of readings, the forecast reads
- * six numbers, and the confidence reads a set of counts. That is right for all
+ * each other's inputs: the rate reads a list of readings, the forecast reads a
+ * day and three amounts and a pace, and the confidence reads a set of counts. That is right for all
  * three — each is testable on its own and none of them can form a second
  * opinion about the others — and it leaves exactly one job undone, which is
  * reading four sources in the right order and putting the answers in the right

@@ -21,8 +21,8 @@ import { projectProjection } from "./projection";
  * can cover.
  *
  * Every piece either side of `projectProjection` is tested on its own: the
- * pace over literal readings, the forecast over six numbers, the caveats over
- * eight counts. What no unit test can catch is the assembly reading the wrong
+ * pace over literal readings, the forecast over the amounts and the pace it is
+ * handed, the caveats over their counts. What no unit test can catch is the assembly reading the wrong
  * column — forecasting from the last stored reading instead of the live burn,
  * or counting the delivered unsized lines instead of the open ones. Both are
  * silent, both are plausible, and both are visible the moment real rows go in
