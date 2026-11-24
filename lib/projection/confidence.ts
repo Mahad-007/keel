@@ -249,6 +249,22 @@ export type ProjectionEvidence = {
    * cost itself cannot come from different arithmetic.
    */
   readonly remainingWorkCents: number;
+  /**
+   * What the unfinished estimates come to in whole minutes, before a rate
+   * touched them.
+   *
+   * The pair with the figure above it is what tells the two ways of having
+   * nothing to project apart, and nothing else can. Minutes of nought is a
+   * scope list that says nothing about the work left — unsized lines, or
+   * estimates that cancel each other out. Minutes above nought with money at
+   * nought is the other one entirely: the hours are written down and the rate
+   * they would be valued at is nought or below, so the figure to go and fix is
+   * on the project rather than in the scope list.
+   *
+   * Without it a caveat has to hedge between the two, and a hedge sends a
+   * reader to check a rate that is fine as often as not.
+   */
+  readonly remainingWorkMinutes: number;
 };
 
 /**

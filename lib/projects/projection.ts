@@ -148,6 +148,14 @@ export function projectionEvidence(
     lineCount: lines.length,
     unsizedUndeliveredCount: unestimatedUndeliveredCount(lines),
     remainingWorkCents: remainingCents,
+    /*
+      The minutes are read off the lines here rather than passed in, unlike
+      the money beside them. A valuation is a decision — which rate, rounded
+      how — and two of those can disagree; a total of a column of minutes is
+      the same function over the same rows whichever caller runs it, and the
+      counts above it are already read that way.
+    */
+    remainingWorkMinutes: remainingEstimatedMinutes(lines),
   };
 }
 

@@ -63,6 +63,7 @@ function projection(
       lineCount: 5,
       unsizedUndeliveredCount: 0,
       remainingWorkCents: 240_000,
+      remainingWorkMinutes: 1200,
     },
     forecast: {
       contractedCents: 1_000_000,
@@ -353,23 +354,36 @@ describe("CAVEAT_SENTENCE", () => {
     );
   });
 
-  it("blames the unsized lines when there are some", () => {
-    // Counting the whole list instead would tell somebody looking at eight
-    // sized delivered lines that their ten deliverables come to nothing.
+  it("blames the scope list when no hours are left in it", () => {
     const sentence = CAVEAT_SENTENCE["unvalued-scope"](
       projection({
-        evidence: { ...projection().evidence, unsizedUndeliveredCount: 2 },
+        evidence: {
+          ...projection().evidence,
+          remainingWorkMinutes: 0,
+          remainingWorkCents: 0,
+        },
       }),
     );
     expect(sentence).toContain("nothing unfinished in it carries an estimate");
-    expect(sentence).not.toContain("no rate");
+    expect(sentence).not.toContain("rate");
   });
 
-  it("looks to the rate when every unfinished line is sized", () => {
-    // `unsized-scope` has not fired, so the estimates are there and it is
-    // what they are valued at that comes to nothing.
-    const sentence = CAVEAT_SENTENCE["unvalued-scope"](projection());
-    expect(sentence).toContain("no rate to value the estimates at");
+  it("blames the rate when the hours left value at nothing", () => {
+    // Twenty hours still to do and a cleared rate. Reading the unsized count
+    // instead would blame the scope list and send somebody to the wrong form
+    // — the lines are sized, and one of them may not even be unsized.
+    const sentence = CAVEAT_SENTENCE["unvalued-scope"](
+      projection({
+        evidence: {
+          ...projection().evidence,
+          unsizedUndeliveredCount: 1,
+          remainingWorkMinutes: 1200,
+          remainingWorkCents: 0,
+        },
+      }),
+    );
+    expect(sentence).toContain("rate of nought or below");
+    expect(sentence).not.toContain("carries an estimate");
   });
 
   it("does not count the lines it is not valuing", () => {

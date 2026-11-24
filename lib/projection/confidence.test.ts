@@ -140,6 +140,7 @@ function evidence(
     lineCount: 6,
     unsizedUndeliveredCount: 0,
     remainingWorkCents: 240_000,
+    remainingWorkMinutes: 1200,
     ...overrides,
   };
 }

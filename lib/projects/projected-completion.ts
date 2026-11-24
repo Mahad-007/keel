@@ -346,14 +346,18 @@ export const CAVEAT_SENTENCE: Record<
       sized. The count that is worth having is the unsized one, and
       `unsized-scope` reports it one sentence above whenever it applies.
 
-      Which is also why the cause is not hedged both ways every time: when
-      that caveat has already named the unsized lines, repeating "or there is
-      no rate" invites a reader to go and check a rate that is fine.
+      The cause comes off the minutes against the money rather than off the
+      unsized count, which is the only pair that can tell the two apart.
+      Unsized lines are not the same fact as a worthless remainder: a project
+      with one unsized line and one sized line still open has minutes left,
+      and if those minutes come to nothing it is the rate that did it. Reading
+      the unsized count instead would blame the scope list for a cleared rate
+      and send somebody to the wrong form.
     */
     const cause =
-      projection.evidence.unsizedUndeliveredCount > 0
-        ? "nothing unfinished in it carries an estimate the forecast can add"
-        : "either there is no rate to value the estimates at, or they come to nothing between them";
+      projection.evidence.remainingWorkMinutes > 0
+        ? "the hours left in it are valued at a rate of nought or below"
+        : "nothing unfinished in it carries an estimate the forecast can add";
     return `The work still to do in the scope list comes to nothing: ${cause}. The expected cost and the overage are left out rather than shown as the hours already logged — a floor of nought is not a forecast. ${describeSurvivingRow(projection)}`;
   },
 
