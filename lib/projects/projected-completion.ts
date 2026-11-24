@@ -1,5 +1,5 @@
 import { formatDate } from "@/lib/dates";
-import { formatCents } from "@/lib/money";
+import { formatCents, withoutNegativeZero } from "@/lib/money";
 import type {
   ProjectionCaveat,
   ProjectionConfidence,
@@ -146,11 +146,21 @@ export const CONFIDENCE_LEAD: Record<ProjectionConfidence, string> = {
  * forward at a positive pace is the one line on this panel that would look
  * like a contradiction, and a reader who found it would be right to distrust
  * everything above it.
+ *
+ * Only upwards, and the asymmetry is the point. A pace *below* nought is
+ * reachable — an entry deleted between two readings leaves the window burning
+ * backwards — and no date is ever counted at one: `hasBurnRate` refuses it, so
+ * it reaches a reader only inside the `pace-changed` sentence, where it is
+ * being compared against the average rather than extrapolated from. "Less than
+ * a cent a day" there would claim a direction the figure does not have, so it
+ * rounds to nought like any other sub-cent amount — through
+ * `withoutNegativeZero`, because `Intl` keeps the sign and "-$0.00 a day"
+ * reads as a broken page rather than as a pace that stood still.
  */
 export function formatPace(centsPerDay: number): string {
   const cents = Math.round(centsPerDay);
   if (cents === 0 && centsPerDay > 0) return "less than a cent a day";
-  return `${formatCents(cents)} a day`;
+  return `${formatCents(withoutNegativeZero(cents))} a day`;
 }
 
 /**
