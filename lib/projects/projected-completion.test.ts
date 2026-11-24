@@ -279,6 +279,31 @@ describe("CAVEAT_SENTENCE", () => {
     ).toContain("1 of the 8 readings behind this pace was reconstructed");
   });
 
+  it("says all of them when the whole pace was reconstructed", () => {
+    // The shape every project is in the first time the page is opened.
+    expect(
+      CAVEAT_SENTENCE["reconstructed-history"](
+        projection({
+          evidence: { ...projection().evidence, reconstructedCount: 8 },
+        }),
+      ),
+    ).toContain("All 8 readings behind this pace were reconstructed");
+  });
+
+  it("says the one reading when that is the whole pace", () => {
+    expect(
+      CAVEAT_SENTENCE["reconstructed-history"](
+        projection({
+          evidence: {
+            ...projection().evidence,
+            readingCount: 1,
+            reconstructedCount: 1,
+          },
+        }),
+      ),
+    ).toContain("The one reading behind this pace was reconstructed");
+  });
+
   it("says how many days the readings have been quiet for", () => {
     expect(
       CAVEAT_SENTENCE["stale-readings"](
