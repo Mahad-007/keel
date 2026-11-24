@@ -402,6 +402,20 @@ describe("CAVEAT_SENTENCE", () => {
       );
       expect(gone).toContain("has already gone");
       expect(gone).not.toContain("date below");
+
+      // A pace of a cent or two a day: the row reads "Not within ten years",
+      // so there is no date to point at there either.
+      const far = CAVEAT_SENTENCE[caveat](
+        projection({
+          forecast: {
+            ...projection().forecast,
+            daysOfContractLeft: 400_000,
+            contractRunsOutOn: null,
+          },
+        }),
+      );
+      expect(far).toContain("beyond the ten years");
+      expect(far).not.toContain("date below");
     }
   });
 });

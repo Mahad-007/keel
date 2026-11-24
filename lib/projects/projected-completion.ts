@@ -187,19 +187,26 @@ export function describePaceBasis(pace: BurnRate): string {
  * it.
  *
  * Both scope caveats end by naming what is left on the panel once the cost
- * rows are withheld, and on a project that has already overspent that row is
- * not a date — `contractRunsOutFigure` reads "Already gone". A sentence
- * promising a date two inches above a row that refuses to give one is the same
- * mistake in miniature as a forecast with no caveats: the words claiming more
- * than the figures.
+ * rows are withheld, and that row is not always a date. A sentence promising
+ * one two inches above a row that refuses to give it is the same mistake in
+ * miniature as a forecast with no caveats: the words claiming more than the
+ * figures.
  *
- * One clause, read by both sentences, so the pair cannot drift apart. It is
- * the same branch `describeProjectedOutcome` takes on the same field, and for
- * the same reason.
+ * Three answers, which are `describeForecastDate`'s three in prose. Already
+ * gone is a project that overspent before the panel was drawn. Past the
+ * horizon is a pace of a cent or two a day — a mistyped rate, usually — where
+ * the arithmetic ran and landed in the 2050s, and `forecastDate` refuses to
+ * name a day that far out rather than printing one.
+ *
+ * One clause, read by both sentences, so the pair cannot drift apart.
  */
 function describeSurvivingRow(projection: ProjectProjection): string {
-  if (projection.forecast.daysOfContractLeft === null) {
+  const { daysOfContractLeft, contractRunsOutOn } = projection.forecast;
+  if (daysOfContractLeft === null) {
     return "The row below says the contract value has already gone; nothing here says when the project ends.";
+  }
+  if (contractRunsOutOn === null) {
+    return "The row below says the money lasts beyond the ten years a forecast here will name, which at this pace it does; nothing here says when the project ends.";
   }
   return "The date below is when the money runs out, not when the project ends.";
 }
