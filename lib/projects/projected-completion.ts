@@ -350,14 +350,22 @@ export const CAVEAT_SENTENCE: Record<
       unsized count, which is the only pair that can tell the two apart.
       Unsized lines are not the same fact as a worthless remainder: a project
       with one unsized line and one sized line still open has minutes left,
-      and if those minutes come to nothing it is the rate that did it. Reading
-      the unsized count instead would blame the scope list for a cleared rate
-      and send somebody to the wrong form.
+      and if those minutes come to nothing it is the valuation that did it.
+      Reading the unsized count instead would blame the scope list for a
+      cleared rate and send somebody to the wrong form.
+
+      Each half says what the figures show rather than naming a culprit, and
+      that is not timidity — the figures do not know which culprit it is. No
+      hours left is unsized lines *or* estimates that cancel each other out,
+      which `negativeEstimateCount` exists because somebody can type. Hours
+      that value at nothing is a rate of nought, a rate below it, or a rate so
+      small that `costOfMinutes` rounds the lot away. Both halves point at the
+      figure to go and look at, which is as far as a count can honestly go.
     */
     const cause =
       projection.evidence.remainingWorkMinutes > 0
-        ? "the hours left in it are valued at a rate of nought or below"
-        : "nothing unfinished in it carries an estimate the forecast can add";
+        ? "the hours still to do value at nothing at the rate this project carries"
+        : "the unfinished lines come to no hours at all between them";
     return `The work still to do in the scope list comes to nothing: ${cause}. The expected cost and the overage are left out rather than shown as the hours already logged — a floor of nought is not a forecast. ${describeSurvivingRow(projection)}`;
   },
 

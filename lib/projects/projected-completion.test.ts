@@ -354,7 +354,7 @@ describe("CAVEAT_SENTENCE", () => {
     );
   });
 
-  it("blames the scope list when no hours are left in it", () => {
+  it("says no hours rather than no estimates, which it cannot know", () => {
     const sentence = CAVEAT_SENTENCE["unvalued-scope"](
       projection({
         evidence: {
@@ -364,11 +364,11 @@ describe("CAVEAT_SENTENCE", () => {
         },
       }),
     );
-    expect(sentence).toContain("nothing unfinished in it carries an estimate");
+    expect(sentence).toContain("come to no hours at all");
     expect(sentence).not.toContain("rate");
   });
 
-  it("blames the rate when the hours left value at nothing", () => {
+  it("points at the valuation when the hours left come to nothing", () => {
     // Twenty hours still to do and a cleared rate. Reading the unsized count
     // instead would blame the scope list and send somebody to the wrong form
     // — the lines are sized, and one of them may not even be unsized.
@@ -382,8 +382,8 @@ describe("CAVEAT_SENTENCE", () => {
         },
       }),
     );
-    expect(sentence).toContain("rate of nought or below");
-    expect(sentence).not.toContain("carries an estimate");
+    expect(sentence).toContain("value at nothing at the rate");
+    expect(sentence).not.toContain("no hours at all");
   });
 
   it("does not count the lines it is not valuing", () => {
