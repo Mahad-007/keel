@@ -161,6 +161,22 @@ describe("formatPace", () => {
   });
 });
 
+describe("formatPace: a pace that went backwards", () => {
+  it("writes a sub-cent fall as nought rather than as minus nought", () => {
+    expect(formatPace(-0.36)).toBe("$0.00 a day");
+  });
+
+  it("keeps the sign on a fall worth a cent", () => {
+    expect(formatPace(-120)).toBe("-$1.20 a day");
+  });
+
+  it("still writes a sub-cent rise as less than a cent", () => {
+    // Asymmetric on purpose: a positive pace carries the dates, and "$0.00 a
+    // day" beside a date counted forward at it would read as a contradiction.
+    expect(formatPace(0.36)).toBe("less than a cent a day");
+  });
+});
+
 describe("describePaceBasis", () => {
   it("names the span, the end and the number of readings", () => {
     expect(describePaceBasis(projection().pace)).toBe(
