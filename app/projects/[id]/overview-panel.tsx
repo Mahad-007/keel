@@ -12,6 +12,8 @@ import { formatDate } from "@/lib/dates";
 import { describeRateOverride } from "@/lib/projects/detail";
 import type { DuplicateFormState } from "@/lib/projects/duplicate-form";
 import { resolveJoinedRate } from "@/lib/rates";
+import { creepThresholds } from "@/lib/thresholds/creep";
+import { resolveJoinedThresholds } from "@/lib/thresholds/resolve";
 import type { LoggedTotals } from "@/lib/time/rollup";
 
 import { writeDuplicatedProject } from "./duplicate-writes";
@@ -129,6 +131,16 @@ export function OverviewPanel({
   const readings = burnDownReadings(burnSnapshots);
 
   /*
+    Resolved once for the tab, from the project and the client's settings the
+    join carried. Through `resolveJoinedThresholds` rather than a condition
+    written here, so what an unset column means is decided in the one file that
+    explains the chain — and resolved here rather than in each panel, so the
+    verdict at the top of the page and the projection further down are judged
+    by the same figures.
+  */
+  const thresholds = resolveJoinedThresholds(project);
+
+  /*
     The project is captured here rather than bound onto the write, for the same
     reason the scope tab's presses are: `.bind` serialises what it carries in
     the clear, so the project that got copied would be whatever the caller
@@ -151,7 +163,11 @@ export function OverviewPanel({
         a project wants to know whether to worry before they want to know what
         rate it bills at.
       */}
-      <ScopeHealthBanner summary={burn} lines={scopeLines} />
+      <ScopeHealthBanner
+        summary={burn}
+        lines={scopeLines}
+        thresholds={creepThresholds(thresholds)}
+      />
       <dl className="mt-4 text-sm">
         <Fact term="Rate">{describeRateOverride(project.rateCents)}</Fact>
         <Fact term="Set up">{formatDate(project.createdAt)}</Fact>

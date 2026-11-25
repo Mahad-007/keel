@@ -5,10 +5,7 @@ import {
   scopeHealthBanner,
 } from "@/lib/projects/scope-health";
 import type { ScopeLine } from "@/lib/scope";
-import {
-  DEFAULT_CREEP_THRESHOLDS,
-  type ScopeHealth,
-} from "@/lib/scope-creep";
+import type { CreepThresholds, ScopeHealth } from "@/lib/scope-creep";
 
 
 /**
@@ -112,18 +109,30 @@ const HEADING_ID = "scope-health-heading";
 export function ScopeHealthBanner({
   summary,
   lines,
+  thresholds,
 }: {
   /** The burn, which carries the money axis whole. */
   summary: BurnSummary;
   /** The scope list, which carries the delivery axis and its caveats. */
   lines: readonly ScopeLine[];
+  /**
+   * The figures this project is judged by: its own, else its client's, else
+   * the app's.
+   *
+   * Resolved by the panel above rather than here, because the component holds
+   * no row to resolve from and a banner that reached for one would be a second
+   * opinion about what this project's thresholds are. Every sentence in the box
+   * is then written at the same figures the verdict was reached at, because the
+   * assessment carries them.
+   */
+  thresholds: CreepThresholds;
 }) {
   // A fact about the project rather than about this tab, so it is named and
   // tested in `lib/projects/scope-health.ts` and merely consulted here.
   if (!hasScopeHealthToShow(summary, lines.length)) return null;
 
   const banner = scopeHealthBanner(
-    assessProjectCreep(summary, lines, DEFAULT_CREEP_THRESHOLDS),
+    assessProjectCreep(summary, lines, thresholds),
   );
 
   return (
