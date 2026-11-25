@@ -307,6 +307,18 @@ export type ProjectWithClient = Project & {
   clientArchivedAt: string | null;
   /** The client's default hourly rate in cents, which the override defers to. */
   clientDefaultRateCents: number;
+  /**
+   * The client's own thresholds, which the project's override one at a time.
+   *
+   * Nested rather than five more `client`-prefixed columns, because this is the
+   * one half of the join that is read as a unit: `resolveThresholds` takes the
+   * project's settings and the client's, and a caller assembling the second
+   * argument from five flattened fields is a caller that can leave one out —
+   * which would silently judge a project by the app's default on a setting its
+   * client had agreed. Nested, the row satisfies `ThresholdOverrides` as it
+   * stands.
+   */
+  clientThresholds: Required<ThresholdOverrides>;
 };
 
 /**
@@ -332,6 +344,13 @@ export async function getProjectWithClient(
       clientName: clients.name,
       clientArchivedAt: clients.archivedAt,
       clientDefaultRateCents: clients.defaultRateCents,
+      clientThresholds: {
+        nearlySpentPercent: clients.nearlySpentPercent,
+        aheadOfDeliveryPercent: clients.aheadOfDeliveryPercent,
+        farAheadOfDeliveryPercent: clients.farAheadOfDeliveryPercent,
+        recentRateWindowDays: clients.recentRateWindowDays,
+        paceShiftPercent: clients.paceShiftPercent,
+      },
     })
     .from(projects)
     .innerJoin(clients, eq(clients.id, projects.clientId))
@@ -381,6 +400,13 @@ export async function listProjectsWithClient(
       clientName: clients.name,
       clientArchivedAt: clients.archivedAt,
       clientDefaultRateCents: clients.defaultRateCents,
+      clientThresholds: {
+        nearlySpentPercent: clients.nearlySpentPercent,
+        aheadOfDeliveryPercent: clients.aheadOfDeliveryPercent,
+        farAheadOfDeliveryPercent: clients.farAheadOfDeliveryPercent,
+        recentRateWindowDays: clients.recentRateWindowDays,
+        paceShiftPercent: clients.paceShiftPercent,
+      },
     })
     .from(projects)
     .innerJoin(clients, eq(clients.id, projects.clientId))

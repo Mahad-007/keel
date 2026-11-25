@@ -6,6 +6,7 @@ import { projects } from "@/lib/db/schema";
 import type { ProjectStatus } from "@/lib/projects/status";
 import { TRANSITION_REASON_LIMIT } from "@/lib/projects/transitions";
 import { createTestDb } from "@/lib/db/testing";
+import { NO_THRESHOLD_OVERRIDES } from "@/lib/thresholds/resolve";
 
 import { archiveClient, createClient } from "./clients";
 import { createDeliverable, listDeliverables } from "./deliverables";
@@ -589,6 +590,7 @@ describe("getProjectWithClient", () => {
       clientName: "Anvil Co",
       clientArchivedAt: null,
       clientDefaultRateCents: 0,
+      clientThresholds: NO_THRESHOLD_OVERRIDES,
     });
   });
 
@@ -667,6 +669,7 @@ describe("listProjectsWithClient", () => {
       clientName: "Anvil Co",
       clientArchivedAt: null,
       clientDefaultRateCents: 0,
+      clientThresholds: NO_THRESHOLD_OVERRIDES,
     });
   });
 
@@ -1863,5 +1866,51 @@ describe("duplicateProject with nothing agreed yet", () => {
       /project name/,
     );
     expect((await listProjects(db)).map((row) => row.id)).toEqual([id]);
+  });
+});
+
+/**
+ * The join has to carry both rungs of the resolution chain, because the page
+ * that classifies a project holds exactly this row and nothing else. A join
+ * that dropped the client's settings would silently judge every inheriting
+ * project by the app's defaults — the figures would look like measurements and
+ * the client's agreed tolerance would be nowhere on screen.
+ */
+describe("the thresholds the join carries", () => {
+  it("carries the client's settings alongside the project's", async () => {
+    const client = await createClient(
+      { name: "Careful Co", nearlySpentPercent: 60, paceShiftPercent: 40 },
+      db,
+    );
+    const project = await createProject(
+      { clientId: client.id, name: "Rebuild", nearlySpentPercent: 70 },
+      db,
+    );
+
+    const row = await getProjectWithClient(project.id, db);
+
+    expect(row?.nearlySpentPercent).toBe(70);
+    expect(row?.clientThresholds.nearlySpentPercent).toBe(60);
+    expect(row?.clientThresholds.paceShiftPercent).toBe(40);
+  });
+
+  it("says something about every setting, set or not", async () => {
+    const project = await createProject({ clientId, name: "Rebuild" }, db);
+
+    const row = await getProjectWithClient(project.id, db);
+
+    expect(row?.clientThresholds).toEqual(NO_THRESHOLD_OVERRIDES);
+  });
+
+  it("carries them through the list join too", async () => {
+    const client = await createClient(
+      { name: "Careful Co", recentRateWindowDays: 21 },
+      db,
+    );
+    await createProject({ clientId: client.id, name: "Rebuild" }, db);
+
+    const [row] = await listProjectsWithClient({}, db);
+
+    expect(row.clientThresholds.recentRateWindowDays).toBe(21);
   });
 });

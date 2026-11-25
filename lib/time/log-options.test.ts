@@ -19,6 +19,7 @@ function project(
     clientName: "Harbour Co",
     clientArchivedAt: null,
     clientDefaultRateCents: 0,
+    clientThresholds: NO_THRESHOLD_OVERRIDES,
     status: "active",
     contractValueCents: 0,
     rateCents: null,
