@@ -1,3 +1,12 @@
+import { PACE_SHIFT_THRESHOLD, RECENT_RATE_WINDOW_DAYS } from "@/lib/projection/rate";
+import {
+  AHEAD_OF_DELIVERY_GAP,
+  FAR_AHEAD_OF_DELIVERY_GAP,
+  NEARLY_SPENT_SHARE,
+} from "@/lib/scope-creep";
+
+import { PERCENT_WHOLE, percentFromShare } from "./scale";
+
 /**
  * Every number in this app that is a judgement rather than a measurement, in
  * one list, with its default and the range it may be set to.
@@ -100,4 +109,95 @@ export type ThresholdSetting = {
   readonly min: number;
   /** The highest value that may be stored, inclusive. */
   readonly max: number;
+};
+
+/**
+ * The five settings, their defaults, and the bounds outside which they would
+ * break something.
+ *
+ * Every `fallback` is read from the constant that explains it rather than
+ * written out again. That is the point of importing them: the paragraph
+ * arguing for four fifths of a contract stays beside the comparison that
+ * applies it, and this record cannot offer a default the classifier does not
+ * use. A `percentFromShare` on each of the three shares is the whole of the
+ * conversion, and `scale.test.ts` pins it.
+ */
+export const THRESHOLD_SETTINGS: Record<ThresholdKey, ThresholdSetting> = {
+  /**
+   * Bounded below at 1 and not 0: a nearly-spent threshold of nothing flags
+   * every project from its first logged hour, and a banner that is always
+   * amber is a banner nobody reads. Bounded above at the whole, because being
+   * over the contract is not a setting — it is fixed at the whole price — and
+   * a watch band opening past it would be a band no project could ever be in.
+   */
+  nearlySpentPercent: {
+    label: "Contract nearly spent",
+    hint: "The share of the contract value at which a project is flagged as worth watching.",
+    unit: "percent",
+    fallback: percentFromShare(NEARLY_SPENT_SHARE),
+    min: 1,
+    max: PERCENT_WHOLE,
+  },
+  /**
+   * The gap, in points of the contract, not a share of the gap. Bounded above
+   * at the whole because that is the largest gap a project within its contract
+   * can show — all of the money, none of the work — and a threshold past it
+   * would only be reachable by a project that had already overspent, which the
+   * money axis has flagged anyway.
+   */
+  aheadOfDeliveryPercent: {
+    label: "Burn ahead of delivery",
+    hint: "How far the burn may run ahead of the delivered work before the project is flagged.",
+    unit: "percent",
+    fallback: percentFromShare(AHEAD_OF_DELIVERY_GAP),
+    min: 1,
+    max: PERCENT_WHOLE,
+  },
+  /**
+   * The same measurement at the point it stops being recoverable. Nothing here
+   * enforces that it sits above the setting above it — the two are resolved
+   * separately, one may be inherited and the other overridden, and a form
+   * cannot see both halves. `coherence.ts` is where a pair that crosses over is
+   * reported.
+   */
+  farAheadOfDeliveryPercent: {
+    label: "Burn far ahead of delivery",
+    hint: "The gap at which the project is called over rather than merely watched.",
+    unit: "percent",
+    fallback: percentFromShare(FAR_AHEAD_OF_DELIVERY_GAP),
+    min: 1,
+    max: PERCENT_WHOLE,
+  },
+  /**
+   * Bounded below at two days, because a pace measured over one day is that
+   * day's burn and not a pace — the comparison it exists for is whether recent
+   * weeks resemble the average, and a single day resembles nothing. Bounded
+   * above at a quarter, which is where "recent" stops being true: a window
+   * that long on a year-long engagement is most of the average it is being
+   * compared against, so the two would always agree and the caveat would never
+   * fire.
+   */
+  recentRateWindowDays: {
+    label: "Recent pace window",
+    hint: "How many days back the recent burn pace is measured over.",
+    unit: "days",
+    fallback: RECENT_RATE_WINDOW_DAYS,
+    min: 2,
+    max: 90,
+  },
+  /**
+   * Bounded above one short of the whole, which is the last value at which
+   * both halves of the comparison can still fire. The test is symmetric — a
+   * ratio a quarter either side of one — so at the whole, "slower" would need
+   * a pace of nothing or less, and a project that merely halved its pace would
+   * be reported as steady.
+   */
+  paceShiftPercent: {
+    label: "Pace change",
+    hint: "How far the recent pace must part from the average before the projection says so.",
+    unit: "percent",
+    fallback: percentFromShare(PACE_SHIFT_THRESHOLD),
+    min: 1,
+    max: PERCENT_WHOLE - 1,
+  },
 };
