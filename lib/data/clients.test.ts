@@ -409,3 +409,83 @@ describe("archiving as a soft delete", () => {
     expect(await listClients(db)).toEqual([restored]);
   });
 });
+
+/**
+ * The thresholds every one of a client's projects is judged by unless the
+ * project overrides them. What is worth a test here is not the round trip of an
+ * integer but the three states a column can be put in — set, left alone, and
+ * cleared — because the difference between the last two is what lets a client
+ * go back to the app's defaults.
+ */
+describe("a client's thresholds", () => {
+  it("defaults every setting to NULL, which is nothing set here", async () => {
+    const client = await createClient({ name: "Lantern Group" }, db);
+
+    expect(client.nearlySpentPercent).toBeNull();
+    expect(client.aheadOfDeliveryPercent).toBeNull();
+    expect(client.farAheadOfDeliveryPercent).toBeNull();
+    expect(client.recentRateWindowDays).toBeNull();
+    expect(client.paceShiftPercent).toBeNull();
+  });
+
+  it("stores the settings a create was given", async () => {
+    const client = await createClient(
+      { name: "Lantern Group", nearlySpentPercent: 70, paceShiftPercent: 40 },
+      db,
+    );
+
+    expect(client.nearlySpentPercent).toBe(70);
+    expect(client.paceShiftPercent).toBe(40);
+    expect(client.aheadOfDeliveryPercent).toBeNull();
+  });
+
+  it("updates one setting without clearing the others", async () => {
+    const client = await createClient(
+      { name: "Lantern Group", nearlySpentPercent: 70, paceShiftPercent: 40 },
+      db,
+    );
+    const updated = await updateClient(
+      client.id,
+      { nearlySpentPercent: 60 },
+      db,
+    );
+
+    expect(updated?.nearlySpentPercent).toBe(60);
+    expect(updated?.paceShiftPercent).toBe(40);
+  });
+
+  it("clears a setting when the patch says null, so inheritance resumes", async () => {
+    const client = await createClient(
+      { name: "Lantern Group", nearlySpentPercent: 70 },
+      db,
+    );
+    const updated = await updateClient(
+      client.id,
+      { nearlySpentPercent: null },
+      db,
+    );
+
+    expect(updated?.nearlySpentPercent).toBeNull();
+  });
+
+  it("counts a threshold-only patch as a change worth writing", async () => {
+    const client = await createClient({ name: "Lantern Group" }, db);
+    // The stamp comes from the wall clock, so without this the two writes land
+    // in the same millisecond and the assertion passes or fails by luck.
+    await tick();
+    const updated = await updateClient(
+      client.id,
+      { recentRateWindowDays: 21 },
+      db,
+    );
+
+    expect(updated?.recentRateWindowDays).toBe(21);
+    expect(updated?.updatedAt).not.toBe(client.updatedAt);
+  });
+
+  it("refuses a setting outside its range rather than storing it", async () => {
+    await expect(
+      createClient({ name: "Lantern Group", nearlySpentPercent: 400 }, db),
+    ).rejects.toThrow(/Contract nearly spent/);
+  });
+});
