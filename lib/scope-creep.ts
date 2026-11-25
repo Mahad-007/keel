@@ -239,6 +239,55 @@ export const AHEAD_OF_DELIVERY_GAP = 0.25;
 export const FAR_AHEAD_OF_DELIVERY_GAP = 0.5;
 
 /**
+ * The three figures the two classifiers compare against.
+ *
+ * Taken as an argument rather than read off this module, because the right
+ * figure is a property of the engagement and not of the app: a retainer
+ * running at four fifths of its monthly value in week three is fine, and a
+ * fixed-price build at the same reading is in trouble. The three constants
+ * above are what this repo thinks when nobody has said otherwise, and
+ * `lib/thresholds/` is where a client or a project says otherwise.
+ *
+ * Shares rather than the whole percent the columns hold. Every comparison in
+ * this file is against a fraction of one — that is what a share of a contract
+ * divides out to — and converting at the boundary means there is exactly one
+ * place where an 80 becomes a 0.8. A classifier handed the stored figure
+ * unconverted would compare a consumed share against eighty, which no project
+ * reaches, and the flag would silently never fire again.
+ *
+ * Not `OVERSPENT_SHARE`, which stays a constant: the whole contract spent is
+ * the definition of being over it rather than a judgement about tolerance, and
+ * there is nothing in it to configure.
+ */
+export type CreepThresholds = {
+  /** The share of the contract at which a project is worth watching. */
+  readonly nearlySpentShare: number;
+  /** The money-ahead-of-work gap at which it is worth watching. */
+  readonly aheadOfDeliveryGap: number;
+  /** The gap at which it is over, whatever is left in the bank. */
+  readonly farAheadOfDeliveryGap: number;
+};
+
+/**
+ * The three figures as this repo ships them, for callers with no rows to
+ * resolve from.
+ *
+ * The constants gathered into the shape the classifiers take, so the defaults
+ * the app applies are literally the figures those paragraphs argue for. Frozen
+ * and shared rather than rebuilt per call, like `UNRATED`: a caller that
+ * mutated it would move every unconfigured project in the app at once.
+ *
+ * It lives here, beside the constants, because the resolution cannot own it —
+ * `lib/thresholds/` reads these three figures as its own fallbacks, and a
+ * module cannot be both the floor and the ceiling.
+ */
+export const DEFAULT_CREEP_THRESHOLDS: CreepThresholds = Object.freeze({
+  nearlySpentShare: NEARLY_SPENT_SHARE,
+  aheadOfDeliveryGap: AHEAD_OF_DELIVERY_GAP,
+  farAheadOfDeliveryGap: FAR_AHEAD_OF_DELIVERY_GAP,
+});
+
+/**
  * What the two shares together say about a project.
  *
  * The second axis, classified the same way as the first: two thresholds,
