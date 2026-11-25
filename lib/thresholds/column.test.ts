@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  hasUsableThresholds,
   isThresholdValue,
   thresholdColumn,
   thresholdColumns,
 } from "./column";
-import { THRESHOLD_SETTINGS } from "./settings";
+import { THRESHOLD_KEYS, THRESHOLD_SETTINGS } from "./settings";
 
 const NEARLY_SPENT = THRESHOLD_SETTINGS.nearlySpentPercent;
 
@@ -103,5 +104,39 @@ describe("thresholdColumns", () => {
     expect(() =>
       thresholdColumns({ nearlySpentPercent: 70, paceShiftPercent: 400 }),
     ).toThrow(/Pace change/);
+  });
+});
+
+describe("hasUsableThresholds", () => {
+  it("passes a row with nothing set", () => {
+    expect(hasUsableThresholds({})).toBe(true);
+  });
+
+  it("passes a row whose settings are all in range", () => {
+    expect(
+      hasUsableThresholds({ nearlySpentPercent: 70, recentRateWindowDays: 30 }),
+    ).toBe(true);
+  });
+
+  it("fails a row carrying a figure no form could have produced", () => {
+    expect(hasUsableThresholds({ nearlySpentPercent: 400 })).toBe(false);
+  });
+
+  it("fails on any one bad setting among good ones", () => {
+    expect(
+      hasUsableThresholds({ nearlySpentPercent: 70, paceShiftPercent: 0 }),
+    ).toBe(false);
+  });
+
+  /**
+   * The predicate has to answer what the guard decides, or a caller that asks
+   * before writing gets refused by the column it just asked about.
+   */
+  it("agrees with the guard on every setting", () => {
+    for (const key of THRESHOLD_KEYS) {
+      const bad = { [key]: THRESHOLD_SETTINGS[key].max + 1 };
+      expect(hasUsableThresholds(bad)).toBe(false);
+      expect(() => thresholdColumns(bad)).toThrow();
+    }
   });
 });

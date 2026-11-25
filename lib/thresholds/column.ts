@@ -116,3 +116,28 @@ export function thresholdColumns(
   }
   return columns;
 }
+
+/**
+ * Whether every threshold a row holds could be written again.
+ *
+ * The question a copy asks before it writes. `thresholdColumns` throws, which
+ * is right at the boundary of a form-checked write and wrong here: duplicating
+ * a project reads a stored row, and a row somebody hand-edited to a threshold
+ * of 400% is a situation to report rather than a bug to crash on. The pair is
+ * the arrangement `isWholeCents` and `wholeCents` keep, for exactly this
+ * caller.
+ *
+ * NULL passes, because NULL is a meaning rather than a missing value: a
+ * project with no override is judged by its client, and so should its copy be.
+ *
+ * One answer for the whole row rather than one per setting, because nothing
+ * asking can act on which of the five is at fault — the reader's next move is
+ * to open the settings and correct them, and that is one sentence whichever
+ * column it was.
+ */
+export function hasUsableThresholds(row: ThresholdOverrides): boolean {
+  return THRESHOLD_KEYS.every((key) => {
+    const value = row[key];
+    return value === undefined || value === null || isThresholdValue(key, value);
+  });
+}
