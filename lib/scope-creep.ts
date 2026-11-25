@@ -684,7 +684,10 @@ export type CreepReason = (typeof CREEP_REASONS)[number];
  * Both axes are read through the same thresholds the two classifiers use, so a
  * verdict and the reasons under it can never disagree — `classifyScopeCreep`
  * is built out of this function rather than beside it, which is what makes
- * that guarantee structural rather than a thing to test for.
+ * that guarantee structural rather than a thing to test for. The thresholds
+ * arrive once and are handed to both classifiers, for the same reason: a
+ * project judged on its client's figure by one axis and on the defaults by the
+ * other would be a banner nobody could reconstruct.
  *
  * A project with every line of its scope delivered is not flagged for nearing
  * its contract. Four fifths of the price spent on all of the work is the shape
@@ -701,16 +704,16 @@ export type CreepReason = (typeof CREEP_REASONS)[number];
  * `creepBlindSpots`, not by this: a reason is a comparison that came out
  * badly, and a comparison nobody could make did not come out at all.
  */
-export function creepReasons(readings: CreepReadings): readonly CreepReason[] {
+export function creepReasons(
+  readings: CreepReadings,
+  thresholds: CreepThresholds,
+): readonly CreepReason[] {
   const consumed = readConsumedShare(readings);
   if (consumed === null) return [];
 
   const reasons: CreepReason[] = [];
-  const money = classifyConsumedShare(consumed, DEFAULT_CREEP_THRESHOLDS);
-  const creep = classifyCreepGap(
-    readCreepGap(readings),
-    DEFAULT_CREEP_THRESHOLDS,
-  );
+  const money = classifyConsumedShare(consumed, thresholds);
+  const creep = classifyCreepGap(readCreepGap(readings), thresholds);
 
   if (money === "over") reasons.push("contract-overspent");
   if (creep === "over") reasons.push("burn-far-ahead-of-delivery");
@@ -775,7 +778,7 @@ export function classifyScopeCreep(
   readings: CreepReadings,
 ): ScopeHealth | null {
   if (readConsumedShare(readings) === null) return null;
-  return creepReasons(readings).reduce<ScopeHealth>(
+  return creepReasons(readings, DEFAULT_CREEP_THRESHOLDS).reduce<ScopeHealth>(
     (worst, reason) => worstHealth(worst, REASON_HEALTH[reason]),
     "healthy",
   );
@@ -838,7 +841,7 @@ export function assessScopeCreep(readings: CreepReadings): CreepAssessment {
 
   return {
     health: classifyScopeCreep(readings),
-    reasons: creepReasons(readings),
+    reasons: creepReasons(readings, DEFAULT_CREEP_THRESHOLDS),
     blindSpots: creepBlindSpots(readings),
     consumedShare,
     deliveredShare: readDeliveredShare(readings),
