@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { archiveClient, unarchiveClient } from "@/lib/data/clients";
 import type { Client } from "@/lib/db/schema";
+import { NO_THRESHOLD_OVERRIDES } from "@/lib/thresholds/resolve";
 
 import { archiveClientAction, unarchiveClientAction } from "./actions";
 
@@ -34,6 +35,7 @@ function client(overrides: Partial<Client> = {}): Client {
     company: null,
     notes: null,
     defaultRateCents: 0,
+    ...NO_THRESHOLD_OVERRIDES,
     archivedAt: null,
     createdAt: "2026-09-21T09:00:00.000Z",
     updatedAt: "2026-09-21T09:00:00.000Z",

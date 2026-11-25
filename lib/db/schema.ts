@@ -38,6 +38,44 @@ const timestamps = {
     .default(sql`(current_timestamp)`),
 };
 
+/**
+ * The five configurable thresholds, as the same five nullable columns on every
+ * row that can carry them.
+ *
+ * Spread into both `clients` and `projects`, like `timestamps`, because the
+ * resolution chain reads them off either row and the two have to be spelled the
+ * same way: a project column named differently from its client's is a project
+ * that silently never inherits.
+ *
+ * Nullable with no default, and NULL means "not set here" rather than a figure.
+ * That is the one thing the column has to be able to say — the whole point of
+ * the chain is that a project defers to its client and a client defers to the
+ * app — and it is why these are not the not-null-zero that `defaultRateCents`
+ * is: zero is a threshold somebody could mean, so it cannot also be the
+ * absence of one.
+ *
+ * Integers in the unit the form takes: whole percent, or whole days. The
+ * fraction the classifiers compare against is derived at the boundary by
+ * `lib/thresholds/scale.ts`, so no float is stored and no column holds a figure
+ * the settings page could not show.
+ *
+ * The field names are deliberately the keys `ThresholdKey` publishes, so a row
+ * read out of either table satisfies `ThresholdOverrides` as it stands — no
+ * mapping layer, and nothing to forget to extend when a sixth setting arrives.
+ */
+const thresholdOverrides = {
+  /** Share of the contract at which the project is worth watching. */
+  nearlySpentPercent: integer("nearly_spent_percent"),
+  /** Points of the contract the burn may run ahead of the delivery. */
+  aheadOfDeliveryPercent: integer("ahead_of_delivery_percent"),
+  /** The gap at which it is over rather than merely watched. */
+  farAheadOfDeliveryPercent: integer("far_ahead_of_delivery_percent"),
+  /** Days the recent burn pace is measured over. */
+  recentRateWindowDays: integer("recent_rate_window_days"),
+  /** How far the recent pace must part from the average to be reported. */
+  paceShiftPercent: integer("pace_shift_percent"),
+};
+
 export const clients = sqliteTable("clients", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -46,6 +84,13 @@ export const clients = sqliteTable("clients", {
   notes: text("notes"),
   /** Default billing rate in cents per hour. Projects may override it. */
   defaultRateCents: integer("default_rate_cents").notNull().default(0),
+  /**
+   * The thresholds every one of this client's projects is judged by unless the
+   * project says otherwise. A threshold is agreed with a client — a retainer
+   * and a fixed-price build have different tolerances — so this is the rung of
+   * the chain that does most of the work.
+   */
+  ...thresholdOverrides,
   archivedAt: text("archived_at"),
   ...timestamps,
 });

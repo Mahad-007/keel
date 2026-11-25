@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Client } from "@/lib/db/schema";
 import { firstErrorField, rejectedFormState } from "@/lib/forms/state";
+import { NO_THRESHOLD_OVERRIDES } from "@/lib/thresholds/resolve";
 
 import {
   clientFormFields,
@@ -174,6 +175,7 @@ function client(overrides: Partial<Client> = {}): Client {
     company: "Analytical Engines",
     notes: "Pays on time.",
     defaultRateCents: 15000,
+    ...NO_THRESHOLD_OVERRIDES,
     archivedAt: null,
     createdAt: "2026-09-21T09:00:00.000Z",
     updatedAt: "2026-09-21T09:00:00.000Z",
