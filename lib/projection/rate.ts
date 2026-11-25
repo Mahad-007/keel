@@ -371,6 +371,47 @@ export type PaceShift = (typeof PACE_SHIFTS)[number];
 export const PACE_SHIFT_THRESHOLD = 0.25;
 
 /**
+ * The two settings the pace comparison rests on.
+ *
+ * Taken as an argument rather than read off this module, for the reason the
+ * creep thresholds are: how long "recent" is and how far two paces must part
+ * before it is worth saying so are properties of the engagement. A retainer
+ * logged two days a week needs a longer window than a full-time build before a
+ * fortnight means anything, and a client who wants to hear about every wobble
+ * wants a smaller shift than one who does not.
+ *
+ * `paceShiftThreshold` is a fraction of the average pace, matching the ratio it
+ * is compared against; the window is a count of days, which is already the unit
+ * the arithmetic uses. The conversion from the stored percent happens at the
+ * boundary in `lib/thresholds/`, so there is one place where a 25 becomes a
+ * 0.25.
+ *
+ * The two travel together because they are read together: a projection that
+ * measured its recent pace over one window and judged the shift by another
+ * engagement's tolerance would be two settings from two projects on one panel.
+ */
+export type PaceSettings = {
+  /** How many calendar days back the recent pace is measured over. */
+  readonly recentWindowDays: number;
+  /** How far the recent pace must part from the average, as a fraction. */
+  readonly paceShiftThreshold: number;
+};
+
+/**
+ * The two settings as this repo ships them, for callers with no rows to resolve
+ * from.
+ *
+ * The constants above gathered into the shape the functions take, frozen and
+ * shared like `DEFAULT_CREEP_THRESHOLDS` and for the same reasons: the defaults
+ * applied are the figures those paragraphs argue for, and a caller cannot move
+ * every unconfigured project at once by mutating them.
+ */
+export const DEFAULT_PACE_SETTINGS: PaceSettings = Object.freeze({
+  recentWindowDays: RECENT_RATE_WINDOW_DAYS,
+  paceShiftThreshold: PACE_SHIFT_THRESHOLD,
+});
+
+/**
  * Which way the pace has moved, or null when there is no ratio to judge.
  *
  * Null rather than `steady` for a missing ratio, which is the distinction this
