@@ -13,6 +13,7 @@ import { describeRateOverride } from "@/lib/projects/detail";
 import type { DuplicateFormState } from "@/lib/projects/duplicate-form";
 import { resolveJoinedRate } from "@/lib/rates";
 import { creepThresholds } from "@/lib/thresholds/creep";
+import { paceSettings } from "@/lib/thresholds/pace";
 import { resolveJoinedThresholds } from "@/lib/thresholds/resolve";
 import type { LoggedTotals } from "@/lib/time/rollup";
 
@@ -203,6 +204,7 @@ export function OverviewPanel({
         lines={scopeLines}
         readings={readings}
         today={today}
+        settings={paceSettings(thresholds)}
       />
       {/*
         History before the controls, for the same reason the archive sits at

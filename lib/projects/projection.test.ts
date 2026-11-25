@@ -173,6 +173,7 @@ describe("projectProjection", () => {
       LINES,
       HISTORY,
       "2026-03-14",
+      DEFAULT_PACE_SETTINGS,
     );
     // Twenty hours still to do at $120.00 an hour: $2,400.00, on top of the
     // $4,000.00 already burned.
@@ -186,6 +187,7 @@ describe("projectProjection", () => {
       LINES,
       HISTORY,
       "2026-03-14",
+      DEFAULT_PACE_SETTINGS,
     );
     expect(projection?.pace).toEqual(projection?.recentPace);
     expect(projection?.overallPace?.elapsedDays).toBe(59);
@@ -198,6 +200,7 @@ describe("projectProjection", () => {
       LINES,
       HISTORY,
       "2026-03-14",
+      DEFAULT_PACE_SETTINGS,
     );
     // Two readings in the window, and the pace has moved.
     expect(projection?.caveats).toContain("few-readings");
@@ -210,6 +213,7 @@ describe("projectProjection", () => {
       [line(600, "done"), line(3000)],
       HISTORY,
       "2026-03-14",
+      DEFAULT_PACE_SETTINGS,
     );
     // $8,000.00 burned and fifty hours left at $120.00: $14,000.00 against a
     // $10,000.00 contract.
@@ -218,7 +222,7 @@ describe("projectProjection", () => {
   });
 
   it("has no projection for a project with no readings", () => {
-    expect(projectProjection(burn(0), LINES, [], "2026-03-14")).toBeNull();
+    expect(projectProjection(burn(0), LINES, [], "2026-03-14", DEFAULT_PACE_SETTINGS)).toBeNull();
   });
 
   it("has no projection when the readings have burned nothing", () => {
@@ -228,6 +232,7 @@ describe("projectProjection", () => {
         LINES,
         [reading("2026-03-01", 0), reading("2026-03-14", 0)],
         "2026-03-14",
+        DEFAULT_PACE_SETTINGS,
       ),
     ).toBeNull();
   });
@@ -236,7 +241,7 @@ describe("projectProjection", () => {
     // Every cent of the projected cost would count as overage, which would
     // read as a catastrophe on a project nobody has priced.
     expect(
-      projectProjection(burn(400_000, 0), LINES, HISTORY, "2026-03-14"),
+      projectProjection(burn(400_000, 0), LINES, HISTORY, "2026-03-14", DEFAULT_PACE_SETTINGS),
     ).toBeNull();
   });
 
@@ -249,6 +254,7 @@ describe("projectProjection", () => {
         [line(600, "done"), line(600, "done")],
         HISTORY,
         "2026-03-14",
+        DEFAULT_PACE_SETTINGS,
       ),
     ).toBeNull();
   });
@@ -261,6 +267,7 @@ describe("projectProjection", () => {
       [],
       HISTORY,
       "2026-03-14",
+      DEFAULT_PACE_SETTINGS,
     );
     expect(projection?.caveats).toContain("no-scope");
     expect(projection?.forecast.contractRunsOutOn).not.toBeNull();
@@ -275,6 +282,7 @@ describe("projectProjection", () => {
       [line(0), line(0, "started")],
       HISTORY,
       "2026-03-14",
+      DEFAULT_PACE_SETTINGS,
     );
     expect(projection?.evidence.remainingWorkCents).toBe(0);
     expect(projection?.caveats).toContain("unvalued-scope");
@@ -290,6 +298,7 @@ describe("projectProjection", () => {
       LINES,
       HISTORY,
       "2026-03-14",
+      DEFAULT_PACE_SETTINGS,
     );
     expect(projection?.evidence.remainingWorkCents).toBe(0);
     // The hours are written down; it is the rate that values them at nothing,

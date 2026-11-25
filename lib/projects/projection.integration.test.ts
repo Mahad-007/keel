@@ -13,6 +13,7 @@ import { createTimeEntry, projectTimeTotals } from "@/lib/data/time-entries";
 import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 import { resolveRate } from "@/lib/rates";
+import { DEFAULT_PACE_SETTINGS } from "@/lib/projection/rate";
 
 import { projectProjection } from "./projection";
 
@@ -68,7 +69,13 @@ async function projectionOn(today: string) {
     500_000,
     resolveRate(project, { defaultRateCents: 0 }),
   );
-  return projectProjection(summary, lines, burnDownReadings(snapshots), today);
+  return projectProjection(
+    summary,
+    lines,
+    burnDownReadings(snapshots),
+    today,
+    DEFAULT_PACE_SETTINGS,
+  );
 }
 
 describe("a project's projection, from the rows", () => {

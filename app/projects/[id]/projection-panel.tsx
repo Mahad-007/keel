@@ -9,6 +9,7 @@ import {
   projectionCaveatSentences,
   projectionFigures,
 } from "@/lib/projects/projected-completion";
+import type { PaceSettings } from "@/lib/projection/rate";
 import { projectProjection } from "@/lib/projects/projection";
 import type { ScopeLine } from "@/lib/scope";
 
@@ -51,6 +52,7 @@ export function ProjectionPanel({
   lines,
   readings,
   today,
+  settings,
 }: {
   /** The burn, which carries the price, the hours and the rate. */
   summary: BurnSummary;
@@ -60,6 +62,16 @@ export function ProjectionPanel({
   readings: readonly BurnReading[];
   /** The day the page is being rendered on, which every date counts from. */
   today: string;
+  /**
+   * How long "recent" is for this engagement, and how far its pace must part
+   * from its average before the panel says so.
+   *
+   * Resolved by the panel above from the project and its client rather than
+   * here, like the banner's thresholds: a component that reached for a row
+   * would be a second opinion about a figure the rest of the tab had already
+   * settled.
+   */
+  settings: PaceSettings;
 }) {
   /*
     Null is the panel's whole visibility rule, and it is `projectProjection`'s
@@ -68,7 +80,13 @@ export function ProjectionPanel({
     beside the arithmetic, and a second opinion formed here would be the one a
     reader saw.
   */
-  const projection = projectProjection(summary, lines, readings, today);
+  const projection = projectProjection(
+    summary,
+    lines,
+    readings,
+    today,
+    settings,
+  );
   if (projection === null) return null;
 
   return (

@@ -15,7 +15,6 @@ import {
 } from "@/lib/projection/forecast";
 import {
   classifyPaceShift,
-  DEFAULT_PACE_SETTINGS,
   type PaceSettings,
   forecastPace,
   hasBurnRate,
@@ -207,6 +206,12 @@ export function projectionEvidence(
  * shown, because withholding the figure from the project with three days of
  * frightening readings would be the one refusal that costs somebody money.
  *
+ * The pace settings arrive from the page, which resolved them off the project
+ * and its client. Two of the four refusals above are sensitive to them — a
+ * window of a few days on a quiet project can leave no usable pace at all — so
+ * the figures a reader is shown and the figures that decided whether to show
+ * anything are the same ones.
+ *
  * The scope list arrives as rows rather than as a remaining total, because
  * three different things are read off it: what the remaining work costs, how
  * many lines there are at all, and how many unfinished ones nobody sized. A
@@ -218,14 +223,12 @@ export function projectProjection(
   lines: readonly ScopeLine[],
   readings: readonly BurnReading[],
   today: string,
+  settings: PaceSettings,
 ): ProjectProjection | null {
   const overallPace = overallBurnRate(readings);
   if (overallPace === null) return null;
 
-  const recentPace = recentBurnRate(
-    readings,
-    DEFAULT_PACE_SETTINGS.recentWindowDays,
-  );
+  const recentPace = recentBurnRate(readings, settings.recentWindowDays);
   const pace = forecastPace(overallPace, recentPace);
   if (!hasBurnRate(pace)) return null;
 
@@ -251,7 +254,7 @@ export function projectProjection(
     lines,
     remainingCents,
     today,
-    DEFAULT_PACE_SETTINGS,
+    settings,
   );
   const caveats = projectionCaveats(evidence);
 
