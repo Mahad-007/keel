@@ -1,4 +1,4 @@
-import type { ThresholdKey } from "./settings";
+import { THRESHOLD_SETTINGS, type ThresholdKey } from "./settings";
 
 /**
  * Which figure is actually in force for a project, and which row said so.
@@ -84,3 +84,59 @@ export type ResolvedThreshold = {
 export type ResolvedThresholds = Readonly<
   Record<ThresholdKey, ResolvedThreshold>
 >;
+
+/**
+ * The figure a single row has to offer for one setting, or null if it has not
+ * got one.
+ *
+ * One rung of the chain, and it exists so the two rungs are the same code
+ * rather than two conditions written out in the resolution below. The rows are
+ * symmetric here — unlike a rate, where a client's zero and a project's NULL
+ * mean different things and the two rungs could not share an implementation —
+ * so sharing it is what keeps the client's answer and the project's from
+ * drifting apart.
+ *
+ * A null row answers null, for callers holding a project read without its
+ * client: a list that joined nothing, a form that only has the one row. The
+ * resolution then falls through to the default, which is honest — the figure
+ * in force is the one the app would apply, and the source says it came from
+ * nowhere in particular.
+ *
+ * Nothing is validated. A column outside its bounds is a row somebody
+ * hand-edited, and it is reported by `thresholdProblems` rather than quietly
+ * replaced with the default here: a project classified at a threshold no form
+ * shows is exactly the thing a reader cannot debug.
+ */
+export function rowThreshold(
+  key: ThresholdKey,
+  row: ThresholdOverrides | null,
+): number | null {
+  if (row === null) return null;
+  return row[key] ?? null;
+}
+
+/**
+ * The threshold in force for one setting: the project's, else the client's,
+ * else the default.
+ *
+ * The chain, written as a chain. A condition spelled out here instead would be
+ * a second opinion about what an unset column means, and there would then be
+ * five settings' worth of places for it to disagree with itself.
+ *
+ * The default comes from the spec rather than from an argument, because there
+ * is exactly one default per setting and a caller free to supply its own would
+ * be a caller free to classify a project at a figure no form could show.
+ */
+export function resolveThreshold(
+  key: ThresholdKey,
+  project: ThresholdOverrides | null,
+  client: ThresholdOverrides | null,
+): ResolvedThreshold {
+  const own = rowThreshold(key, project);
+  if (own !== null) return { value: own, source: "project" };
+
+  const inherited = rowThreshold(key, client);
+  if (inherited !== null) return { value: inherited, source: "client" };
+
+  return { value: THRESHOLD_SETTINGS[key].fallback, source: "default" };
+}
