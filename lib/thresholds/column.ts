@@ -1,4 +1,9 @@
-import { THRESHOLD_SETTINGS, type ThresholdKey } from "./settings";
+import type { ThresholdOverrides } from "./resolve";
+import {
+  THRESHOLD_KEYS,
+  THRESHOLD_SETTINGS,
+  type ThresholdKey,
+} from "./settings";
 
 /**
  * The guard a threshold passes on its way into a column, and the question it
@@ -67,4 +72,47 @@ export function thresholdColumn(
     );
   }
   return value;
+}
+
+/**
+ * The threshold columns one write sets: the keys that were mentioned, mapped to
+ * what the column will hold.
+ *
+ * Mutable and partial, unlike `ThresholdOverrides`, because it is the object a
+ * data-layer function hands to Drizzle: built a key at a time and then spread
+ * into the values of an insert or the set of an update.
+ */
+export type ThresholdColumns = {
+  [K in ThresholdKey]?: number | null;
+};
+
+/**
+ * The threshold columns a write should set, guarded, with the ones nobody
+ * mentioned left out.
+ *
+ * Both halves of that matter, and together they are why one function serves an
+ * insert and an update alike:
+ *
+ *   - **Guarded.** Every figure goes through `thresholdColumn`, so a value out
+ *     of range throws at the boundary rather than landing in a row that then
+ *     classifies a project at a threshold no form shows.
+ *   - **Omitted when absent.** A key that is not present is not written, which
+ *     on an insert leaves the column NULL — the "not set here" the chain reads
+ *     — and on a patch leaves whatever was there alone. An explicit null is a
+ *     different instruction and is kept: it clears the column, which is how a
+ *     project says "inherit from my client again".
+ *
+ * Driven off `THRESHOLD_KEYS`, so a sixth setting is written by every caller
+ * the day it is added to the spec. The alternative is five `if (x !==
+ * undefined)` blocks per table, which is ten places to forget it.
+ */
+export function thresholdColumns(
+  overrides: ThresholdOverrides,
+): ThresholdColumns {
+  const columns: Record<string, number | null> = {};
+  for (const key of THRESHOLD_KEYS) {
+    if (overrides[key] === undefined) continue;
+    columns[key] = thresholdColumn(key, overrides[key]);
+  }
+  return columns;
 }

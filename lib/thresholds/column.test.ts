@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { isThresholdValue, thresholdColumn } from "./column";
+import {
+  isThresholdValue,
+  thresholdColumn,
+  thresholdColumns,
+} from "./column";
 import { THRESHOLD_SETTINGS } from "./settings";
 
 const NEARLY_SPENT = THRESHOLD_SETTINGS.nearlySpentPercent;
@@ -63,5 +67,41 @@ describe("thresholdColumn", () => {
 
   it("refuses a negative threshold rather than storing it", () => {
     expect(() => thresholdColumn("paceShiftPercent", -10)).toThrow();
+  });
+});
+
+describe("thresholdColumns", () => {
+  it("writes the settings a caller mentioned", () => {
+    expect(
+      thresholdColumns({ nearlySpentPercent: 70, recentRateWindowDays: 30 }),
+    ).toEqual({ nearlySpentPercent: 70, recentRateWindowDays: 30 });
+  });
+
+  /**
+   * The distinction the update path depends on. Leaving a setting out of a
+   * patch means "I am not touching it"; passing null means "clear it, and
+   * inherit again". Collapsing the two would make the second unsayable, and a
+   * project could never go back to its client's figure once overridden.
+   */
+  it("keeps an explicit null, which clears the column", () => {
+    expect(thresholdColumns({ nearlySpentPercent: null })).toEqual({
+      nearlySpentPercent: null,
+    });
+  });
+
+  it("leaves out a setting nobody mentioned", () => {
+    expect(thresholdColumns({ nearlySpentPercent: 70 })).not.toHaveProperty(
+      "paceShiftPercent",
+    );
+  });
+
+  it("writes nothing at all for a caller with no settings", () => {
+    expect(thresholdColumns({})).toEqual({});
+  });
+
+  it("throws on the one bad figure rather than writing the good ones", () => {
+    expect(() =>
+      thresholdColumns({ nearlySpentPercent: 70, paceShiftPercent: 400 }),
+    ).toThrow(/Pace change/);
   });
 });
