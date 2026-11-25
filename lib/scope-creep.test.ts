@@ -232,35 +232,43 @@ describe("creepGap", () => {
 
 describe("classifyCreepGap", () => {
   it("is healthy with the money and the work in step", () => {
-    expect(classifyCreepGap(0)).toBe("healthy");
+    expect(classifyCreepGap(0, DEFAULT_CREEP_THRESHOLDS)).toBe("healthy");
   });
 
   it("is over half the contract ahead of the delivery", () => {
-    expect(classifyCreepGap(FAR_AHEAD_OF_DELIVERY_GAP)).toBe("over");
+    expect(
+      classifyCreepGap(FAR_AHEAD_OF_DELIVERY_GAP, DEFAULT_CREEP_THRESHOLDS),
+    ).toBe("over");
   });
 
   it("is over far past that", () => {
-    expect(classifyCreepGap(0.9)).toBe("over");
+    expect(classifyCreepGap(0.9, DEFAULT_CREEP_THRESHOLDS)).toBe("over");
   });
 
   it("is watch a hair under the far-ahead gap", () => {
-    expect(classifyCreepGap(FAR_AHEAD_OF_DELIVERY_GAP - 0.001)).toBe("watch");
+    expect(
+      classifyCreepGap(FAR_AHEAD_OF_DELIVERY_GAP - 0.001, DEFAULT_CREEP_THRESHOLDS),
+    ).toBe("watch");
   });
 
   it("is watch exactly a quarter ahead", () => {
-    expect(classifyCreepGap(AHEAD_OF_DELIVERY_GAP)).toBe("watch");
+    expect(
+      classifyCreepGap(AHEAD_OF_DELIVERY_GAP, DEFAULT_CREEP_THRESHOLDS),
+    ).toBe("watch");
   });
 
   it("is healthy a hair under a quarter ahead", () => {
-    expect(classifyCreepGap(AHEAD_OF_DELIVERY_GAP - 0.001)).toBe("healthy");
+    expect(
+      classifyCreepGap(AHEAD_OF_DELIVERY_GAP - 0.001, DEFAULT_CREEP_THRESHOLDS),
+    ).toBe("healthy");
   });
 
   it("is healthy when the work is ahead of the money", () => {
-    expect(classifyCreepGap(-0.6)).toBe("healthy");
+    expect(classifyCreepGap(-0.6, DEFAULT_CREEP_THRESHOLDS)).toBe("healthy");
   });
 
   it("has no opinion when the gap could not be read", () => {
-    expect(classifyCreepGap(null)).toBe("healthy");
+    expect(classifyCreepGap(null, DEFAULT_CREEP_THRESHOLDS)).toBe("healthy");
   });
 });
 

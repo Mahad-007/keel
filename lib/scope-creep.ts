@@ -301,8 +301,22 @@ export function creepGap(
  * What the two shares together say about a project.
  *
  * The second axis, classified the same way as the first: two thresholds,
- * inclusive, worst first. Half the contract ahead of the delivery is `over`,
- * a quarter is `watch`, anything less is `healthy`.
+ * inclusive, worst first. Past the far-ahead gap is `over`, past the ahead gap
+ * is `watch`, anything less is `healthy`.
+ *
+ * Both thresholds are arguments here, unlike the money axis where one of the
+ * two is a definition. There is no gap at which a project is over its contract
+ * by arithmetic — the gap is a comparison of two shares and says nothing about
+ * the price — so both figures on this axis are judgements about how much
+ * daylight an engagement tolerates, and both move.
+ *
+ * Nothing checks that the far-ahead gap is the larger of the two. They are
+ * resolved separately, one may be inherited while the other is overridden, and
+ * no form can see both halves — so a pair that crosses over is a real state,
+ * reported by `lib/thresholds/coherence.ts` where somebody can act on it. The
+ * worst band is tested first, which means a crossed pair reads as `over` from
+ * the lower of the two figures: loud and wrong in the safe direction, rather
+ * than a band that silently swallows the verdict.
  *
  * `healthy` for a null gap, not a null verdict. A missing gap is a project
  * whose estimates or price cannot be read, and this axis then has no opinion —
@@ -316,10 +330,13 @@ export function creepGap(
  * number that would make it look otherwise is its distance from nought, which
  * is why the comparison is signed rather than absolute.
  */
-export function classifyCreepGap(gap: number | null): ScopeHealth {
+export function classifyCreepGap(
+  gap: number | null,
+  thresholds: CreepThresholds,
+): ScopeHealth {
   if (gap === null) return "healthy";
-  if (gap >= FAR_AHEAD_OF_DELIVERY_GAP) return "over";
-  if (gap >= AHEAD_OF_DELIVERY_GAP) return "watch";
+  if (gap >= thresholds.farAheadOfDeliveryGap) return "over";
+  if (gap >= thresholds.aheadOfDeliveryGap) return "watch";
   return "healthy";
 }
 
@@ -690,7 +707,10 @@ export function creepReasons(readings: CreepReadings): readonly CreepReason[] {
 
   const reasons: CreepReason[] = [];
   const money = classifyConsumedShare(consumed, DEFAULT_CREEP_THRESHOLDS);
-  const creep = classifyCreepGap(readCreepGap(readings));
+  const creep = classifyCreepGap(
+    readCreepGap(readings),
+    DEFAULT_CREEP_THRESHOLDS,
+  );
 
   if (money === "over") reasons.push("contract-overspent");
   if (creep === "over") reasons.push("burn-far-ahead-of-delivery");
