@@ -12,6 +12,7 @@ import {
   CREEP_REASONS,
   creepReasons,
   type CreepReadings,
+  type CreepThresholds,
   DEFAULT_CREEP_THRESHOLDS,
   FAR_AHEAD_OF_DELIVERY_GAP,
   healthSeverity,
@@ -140,6 +141,58 @@ describe("classifyConsumedShare at the nearly-spent threshold", () => {
 
   it("treats a share below zero as healthy, having been handed one", () => {
     expect(classifyConsumedShare(-0.4, DEFAULT_CREEP_THRESHOLDS)).toBe("healthy");
+  });
+});
+
+/**
+ * The same classifier with the threshold moved, which is the whole of Day 038
+ * on this axis. The cases are the two bands either side of a configured
+ * figure, and the one reading that does not move: the whole contract spent is
+ * `over` whatever anybody has set, because that is not a setting.
+ */
+describe("classifyConsumedShare on a configured threshold", () => {
+  const CAUTIOUS: CreepThresholds = {
+    ...DEFAULT_CREEP_THRESHOLDS,
+    nearlySpentShare: 0.5,
+  };
+  const RELAXED: CreepThresholds = {
+    ...DEFAULT_CREEP_THRESHOLDS,
+    nearlySpentShare: 0.95,
+  };
+
+  it("watches earlier on a client who wants watching earlier", () => {
+    expect(classifyConsumedShare(0.5, CAUTIOUS)).toBe("watch");
+    expect(classifyConsumedShare(0.5, DEFAULT_CREEP_THRESHOLDS)).toBe("healthy");
+  });
+
+  it("stays quiet past the default on a project set to tolerate more", () => {
+    expect(classifyConsumedShare(0.85, RELAXED)).toBe("healthy");
+    expect(classifyConsumedShare(0.85, DEFAULT_CREEP_THRESHOLDS)).toBe("watch");
+  });
+
+  it("is inclusive on a configured threshold, as on the default one", () => {
+    expect(classifyConsumedShare(0.95, RELAXED)).toBe("watch");
+    expect(classifyConsumedShare(0.9499, RELAXED)).toBe("healthy");
+  });
+
+  it("calls the whole contract over however high the watch threshold is set", () => {
+    expect(classifyConsumedShare(1, RELAXED)).toBe("over");
+  });
+
+  /**
+   * A threshold at or above the whole contract leaves no watch band at all:
+   * everything below the price is healthy and everything at it is over. Not a
+   * state the form permits — the setting is bounded at the whole — but worth
+   * pinning, because the alternative to a band of nothing would be a
+   * classifier that quietly repaired the figure.
+   */
+  it("leaves no watch band when the threshold is the whole contract", () => {
+    const none: CreepThresholds = {
+      ...DEFAULT_CREEP_THRESHOLDS,
+      nearlySpentShare: 1,
+    };
+    expect(classifyConsumedShare(0.999, none)).toBe("healthy");
+    expect(classifyConsumedShare(1, none)).toBe("over");
   });
 });
 
