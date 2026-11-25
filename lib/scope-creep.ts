@@ -133,69 +133,6 @@ export const NEARLY_SPENT_SHARE = 0.8;
  */
 export const OVERSPENT_SHARE = 1;
 
-/**
- * What the money alone says about a project.
- *
- * The first of the two axes, and the one that needs no estimates: a contract
- * value and some logged hours are enough. Over the whole price is `over`, four
- * fifths of it is `watch`, anything under that is `healthy`.
- *
- * Inclusive at both thresholds. A project that has burned exactly its contract
- * value is over it — the next hour is unpaid, which is the thing `over` means
- * — and `>=` rather than `>` is what keeps the common case from falling
- * through: round contracts meet round rates, and landing precisely on the
- * price happens far more often than the arithmetic suggests.
- *
- * It takes the share rather than the two amounts, so there is exactly one
- * division in the codebase and it is `consumedShare`'s. The share it is handed
- * has already decided what an unreadable price means, which is why there is no
- * null branch here: a share that arrives is a share worth classifying.
- *
- * No opinion about whether the work is done — that is the other axis, and
- * `creepReasons` is where the two meet. A project that has delivered
- * everything for four fifths of the price is a success, and this function
- * still calls it `watch`, because on the money alone it is.
- */
-export function classifyConsumedShare(consumedShare: number): ScopeHealth {
-  if (consumedShare >= OVERSPENT_SHARE) return "over";
-  if (consumedShare >= NEARLY_SPENT_SHARE) return "watch";
-  return "healthy";
-}
-
-/**
- * How far the burn has run ahead of the delivery, as a fraction of one.
- *
- * The second axis, and the one this file exists for. Two shares of the same
- * project, subtracted: how much of the money is gone, less how much of the
- * work is done. Nought means the two are in step — half the budget for half
- * the deliverables, which is what a project on track looks like. A fifth means
- * a fifth of the contract has bought nothing yet.
- *
- * Signed, and the sign is not symmetric in meaning. Positive is the money
- * running ahead of the work, which is the failure mode; negative is the work
- * running ahead of the money, which is a project being delivered under budget
- * and needs no attention at all. Both come out of the same subtraction, and
- * only one of them is read.
- *
- * A difference of two shares rather than a ratio of them. The ratio is the
- * tempting figure — "twice as much money as work" — but it divides by a
- * delivered share that is nought for the whole first stretch of every project,
- * which is exactly the stretch this is meant to be read in. The difference is
- * defined everywhere the two shares are, and it stays readable at the start.
- *
- * Null when either share is missing, because there is no half of this figure
- * worth having: without a price there is nothing to say the money has run
- * ahead of, and without estimates there is nothing to say it has run ahead
- * *of*. The missing half is named by `creepBlindSpots` rather than guessed at
- * here.
- */
-export function creepGap(
-  consumedShare: number | null,
-  deliveredShare: number | null,
-): number | null {
-  if (consumedShare === null || deliveredShare === null) return null;
-  return consumedShare - deliveredShare;
-}
 
 /**
  * The gap between money and work at which a project is worth another look.
@@ -286,6 +223,70 @@ export const DEFAULT_CREEP_THRESHOLDS: CreepThresholds = Object.freeze({
   aheadOfDeliveryGap: AHEAD_OF_DELIVERY_GAP,
   farAheadOfDeliveryGap: FAR_AHEAD_OF_DELIVERY_GAP,
 });
+
+/**
+ * What the money alone says about a project.
+ *
+ * The first of the two axes, and the one that needs no estimates: a contract
+ * value and some logged hours are enough. Over the whole price is `over`, four
+ * fifths of it is `watch`, anything under that is `healthy`.
+ *
+ * Inclusive at both thresholds. A project that has burned exactly its contract
+ * value is over it — the next hour is unpaid, which is the thing `over` means
+ * — and `>=` rather than `>` is what keeps the common case from falling
+ * through: round contracts meet round rates, and landing precisely on the
+ * price happens far more often than the arithmetic suggests.
+ *
+ * It takes the share rather than the two amounts, so there is exactly one
+ * division in the codebase and it is `consumedShare`'s. The share it is handed
+ * has already decided what an unreadable price means, which is why there is no
+ * null branch here: a share that arrives is a share worth classifying.
+ *
+ * No opinion about whether the work is done — that is the other axis, and
+ * `creepReasons` is where the two meet. A project that has delivered
+ * everything for four fifths of the price is a success, and this function
+ * still calls it `watch`, because on the money alone it is.
+ */
+export function classifyConsumedShare(consumedShare: number): ScopeHealth {
+  if (consumedShare >= OVERSPENT_SHARE) return "over";
+  if (consumedShare >= NEARLY_SPENT_SHARE) return "watch";
+  return "healthy";
+}
+
+/**
+ * How far the burn has run ahead of the delivery, as a fraction of one.
+ *
+ * The second axis, and the one this file exists for. Two shares of the same
+ * project, subtracted: how much of the money is gone, less how much of the
+ * work is done. Nought means the two are in step — half the budget for half
+ * the deliverables, which is what a project on track looks like. A fifth means
+ * a fifth of the contract has bought nothing yet.
+ *
+ * Signed, and the sign is not symmetric in meaning. Positive is the money
+ * running ahead of the work, which is the failure mode; negative is the work
+ * running ahead of the money, which is a project being delivered under budget
+ * and needs no attention at all. Both come out of the same subtraction, and
+ * only one of them is read.
+ *
+ * A difference of two shares rather than a ratio of them. The ratio is the
+ * tempting figure — "twice as much money as work" — but it divides by a
+ * delivered share that is nought for the whole first stretch of every project,
+ * which is exactly the stretch this is meant to be read in. The difference is
+ * defined everywhere the two shares are, and it stays readable at the start.
+ *
+ * Null when either share is missing, because there is no half of this figure
+ * worth having: without a price there is nothing to say the money has run
+ * ahead of, and without estimates there is nothing to say it has run ahead
+ * *of*. The missing half is named by `creepBlindSpots` rather than guessed at
+ * here.
+ */
+export function creepGap(
+  consumedShare: number | null,
+  deliveredShare: number | null,
+): number | null {
+  if (consumedShare === null || deliveredShare === null) return null;
+  return consumedShare - deliveredShare;
+}
 
 /**
  * What the two shares together say about a project.
