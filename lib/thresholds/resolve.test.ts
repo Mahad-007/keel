@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_THRESHOLDS,
   NO_THRESHOLD_OVERRIDES,
+  pickThresholdOverrides,
   resolveThreshold,
   resolveThresholds,
   rowThreshold,
@@ -173,5 +174,30 @@ describe("NO_THRESHOLD_OVERRIDES", () => {
     expect(
       resolveThresholds(NO_THRESHOLD_OVERRIDES, NO_THRESHOLD_OVERRIDES),
     ).toEqual(DEFAULT_THRESHOLDS);
+  });
+});
+
+describe("pickThresholdOverrides", () => {
+  it("reads every setting off a row, NULL for the ones it has not got", () => {
+    expect(pickThresholdOverrides({ nearlySpentPercent: 70 })).toEqual({
+      ...NO_THRESHOLD_OVERRIDES,
+      nearlySpentPercent: 70,
+    });
+  });
+
+  it("answers for every setting even from an empty row", () => {
+    expect(pickThresholdOverrides({})).toEqual(NO_THRESHOLD_OVERRIDES);
+  });
+
+  /**
+   * A copy has to be able to see a bad stored figure, because whether the row
+   * can be copied at all is decided from what it holds. Repairing it here would
+   * hand a caller a row that passed a check it should have failed.
+   */
+  it("carries a figure outside its range rather than dropping it", () => {
+    expect(pickThresholdOverrides({ paceShiftPercent: 400 })).toEqual({
+      ...NO_THRESHOLD_OVERRIDES,
+      paceShiftPercent: 400,
+    });
   });
 });

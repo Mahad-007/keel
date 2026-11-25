@@ -215,3 +215,33 @@ export const NO_THRESHOLD_OVERRIDES: Required<ThresholdOverrides> =
     recentRateWindowDays: null,
     paceShiftPercent: null,
   });
+
+/**
+ * The five settings off a row, as a complete record with NULL for the ones it
+ * has not got.
+ *
+ * For the callers that have to carry settings from one row to another —
+ * duplicating a project, today — rather than resolve them. A copy that spelled
+ * the five fields out itself would be a copy that silently drops the sixth
+ * setting the day it is added, which is the quietest possible way to lose a
+ * client's agreed tolerance.
+ *
+ * Complete rather than partial, so what comes out says something about every
+ * setting: the copy is being told what the source held, including that it held
+ * nothing. A partial result would leave a caller unable to tell "not set" from
+ * "not read".
+ *
+ * Nothing is validated. A stored figure out of range is carried as it stands,
+ * because the callers that ask this are deciding whether a row can be copied
+ * at all and `hasUsableThresholds` is the question they ask next — repairing
+ * it here would hand them a row that passed a check it should have failed.
+ */
+export function pickThresholdOverrides(
+  row: ThresholdOverrides,
+): Required<ThresholdOverrides> {
+  const picked: Record<string, number | null> = {};
+  for (const key of THRESHOLD_KEYS) {
+    picked[key] = row[key] ?? null;
+  }
+  return picked as Required<ThresholdOverrides>;
+}
