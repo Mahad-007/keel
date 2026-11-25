@@ -46,3 +46,58 @@ export const THRESHOLD_KEYS = [
 
 /** One configurable judgement. */
 export type ThresholdKey = (typeof THRESHOLD_KEYS)[number];
+
+/**
+ * The unit a setting is typed and stored in.
+ *
+ * Two, and they are not interchangeable. A percent is a share of something —
+ * of the contract, of the average pace — and is converted to a fraction before
+ * any comparison is made with it. A count of days is already the unit the
+ * arithmetic uses and is handed through untouched.
+ *
+ * Carried on the spec rather than inferred from the key's name, because the
+ * form has to print the unit beside the box and the conversion has to know
+ * whether to divide. Inferring either from a suffix would work until a setting
+ * arrives whose name does not end the way the rule expects.
+ */
+export const THRESHOLD_UNITS = ["percent", "days"] as const;
+
+export type ThresholdUnit = (typeof THRESHOLD_UNITS)[number];
+
+/**
+ * What a setting is called, what it does, what it defaults to, and how far it
+ * may be moved.
+ *
+ * `label` is the form's label and the name used wherever a setting is shown in
+ * a sentence, so the field somebody types in and the row explaining what is in
+ * force are called the same thing.
+ *
+ * `hint` is the one line under the box. It says what the setting does to the
+ * app rather than restating the label, because a reader looking at five
+ * numbers needs to know which one is making the banner on their project say
+ * what it says.
+ *
+ * `fallback` is the figure in force when nothing has been set anywhere, in the
+ * stored unit. Every one of them is derived from the constant that documents
+ * it, so this record cannot come to offer a default the classifier does not
+ * apply.
+ *
+ * `min` and `max` bound what a person may type, inclusive at both ends. They
+ * are not taste: outside them a setting makes some comparison in the app
+ * unreachable, which is a flag that can never fire or one that never stops,
+ * and either is worse than the default. Each entry says which.
+ */
+export type ThresholdSetting = {
+  /** What the setting is called, in a form label and in a sentence. */
+  readonly label: string;
+  /** What it does, in one line, under the box. */
+  readonly hint: string;
+  /** The unit it is typed and stored in. */
+  readonly unit: ThresholdUnit;
+  /** The figure in force when nothing has been set, in the stored unit. */
+  readonly fallback: number;
+  /** The lowest value that may be stored, inclusive. */
+  readonly min: number;
+  /** The highest value that may be stored, inclusive. */
+  readonly max: number;
+};
