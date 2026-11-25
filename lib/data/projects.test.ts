@@ -1406,6 +1406,31 @@ describe("projectCopyProblem", () => {
     );
   });
 
+  it("finds nothing wrong with thresholds inside their ranges", () => {
+    expect(
+      projectCopyProblem({
+        ...GOOD,
+        nearlySpentPercent: 70,
+        recentRateWindowDays: 30,
+      }),
+    ).toBeNull();
+  });
+
+  it("finds nothing wrong with a project that overrides no threshold", () => {
+    expect(projectCopyProblem({ ...GOOD, nearlySpentPercent: null })).toBeNull();
+  });
+
+  /**
+   * Nothing in the app can write this, and a hand-edited row can: the copy
+   * would otherwise throw from inside `createProject`, roll back, and tell the
+   * reader to try again on a row no amount of trying will fix.
+   */
+  it("names a threshold outside the range the column accepts", () => {
+    expect(projectCopyProblem({ ...GOOD, nearlySpentPercent: 400 })).toBe(
+      "unusable-value",
+    );
+  });
+
   it("names an amount too large to store exactly", () => {
     expect(
       projectCopyProblem({

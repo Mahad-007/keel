@@ -16,7 +16,10 @@ import {
   parseProjectStatus,
   type ProjectStatus,
 } from "@/lib/projects/status";
-import { thresholdColumns } from "@/lib/thresholds/column";
+import {
+  hasUsableThresholds,
+  thresholdColumns,
+} from "@/lib/thresholds/column";
 import type { ThresholdOverrides } from "@/lib/thresholds/resolve";
 import { copiedDeliverables, copiedProject } from "@/lib/projects/duplicate";
 import {
@@ -542,7 +545,8 @@ export type ProjectCopyProblem = "unusable-value";
 
 /**
  * The part of a project row that decides whether it can be copied: the two
- * money columns that cross over, both with guards in front of them.
+ * money columns and the five thresholds that cross over, every one of them
+ * with a guard in front of it.
  *
  * `clientId` is not among them, and not because `requireClient` would catch it
  * — that throws, which is the shape this function exists to avoid. It is
@@ -552,7 +556,7 @@ export type ProjectCopyProblem = "unusable-value";
  * waiting to be found here. The test beside this one holds that down, since
  * the argument is only as good as the pragma.
  */
-export type CopyableProjectValue = {
+export type CopyableProjectValue = ThresholdOverrides & {
   contractValueCents: number;
   rateCents: number | null;
 };
@@ -576,13 +580,20 @@ export type CopyableProjectValue = {
  * The rules are the predicates the guards are built from rather than a second
  * spelling of them, so the answer cannot drift from what the columns will
  * accept.
+ *
+ * The thresholds joined the question the day they joined the copy. They are
+ * guarded the same way the amounts are — `thresholdColumns` throws on a figure
+ * outside the spec's range — so a client hand-edited to a watch threshold of
+ * 400% would otherwise roll a duplicate back with the message that says to try
+ * again, on a row no amount of trying will fix.
  */
 export function projectCopyProblem(
   project: CopyableProjectValue,
 ): ProjectCopyProblem | null {
   const usable =
     isWholeCents(project.contractValueCents) &&
-    isOptionalWholeCents(project.rateCents);
+    isOptionalWholeCents(project.rateCents) &&
+    hasUsableThresholds(project);
   return usable ? null : "unusable-value";
 }
 
