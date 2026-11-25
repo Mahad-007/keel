@@ -9,6 +9,7 @@ import {
   SCOPE_HEALTH,
   type CreepAssessment,
   type CreepReadings,
+  type CreepThresholds,
   type ScopeHealth,
   DEFAULT_CREEP_THRESHOLDS,
 } from "@/lib/scope-creep";
@@ -315,12 +316,8 @@ describe("the sentence for a burn ahead of its delivery", () => {
   });
 
   it("reads its closing clause off the money verdict", () => {
-    expect(ahead(0.45, 0.18, 0.27)).toContain(
-      AHEAD_CLOSING.healthy,
-    );
-    expect(ahead(0.85, 0.55, 0.3)).toContain(
-      AHEAD_CLOSING.watch,
-    );
+    expect(ahead(0.45, 0.18, 0.27)).toContain(AHEAD_CLOSING.healthy);
+    expect(ahead(0.85, 0.55, 0.3)).toContain(AHEAD_CLOSING.watch);
     expect(ahead(1.1, 0.8, 0.3)).toContain(AHEAD_CLOSING.over);
   });
 
@@ -347,6 +344,39 @@ describe("the sentence for a burn ahead of its delivery", () => {
   it("does not read as the far-ahead sentence", () => {
     expect(ahead(0.6, 0.1, 0.5)).not.toBe(
       farAhead(0.6, 0.1, 0.5),
+    );
+  });
+});
+
+/**
+ * The closing clause is chosen by re-reading the money axis, so it has to be
+ * re-read at the project's own threshold. A project configured to watch from
+ * half its contract is past that threshold at 60% consumed, and a clause
+ * telling its reader both figures look survivable would contradict the lead
+ * sentence an inch above it.
+ */
+describe("a gap sentence on a configured threshold", () => {
+  const CAUTIOUS: CreepThresholds = {
+    ...DEFAULT_CREEP_THRESHOLDS,
+    nearlySpentShare: 0.5,
+  };
+
+  it("closes on the watch clause once the configured threshold is passed", () => {
+    expect(describeFarAheadOfDelivery(0.6, 0.1, 0.5, CAUTIOUS)).toContain(
+      FAR_AHEAD_CLOSING.watch,
+    );
+    expect(farAhead(0.6, 0.1, 0.5)).toContain(FAR_AHEAD_CLOSING.healthy);
+  });
+
+  it("keeps the comparison itself identical whatever the threshold", () => {
+    expect(describeAheadOfDelivery(0.6, 0.1, 0.5, CAUTIOUS)).toContain(
+      describeBurnAgainstDelivery(0.6, 0.1),
+    );
+  });
+
+  it("still calls an overspent contract overspent", () => {
+    expect(describeAheadOfDelivery(1.1, 0.8, 0.3, CAUTIOUS)).toContain(
+      AHEAD_CLOSING.over,
     );
   });
 });
