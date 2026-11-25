@@ -6,8 +6,13 @@ import {
   remainingContractPercent,
   THRESHOLD_SOURCE_LABEL,
   thresholdLine,
+  thresholdProblemSentences,
 } from "./describe";
-import { DEFAULT_THRESHOLDS, THRESHOLD_SOURCES } from "./resolve";
+import {
+  DEFAULT_THRESHOLDS,
+  resolveThresholds,
+  THRESHOLD_SOURCES,
+} from "./resolve";
 import { THRESHOLD_KEYS, THRESHOLD_SETTINGS } from "./settings";
 
 describe("formatThresholdValue", () => {
@@ -103,5 +108,67 @@ describe("describeNearlySpentSetting", () => {
     expect(describeNearlySpentSetting(100)).toBe(
       "Flagged only once the whole contract value is burned, which leaves nothing to cover what is still outstanding.",
     );
+  });
+});
+
+describe("thresholdProblemSentences", () => {
+  it("says nothing about a project whose settings make sense", () => {
+    expect(thresholdProblemSentences(DEFAULT_THRESHOLDS)).toEqual([]);
+  });
+
+  it("names both figures of a crossed pair and where each came from", () => {
+    const [sentence] = thresholdProblemSentences(
+      resolveThresholds(
+        { aheadOfDeliveryPercent: 50 },
+        { farAheadOfDeliveryPercent: 20 },
+      ),
+    );
+
+    expect(sentence).toContain("(50%, set on this project)");
+    expect(sentence).toContain("(20%, from the client)");
+    expect(sentence).toContain("nothing is ever merely watched");
+  });
+
+  it("names the one unusable setting in the singular", () => {
+    const [sentence] = thresholdProblemSentences(
+      resolveThresholds({ nearlySpentPercent: 400 }, {}),
+    );
+
+    expect(sentence).toContain("Contract nearly spent is set to a figure");
+  });
+
+  it("names several unusable settings together", () => {
+    const [sentence] = thresholdProblemSentences(
+      resolveThresholds({ nearlySpentPercent: 400, paceShiftPercent: 0 }, {}),
+    );
+
+    expect(sentence).toContain(
+      "Contract nearly spent and Pace change are set to a figure",
+    );
+  });
+
+  it("says the verdict was reached at the bad figure rather than hiding it", () => {
+    const [sentence] = thresholdProblemSentences(
+      resolveThresholds({ nearlySpentPercent: 400 }, {}),
+    );
+
+    expect(sentence).toContain("still what the verdict above was reached at");
+  });
+
+  it("reports both problems at once, worst first", () => {
+    const sentences = thresholdProblemSentences(
+      resolveThresholds(
+        {
+          nearlySpentPercent: 400,
+          aheadOfDeliveryPercent: 50,
+          farAheadOfDeliveryPercent: 20,
+        },
+        {},
+      ),
+    );
+
+    expect(sentences).toHaveLength(2);
+    expect(sentences[0]).toContain("Contract nearly spent");
+    expect(sentences[1]).toContain("merely watched");
   });
 });

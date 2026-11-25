@@ -1,6 +1,15 @@
+import {
+  thresholdProblems,
+  unusableSettingLabels,
+  type ThresholdProblem,
+} from "./coherence";
 import { PERCENT_WHOLE } from "./scale";
 import { THRESHOLD_SETTINGS, type ThresholdKey } from "./settings";
-import type { ResolvedThreshold, ThresholdSource } from "./resolve";
+import type {
+  ResolvedThreshold,
+  ResolvedThresholds,
+  ThresholdSource,
+} from "./resolve";
 
 /**
  * The words a threshold is read in: what it says, and where it came from.
@@ -129,4 +138,59 @@ export function describeNearlySpentSetting(percent: number): string {
     return `Flagged only once the whole contract value is burned, which leaves nothing to cover what is still outstanding.`;
   }
   return `Flagged once ${percent}% of the contract value is burned, which leaves ${left}% to cover whatever is still outstanding.`;
+}
+
+/**
+ * What is wrong with the settings in force, in a sentence a reader can act on.
+ *
+ * A record over every problem rather than a chain of conditions, so a third
+ * problem added to `coherence.ts` is a compile error here — the one place that
+ * has words for it — rather than a settings page that silently shows nothing.
+ * The same arrangement `REASON_SENTENCE` keeps, for the same reason.
+ *
+ * Each sentence quotes the figures in force and says where they came from,
+ * because that is the whole of what a reader needs: the crossed pair is two
+ * fields that are each fine, and which form to open depends on which of the two
+ * was the mistake.
+ *
+ * Both sentences say that the settings are *still being applied*. Nothing here
+ * repairs a figure or withholds a verdict, deliberately — a project quietly
+ * classified at the defaults while its own settings page showed something else
+ * would be the one project nobody could debug — so the honest thing is to say
+ * the verdict above was reached at these figures and that they are wrong.
+ */
+const THRESHOLD_PROBLEM_SENTENCE: Record<
+  ThresholdProblem,
+  (resolved: ResolvedThresholds) => string
+> = {
+  "unusable-setting": (resolved) => {
+    const labels = unusableSettingLabels(resolved);
+    const names = labels.join(" and ");
+    const verb = labels.length === 1 ? "is" : "are";
+    return `${names} ${verb} set to a figure this form would not accept. It is still what the verdict above was reached at, so correct it before trusting the flag.`;
+  },
+  "crossed-delivery-gaps": (resolved) => {
+    const ahead = resolved.aheadOfDeliveryPercent;
+    const far = resolved.farAheadOfDeliveryPercent;
+    return `The gap that merely flags this project (${ahead.value}%, ${THRESHOLD_SOURCE_LABEL[
+      ahead.source
+    ].toLowerCase()}) is not below the gap that calls it over (${far.value}%, ${THRESHOLD_SOURCE_LABEL[
+      far.source
+    ].toLowerCase()}), so nothing is ever merely watched on the delivery axis — anything past the first figure is past the second.`;
+  },
+};
+
+/**
+ * Everything wrong with the settings in force, worst first, in sentences.
+ *
+ * The order is `thresholdProblems`'s, which puts the more consequential first.
+ * Usually empty: every project nobody has configured, and most of the ones
+ * somebody has.
+ */
+export function thresholdProblemSentences(
+  resolved: ResolvedThresholds,
+): readonly string[] {
+  return thresholdProblems(resolved).map((problem) =>
+    THRESHOLD_PROBLEM_SENTENCE[problem](resolved),
+  );
 }
