@@ -245,3 +245,35 @@ export function pickThresholdOverrides(
   }
   return picked as Required<ThresholdOverrides>;
 }
+
+/**
+ * A row that carries both rungs of the chain at once: a project's own settings
+ * and its client's, joined.
+ *
+ * The shape every page actually holds, and the same arrangement `JoinedRate`
+ * makes for exactly the same reason — `getProjectWithClient` reads the client's
+ * settings alongside the project's because a page that needed them separately
+ * would be a second query for five integers.
+ *
+ * Structural, so it is satisfied by the join, by a projected query result, and
+ * by a literal in a test.
+ */
+export type JoinedThresholds = ThresholdOverrides & {
+  /** The client's settings, as the join carried them. */
+  readonly clientThresholds: ThresholdOverrides;
+};
+
+/**
+ * The thresholds in force for a project read together with its client.
+ *
+ * One line, and it exists so that line is written once. The failure mode of
+ * spelling it out at each page is passing the project twice or forgetting the
+ * client half — which resolves every setting to the app's default and judges an
+ * engagement by figures its client explicitly did not agree to, silently, with
+ * the banner reading like a measurement.
+ */
+export function resolveJoinedThresholds(
+  row: JoinedThresholds,
+): ResolvedThresholds {
+  return resolveThresholds(row, row.clientThresholds);
+}

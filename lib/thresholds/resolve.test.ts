@@ -4,6 +4,7 @@ import {
   DEFAULT_THRESHOLDS,
   NO_THRESHOLD_OVERRIDES,
   pickThresholdOverrides,
+  resolveJoinedThresholds,
   resolveThreshold,
   resolveThresholds,
   rowThreshold,
@@ -199,5 +200,54 @@ describe("pickThresholdOverrides", () => {
       ...NO_THRESHOLD_OVERRIDES,
       paceShiftPercent: 400,
     });
+  });
+});
+
+describe("resolveJoinedThresholds", () => {
+  it("prefers the project's own setting over its client's", () => {
+    const resolved = resolveJoinedThresholds({
+      nearlySpentPercent: 70,
+      clientThresholds: { nearlySpentPercent: 60 },
+    });
+
+    expect(resolved.nearlySpentPercent).toEqual({
+      value: 70,
+      source: "project",
+    });
+  });
+
+  it("falls to the client half of the row", () => {
+    const resolved = resolveJoinedThresholds({
+      clientThresholds: { nearlySpentPercent: 60 },
+    });
+
+    expect(resolved.nearlySpentPercent).toEqual({
+      value: 60,
+      source: "client",
+    });
+  });
+
+  it("falls to the defaults when the whole row is empty", () => {
+    expect(
+      resolveJoinedThresholds({ clientThresholds: {} }),
+    ).toEqual(DEFAULT_THRESHOLDS);
+  });
+
+  /**
+   * The failure this function exists to make unreachable: a caller that passed
+   * the project as both halves would resolve every inherited setting to the
+   * default. Asserting it against the two-argument form is what pins the
+   * flattening.
+   */
+  it("reads the client half from the joined field, not the project", () => {
+    const row = {
+      aheadOfDeliveryPercent: 15,
+      clientThresholds: { nearlySpentPercent: 60, paceShiftPercent: 40 },
+    };
+
+    expect(resolveJoinedThresholds(row)).toEqual(
+      resolveThresholds(row, row.clientThresholds),
+    );
+    expect(resolveJoinedThresholds(row).paceShiftPercent.source).toBe("client");
   });
 });
