@@ -22,6 +22,11 @@
  * the data module that owns the columns it would be written to.
  */
 
+import {
+  pickThresholdOverrides,
+  type ThresholdOverrides,
+} from "@/lib/thresholds/resolve";
+
 /**
  * What duplicating reads off the project row.
  *
@@ -30,7 +35,7 @@
  * and a test should be able to hand over three fields without inventing an id,
  * a status and two timestamps to go with them.
  */
-export type DuplicableProject = {
+export type DuplicableProject = ThresholdOverrides & {
   clientId: string;
   contractValueCents: number;
   rateCents: number | null;
@@ -47,7 +52,7 @@ export type DuplicableProject = {
  * `startedAt` and `closedAt` follow from the status and are not copyable even
  * in principle: a project that starts today cannot have started in March.
  */
-export type ProjectCopy = {
+export type ProjectCopy = ThresholdOverrides & {
   readonly clientId: string;
   readonly name: string;
   readonly contractValueCents: number;
@@ -67,6 +72,17 @@ export type ProjectCopy = {
  * two mean different things — "bill at the client's rate" against "this one
  * does not bill by the hour" — and collapsing either into the other would
  * quietly change what the copy is worth per hour.
+ *
+ * The thresholds cross over for the same reason, and it is the same reason
+ * read twice: a duplicate is the next engagement of the same shape, and the
+ * shape includes how much daylight it is allowed before somebody is told. A
+ * copy that silently reverted to its client's figures would be judged by
+ * settings nobody chose for it, and the overrides on the source row are
+ * precisely the record that the client's figures were wrong for this work.
+ *
+ * Read through `pickThresholdOverrides` rather than spelled out, so a sixth
+ * setting crosses over the day it exists instead of the day somebody notices
+ * it did not.
  */
 export function copiedProject(
   project: DuplicableProject,
@@ -77,6 +93,7 @@ export function copiedProject(
     name,
     contractValueCents: project.contractValueCents,
     rateCents: project.rateCents,
+    ...pickThresholdOverrides(project),
   };
 }
 

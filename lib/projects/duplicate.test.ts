@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { THRESHOLD_KEYS } from "@/lib/thresholds/settings";
+
 import { copiedDeliverables, copiedProject } from "./duplicate";
 
 /**
@@ -69,16 +71,15 @@ describe("copiedProject, on what it leaves behind", () => {
     updatedAt: "2026-08-31T09:00:00.000Z",
   };
 
-  it("carries nothing beyond the four fields a new project is made of", () => {
+  it("carries nothing beyond the fields a new project is made of", () => {
     // Exhaustive rather than one assertion per column left behind: this says
     // the same thing about the id, the status, both lifecycle dates and both
     // timestamps, and it keeps saying it about a column added next year.
-    expect(Object.keys(copiedProject(ROW, "Copy")).sort()).toEqual([
-      "clientId",
-      "contractValueCents",
-      "name",
-      "rateCents",
-    ]);
+    expect(Object.keys(copiedProject(ROW, "Copy")).sort()).toEqual(
+      ["clientId", "contractValueCents", "name", "rateCents"]
+        .concat(THRESHOLD_KEYS)
+        .sort(),
+    );
   });
 });
 
@@ -170,5 +171,37 @@ describe("copiedDeliverables, on what it leaves behind", () => {
       description: "Two workshops.",
       estimatedMinutes: 480,
     });
+  });
+});
+
+/**
+ * The thresholds cross over because the copy is the same engagement shape, and
+ * the shape includes how much daylight it is allowed. The cases are the three
+ * states a column can be in, because a copy that turned "not set" into a
+ * setting would be worse than one that dropped it.
+ */
+describe("copiedProject, on the thresholds", () => {
+  it("carries an overridden setting to the copy", () => {
+    const copy = copiedProject(
+      { ...SOURCE, nearlySpentPercent: 70, recentRateWindowDays: 30 },
+      "Copy",
+    );
+
+    expect(copy.nearlySpentPercent).toBe(70);
+    expect(copy.recentRateWindowDays).toBe(30);
+  });
+
+  it("carries an unset setting over as unset, not as a figure", () => {
+    const copy = copiedProject({ ...SOURCE, nearlySpentPercent: 70 }, "Copy");
+
+    expect(copy.paceShiftPercent).toBeNull();
+  });
+
+  it("says something about every setting in the spec", () => {
+    const copy = copiedProject(SOURCE, "Copy");
+
+    for (const key of THRESHOLD_KEYS) {
+      expect(copy[key]).toBeNull();
+    }
   });
 });
