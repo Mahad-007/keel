@@ -129,6 +129,14 @@ export const projects = sqliteTable(
     startedAt: text("started_at"),
     /** When it was closed; NULL for anything still open. */
     closedAt: text("closed_at"),
+    /**
+     * This project's own thresholds, overriding its client's. The rung that
+     * exists for the engagement that is not like the others — the favour, the
+     * rush job, the fixed-price build for a client who otherwise retains — and
+     * a NULL here defers to the client rather than meaning a threshold of
+     * nothing, exactly as `rateCents` does one field above.
+     */
+    ...thresholdOverrides,
     ...timestamps,
   },
   /** Every project list is either "all of them" or "this client's". */

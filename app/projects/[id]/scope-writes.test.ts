@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createDeliverable } from "@/lib/data/deliverables";
 import { getProject } from "@/lib/data/projects";
 import { INITIAL_ADD_DELIVERABLE_STATE } from "@/lib/deliverables/form";
+import { NO_THRESHOLD_OVERRIDES } from "@/lib/thresholds/resolve";
 
 import { writeNewDeliverable } from "./scope-writes";
 
@@ -51,6 +52,7 @@ beforeEach(() => {
     rateCents: null,
     startedAt: "2026-09-28T09:00:00.000Z",
     closedAt: null,
+    ...NO_THRESHOLD_OVERRIDES,
     createdAt: "2026-09-28T09:00:00.000Z",
     updatedAt: "2026-09-28T09:00:00.000Z",
   });

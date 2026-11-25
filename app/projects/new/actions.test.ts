@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { projectClientOptions } from "@/lib/clients/picker";
 import { createProject } from "@/lib/data/projects";
 import { INITIAL_PROJECT_FORM_STATE } from "@/lib/projects/form";
+import { NO_THRESHOLD_OVERRIDES } from "@/lib/thresholds/resolve";
 
 import { createProjectAction } from "./actions";
 
@@ -54,6 +55,7 @@ beforeEach(() => {
     rateCents: null,
     startedAt: null,
     closedAt: null,
+    ...NO_THRESHOLD_OVERRIDES,
     createdAt: "2026-09-28T09:00:00.000Z",
     updatedAt: "2026-09-28T09:00:00.000Z",
   });

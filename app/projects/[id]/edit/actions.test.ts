@@ -6,6 +6,7 @@ import { projectClientOptions } from "@/lib/clients/picker";
 import { getProject, updateProject } from "@/lib/data/projects";
 import type { Project } from "@/lib/db/schema";
 import { projectFormStateFor } from "@/lib/projects/form";
+import { NO_THRESHOLD_OVERRIDES } from "@/lib/thresholds/resolve";
 
 import { updateProjectAction } from "./actions";
 
@@ -42,6 +43,7 @@ const STORED: Project = {
   rateCents: 18000,
   startedAt: "2026-09-01T09:00:00.000Z",
   closedAt: null,
+  ...NO_THRESHOLD_OVERRIDES,
   createdAt: "2026-09-01T09:00:00.000Z",
   updatedAt: "2026-09-01T09:00:00.000Z",
 };

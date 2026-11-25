@@ -8,6 +8,7 @@ import {
   initialDuplicateState,
 } from "@/lib/projects/duplicate-form";
 import { PROJECTS_PATH } from "@/lib/projects/query";
+import { NO_THRESHOLD_OVERRIDES } from "@/lib/thresholds/resolve";
 
 import { writeDuplicatedProject } from "./duplicate-writes";
 
@@ -54,6 +55,7 @@ const COPY = {
     rateCents: 9_500,
     startedAt: null,
     closedAt: null,
+    ...NO_THRESHOLD_OVERRIDES,
     createdAt: "2026-10-10T09:00:00.000Z",
     updatedAt: "2026-10-10T09:00:00.000Z",
   },

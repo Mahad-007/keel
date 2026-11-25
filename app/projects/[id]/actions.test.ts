@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getProject, transitionProject } from "@/lib/data/projects";
 import type { Project } from "@/lib/db/schema";
 import { INITIAL_TRANSITION_FORM_STATE } from "@/lib/projects/transition-form";
+import { NO_THRESHOLD_OVERRIDES } from "@/lib/thresholds/resolve";
 
 import { transitionProjectAction } from "./actions";
 
@@ -37,6 +38,7 @@ const STORED: Project = {
   rateCents: 18000,
   startedAt: "2026-09-01T09:00:00.000Z",
   closedAt: null,
+  ...NO_THRESHOLD_OVERRIDES,
   createdAt: "2026-09-01T09:00:00.000Z",
   updatedAt: "2026-09-01T09:00:00.000Z",
 };

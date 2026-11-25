@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Project } from "@/lib/db/schema";
+import { NO_THRESHOLD_OVERRIDES } from "@/lib/thresholds/resolve";
 
 import {
   EMPTY_PROJECT_FIELDS,
@@ -195,6 +196,7 @@ function project(fields: Partial<Project> = {}): Project {
     rateCents: 18000,
     startedAt: "2026-09-01T09:00:00.000Z",
     closedAt: null,
+    ...NO_THRESHOLD_OVERRIDES,
     createdAt: "2026-09-01T09:00:00.000Z",
     updatedAt: "2026-09-01T09:00:00.000Z",
     ...fields,

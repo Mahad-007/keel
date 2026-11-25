@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ProjectWithClient } from "@/lib/data/projects";
+import { NO_THRESHOLD_OVERRIDES } from "@/lib/thresholds/resolve";
 
 import {
   clientFilterOptions,
@@ -23,6 +24,7 @@ function project(
     rateCents: null,
     startedAt: null,
     closedAt: null,
+    ...NO_THRESHOLD_OVERRIDES,
     createdAt: "2026-10-01T09:00:00.000Z",
     updatedAt: "2026-10-01T09:00:00.000Z",
     ...partial,
