@@ -49,3 +49,31 @@ export const PERCENT_WHOLE = 100;
 export function shareFromPercent(percent: number): number {
   return percent / PERCENT_WHOLE;
 }
+
+/**
+ * A fraction as the whole percent a column would hold.
+ *
+ * The inverse, and it exists for one caller: the settings spec, which takes
+ * its defaults from the share constants in `lib/scope-creep.ts` and
+ * `lib/projection/rate.ts` rather than holding a second copy of them. Those
+ * constants carry several paragraphs each explaining why they are the figures
+ * they are, and a spec that spelled "80" out again would be the place the two
+ * drifted apart — the default a form offers and the threshold the classifier
+ * applies, one edited and the other not.
+ *
+ * Rounded, because multiplying by a hundred is not the exact inverse of
+ * dividing by it: a seventh of a contract comes back as 14.285714285714285,
+ * and a column cannot hold that. The nearest whole percent is the figure
+ * somebody typed in the first place, so for every value this is actually
+ * asked about — a stored setting on its way back out, or one of the documented
+ * constants — the round trip is the identity.
+ *
+ * Which means it is lossy in one direction and only in one direction, and the
+ * loss is in the half nothing stores. A share of 0.805 comes back as 81 and
+ * converts forward to 0.81; no column and no form can produce 0.805, so the
+ * only way to reach that is to hand this a figure from somewhere else, and the
+ * answer it gives is the nearest setting that could have meant it.
+ */
+export function percentFromShare(share: number): number {
+  return Math.round(share * PERCENT_WHOLE);
+}

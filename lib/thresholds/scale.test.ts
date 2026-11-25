@@ -6,7 +6,7 @@ import {
   NEARLY_SPENT_SHARE,
 } from "@/lib/scope-creep";
 
-import { PERCENT_WHOLE, shareFromPercent } from "./scale";
+import { PERCENT_WHOLE, percentFromShare, shareFromPercent } from "./scale";
 
 describe("shareFromPercent", () => {
   it("divides by the whole rather than multiplying by it", () => {
@@ -45,5 +45,38 @@ describe("shareFromPercent", () => {
 
   it("converts a setting that does not divide evenly without complaint", () => {
     expect(shareFromPercent(33)).toBeCloseTo(0.33, 10);
+  });
+});
+
+describe("percentFromShare", () => {
+  it("multiplies by the whole rather than dividing by it", () => {
+    expect(percentFromShare(0.5)).toBe(50);
+  });
+
+  it("reads one as the whole", () => {
+    expect(percentFromShare(1)).toBe(PERCENT_WHOLE);
+  });
+
+  /**
+   * The round trip the settings spec depends on: every default it publishes is
+   * one of these constants put through this function, and a form offering 81
+   * for a threshold that fires at 0.8 would be the spec lying about the
+   * classifier.
+   */
+  it("recovers the whole percent behind each documented share", () => {
+    expect(percentFromShare(NEARLY_SPENT_SHARE)).toBe(80);
+    expect(percentFromShare(AHEAD_OF_DELIVERY_GAP)).toBe(25);
+    expect(percentFromShare(FAR_AHEAD_OF_DELIVERY_GAP)).toBe(50);
+  });
+
+  it("rounds a share no column could hold to the nearest setting", () => {
+    expect(percentFromShare(1 / 7)).toBe(14);
+    expect(percentFromShare(0.805)).toBe(81);
+  });
+
+  it("round-trips every whole percent a setting can take", () => {
+    for (let percent = 0; percent <= 200; percent++) {
+      expect(percentFromShare(shareFromPercent(percent))).toBe(percent);
+    }
   });
 });
