@@ -104,3 +104,29 @@ export function thresholdLine(
     hint: setting.hint,
   };
 }
+
+/**
+ * What the money threshold in force means for this project, in a sentence.
+ *
+ * The one setting of the five whose consequence is not obvious from the figure.
+ * "Flagged at 70%" tells a reader when the banner appears; what they actually
+ * want to know is what is left at that point to cover the rest of the work,
+ * which is the judgement the threshold encodes and the thing they are being
+ * asked to agree with.
+ *
+ * The remainder is read off the figure in force rather than written out, so a
+ * client watched from seven tenths is told three tenths are left. That sentence
+ * used to say "a fifth" in the banner itself, which was true of exactly one
+ * threshold — the default — and wrong for everybody who moved it.
+ *
+ * A threshold of the whole price leaves nothing, and says so: it is a legal
+ * setting and a real choice, meaning "only tell me once the money has gone",
+ * and a reader who has chosen it should see what they chose.
+ */
+export function describeNearlySpentSetting(percent: number): string {
+  const left = remainingContractPercent(percent);
+  if (left === 0) {
+    return `Flagged only once the whole contract value is burned, which leaves nothing to cover what is still outstanding.`;
+  }
+  return `Flagged once ${percent}% of the contract value is burned, which leaves ${left}% to cover whatever is still outstanding.`;
+}

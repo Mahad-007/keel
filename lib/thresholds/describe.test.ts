@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  describeNearlySpentSetting,
   formatThresholdValue,
   remainingContractPercent,
   THRESHOLD_SOURCE_LABEL,
@@ -80,5 +81,27 @@ describe("thresholdLine", () => {
         formatThresholdValue(key, THRESHOLD_SETTINGS[key].fallback),
       );
     }
+  });
+});
+
+describe("describeNearlySpentSetting", () => {
+  it("names the threshold and what it leaves behind", () => {
+    expect(describeNearlySpentSetting(80)).toBe(
+      "Flagged once 80% of the contract value is burned, which leaves 20% to cover whatever is still outstanding.",
+    );
+  });
+
+  it("follows a threshold somebody moved, rather than naming a fifth", () => {
+    expect(describeNearlySpentSetting(70)).toContain("leaves 30%");
+  });
+
+  /**
+   * A legal setting and a real choice — "only tell me once the money has gone"
+   * — so the sentence says what was chosen rather than printing "leaves 0%".
+   */
+  it("says plainly that the whole price leaves nothing", () => {
+    expect(describeNearlySpentSetting(100)).toBe(
+      "Flagged only once the whole contract value is burned, which leaves nothing to cover what is still outstanding.",
+    );
   });
 });
