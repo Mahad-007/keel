@@ -12,6 +12,7 @@ import {
   CREEP_REASONS,
   creepReasons,
   type CreepReadings,
+  DEFAULT_CREEP_THRESHOLDS,
   FAR_AHEAD_OF_DELIVERY_GAP,
   healthSeverity,
   NEARLY_SPENT_SHARE,
@@ -97,40 +98,48 @@ describe("worstHealth", () => {
 
 describe("classifyConsumedShare", () => {
   it("is healthy with barely any of the contract burned", () => {
-    expect(classifyConsumedShare(0)).toBe("healthy");
-    expect(classifyConsumedShare(0.12)).toBe("healthy");
+    expect(classifyConsumedShare(0, DEFAULT_CREEP_THRESHOLDS)).toBe("healthy");
+    expect(classifyConsumedShare(0.12, DEFAULT_CREEP_THRESHOLDS)).toBe(
+      "healthy",
+    );
   });
 
   it("is over once the whole contract is burned", () => {
-    expect(classifyConsumedShare(OVERSPENT_SHARE)).toBe("over");
+    expect(
+      classifyConsumedShare(OVERSPENT_SHARE, DEFAULT_CREEP_THRESHOLDS),
+    ).toBe("over");
   });
 
   it("is over well past the contract", () => {
-    expect(classifyConsumedShare(1.68)).toBe("over");
+    expect(classifyConsumedShare(1.68, DEFAULT_CREEP_THRESHOLDS)).toBe("over");
   });
 
   it("is watch a hair under the contract", () => {
-    expect(classifyConsumedShare(0.999)).toBe("watch");
+    expect(classifyConsumedShare(0.999, DEFAULT_CREEP_THRESHOLDS)).toBe("watch");
   });
 });
 
 describe("classifyConsumedShare at the nearly-spent threshold", () => {
   it("is watch exactly on the threshold", () => {
-    expect(classifyConsumedShare(NEARLY_SPENT_SHARE)).toBe("watch");
+    expect(
+      classifyConsumedShare(NEARLY_SPENT_SHARE, DEFAULT_CREEP_THRESHOLDS),
+    ).toBe("watch");
   });
 
   it("is healthy a hair under it", () => {
-    expect(classifyConsumedShare(NEARLY_SPENT_SHARE - 0.001)).toBe("healthy");
+    expect(
+      classifyConsumedShare(NEARLY_SPENT_SHARE - 0.001, DEFAULT_CREEP_THRESHOLDS),
+    ).toBe("healthy");
   });
 
   it("is watch across the whole band up to the contract", () => {
     for (const share of [0.8, 0.85, 0.9, 0.95, 0.99]) {
-      expect(classifyConsumedShare(share)).toBe("watch");
+      expect(classifyConsumedShare(share, DEFAULT_CREEP_THRESHOLDS)).toBe("watch");
     }
   });
 
   it("treats a share below zero as healthy, having been handed one", () => {
-    expect(classifyConsumedShare(-0.4)).toBe("healthy");
+    expect(classifyConsumedShare(-0.4, DEFAULT_CREEP_THRESHOLDS)).toBe("healthy");
   });
 });
 
@@ -344,7 +353,7 @@ describe("creepReasons on the delivery axis", () => {
   });
 
   it("flags it while the contract axis alone still reads healthy", () => {
-    expect(classifyConsumedShare(0.6)).toBe("healthy");
+    expect(classifyConsumedShare(0.6, DEFAULT_CREEP_THRESHOLDS)).toBe("healthy");
   });
 
   it("flags a quarter of the contract ahead of the work as watch", () => {

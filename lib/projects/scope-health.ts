@@ -1,5 +1,6 @@
 import {
   classifyConsumedShare,
+  DEFAULT_CREEP_THRESHOLDS,
   type CreepAssessment,
   type CreepBlindSpot,
   type CreepReason,
@@ -260,7 +261,10 @@ export function describeFarAheadOfDelivery(
     deliveredShare,
   )} — the burn is running ${formatSharePoints(
     gap,
-  )} ahead of the delivery. ${FAR_AHEAD_CLOSING[classifyConsumedShare(consumedShare)]}`;
+  )} ahead of the delivery. ${FAR_AHEAD_CLOSING[classifyConsumedShare(
+    consumedShare,
+    DEFAULT_CREEP_THRESHOLDS,
+  )]}`;
 }
 
 /**
@@ -321,7 +325,10 @@ export function describeAheadOfDelivery(
     deliveredShare,
   )} — the burn is running ${formatSharePoints(
     gap,
-  )} ahead of the delivery. ${AHEAD_CLOSING[classifyConsumedShare(consumedShare)]}`;
+  )} ahead of the delivery. ${AHEAD_CLOSING[classifyConsumedShare(
+    consumedShare,
+    DEFAULT_CREEP_THRESHOLDS,
+  )]}`;
 }
 
 /**

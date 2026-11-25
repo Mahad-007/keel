@@ -228,8 +228,14 @@ export const DEFAULT_CREEP_THRESHOLDS: CreepThresholds = Object.freeze({
  * What the money alone says about a project.
  *
  * The first of the two axes, and the one that needs no estimates: a contract
- * value and some logged hours are enough. Over the whole price is `over`, four
- * fifths of it is `watch`, anything under that is `healthy`.
+ * value and some logged hours are enough. Over the whole price is `over`, past
+ * the nearly-spent threshold is `watch`, anything under that is `healthy`.
+ *
+ * The watch threshold arrives as an argument and the over threshold does not,
+ * which is the whole distinction the day rests on: four fifths is a judgement
+ * about how much buffer an engagement needs and belongs to the engagement, and
+ * the whole price spent is what being over the price means. One is a setting;
+ * the other is a definition.
  *
  * Inclusive at both thresholds. A project that has burned exactly its contract
  * value is over it — the next hour is unpaid, which is the thing `over` means
@@ -247,9 +253,12 @@ export const DEFAULT_CREEP_THRESHOLDS: CreepThresholds = Object.freeze({
  * everything for four fifths of the price is a success, and this function
  * still calls it `watch`, because on the money alone it is.
  */
-export function classifyConsumedShare(consumedShare: number): ScopeHealth {
+export function classifyConsumedShare(
+  consumedShare: number,
+  thresholds: CreepThresholds,
+): ScopeHealth {
   if (consumedShare >= OVERSPENT_SHARE) return "over";
-  if (consumedShare >= NEARLY_SPENT_SHARE) return "watch";
+  if (consumedShare >= thresholds.nearlySpentShare) return "watch";
   return "healthy";
 }
 
@@ -680,7 +689,7 @@ export function creepReasons(readings: CreepReadings): readonly CreepReason[] {
   if (consumed === null) return [];
 
   const reasons: CreepReason[] = [];
-  const money = classifyConsumedShare(consumed);
+  const money = classifyConsumedShare(consumed, DEFAULT_CREEP_THRESHOLDS);
   const creep = classifyCreepGap(readCreepGap(readings));
 
   if (money === "over") reasons.push("contract-overspent");
