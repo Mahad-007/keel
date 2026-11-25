@@ -16,6 +16,7 @@ import {
 import {
   classifyPaceShift,
   DEFAULT_PACE_SETTINGS,
+  type PaceSettings,
   forecastPace,
   hasBurnRate,
   overallBurnRate,
@@ -124,6 +125,12 @@ export type ProjectProjection = {
  * to the forecast. Two valuations of one scope list is how a panel ends up
  * withholding a cost it has already printed.
  *
+ * The pace settings arrive even though only one of the two is read here. The
+ * window was already spent measuring the recent pace this is handed, and the
+ * shift threshold is what turns the two paces into a word — so the pair is what
+ * a caller holds, and splitting it would let a panel judge a shift by one
+ * engagement's tolerance over another's window.
+ *
  * `daysSinceLastReading` is measured from the last reading rather than from the
  * pace's own end date, and the two are the same day — both paces run to the
  * last reading, by construction. Reading it off the list is what makes that an
@@ -140,6 +147,7 @@ export function projectionEvidence(
   lines: readonly ScopeLine[],
   remainingCents: number,
   today: string,
+  settings: PaceSettings,
 ): ProjectionEvidence {
   const last = readings[readings.length - 1];
 
@@ -151,7 +159,7 @@ export function projectionEvidence(
       last === undefined ? 0 : calendarDayGap(last.onDate, today),
     paceShift: classifyPaceShift(
       paceChangeRatio(overallPace, recentPace),
-      DEFAULT_PACE_SETTINGS.paceShiftThreshold,
+      settings.paceShiftThreshold,
     ),
     wholeHistoryWindow: windowCoversWholeHistory(overallPace, recentPace),
     lineCount: lines.length,
@@ -243,6 +251,7 @@ export function projectProjection(
     lines,
     remainingCents,
     today,
+    DEFAULT_PACE_SETTINGS,
   );
   const caveats = projectionCaveats(evidence);
 

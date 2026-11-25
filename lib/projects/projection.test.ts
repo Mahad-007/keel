@@ -92,6 +92,7 @@ describe("projectionEvidence", () => {
       lines,
       remainingCents,
       today,
+      DEFAULT_PACE_SETTINGS,
     );
   }
 
