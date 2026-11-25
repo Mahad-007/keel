@@ -12,6 +12,7 @@ import { createTimeEntry, projectTimeTotals } from "@/lib/data/time-entries";
 import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 import { resolveJoinedRate } from "@/lib/rates";
+import { DEFAULT_CREEP_THRESHOLDS } from "@/lib/scope-creep";
 
 import { assessProjectCreep } from "./creep-readings";
 import {
@@ -74,7 +75,9 @@ async function bannerFor(projectId: string): Promise<ScopeHealthBanner> {
   );
 
   expect(hasScopeHealthToShow(burn, lines.length)).toBe(true);
-  return scopeHealthBanner(assessProjectCreep(burn, lines));
+  return scopeHealthBanner(
+    assessProjectCreep(burn, lines, DEFAULT_CREEP_THRESHOLDS),
+  );
 }
 
 describe("the banner over real rows", () => {

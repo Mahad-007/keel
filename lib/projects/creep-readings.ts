@@ -11,7 +11,7 @@ import {
   assessScopeCreep,
   type CreepAssessment,
   type CreepReadings,
-  DEFAULT_CREEP_THRESHOLDS,
+  type CreepThresholds,
 } from "@/lib/scope-creep";
 
 import { hasValuedBurn } from "./burn-summary";
@@ -78,7 +78,12 @@ export function projectCreepReadings(
  * The whole assessment of one project, read straight off its burn and its
  * scope list.
  *
- * The call a page makes. `projectCreepReadings` stays exported because the
+ * The call a page makes: the readings off the burn and the scope list, the
+ * thresholds off the project and its client. The two halves arrive separately
+ * because they are different kinds of thing — eight measurements and three
+ * judgements — and the only place they meet is the verdict.
+ *
+ * `projectCreepReadings` stays exported because the
  * readings are worth asserting on one at a time, but nothing that shows a
  * reader a verdict should be assembling eight facts itself — the point of the
  * assessment is that the verdict, the reasons, the gaps and the figures all
@@ -88,9 +93,7 @@ export function projectCreepReadings(
 export function assessProjectCreep(
   summary: BurnSummary,
   lines: readonly ScopeLine[],
+  thresholds: CreepThresholds,
 ): CreepAssessment {
-  return assessScopeCreep(
-    projectCreepReadings(summary, lines),
-    DEFAULT_CREEP_THRESHOLDS,
-  );
+  return assessScopeCreep(projectCreepReadings(summary, lines), thresholds);
 }

@@ -721,7 +721,7 @@ describe("the banner over a burn and a scope list", () => {
         line(300),
         line(2_400),
         line(300),
-      ]),
+      ], DEFAULT_CREEP_THRESHOLDS),
     );
 
     expect(banner.headline).toBe("Over scope");
@@ -737,7 +737,7 @@ describe("the banner over a burn and a scope list", () => {
       assessProjectCreep(burn(1_800, 1_000_000), [
         line(1_800, "done"),
         line(1_200),
-      ]),
+      ], DEFAULT_CREEP_THRESHOLDS),
     );
 
     expect(banner.headline).toBe("On track");
@@ -750,7 +750,7 @@ describe("the banner over a burn and a scope list", () => {
       assessProjectCreep(burn(4_800, 1_000_000, UNRATED), [
         line(1_800),
         line(600),
-      ]),
+      ], DEFAULT_CREEP_THRESHOLDS),
     );
 
     expect(banner.headline).toBe("Not assessed");
@@ -760,7 +760,11 @@ describe("the banner over a burn and a scope list", () => {
 
   it("reads the money axis alone when nothing was estimated", () => {
     const banner = scopeHealthBanner(
-      assessProjectCreep(burn(3_300, 1_000_000), [line(0), line(0)]),
+      assessProjectCreep(
+        burn(3_300, 1_000_000),
+        [line(0), line(0)],
+        DEFAULT_CREEP_THRESHOLDS,
+      ),
     );
 
     expect(banner.headline).toBe("Over scope");

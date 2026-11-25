@@ -5,7 +5,10 @@ import {
   scopeHealthBanner,
 } from "@/lib/projects/scope-health";
 import type { ScopeLine } from "@/lib/scope";
-import type { ScopeHealth } from "@/lib/scope-creep";
+import {
+  DEFAULT_CREEP_THRESHOLDS,
+  type ScopeHealth,
+} from "@/lib/scope-creep";
 
 
 /**
@@ -119,7 +122,9 @@ export function ScopeHealthBanner({
   // tested in `lib/projects/scope-health.ts` and merely consulted here.
   if (!hasScopeHealthToShow(summary, lines.length)) return null;
 
-  const banner = scopeHealthBanner(assessProjectCreep(summary, lines));
+  const banner = scopeHealthBanner(
+    assessProjectCreep(summary, lines, DEFAULT_CREEP_THRESHOLDS),
+  );
 
   return (
     <section

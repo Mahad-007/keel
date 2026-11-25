@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { summariseBurn, type BurnSummary } from "@/lib/burn";
 import { UNRATED, type EffectiveRate } from "@/lib/rates";
 import type { ScopeLine } from "@/lib/scope";
+import { DEFAULT_CREEP_THRESHOLDS } from "@/lib/scope-creep";
 
 import { assessProjectCreep, projectCreepReadings } from "./creep-readings";
 
@@ -157,7 +158,7 @@ describe("assessing a project in one call", () => {
       line(300),
       line(2_400),
       line(300),
-    ]);
+    ], DEFAULT_CREEP_THRESHOLDS);
 
     expect(assessment.health).toBe("over");
     expect(assessment.reasons).toEqual(["burn-far-ahead-of-delivery"]);
@@ -169,7 +170,7 @@ describe("assessing a project in one call", () => {
     const assessment = assessProjectCreep(burn(1_800, 1_000_000), [
       line(1_800, "done"),
       line(1_200),
-    ]);
+    ], DEFAULT_CREEP_THRESHOLDS);
 
     expect(assessment.health).toBe("healthy");
     expect(assessment.reasons).toEqual([]);
@@ -178,7 +179,7 @@ describe("assessing a project in one call", () => {
   it("withholds a verdict when the hours could not be valued", () => {
     const assessment = assessProjectCreep(burn(1_800, 1_000_000, UNRATED), [
       line(1_800, "done"),
-    ]);
+    ], DEFAULT_CREEP_THRESHOLDS);
 
     expect(assessment.health).toBeNull();
     expect(assessment.consumedShare).toBeNull();
@@ -186,7 +187,11 @@ describe("assessing a project in one call", () => {
   });
 
   it("still reads the money axis with nothing estimated", () => {
-    const assessment = assessProjectCreep(burn(3_000, 1_000_000), [line(0)]);
+    const assessment = assessProjectCreep(
+      burn(3_000, 1_000_000),
+      [line(0)],
+      DEFAULT_CREEP_THRESHOLDS,
+    );
 
     expect(assessment.health).toBe("over");
     expect(assessment.reasons).toEqual(["contract-overspent"]);
