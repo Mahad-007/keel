@@ -349,14 +349,23 @@ describe("recentBurnRate", () => {
     expect(hasBurnRate(rate)).toBe(false);
   });
 
-  it("defaults to the fortnight window", () => {
+  /**
+   * The window is an argument with no default, so there is no such thing as
+   * "the fortnight" inside this function — a fortnight is what the spec
+   * publishes when nobody has configured anything, and the test that pins that
+   * belongs with the spec. What is worth asserting here is that the figure is
+   * actually used: a window twice as long reaches back past a reading the
+   * shorter one excluded, and the pace changes accordingly.
+   */
+  it("measures over the window it is given, whatever it is", () => {
     const readings = [
       reading("2026-02-20", 20_000),
+      reading("2026-03-01", 30_000),
       reading("2026-03-14", 60_000),
     ];
-    expect(recentBurnRate(readings)).toEqual(
-      recentBurnRate(readings, RECENT_RATE_WINDOW_DAYS),
-    );
+
+    expect(recentBurnRate(readings, 14)?.fromDate).toBe("2026-03-01");
+    expect(recentBurnRate(readings, 30)?.fromDate).toBe("2026-02-20");
   });
 });
 
@@ -505,7 +514,7 @@ describe("windowCoversWholeHistory", () => {
   });
 
   it("is false when either pace is missing", () => {
-    expect(windowCoversWholeHistory(null, recentBurnRate(ACCELERATING))).toBe(
+    expect(windowCoversWholeHistory(null, recentBurnRate(ACCELERATING, 14))).toBe(
       false,
     );
     expect(windowCoversWholeHistory(overallBurnRate(ACCELERATING), null)).toBe(

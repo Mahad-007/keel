@@ -214,7 +214,10 @@ export function projectProjection(
   const overallPace = overallBurnRate(readings);
   if (overallPace === null) return null;
 
-  const recentPace = recentBurnRate(readings);
+  const recentPace = recentBurnRate(
+    readings,
+    DEFAULT_PACE_SETTINGS.recentWindowDays,
+  );
   const pace = forecastPace(overallPace, recentPace);
   if (!hasBurnRate(pace)) return null;
 

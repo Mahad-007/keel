@@ -12,6 +12,7 @@ import {
   recentBurnRate,
   forecastPace,
   type BurnRate,
+  DEFAULT_PACE_SETTINGS,
 } from "@/lib/projection/rate";
 
 /** $120.00 an hour, set on the project. */
@@ -79,7 +80,10 @@ describe("projectionEvidence", () => {
     today = "2026-03-14",
   ) {
     const overall = overallBurnRate(readings) as BurnRate;
-    const recent = recentBurnRate(readings);
+    const recent = recentBurnRate(
+      readings,
+      DEFAULT_PACE_SETTINGS.recentWindowDays,
+    );
     return projectionEvidence(
       forecastPace(overall, recent),
       overall,

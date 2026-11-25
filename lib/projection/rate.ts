@@ -274,7 +274,7 @@ export function rateWindowStart(toDate: string, windowDays: number): string {
  */
 export function recentBurnRate(
   readings: readonly BurnReading[],
-  windowDays: number = RECENT_RATE_WINDOW_DAYS,
+  windowDays: number,
 ): BurnRate | null {
   const first = readings[0];
   const last = readings[readings.length - 1];
