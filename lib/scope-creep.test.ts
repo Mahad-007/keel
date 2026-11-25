@@ -609,12 +609,17 @@ describe("creepReasons on a project whose scope is all delivered", () => {
 
 describe("classifyScopeCreep", () => {
   it("is healthy on a project tracking its budget", () => {
-    expect(classifyScopeCreep(readings())).toBe("healthy");
+    expect(
+      classifyScopeCreep(readings(), DEFAULT_CREEP_THRESHOLDS),
+    ).toBe("healthy");
   });
 
   it("is healthy on a project nobody has logged against yet", () => {
     expect(
-      classifyScopeCreep(readings({ consumedShare: 0, deliveredShare: 0 })),
+      classifyScopeCreep(
+        readings({ consumedShare: 0, deliveredShare: 0 }),
+        DEFAULT_CREEP_THRESHOLDS,
+      ),
     ).toBe("healthy");
   });
 
@@ -622,19 +627,26 @@ describe("classifyScopeCreep", () => {
     expect(
       classifyScopeCreep(
         readings({ consumedShare: 0.85, deliveredShare: 0.8 }),
+        DEFAULT_CREEP_THRESHOLDS,
       ),
     ).toBe("watch");
   });
 
   it("is over on a contract burned past its value", () => {
     expect(
-      classifyScopeCreep(readings({ consumedShare: 1.2, deliveredShare: 1 })),
+      classifyScopeCreep(
+        readings({ consumedShare: 1.2, deliveredShare: 1 }),
+        DEFAULT_CREEP_THRESHOLDS,
+      ),
     ).toBe("over");
   });
 
   it("is over on high burn against low completion", () => {
     expect(
-      classifyScopeCreep(readings({ consumedShare: 0.6, deliveredShare: 0.1 })),
+      classifyScopeCreep(
+        readings({ consumedShare: 0.6, deliveredShare: 0.1 }),
+        DEFAULT_CREEP_THRESHOLDS,
+      ),
     ).toBe("over");
   });
 
@@ -642,6 +654,7 @@ describe("classifyScopeCreep", () => {
     expect(
       classifyScopeCreep(
         readings({ consumedShare: 0.45, deliveredShare: 0.2 }),
+        DEFAULT_CREEP_THRESHOLDS,
       ),
     ).toBe("watch");
   });
@@ -654,6 +667,7 @@ describe("classifyScopeCreep", () => {
           deliveredShare: 1,
           scopeDelivered: true,
         }),
+        DEFAULT_CREEP_THRESHOLDS,
       ),
     ).toBe("healthy");
   });
@@ -661,17 +675,24 @@ describe("classifyScopeCreep", () => {
 
 describe("classifyScopeCreep where the burn cannot be read", () => {
   it("withholds a verdict with no contract value", () => {
-    expect(classifyScopeCreep(readings({ consumedShare: null }))).toBeNull();
+    expect(
+      classifyScopeCreep(readings({ consumedShare: null }), DEFAULT_CREEP_THRESHOLDS),
+    ).toBeNull();
   });
 
   it("withholds a verdict on hours with no rate anywhere", () => {
     expect(
-      classifyScopeCreep(readings({ consumedShare: 0, burnValued: false })),
+      classifyScopeCreep(
+        readings({ consumedShare: 0, burnValued: false }),
+        DEFAULT_CREEP_THRESHOLDS,
+      ),
     ).toBeNull();
   });
 
   it("withholds a verdict on a burn below zero", () => {
-    expect(classifyScopeCreep(readings({ consumedShare: -0.3 }))).toBeNull();
+    expect(
+      classifyScopeCreep(readings({ consumedShare: -0.3 }), DEFAULT_CREEP_THRESHOLDS),
+    ).toBeNull();
   });
 
   it("never calls an unreadable burn healthy", () => {
@@ -680,7 +701,9 @@ describe("classifyScopeCreep where the burn cannot be read", () => {
       readings({ consumedShare: 0, burnValued: false }),
       readings({ consumedShare: -0.3 }),
     ]) {
-      expect(classifyScopeCreep(unreadable)).not.toBe("healthy");
+      expect(
+        classifyScopeCreep(unreadable, DEFAULT_CREEP_THRESHOLDS),
+      ).not.toBe("healthy");
     }
   });
 
@@ -688,6 +711,7 @@ describe("classifyScopeCreep where the burn cannot be read", () => {
     expect(
       classifyScopeCreep(
         readings({ consumedShare: 1.4, deliveredShare: null }),
+        DEFAULT_CREEP_THRESHOLDS,
       ),
     ).toBe("over");
   });
@@ -696,6 +720,7 @@ describe("classifyScopeCreep where the burn cannot be read", () => {
     expect(
       classifyScopeCreep(
         readings({ consumedShare: 0.9, deliveredShare: null }),
+        DEFAULT_CREEP_THRESHOLDS,
       ),
     ).toBe("watch");
   });
@@ -704,6 +729,7 @@ describe("classifyScopeCreep where the burn cannot be read", () => {
     expect(
       classifyScopeCreep(
         readings({ consumedShare: 0.2, deliveredShare: null }),
+        DEFAULT_CREEP_THRESHOLDS,
       ),
     ).toBe("healthy");
   });
@@ -723,7 +749,9 @@ describe("classifyScopeCreep against its reasons", () => {
             : reasons
                 .map((reason) => REASON_HEALTH[reason])
                 .reduce(worstHealth);
-        expect(classifyScopeCreep(reading)).toBe(expected);
+        expect(
+          classifyScopeCreep(reading, DEFAULT_CREEP_THRESHOLDS),
+        ).toBe(expected);
       }
     }
   });
@@ -732,7 +760,7 @@ describe("classifyScopeCreep against its reasons", () => {
     for (const consumedShare of shares) {
       for (const deliveredShare of shares) {
         const reading = readings({ consumedShare, deliveredShare });
-        const health = classifyScopeCreep(reading);
+        const health = classifyScopeCreep(reading, DEFAULT_CREEP_THRESHOLDS);
         if (health === null || health === "healthy") continue;
         expect(
           creepReasons(reading, DEFAULT_CREEP_THRESHOLDS).length,
@@ -854,6 +882,7 @@ describe("classifyScopeCreep as the burn grows", () => {
       for (const consumedShare of shares) {
         const health = classifyScopeCreep(
           readings({ consumedShare, deliveredShare }),
+          DEFAULT_CREEP_THRESHOLDS,
         );
         expect(health).not.toBeNull();
         const severity = healthSeverity(health as ScopeHealth);
@@ -868,6 +897,7 @@ describe("classifyScopeCreep as the burn grows", () => {
     for (const consumedShare of shares) {
       const health = classifyScopeCreep(
         readings({ consumedShare, deliveredShare: null }),
+        DEFAULT_CREEP_THRESHOLDS,
       );
       const severity = healthSeverity(health as ScopeHealth);
       expect(severity).toBeGreaterThanOrEqual(worst);
@@ -885,6 +915,7 @@ describe("classifyScopeCreep as the work gets delivered", () => {
       for (const deliveredShare of shares) {
         const health = classifyScopeCreep(
           readings({ consumedShare, deliveredShare }),
+          DEFAULT_CREEP_THRESHOLDS,
         );
         const severity = healthSeverity(health as ScopeHealth);
         expect(severity).toBeLessThanOrEqual(worst);
@@ -895,13 +926,13 @@ describe("classifyScopeCreep as the work gets delivered", () => {
 
   it("clears a watch on a nearly spent contract once the list is done", () => {
     const halfway = readings({ consumedShare: 0.9, deliveredShare: 0.9 });
-    expect(classifyScopeCreep(halfway)).toBe("watch");
+    expect(classifyScopeCreep(halfway, DEFAULT_CREEP_THRESHOLDS)).toBe("watch");
     expect(
       classifyScopeCreep({
         ...halfway,
         deliveredShare: 1,
         scopeDelivered: true,
-      }),
+      }, DEFAULT_CREEP_THRESHOLDS),
     ).toBe("healthy");
   });
 });
@@ -983,6 +1014,7 @@ describe("classifyScopeCreep over projects somebody might have", () => {
             consumedShare: project.consumedShare,
             deliveredShare: project.deliveredShare,
           }),
+          DEFAULT_CREEP_THRESHOLDS,
         ),
       ).toBe(project.health);
     });
@@ -1020,7 +1052,7 @@ describe("a project whose estimates put the delivered share out of range", () =>
   const edited = readings({ consumedShare: 0.9, deliveredShare: 1.4 });
 
   it("does not let the bad share subtract the warning away", () => {
-    expect(classifyScopeCreep(edited)).toBe("watch");
+    expect(classifyScopeCreep(edited, DEFAULT_CREEP_THRESHOLDS)).toBe("watch");
     expect(creepReasons(edited, DEFAULT_CREEP_THRESHOLDS)).toEqual([
       "contract-nearly-spent",
     ]);
@@ -1043,7 +1075,7 @@ describe("a project whose estimates put the delivered share out of range", () =>
 
   it("keeps the money axis when the estimates are the only thing wrong", () => {
     const over = readings({ consumedShare: 1.2, deliveredShare: 1.4 });
-    expect(classifyScopeCreep(over)).toBe("over");
+    expect(classifyScopeCreep(over, DEFAULT_CREEP_THRESHOLDS)).toBe("over");
     expect(creepReasons(over, DEFAULT_CREEP_THRESHOLDS)).toEqual([
       "contract-overspent",
     ]);
@@ -1067,7 +1099,7 @@ describe("readDeliveredShare over a list with a negative estimate", () => {
 
   it("leaves the money axis to speak for itself", () => {
     const over = { ...corrupted, consumedShare: 1.1 };
-    expect(classifyScopeCreep(over)).toBe("over");
+    expect(classifyScopeCreep(over, DEFAULT_CREEP_THRESHOLDS)).toBe("over");
     expect(creepReasons(over, DEFAULT_CREEP_THRESHOLDS)).toEqual([
       "contract-overspent",
     ]);
@@ -1103,7 +1135,7 @@ describe("readDeliveredShare over a partly estimated list", () => {
     expect(creepReasons(partly, DEFAULT_CREEP_THRESHOLDS)).toEqual([
       "contract-nearly-spent",
     ]);
-    expect(classifyScopeCreep(partly)).toBe("watch");
+    expect(classifyScopeCreep(partly, DEFAULT_CREEP_THRESHOLDS)).toBe("watch");
   });
 
   it("still flags the gap when even the best case is far ahead", () => {
@@ -1116,7 +1148,7 @@ describe("readDeliveredShare over a partly estimated list", () => {
     expect(creepReasons(nine, DEFAULT_CREEP_THRESHOLDS)).toEqual([
       "burn-far-ahead-of-delivery",
     ]);
-    expect(classifyScopeCreep(nine)).toBe("over");
+    expect(classifyScopeCreep(nine, DEFAULT_CREEP_THRESHOLDS)).toBe("over");
     expect(creepBlindSpots(nine)).toEqual(["scope-partly-estimated"]);
   });
 
@@ -1151,7 +1183,9 @@ describe("readDeliveredShare over a delivered line nobody sized", () => {
 
   it("raises no gap flag on a project that may be half done", () => {
     expect(creepReasons(unbounded, DEFAULT_CREEP_THRESHOLDS)).toEqual([]);
-    expect(classifyScopeCreep(unbounded)).toBe("healthy");
+    expect(
+      classifyScopeCreep(unbounded, DEFAULT_CREEP_THRESHOLDS),
+    ).toBe("healthy");
   });
 
   it("is said before the list being only half sized", () => {
@@ -1159,9 +1193,12 @@ describe("readDeliveredShare over a delivered line nobody sized", () => {
   });
 
   it("still judges the money", () => {
-    expect(classifyScopeCreep({ ...unbounded, consumedShare: 1.1 })).toBe(
-      "over",
-    );
+    expect(
+      classifyScopeCreep(
+        { ...unbounded, consumedShare: 1.1 },
+        DEFAULT_CREEP_THRESHOLDS,
+      ),
+    ).toBe("over");
   });
 });
 
@@ -1181,11 +1218,13 @@ describe("readDeliveredShare over a scope list of one line", () => {
 
   it("does not call a one-line project over on its gap alone", () => {
     expect(creepReasons(single, DEFAULT_CREEP_THRESHOLDS)).toEqual([]);
-    expect(classifyScopeCreep(single)).toBe("healthy");
+    expect(classifyScopeCreep(single, DEFAULT_CREEP_THRESHOLDS)).toBe("healthy");
   });
 
   it("still judges a one-line project on its money", () => {
-    expect(classifyScopeCreep({ ...single, consumedShare: 1.2 })).toBe("over");
+    expect(
+      classifyScopeCreep({ ...single, consumedShare: 1.2 }, DEFAULT_CREEP_THRESHOLDS),
+    ).toBe("over");
   });
 
   it("reads the share again once the only line is delivered", () => {

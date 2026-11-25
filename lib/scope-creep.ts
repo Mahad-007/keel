@@ -776,9 +776,10 @@ export const REASON_HEALTH: Record<CreepReason, ScopeHealth> = {
  */
 export function classifyScopeCreep(
   readings: CreepReadings,
+  thresholds: CreepThresholds,
 ): ScopeHealth | null {
   if (readConsumedShare(readings) === null) return null;
-  return creepReasons(readings, DEFAULT_CREEP_THRESHOLDS).reduce<ScopeHealth>(
+  return creepReasons(readings, thresholds).reduce<ScopeHealth>(
     (worst, reason) => worstHealth(worst, REASON_HEALTH[reason]),
     "healthy",
   );
@@ -840,7 +841,7 @@ export function assessScopeCreep(readings: CreepReadings): CreepAssessment {
   const consumedShare = readConsumedShare(readings);
 
   return {
-    health: classifyScopeCreep(readings),
+    health: classifyScopeCreep(readings, DEFAULT_CREEP_THRESHOLDS),
     reasons: creepReasons(readings, DEFAULT_CREEP_THRESHOLDS),
     blindSpots: creepBlindSpots(readings),
     consumedShare,
