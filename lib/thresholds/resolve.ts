@@ -1,4 +1,8 @@
-import { THRESHOLD_SETTINGS, type ThresholdKey } from "./settings";
+import {
+  THRESHOLD_KEYS,
+  THRESHOLD_SETTINGS,
+  type ThresholdKey,
+} from "./settings";
 
 /**
  * Which figure is actually in force for a project, and which row said so.
@@ -140,3 +144,47 @@ export function resolveThreshold(
 
   return { value: THRESHOLD_SETTINGS[key].fallback, source: "default" };
 }
+
+/**
+ * Every threshold in force for one project, resolved in one pass.
+ *
+ * The call a page makes. The single-setting resolution stays exported because
+ * it is the thing worth testing one at a time, but nothing that classifies a
+ * project should be asking for one threshold: the verdict is reached from
+ * three of them at once, and three separate resolutions are three chances to
+ * pass a different pair of rows.
+ *
+ * Built by walking `THRESHOLD_KEYS`, so a sixth setting is resolved the day it
+ * is added to the spec rather than the day somebody notices it was left out of
+ * this function. The cast is the price of building a complete record in a
+ * loop; the keys come from the same list the type is derived from, so every
+ * key is filled exactly once.
+ */
+export function resolveThresholds(
+  project: ThresholdOverrides | null,
+  client: ThresholdOverrides | null,
+): ResolvedThresholds {
+  const resolved: Partial<Record<ThresholdKey, ResolvedThreshold>> = {};
+  for (const key of THRESHOLD_KEYS) {
+    resolved[key] = resolveThreshold(key, project, client);
+  }
+  return resolved as ResolvedThresholds;
+}
+
+/**
+ * The thresholds in force when nothing anywhere has been configured.
+ *
+ * Every default, each saying it came from nowhere in particular. Frozen and
+ * shared rather than rebuilt per call, the same arrangement `UNRATED` has, so
+ * a caller cannot mutate the thresholds every unconfigured project in a list
+ * is holding.
+ *
+ * It exists for the callers that genuinely have no rows to resolve from: a
+ * pure function under test, a fixture, a figure worked out before the client
+ * is known. Naming it is what keeps those callers from reaching for the spec
+ * and assembling a second copy of the defaults by hand — which is the version
+ * that would still say 80% the day the default moved.
+ */
+export const DEFAULT_THRESHOLDS: ResolvedThresholds = Object.freeze(
+  resolveThresholds(null, null),
+);

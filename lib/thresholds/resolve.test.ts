@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveThreshold, rowThreshold } from "./resolve";
-import { THRESHOLD_SETTINGS } from "./settings";
+import {
+  DEFAULT_THRESHOLDS,
+  resolveThreshold,
+  resolveThresholds,
+  rowThreshold,
+} from "./resolve";
+import { THRESHOLD_KEYS, THRESHOLD_SETTINGS } from "./settings";
 
 /**
  * The milestone's own sentence — "falling back to sensible defaults, with the
@@ -110,5 +115,48 @@ describe("resolveThreshold", () => {
         nearlySpentPercent: 60,
       }),
     ).toEqual({ value: 0, source: "project" });
+  });
+});
+
+describe("resolveThresholds", () => {
+  it("resolves every setting in the spec, not just the ones that were set", () => {
+    const resolved = resolveThresholds({ nearlySpentPercent: 70 }, null);
+    expect(Object.keys(resolved).sort()).toEqual([...THRESHOLD_KEYS].sort());
+  });
+
+  it("mixes sources across the five settings in one pass", () => {
+    const resolved = resolveThresholds(
+      { nearlySpentPercent: 70, recentRateWindowDays: null },
+      { recentRateWindowDays: 30 },
+    );
+
+    expect(resolved.nearlySpentPercent).toEqual({ value: 70, source: "project" });
+    expect(resolved.recentRateWindowDays).toEqual({ value: 30, source: "client" });
+    expect(resolved.paceShiftPercent.source).toBe("default");
+  });
+
+  it("agrees with the single-setting resolution for every key", () => {
+    const project = { aheadOfDeliveryPercent: 15, paceShiftPercent: 40 };
+    const client = { nearlySpentPercent: 60, farAheadOfDeliveryPercent: 35 };
+    const resolved = resolveThresholds(project, client);
+
+    for (const key of THRESHOLD_KEYS) {
+      expect(resolved[key]).toEqual(resolveThreshold(key, project, client));
+    }
+  });
+});
+
+describe("DEFAULT_THRESHOLDS", () => {
+  it("is every spec default, attributed to no row", () => {
+    for (const key of THRESHOLD_KEYS) {
+      expect(DEFAULT_THRESHOLDS[key]).toEqual({
+        value: THRESHOLD_SETTINGS[key].fallback,
+        source: "default",
+      });
+    }
+  });
+
+  it("is what two empty rows resolve to", () => {
+    expect(resolveThresholds({}, {})).toEqual(DEFAULT_THRESHOLDS);
   });
 });
