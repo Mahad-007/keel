@@ -16,6 +16,8 @@ import {
   parseProjectStatus,
   type ProjectStatus,
 } from "@/lib/projects/status";
+import { thresholdColumns } from "@/lib/thresholds/column";
+import type { ThresholdOverrides } from "@/lib/thresholds/resolve";
 import { copiedDeliverables, copiedProject } from "@/lib/projects/duplicate";
 import {
   checkTransition,
@@ -44,7 +46,7 @@ import { recordProjectStatusEvent } from "./project-status-events";
  * project row — the same shape as `clients.ts`.
  */
 
-export type NewProjectInput = {
+export type NewProjectInput = ThresholdOverrides & {
   /** The client the engagement belongs to. Must already exist. */
   clientId: string;
   name: string;
@@ -57,6 +59,12 @@ export type NewProjectInput = {
    * the client's rate", which is a different statement from a zero override.
    */
   rateCents?: number | null;
+  /**
+   * The five thresholds, each one optional, each `null` by default — which
+   * means "judge this project by whatever the client is set to". Alongside
+   * `rateCents` because it is the same kind of field: an override with a
+   * meaningful absence, not a value with a zero.
+   */
 };
 
 /**
@@ -134,6 +142,7 @@ export async function createProject(
         status,
         contractValueCents,
         rateCents,
+        ...thresholdColumns(input),
         ...stamps,
         createdAt: now,
         updatedAt: now,
@@ -223,6 +232,10 @@ export async function updateProject(
   if (patch.rateCents !== undefined) {
     values.rateCents = optionalCents(patch.rateCents, "project rate override");
   }
+  // Only the settings the patch mentions, so saving a form that submits one
+  // threshold does not clear the other four. An explicit null does clear the
+  // one it names, which is how a project goes back to inheriting.
+  Object.assign(values, thresholdColumns(patch));
 
   /**
    * Reassigning a project is rare but real — work set up under the wrong client,
