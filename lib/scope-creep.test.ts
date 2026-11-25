@@ -272,6 +272,62 @@ describe("classifyCreepGap", () => {
   });
 });
 
+/**
+ * The delivery axis with both thresholds moved. The pair is configured
+ * together because that is how it is resolved — five settings in one pass — and
+ * because the two bands only mean anything relative to each other.
+ */
+describe("classifyCreepGap on configured thresholds", () => {
+  const TIGHT: CreepThresholds = {
+    ...DEFAULT_CREEP_THRESHOLDS,
+    aheadOfDeliveryGap: 0.1,
+    farAheadOfDeliveryGap: 0.2,
+  };
+
+  it("watches a gap the default would have let through", () => {
+    expect(classifyCreepGap(0.1, TIGHT)).toBe("watch");
+    expect(classifyCreepGap(0.1, DEFAULT_CREEP_THRESHOLDS)).toBe("healthy");
+  });
+
+  it("calls over a gap the default would merely watch", () => {
+    expect(classifyCreepGap(0.3, TIGHT)).toBe("over");
+    expect(classifyCreepGap(0.3, DEFAULT_CREEP_THRESHOLDS)).toBe("watch");
+  });
+
+  it("tolerates a gap the default would flag when set wider", () => {
+    const WIDE: CreepThresholds = {
+      ...DEFAULT_CREEP_THRESHOLDS,
+      aheadOfDeliveryGap: 0.6,
+      farAheadOfDeliveryGap: 0.8,
+    };
+    expect(classifyCreepGap(0.55, WIDE)).toBe("healthy");
+    expect(classifyCreepGap(0.55, DEFAULT_CREEP_THRESHOLDS)).toBe("over");
+  });
+
+  it("still has no opinion about a gap it could not be given", () => {
+    expect(classifyCreepGap(null, TIGHT)).toBe("healthy");
+  });
+
+  /**
+   * A pair somebody has crossed over — the watch figure above the over figure
+   * — cannot be refused here: the two are resolved separately and either may be
+   * inherited. The worst band is tested first, so the verdict comes from the
+   * lower figure and reads `over` from there. Loud and wrong in the safe
+   * direction beats a band that silently swallows the verdict, and
+   * `lib/thresholds/coherence.ts` is what tells the reader their settings have
+   * crossed.
+   */
+  it("reads a crossed pair from the lower of the two figures", () => {
+    const CROSSED: CreepThresholds = {
+      ...DEFAULT_CREEP_THRESHOLDS,
+      aheadOfDeliveryGap: 0.5,
+      farAheadOfDeliveryGap: 0.2,
+    };
+    expect(classifyCreepGap(0.3, CROSSED)).toBe("over");
+    expect(classifyCreepGap(0.1, CROSSED)).toBe("healthy");
+  });
+});
+
 describe("readConsumedShare", () => {
   it("passes a share of a real price straight through", () => {
     expect(readConsumedShare(readings({ consumedShare: 0.42 }))).toBe(0.42);
