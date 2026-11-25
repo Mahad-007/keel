@@ -57,6 +57,30 @@ function assessment(partial: Partial<CreepAssessment> = {}): CreepAssessment {
   };
 }
 
+/**
+ * The two gap sentences at this repo's own thresholds, which is what all but a
+ * handful of the cases below are about: the words, the figures and which
+ * closing clause is chosen. The threshold argument is spelled out only where
+ * moving it is the thing under test.
+ */
+function farAhead(consumed: number, delivered: number, gap: number): string {
+  return describeFarAheadOfDelivery(
+    consumed,
+    delivered,
+    gap,
+    DEFAULT_CREEP_THRESHOLDS,
+  );
+}
+
+function ahead(consumed: number, delivered: number, gap: number): string {
+  return describeAheadOfDelivery(
+    consumed,
+    delivered,
+    gap,
+    DEFAULT_CREEP_THRESHOLDS,
+  );
+}
+
 describe("the banner's heading", () => {
   it("names every verdict the classifier can reach", () => {
     for (const health of SCOPE_HEALTH) {
@@ -197,14 +221,14 @@ describe("the two shares set against each other", () => {
 
 describe("the sentence for a burn far ahead of its delivery", () => {
   it("quotes both shares and the gap between them", () => {
-    const sentence = describeFarAheadOfDelivery(0.6, 0.1, 0.5);
+    const sentence = farAhead(0.6, 0.1, 0.5);
 
     expect(sentence).toContain("60% of the contract has gone on 10%");
     expect(sentence).toContain("50 points ahead of the delivery");
   });
 
   it("says why a project with budget left is being flagged", () => {
-    expect(describeFarAheadOfDelivery(0.6, 0.1, 0.5)).toContain(
+    expect(farAhead(0.6, 0.1, 0.5)).toContain(
       "both figures look survivable on their own",
     );
   });
@@ -212,7 +236,7 @@ describe("the sentence for a burn far ahead of its delivery", () => {
   it("does not call both figures survivable once the contract is spent", () => {
     // The reason stacks with contract-overspent, so this sentence lands as a
     // bullet under a lead that has just said the money is gone.
-    const sentence = describeFarAheadOfDelivery(1.2, 0.1, 1.1);
+    const sentence = farAhead(1.2, 0.1, 1.1);
 
     expect(sentence).not.toContain("survivable");
     expect(sentence).toContain("The contract value is already gone");
@@ -223,7 +247,7 @@ describe("the sentence for a burn far ahead of its delivery", () => {
     // watch threshold and the gap is past the far-ahead one. A lead claiming
     // both readings are survivable sits an inch above the bullet flagging the
     // money, which is the banner arguing with itself.
-    const sentence = describeFarAheadOfDelivery(0.85, 0.3, 0.55);
+    const sentence = farAhead(0.85, 0.3, 0.55);
 
     expect(sentence).not.toContain("survivable");
     expect(sentence).toContain("The money has been flagged too");
@@ -232,26 +256,26 @@ describe("the sentence for a burn far ahead of its delivery", () => {
   it("still calls both figures survivable with budget left to spare", () => {
     // The clause the reason exists for, and the one the guard must not eat:
     // 60% of the money is not flagged on its own, and that is the point.
-    expect(describeFarAheadOfDelivery(0.6, 0.1, 0.5)).toBe(
+    expect(farAhead(0.6, 0.1, 0.5)).toBe(
       `${describeBurnAgainstDelivery(0.6, 0.1)} — the burn is running 50 points ahead of the delivery. ${FAR_AHEAD_CLOSING.healthy}`,
     );
   });
 
   it("reads its closing clause off the money verdict", () => {
     // Each band gets its own clause, and none of them is another band's.
-    expect(describeFarAheadOfDelivery(0.6, 0.1, 0.5)).toContain(
+    expect(farAhead(0.6, 0.1, 0.5)).toContain(
       FAR_AHEAD_CLOSING.healthy,
     );
-    expect(describeFarAheadOfDelivery(0.85, 0.3, 0.55)).toContain(
+    expect(farAhead(0.85, 0.3, 0.55)).toContain(
       FAR_AHEAD_CLOSING.watch,
     );
-    expect(describeFarAheadOfDelivery(1.2, 0.1, 1.1)).toContain(
+    expect(farAhead(1.2, 0.1, 1.1)).toContain(
       FAR_AHEAD_CLOSING.over,
     );
   });
 
   it("makes no claim about what the burn will come to", () => {
-    const sentence = describeFarAheadOfDelivery(0.6, 0.1, 0.5);
+    const sentence = farAhead(0.6, 0.1, 0.5);
 
     // A projection rests on the pace holding, and it belongs with the caveats
     // that go with it rather than inside a sentence about today.
@@ -261,14 +285,14 @@ describe("the sentence for a burn far ahead of its delivery", () => {
 
 describe("the sentence for a burn ahead of its delivery", () => {
   it("quotes both shares and the gap between them", () => {
-    const sentence = describeAheadOfDelivery(0.45, 0.18, 0.27);
+    const sentence = ahead(0.45, 0.18, 0.27);
 
     expect(sentence).toContain("45% of the contract has gone on 18%");
     expect(sentence).toContain("27 points ahead of the delivery");
   });
 
   it("says the gap is still cheap to close", () => {
-    expect(describeAheadOfDelivery(0.45, 0.18, 0.27)).toContain(
+    expect(ahead(0.45, 0.18, 0.27)).toContain(
       "a conversation rather than a correction",
     );
   });
@@ -277,27 +301,27 @@ describe("the sentence for a burn ahead of its delivery", () => {
     // The worst of the stacked pairs: this reason is a watch, so it lands as a
     // bullet under an overspent lead. 110% burned against 80% delivered is a
     // project with no budget left to have the conversation about.
-    const sentence = describeAheadOfDelivery(1.1, 0.8, 0.3);
+    const sentence = ahead(1.1, 0.8, 0.3);
 
     expect(sentence).not.toContain("conversation");
     expect(sentence).toContain("the contract value has already gone");
   });
 
   it("does not offer a conversation with the contract nearly spent", () => {
-    const sentence = describeAheadOfDelivery(0.85, 0.55, 0.3);
+    const sentence = ahead(0.85, 0.55, 0.3);
 
     expect(sentence).not.toContain("conversation");
     expect(sentence).toContain("what is left of the contract");
   });
 
   it("reads its closing clause off the money verdict", () => {
-    expect(describeAheadOfDelivery(0.45, 0.18, 0.27)).toContain(
+    expect(ahead(0.45, 0.18, 0.27)).toContain(
       AHEAD_CLOSING.healthy,
     );
-    expect(describeAheadOfDelivery(0.85, 0.55, 0.3)).toContain(
+    expect(ahead(0.85, 0.55, 0.3)).toContain(
       AHEAD_CLOSING.watch,
     );
-    expect(describeAheadOfDelivery(1.1, 0.8, 0.3)).toContain(AHEAD_CLOSING.over);
+    expect(ahead(1.1, 0.8, 0.3)).toContain(AHEAD_CLOSING.over);
   });
 
   it("says the money is outrunning the work whatever the money reads", () => {
@@ -314,15 +338,15 @@ describe("the sentence for a burn ahead of its delivery", () => {
     // spellings of one comparison would read as two different measurements.
     const clause = describeBurnAgainstDelivery(0.6, 0.1);
 
-    expect(describeAheadOfDelivery(0.6, 0.1, 0.5).startsWith(clause)).toBe(true);
-    expect(describeFarAheadOfDelivery(0.6, 0.1, 0.5).startsWith(clause)).toBe(
+    expect(ahead(0.6, 0.1, 0.5).startsWith(clause)).toBe(true);
+    expect(farAhead(0.6, 0.1, 0.5).startsWith(clause)).toBe(
       true,
     );
   });
 
   it("does not read as the far-ahead sentence", () => {
-    expect(describeAheadOfDelivery(0.6, 0.1, 0.5)).not.toBe(
-      describeFarAheadOfDelivery(0.6, 0.1, 0.5),
+    expect(ahead(0.6, 0.1, 0.5)).not.toBe(
+      farAhead(0.6, 0.1, 0.5),
     );
   });
 });
@@ -390,7 +414,7 @@ describe("every reason a project was flagged for", () => {
 
     expect(sentences).toEqual([
       describeOverspentContract(1.1),
-      describeAheadOfDelivery(1.1, 0.8, 0.3),
+      ahead(1.1, 0.8, 0.3),
     ]);
   });
 
@@ -548,7 +572,7 @@ describe("the banner for one project", () => {
 
     expect(banner.headline).toBe("Over scope");
     expect(banner.verdict).toBe(describeOverspentContract(1.1));
-    expect(banner.reasons).toEqual([describeAheadOfDelivery(1.1, 0.8, 0.3)]);
+    expect(banner.reasons).toEqual([ahead(1.1, 0.8, 0.3)]);
   });
 
   it("explains a healthy project rather than leaving the sentence empty", () => {
@@ -751,7 +775,10 @@ describe("a banner that flags more than one comparison", () => {
   /** Every sentence a reader would see, lead first. */
   function sentences(consumedShare: number, deliveredShare: number): string[] {
     const banner = scopeHealthBanner(
-      assessScopeCreep(at(consumedShare, deliveredShare), DEFAULT_CREEP_THRESHOLDS),
+      assessScopeCreep(
+        at(consumedShare, deliveredShare),
+        DEFAULT_CREEP_THRESHOLDS,
+      ),
     );
     return [banner.verdict, ...banner.reasons];
   }

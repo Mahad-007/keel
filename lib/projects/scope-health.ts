@@ -1,9 +1,9 @@
 import {
   classifyConsumedShare,
-  DEFAULT_CREEP_THRESHOLDS,
   type CreepAssessment,
   type CreepBlindSpot,
   type CreepReason,
+  type CreepThresholds,
   type ScopeHealth,
 } from "@/lib/scope-creep";
 
@@ -250,6 +250,11 @@ export const FAR_AHEAD_CLOSING: Record<ScopeHealth, string> = {
  * Except where the money axis has flagged as well, which is where that clause
  * would be false — `FAR_AHEAD_CLOSING` is what it says instead.
  *
+ * Which is why the thresholds come in: the closing clause is chosen by
+ * re-reading the money axis, and re-reading it against the defaults on a
+ * project configured otherwise is how the banner would come to say both figures
+ * look survivable under a lead that had just said the contract was nearly gone.
+ *
  * No projection. What the burn would come to by the time the list is finished is
  * a different claim, resting on the pace holding, and it belongs with the
  * caveats that go with it rather than smuggled into a sentence about today.
@@ -258,16 +263,16 @@ export function describeFarAheadOfDelivery(
   consumedShare: number,
   deliveredShare: number,
   gap: number,
+  thresholds: CreepThresholds,
 ): string {
   return `${describeBurnAgainstDelivery(
     consumedShare,
     deliveredShare,
   )} — the burn is running ${formatSharePoints(
     gap,
-  )} ahead of the delivery. ${FAR_AHEAD_CLOSING[classifyConsumedShare(
-    consumedShare,
-    DEFAULT_CREEP_THRESHOLDS,
-  )]}`;
+  )} ahead of the delivery. ${
+    FAR_AHEAD_CLOSING[classifyConsumedShare(consumedShare, thresholds)]
+  }`;
 }
 
 /**
@@ -323,16 +328,16 @@ export function describeAheadOfDelivery(
   consumedShare: number,
   deliveredShare: number,
   gap: number,
+  thresholds: CreepThresholds,
 ): string {
   return `${describeBurnAgainstDelivery(
     consumedShare,
     deliveredShare,
   )} — the burn is running ${formatSharePoints(
     gap,
-  )} ahead of the delivery. ${AHEAD_CLOSING[classifyConsumedShare(
-    consumedShare,
-    DEFAULT_CREEP_THRESHOLDS,
-  )]}`;
+  )} ahead of the delivery. ${
+    AHEAD_CLOSING[classifyConsumedShare(consumedShare, thresholds)]
+  }`;
 }
 
 /**
@@ -365,16 +370,31 @@ const REASON_SENTENCE: Record<
 > = {
   "contract-overspent": ({ consumedShare }) =>
     consumedShare === null ? null : describeOverspentContract(consumedShare),
-  "burn-far-ahead-of-delivery": ({ consumedShare, deliveredShare, gap }) =>
+  "burn-far-ahead-of-delivery": ({
+    consumedShare,
+    deliveredShare,
+    gap,
+    thresholds,
+  }) =>
     consumedShare === null || deliveredShare === null || gap === null
       ? null
-      : describeFarAheadOfDelivery(consumedShare, deliveredShare, gap),
+      : describeFarAheadOfDelivery(
+          consumedShare,
+          deliveredShare,
+          gap,
+          thresholds,
+        ),
   "contract-nearly-spent": ({ consumedShare }) =>
     consumedShare === null ? null : describeNearlySpentContract(consumedShare),
-  "burn-ahead-of-delivery": ({ consumedShare, deliveredShare, gap }) =>
+  "burn-ahead-of-delivery": ({
+    consumedShare,
+    deliveredShare,
+    gap,
+    thresholds,
+  }) =>
     consumedShare === null || deliveredShare === null || gap === null
       ? null
-      : describeAheadOfDelivery(consumedShare, deliveredShare, gap),
+      : describeAheadOfDelivery(consumedShare, deliveredShare, gap, thresholds),
 };
 
 /**
