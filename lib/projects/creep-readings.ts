@@ -11,6 +11,7 @@ import {
   assessScopeCreep,
   type CreepAssessment,
   type CreepReadings,
+  DEFAULT_CREEP_THRESHOLDS,
 } from "@/lib/scope-creep";
 
 import { hasValuedBurn } from "./burn-summary";
@@ -88,5 +89,8 @@ export function assessProjectCreep(
   summary: BurnSummary,
   lines: readonly ScopeLine[],
 ): CreepAssessment {
-  return assessScopeCreep(projectCreepReadings(summary, lines));
+  return assessScopeCreep(
+    projectCreepReadings(summary, lines),
+    DEFAULT_CREEP_THRESHOLDS,
+  );
 }

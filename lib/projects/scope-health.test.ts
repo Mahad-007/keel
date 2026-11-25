@@ -10,6 +10,7 @@ import {
   type CreepAssessment,
   type CreepReadings,
   type ScopeHealth,
+  DEFAULT_CREEP_THRESHOLDS,
 } from "@/lib/scope-creep";
 
 import { assessProjectCreep } from "./creep-readings";
@@ -51,6 +52,7 @@ function assessment(partial: Partial<CreepAssessment> = {}): CreepAssessment {
     consumedShare: null,
     deliveredShare: null,
     gap: null,
+    thresholds: DEFAULT_CREEP_THRESHOLDS,
     ...partial,
   };
 }
@@ -748,7 +750,9 @@ describe("a banner that flags more than one comparison", () => {
 
   /** Every sentence a reader would see, lead first. */
   function sentences(consumedShare: number, deliveredShare: number): string[] {
-    const banner = scopeHealthBanner(assessScopeCreep(at(consumedShare, deliveredShare)));
+    const banner = scopeHealthBanner(
+      assessScopeCreep(at(consumedShare, deliveredShare), DEFAULT_CREEP_THRESHOLDS),
+    );
     return [banner.verdict, ...banner.reasons];
   }
 

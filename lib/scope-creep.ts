@@ -806,6 +806,14 @@ export function classifyScopeCreep(
  * `ScopeSummary` carries its hours: it is the figure the most important
  * sentence in the app is built on, and two callers subtracting it themselves
  * is how a banner comes to quote a gap the verdict did not use.
+ *
+ * The thresholds ride along for the same reason the shares do, and it is the
+ * half of this type Day 038 adds. A verdict reached at a client's own figure
+ * has to be explainable at that figure — "four fifths of the contract" under a
+ * banner flagged at seven tenths is the kind of wrong a reader cannot see and
+ * cannot correct. Carrying them means a sentence can only be written from the
+ * figures the verdict used, rather than from whatever a page resolved a second
+ * time.
  */
 export type CreepAssessment = {
   /** The verdict, or null when the burn could not be read at all. */
@@ -820,6 +828,8 @@ export type CreepAssessment = {
   readonly deliveredShare: number | null;
   /** Consumed less delivered, or null without both. */
   readonly gap: number | null;
+  /** The thresholds the verdict was reached against. */
+  readonly thresholds: CreepThresholds;
 };
 
 /**
@@ -837,15 +847,19 @@ export type CreepAssessment = {
  * available, and what it would produce is a tidy-looking number built on a burn
  * of nought that nobody measured.
  */
-export function assessScopeCreep(readings: CreepReadings): CreepAssessment {
+export function assessScopeCreep(
+  readings: CreepReadings,
+  thresholds: CreepThresholds,
+): CreepAssessment {
   const consumedShare = readConsumedShare(readings);
 
   return {
-    health: classifyScopeCreep(readings, DEFAULT_CREEP_THRESHOLDS),
-    reasons: creepReasons(readings, DEFAULT_CREEP_THRESHOLDS),
+    health: classifyScopeCreep(readings, thresholds),
+    reasons: creepReasons(readings, thresholds),
     blindSpots: creepBlindSpots(readings),
     consumedShare,
     deliveredShare: readDeliveredShare(readings),
     gap: readCreepGap(readings),
+    thresholds,
   };
 }

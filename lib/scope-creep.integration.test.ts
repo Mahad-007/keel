@@ -16,7 +16,11 @@ import { createTestDb } from "@/lib/db/testing";
 import { projectCreepReadings } from "@/lib/projects/creep-readings";
 import { resolveJoinedRate } from "@/lib/rates";
 
-import { assessScopeCreep, type CreepReadings } from "./scope-creep";
+import {
+  assessScopeCreep,
+  type CreepReadings,
+  DEFAULT_CREEP_THRESHOLDS,
+} from "./scope-creep";
 
 /**
  * The classifier over rows a database actually holds.
@@ -97,7 +101,10 @@ describe("the classifier over real rows", () => {
       db,
     );
 
-    const assessment = assessScopeCreep(await readingsFor(project.id));
+    const assessment = assessScopeCreep(
+      await readingsFor(project.id),
+      DEFAULT_CREEP_THRESHOLDS,
+    );
 
     expect(assessment.health).toBe("over");
     expect(assessment.reasons).toEqual(["burn-far-ahead-of-delivery"]);
@@ -126,7 +133,10 @@ describe("the classifier over real rows", () => {
       db,
     );
 
-    const assessment = assessScopeCreep(await readingsFor(project.id));
+    const assessment = assessScopeCreep(
+      await readingsFor(project.id),
+      DEFAULT_CREEP_THRESHOLDS,
+    );
 
     expect(assessment.health).toBe("healthy");
     expect(assessment.reasons).toEqual([]);
@@ -155,7 +165,10 @@ describe("the classifier over real rows", () => {
       db,
     );
 
-    const assessment = assessScopeCreep(await readingsFor(project.id));
+    const assessment = assessScopeCreep(
+      await readingsFor(project.id),
+      DEFAULT_CREEP_THRESHOLDS,
+    );
 
     expect(assessment.health).toBe("over");
     expect(assessment.reasons).toContain("contract-overspent");
@@ -183,7 +196,10 @@ describe("the classifier over real rows", () => {
       db,
     );
 
-    const assessment = assessScopeCreep(await readingsFor(project.id));
+    const assessment = assessScopeCreep(
+      await readingsFor(project.id),
+      DEFAULT_CREEP_THRESHOLDS,
+    );
 
     expect(assessment.consumedShare).toBeCloseTo(0.9);
     expect(assessment.health).toBe("healthy");
@@ -216,7 +232,10 @@ describe("the classifier over rows with a field unfilled", () => {
       db,
     );
 
-    const assessment = assessScopeCreep(await readingsFor(project.id));
+    const assessment = assessScopeCreep(
+      await readingsFor(project.id),
+      DEFAULT_CREEP_THRESHOLDS,
+    );
 
     expect(assessment.health).toBeNull();
     expect(assessment.blindSpots).toEqual(["burn-not-valued"]);
@@ -241,7 +260,10 @@ describe("the classifier over rows with a field unfilled", () => {
       db,
     );
 
-    const assessment = assessScopeCreep(await readingsFor(project.id));
+    const assessment = assessScopeCreep(
+      await readingsFor(project.id),
+      DEFAULT_CREEP_THRESHOLDS,
+    );
 
     expect(assessment.health).toBeNull();
     expect(assessment.blindSpots).toEqual(["no-contract-value"]);
@@ -259,7 +281,10 @@ describe("the classifier over rows with a field unfilled", () => {
       db,
     );
 
-    const assessment = assessScopeCreep(await readingsFor(project.id));
+    const assessment = assessScopeCreep(
+      await readingsFor(project.id),
+      DEFAULT_CREEP_THRESHOLDS,
+    );
 
     expect(assessment.health).toBe("over");
     expect(assessment.reasons).toEqual(["contract-overspent"]);
@@ -281,7 +306,10 @@ describe("the classifier over rows with a field unfilled", () => {
       db,
     );
 
-    const assessment = assessScopeCreep(await readingsFor(project.id));
+    const assessment = assessScopeCreep(
+      await readingsFor(project.id),
+      DEFAULT_CREEP_THRESHOLDS,
+    );
 
     expect(assessment.health).toBe("healthy");
     expect(assessment.consumedShare).toBe(0);
@@ -315,7 +343,10 @@ describe("the classifier over a scope list edited straight in the database", () 
       db,
     );
 
-    const assessment = assessScopeCreep(await readingsFor(project.id));
+    const assessment = assessScopeCreep(
+      await readingsFor(project.id),
+      DEFAULT_CREEP_THRESHOLDS,
+    );
 
     expect(assessment.deliveredShare).toBeNull();
     expect(assessment.blindSpots).toEqual(["scope-estimates-invalid"]);
@@ -344,7 +375,10 @@ describe("the classifier over a scope list only half sized", () => {
       db,
     );
 
-    const assessment = assessScopeCreep(await readingsFor(project.id));
+    const assessment = assessScopeCreep(
+      await readingsFor(project.id),
+      DEFAULT_CREEP_THRESHOLDS,
+    );
 
     expect(assessment.deliveredShare).toBe(1);
     expect(assessment.blindSpots).toEqual(["scope-partly-estimated"]);
@@ -372,7 +406,10 @@ describe("the classifier over a scope list only half sized", () => {
       db,
     );
 
-    const assessment = assessScopeCreep(await readingsFor(project.id));
+    const assessment = assessScopeCreep(
+      await readingsFor(project.id),
+      DEFAULT_CREEP_THRESHOLDS,
+    );
 
     expect(assessment.blindSpots).toEqual(["scope-too-coarse"]);
     expect(assessment.gap).toBeNull();
@@ -402,7 +439,10 @@ describe("the classifier over a line delivered with no estimate", () => {
       db,
     );
 
-    const assessment = assessScopeCreep(await readingsFor(project.id));
+    const assessment = assessScopeCreep(
+      await readingsFor(project.id),
+      DEFAULT_CREEP_THRESHOLDS,
+    );
 
     expect(assessment.deliveredShare).toBeNull();
     expect(assessment.blindSpots).toEqual(["scope-delivery-unsized"]);
@@ -438,7 +478,10 @@ describe("the classifier over a line delivered with no estimate", () => {
       db,
     );
 
-    const assessment = assessScopeCreep(await readingsFor(project.id));
+    const assessment = assessScopeCreep(
+      await readingsFor(project.id),
+      DEFAULT_CREEP_THRESHOLDS,
+    );
 
     expect(assessment.deliveredShare).toBeCloseTo(1 / 9);
     expect(assessment.health).toBe("over");
