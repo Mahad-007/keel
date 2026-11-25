@@ -425,10 +425,13 @@ export const DEFAULT_PACE_SETTINGS: PaceSettings = Object.freeze({
  * to suppress noise, and a figure that has reached it exactly is no longer
  * noise.
  */
-export function classifyPaceShift(ratio: number | null): PaceShift | null {
+export function classifyPaceShift(
+  ratio: number | null,
+  threshold: number,
+): PaceShift | null {
   if (ratio === null) return null;
-  if (ratio >= 1 + PACE_SHIFT_THRESHOLD) return "faster";
-  if (ratio <= 1 - PACE_SHIFT_THRESHOLD) return "slower";
+  if (ratio >= 1 + threshold) return "faster";
+  if (ratio <= 1 - threshold) return "slower";
   return "steady";
 }
 

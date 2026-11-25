@@ -423,38 +423,42 @@ describe("paceChangeRatio", () => {
 
 describe("classifyPaceShift", () => {
   it("calls a pace within a quarter of its average steady", () => {
-    expect(classifyPaceShift(1)).toBe("steady");
-    expect(classifyPaceShift(1.1)).toBe("steady");
-    expect(classifyPaceShift(0.9)).toBe("steady");
+    expect(classifyPaceShift(1, PACE_SHIFT_THRESHOLD)).toBe("steady");
+    expect(classifyPaceShift(1.1, PACE_SHIFT_THRESHOLD)).toBe("steady");
+    expect(classifyPaceShift(0.9, PACE_SHIFT_THRESHOLD)).toBe("steady");
   });
 
   it("calls a pace a quarter or more above its average faster", () => {
-    expect(classifyPaceShift(1 + PACE_SHIFT_THRESHOLD)).toBe("faster");
-    expect(classifyPaceShift(2)).toBe("faster");
+    expect(
+      classifyPaceShift(1 + PACE_SHIFT_THRESHOLD, PACE_SHIFT_THRESHOLD),
+    ).toBe("faster");
+    expect(classifyPaceShift(2, PACE_SHIFT_THRESHOLD)).toBe("faster");
   });
 
   it("calls a pace a quarter or more below its average slower", () => {
-    expect(classifyPaceShift(1 - PACE_SHIFT_THRESHOLD)).toBe("slower");
-    expect(classifyPaceShift(0.1)).toBe("slower");
+    expect(
+      classifyPaceShift(1 - PACE_SHIFT_THRESHOLD, PACE_SHIFT_THRESHOLD),
+    ).toBe("slower");
+    expect(classifyPaceShift(0.1, PACE_SHIFT_THRESHOLD)).toBe("slower");
   });
 
   it("holds the line just inside the threshold either way", () => {
-    expect(classifyPaceShift(1.2499)).toBe("steady");
-    expect(classifyPaceShift(0.7501)).toBe("steady");
+    expect(classifyPaceShift(1.2499, PACE_SHIFT_THRESHOLD)).toBe("steady");
+    expect(classifyPaceShift(0.7501, PACE_SHIFT_THRESHOLD)).toBe("steady");
   });
 
   it("reads a window nothing moved in as slower rather than steady", () => {
-    expect(classifyPaceShift(0)).toBe("slower");
+    expect(classifyPaceShift(0, PACE_SHIFT_THRESHOLD)).toBe("slower");
   });
 
   it("reads a burn that went backwards as slower", () => {
-    expect(classifyPaceShift(-0.4)).toBe("slower");
+    expect(classifyPaceShift(-0.4, PACE_SHIFT_THRESHOLD)).toBe("slower");
   });
 
   it("has no verdict when there is no ratio to judge", () => {
     // Not "steady": two paces agreeing is a measurement, and no second pace
     // to compare is a gap.
-    expect(classifyPaceShift(null)).toBeNull();
+    expect(classifyPaceShift(null, PACE_SHIFT_THRESHOLD)).toBeNull();
   });
 
   it("calls an accelerating project faster from its own readings", () => {
@@ -464,6 +468,7 @@ describe("classifyPaceShift", () => {
           overallBurnRate(ACCELERATING),
           recentBurnRate(ACCELERATING, 14),
         ),
+        PACE_SHIFT_THRESHOLD,
       ),
     ).toBe("faster");
   });

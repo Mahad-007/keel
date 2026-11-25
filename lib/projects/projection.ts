@@ -15,6 +15,7 @@ import {
 } from "@/lib/projection/forecast";
 import {
   classifyPaceShift,
+  DEFAULT_PACE_SETTINGS,
   forecastPace,
   hasBurnRate,
   overallBurnRate,
@@ -148,7 +149,10 @@ export function projectionEvidence(
     reconstructedCount: reconstructedSince(readings, pace.fromDate),
     daysSinceLastReading:
       last === undefined ? 0 : calendarDayGap(last.onDate, today),
-    paceShift: classifyPaceShift(paceChangeRatio(overallPace, recentPace)),
+    paceShift: classifyPaceShift(
+      paceChangeRatio(overallPace, recentPace),
+      DEFAULT_PACE_SETTINGS.paceShiftThreshold,
+    ),
     wholeHistoryWindow: windowCoversWholeHistory(overallPace, recentPace),
     lineCount: lines.length,
     unsizedUndeliveredCount: unestimatedUndeliveredCount(lines),
