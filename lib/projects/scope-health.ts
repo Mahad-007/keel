@@ -213,16 +213,19 @@ export function describeBurnAgainstDelivery(
  * `classifyConsumedShare` supplies the key, so this file never holds a second
  * copy of the thresholds the classifier flags on.
  *
- * The watch clause bounds what is left rather than naming the share again: the
- * watch band opens at four fifths of the contract, so at most a fifth of it is
- * left whatever the exact figure — and the figure itself is already in the
- * clause this sentence closes.
+ * The watch clause says what the remainder has to do rather than how big it
+ * is. The exact share is already in the clause this sentence closes, and the
+ * bound it used to quote — at most a fifth, because the band opened at four
+ * fifths — is a bound only the default threshold has: a client who watches from
+ * seven tenths leaves three, and a sentence naming a fifth would be flatly
+ * wrong on their projects. What survives the move is the part that mattered,
+ * which is that the remainder is now committed.
  */
 export const FAR_AHEAD_CLOSING: Record<ScopeHealth, string> = {
   healthy:
     "That much of the contract has gone on work that is not there yet, which is the reading this flag exists for: both figures look survivable on their own.",
   watch:
-    "The money has been flagged too: at most a fifth of the contract is left, and it has to cover everything the burn has run ahead of.",
+    "The money has been flagged too: what is left of the contract has to cover everything the burn has run ahead of.",
   over:
     "The contract value is already gone, so this is not a warning about what might happen: the money bought work that is not there.",
 };
@@ -283,15 +286,16 @@ export function describeFarAheadOfDelivery(
  * still be done about it changes. Written out three times rather than
  * concatenated from a stem, so each entry reads as the sentence a reader gets.
  *
- * The watch clause bounds what is left rather than naming the share again, for
- * the reason `FAR_AHEAD_CLOSING`'s does: the band opens at four fifths of the
- * contract, so a fifth is the most that can be left.
+ * The watch clause says what the remainder has to do rather than how big it is,
+ * for the reason `FAR_AHEAD_CLOSING`'s does: the bound depends on where the
+ * watch band opens, and that is a setting now rather than four fifths for
+ * everybody.
  */
 export const AHEAD_CLOSING: Record<ScopeHealth, string> = {
   healthy:
     "The money is moving faster than the work, early enough that it is a conversation rather than a correction.",
   watch:
-    "The money is moving faster than the work, and at most a fifth of the contract is left to close the gap from.",
+    "The money is moving faster than the work, and what is left of the contract is all there is to close the gap from.",
   over:
     "The money is moving faster than the work, and the contract value has already gone — whatever is still outstanding has no budget behind it.",
 };

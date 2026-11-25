@@ -287,7 +287,7 @@ describe("the sentence for a burn ahead of its delivery", () => {
     const sentence = describeAheadOfDelivery(0.85, 0.55, 0.3);
 
     expect(sentence).not.toContain("conversation");
-    expect(sentence).toContain("at most a fifth of the contract is left");
+    expect(sentence).toContain("what is left of the contract");
   });
 
   it("reads its closing clause off the money verdict", () => {
