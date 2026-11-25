@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_THRESHOLDS,
+  NO_THRESHOLD_OVERRIDES,
   resolveThreshold,
   resolveThresholds,
   rowThreshold,
@@ -158,5 +159,19 @@ describe("DEFAULT_THRESHOLDS", () => {
 
   it("is what two empty rows resolve to", () => {
     expect(resolveThresholds({}, {})).toEqual(DEFAULT_THRESHOLDS);
+  });
+});
+
+describe("NO_THRESHOLD_OVERRIDES", () => {
+  it("covers every setting in the spec, so a row type is satisfied", () => {
+    expect(Object.keys(NO_THRESHOLD_OVERRIDES).sort()).toEqual(
+      [...THRESHOLD_KEYS].sort(),
+    );
+  });
+
+  it("resolves to the defaults from both rungs of the chain", () => {
+    expect(
+      resolveThresholds(NO_THRESHOLD_OVERRIDES, NO_THRESHOLD_OVERRIDES),
+    ).toEqual(DEFAULT_THRESHOLDS);
   });
 });

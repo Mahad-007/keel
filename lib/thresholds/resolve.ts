@@ -188,3 +188,30 @@ export function resolveThresholds(
 export const DEFAULT_THRESHOLDS: ResolvedThresholds = Object.freeze(
   resolveThresholds(null, null),
 );
+
+/**
+ * A row with none of the five set: every column NULL.
+ *
+ * The shape a client or a project starts life in, named once. Its callers are
+ * the places that have to produce a whole row rather than a patch — a test
+ * fixture standing in for a stored client, a duplicate that deliberately
+ * carries no settings over — and the alternative is five nulls written out at
+ * each of them, which is five places to miss the sixth setting the day it is
+ * added.
+ *
+ * Complete rather than partial, unlike `ThresholdOverrides` itself. A caller
+ * that wants to say "nothing is set here" is usually filling in a row type
+ * that demands every column, and `{}` would not satisfy it.
+ *
+ * Frozen, like the resolved defaults, because it is shared by every fixture
+ * that spreads it: a caller that mutated it would move thresholds in tests it
+ * has never heard of.
+ */
+export const NO_THRESHOLD_OVERRIDES: Required<ThresholdOverrides> =
+  Object.freeze({
+    nearlySpentPercent: null,
+    aheadOfDeliveryPercent: null,
+    farAheadOfDeliveryPercent: null,
+    recentRateWindowDays: null,
+    paceShiftPercent: null,
+  });
