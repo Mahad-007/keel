@@ -3,6 +3,8 @@ import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { db, type Database } from "@/lib/db";
 import { clients, type Client } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
+import { thresholdColumns } from "@/lib/thresholds/column";
+import type { ThresholdOverrides } from "@/lib/thresholds/resolve";
 
 import { optionalText, requiredText, wholeCents } from "./fields";
 
@@ -15,7 +17,20 @@ import { optionalText, requiredText, wholeCents } from "./fields";
  * throwaway in-memory database; production callers pass nothing.
  */
 
-export type NewClientInput = {
+/**
+ * A new client, and optionally the thresholds their projects are judged by.
+ *
+ * The thresholds are part of the input rather than a second call, because they
+ * are columns on this row like the rate is: a client created with a tolerance
+ * agreed in the same conversation should not need two writes, and a create
+ * followed by an update is a row that existed for a moment with the wrong
+ * settings on it.
+ *
+ * Every one of the five is optional and absent means NULL — "nothing set here"
+ * — so the ordinary create is unchanged and the resolution chain falls through
+ * to the defaults.
+ */
+export type NewClientInput = ThresholdOverrides & {
   name: string;
   email?: string | null;
   company?: string | null;
@@ -41,6 +56,7 @@ export async function createClient(
       company: optionalText(input.company),
       notes: optionalText(input.notes),
       defaultRateCents: wholeCents(input.defaultRateCents ?? 0, "client default rate"),
+      ...thresholdColumns(input),
       archivedAt: null,
       createdAt: now,
       updatedAt: now,
@@ -103,6 +119,10 @@ export async function updateClient(
       "client default rate",
     );
   }
+  // Only the settings the patch mentions, so a form that submits one threshold
+  // does not clear the other four — and an explicit null still clears the one
+  // it names.
+  Object.assign(values, thresholdColumns(patch));
 
   if (Object.keys(values).length === 0) return getClient(id, database);
 
