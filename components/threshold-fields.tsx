@@ -49,11 +49,15 @@ export function ThresholdFields({
         Thresholds
       </legend>
       {/*
-        One paragraph for the group, rather than the chain restated in five
-        hints. What a reader needs before the first box is that they can skip
-        all of them — most engagements are judged perfectly well by the figures
-        this repo ships, and a form that opened with five numbers and no
-        sentence would read as five decisions nobody can make.
+        What the group is, and that it can be skipped. A form that opened with
+        five numbers and no sentence would read as five decisions nobody can
+        make, when the honest answer for most engagements is that the figures
+        this repo ships are fine.
+
+        It does not restate what an empty box falls back to. Each hint says
+        that, beside the box it is about and with that setting's own figure in
+        it, and a paragraph saying it a sixth time would be the sentence a
+        reader learns to skip — along with the five that matter.
       */}
       <p className="max-w-prose text-sm leading-6 text-zinc-600 dark:text-zinc-400">
         {INTRO[inherits]}
@@ -97,7 +101,7 @@ export function ThresholdFields({
  */
 const INTRO: Record<ThresholdInheritance, string> = {
   default:
-    "The figures every project for this client is flagged at. Leave them all empty unless you have agreed something different — Keel's defaults are shown in grey, and they are what applies either way.",
+    "The figures every project for this client is flagged at. Fill one in only where you have agreed something other than what the box says below it.",
   client:
-    "The figures this project alone is flagged at, for the engagement that is not like the client's others. Anything left empty follows the client, so there is nothing to fill in here for most projects.",
+    "The figures this project alone is flagged at, for the engagement that is not like the client's others. Most projects need none of them.",
 };
