@@ -194,3 +194,57 @@ export function thresholdProblemSentences(
     THRESHOLD_PROBLEM_SENTENCE[problem](resolved),
   );
 }
+
+/**
+ * Which rung of the chain a row inherits from when its box is left empty.
+ *
+ * A client's blank box falls to the default, because a client is the top of the
+ * chain. A project's blank box falls to its client, and only then to the
+ * default. The same input on two forms therefore means two different things,
+ * and the hint under it has to say which — a reader clearing a figure on a
+ * project is handing the decision to the client they agreed it with, not to
+ * this repo's opinion.
+ */
+export type ThresholdInheritance = "client" | "default";
+
+/**
+ * What leaving the box empty does, in a sentence under it.
+ *
+ * The figure is quoted rather than merely promised. A hint that said "blank
+ * inherits" would leave a reader deciding whether to type anything without
+ * knowing what they would be overriding, which is the whole of the decision —
+ * and on the client form the figure it names is the one a project with no
+ * settings anywhere is actually being judged by.
+ *
+ * The project form's sentence names the client's setting without quoting it,
+ * because this form does not know it: the client can be changed by the picker
+ * three fields above, and a figure printed here would be the old client's the
+ * moment somebody did. The default is quoted, because that one is fixed.
+ */
+export function describeThresholdBlank(
+  key: ThresholdKey,
+  from: ThresholdInheritance,
+): string {
+  const fallback = formatThresholdValue(
+    key,
+    THRESHOLD_SETTINGS[key].fallback,
+  );
+  if (from === "client") {
+    return `Leave blank to use the client's setting, or Keel's default of ${fallback}.`;
+  }
+  return `Leave blank to use Keel's default of ${fallback}.`;
+}
+
+/**
+ * The whole line under a threshold box: what the setting does, then what
+ * leaving it empty does.
+ *
+ * Assembled here rather than in the component, so both forms say it the same
+ * way and the sentence is tested without rendering anything.
+ */
+export function thresholdFieldHint(
+  key: ThresholdKey,
+  from: ThresholdInheritance,
+): string {
+  return `${THRESHOLD_SETTINGS[key].hint} ${describeThresholdBlank(key, from)}`;
+}
