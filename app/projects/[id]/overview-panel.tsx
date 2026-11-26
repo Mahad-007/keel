@@ -215,6 +215,8 @@ export function OverviewPanel({
         keeps elsewhere — the conclusion first, the basis after.
       */}
       <ThresholdsPanel
+        projectId={project.id}
+        clientId={project.clientId}
         clientName={project.clientName}
         thresholds={thresholds}
       />

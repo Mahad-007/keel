@@ -1,4 +1,7 @@
+import Link from "next/link";
+
 import { CaveatNote } from "@/components/form";
+import { projectEditPath } from "@/lib/projects/detail";
 import {
   describeNearlySpentSetting,
   thresholdLines,
@@ -30,9 +33,15 @@ const HEADING_ID = "thresholds-heading";
  * over.
  */
 export function ThresholdsPanel({
+  projectId,
+  clientId,
   clientName,
   thresholds,
 }: {
+  /** The project whose form sets the first rung of the chain. */
+  projectId: string;
+  /** The client whose form sets the second. */
+  clientId: string;
   /** The client whose settings the second rung of the chain belongs to. */
   clientName: string;
   /**
@@ -150,6 +159,30 @@ export function ThresholdsPanel({
       */}
       <p className="mt-3 max-w-prose text-sm leading-6 text-zinc-600 dark:text-zinc-400">
         {describeNearlySpentSetting(thresholds.nearlySpentPercent.value)}
+      </p>
+      {/*
+        Both forms, named, because the table has just told a reader which row
+        each figure came from and the useful next move is to open that row.
+        Offering only the project's form would send everybody who wanted to move
+        a figure for the whole engagement to the one place that changes it for a
+        single job.
+      */}
+      <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+        Change them{" "}
+        <Link
+          href={projectEditPath(projectId)}
+          className="underline underline-offset-4 hover:text-zinc-900 dark:hover:text-zinc-100"
+        >
+          on this project
+        </Link>{" "}
+        or{" "}
+        <Link
+          href={`/clients/${encodeURIComponent(clientId)}/edit`}
+          className="underline underline-offset-4 hover:text-zinc-900 dark:hover:text-zinc-100"
+        >
+          for {clientName}
+        </Link>
+        .
       </p>
     </section>
   );
