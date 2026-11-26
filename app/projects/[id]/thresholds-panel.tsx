@@ -1,6 +1,8 @@
+import { CaveatNote } from "@/components/form";
 import {
   describeNearlySpentSetting,
   thresholdLines,
+  thresholdProblemSentences,
 } from "@/lib/thresholds/describe";
 import type { ResolvedThresholds } from "@/lib/thresholds/resolve";
 
@@ -44,6 +46,8 @@ export function ThresholdsPanel({
    */
   thresholds: ResolvedThresholds;
 }) {
+  const problems = thresholdProblemSentences(thresholds);
+
   return (
     <section
       aria-labelledby={HEADING_ID}
@@ -65,6 +69,24 @@ export function ThresholdsPanel({
         failing that it follows {clientName}; failing that it is the default
         Keel ships.
       </p>
+      {/*
+        What is wrong with the settings themselves, above the table they are
+        about. Nothing that changes how a figure reads is allowed to arrive
+        underneath it, which is the rule the projection panel keeps for its
+        caveats — and a reader who scrolled past the table has already believed
+        the numbers.
+
+        One note per problem rather than a paragraph running them together,
+        because each quotes its own figures and sends a reader to its own form.
+        Usually there are none: an unusable figure is a row somebody wrote
+        straight to the database, and a crossed pair is two fields that are each
+        legal on their own.
+      */}
+      {problems.map((problem) => (
+        <CaveatNote key={problem} className="mt-3">
+          {problem}
+        </CaveatNote>
+      ))}
       <table className="mt-3 w-full border-collapse text-sm">
         <caption className="sr-only">
           Every threshold in force for this project, what it is set to, and
