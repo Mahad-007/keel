@@ -1,4 +1,7 @@
-import { thresholdLines } from "@/lib/thresholds/describe";
+import {
+  describeNearlySpentSetting,
+  thresholdLines,
+} from "@/lib/thresholds/describe";
 import type { ResolvedThresholds } from "@/lib/thresholds/resolve";
 
 /** Ties the panel's region to the heading that names it. */
@@ -111,6 +114,21 @@ export function ThresholdsPanel({
           ))}
         </tbody>
       </table>
+      {/*
+        What the money threshold costs, under the table rather than in it. It is
+        the one setting of the five whose consequence is not obvious from the
+        figure: the row says when the banner appears, and this says what is left
+        at that point to cover the rest of the work, which is the judgement a
+        reader is actually being asked to agree with.
+
+        Only this setting gets a sentence. A gap threshold has no remainder and a
+        window of days has nothing to be a share of, so the other four would be
+        the figure restated — and five sentences under a five-row table is a
+        paragraph nobody reads.
+      */}
+      <p className="mt-3 max-w-prose text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+        {describeNearlySpentSetting(thresholds.nearlySpentPercent.value)}
+      </p>
     </section>
   );
 }
