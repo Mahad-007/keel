@@ -265,6 +265,34 @@ describe("clientFormFields", () => {
     expect(clientFormFields(client({ defaultRateCents: 0 })).defaultRate).toBe("");
   });
 
+  it("shows a stored threshold in its box, and an unset one blank", () => {
+    const fields = clientFormFields(client({ nearlySpentPercent: 70 }));
+
+    expect(fields.nearlySpentPercent).toBe("70");
+    expect(fields.paceShiftPercent).toBe("");
+  });
+
+  /**
+   * The failure this guards is quiet: a client whose agreed tolerance is not
+   * rendered back submits as a blank box, which is a legal answer meaning
+   * "inherit" — so saving an untouched form would reset the settings to Keel's
+   * defaults and nothing on screen would have said so.
+   */
+  it("re-parses a configured client back to the settings it holds", () => {
+    const stored = client({ nearlySpentPercent: 70, recentRateWindowDays: 7 });
+
+    const reparsed = parseClientForm(clientFormFields(stored));
+
+    expect(reparsed).toEqual({
+      ok: true,
+      value: expect.objectContaining({
+        nearlySpentPercent: 70,
+        recentRateWindowDays: 7,
+        paceShiftPercent: null,
+      }),
+    });
+  });
+
   it("covers exactly the fields the form renders", () => {
     expect(Object.keys(clientFormFields(client())).sort()).toEqual(
       [...CLIENT_FIELD_NAMES].sort(),
