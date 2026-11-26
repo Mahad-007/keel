@@ -1,8 +1,9 @@
 import { TextAreaField, TextField } from "@/components/form";
+import { ThresholdFields } from "@/components/threshold-fields";
 import { CLIENT_FIELD_LIMITS, type ClientFormState } from "@/lib/clients/form";
 
 /**
- * The five fields that describe a client, in the order the form lays them
+ * The fields that describe a client, in the order the form lays them
  * out. Both the new and the edit form render exactly this set: a field added
  * to one page and forgotten on the other is the kind of difference nobody
  * notices until a client has been saved without their rate.
@@ -56,6 +57,18 @@ export function ClientFields({ state }: { state: ClientFormState }) {
         maxLength={CLIENT_FIELD_LIMITS.notes}
         defaultValue={state.fields.notes}
         error={state.errors.notes}
+      />
+      {/*
+        Last, below a rule, because they are the only fields here most clients
+        never need: a client with none of them set is judged by Keel's defaults,
+        which is the right answer until somebody has agreed otherwise. The
+        fields above are what a client *is*; these are what their work is
+        measured against.
+      */}
+      <ThresholdFields
+        fields={state.fields}
+        errors={state.errors}
+        inherits="default"
       />
     </>
   );
