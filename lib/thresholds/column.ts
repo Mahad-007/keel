@@ -141,3 +141,36 @@ export function hasUsableThresholds(row: ThresholdOverrides): boolean {
     return value === undefined || value === null || isThresholdValue(key, value);
   });
 }
+
+/**
+ * The settings that moved between a stored row and what a form submitted.
+ *
+ * An edit form's patch, as small as it can honestly be. The data layer writes
+ * nothing for an empty patch, which is what keeps Save on an untouched form
+ * from bumping `updatedAt` and jumping a project to the top of a list sorted by
+ * it — and a patch that always carried all five would defeat that for every
+ * project on the books, since most of them have five NULLs nobody has touched.
+ *
+ * Absent and null are the same figure on both sides, because they mean the same
+ * thing to the chain: a row that holds no setting and a box that was left empty
+ * are both "inherit", and the day they are compared as different values is the
+ * day every save writes five columns to no effect.
+ *
+ * A setting that moved is carried even when it moved *to* null, which is the
+ * half that matters. Clearing a box is an instruction — judge this project by
+ * its client again — and an omitted key would leave the old figure in the row
+ * while the form that submitted the clearance redirected as though it had
+ * worked.
+ */
+export function movedThresholds(
+  current: ThresholdOverrides,
+  submitted: ThresholdOverrides,
+): ThresholdColumns {
+  const moved: ThresholdColumns = {};
+  for (const key of THRESHOLD_KEYS) {
+    const before = current[key] ?? null;
+    const after = submitted[key] ?? null;
+    if (before !== after) moved[key] = after;
+  }
+  return moved;
+}
