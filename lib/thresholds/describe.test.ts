@@ -112,6 +112,24 @@ describe("describeNearlySpentSetting", () => {
       "Flagged only once the whole contract value is burned, which leaves nothing to cover what is still outstanding.",
     );
   });
+
+  /**
+   * No form accepts a threshold past the whole price, so a row holding one was
+   * hand-edited — and the sentence is rendered all the same, beneath the caveat
+   * that says the setting is unusable. What it must not do is quote the
+   * arithmetic, which hands back a remainder of minus a fifth.
+   */
+  it("refuses to name a negative remainder", () => {
+    expect(describeNearlySpentSetting(120)).toBe(
+      "Flagged once 120% of the contract value is burned, which is past the whole price — so this flag never fires, and an overspend is reported by the figures above it instead.",
+    );
+  });
+
+  it("never prints a minus sign, whatever is stored", () => {
+    for (const stored of [101, 120, 400]) {
+      expect(describeNearlySpentSetting(stored)).not.toContain("-");
+    }
+  });
 });
 
 describe("thresholdProblemSentences", () => {

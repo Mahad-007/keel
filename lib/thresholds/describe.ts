@@ -149,9 +149,19 @@ export function thresholdLines(
  * A threshold of the whole price leaves nothing, and says so: it is a legal
  * setting and a real choice, meaning "only tell me once the money has gone",
  * and a reader who has chosen it should see what they chose.
+ *
+ * Past the whole price there is no remainder to name, and the arithmetic would
+ * hand one over anyway — a stored 120% leaves minus a fifth, which is a figure
+ * no reader can do anything with. No form accepts such a setting, so the row
+ * holding one was written straight to the database, and `thresholdProblems`
+ * reports it as unusable; this sentence still has to say something, and what it
+ * says is that the flag is unreachable rather than quoting a negative share.
  */
 export function describeNearlySpentSetting(percent: number): string {
   const left = remainingContractPercent(percent);
+  if (left < 0) {
+    return `Flagged once ${percent}% of the contract value is burned, which is past the whole price — so this flag never fires, and an overspend is reported by the figures above it instead.`;
+  }
   if (left === 0) {
     return `Flagged only once the whole contract value is burned, which leaves nothing to cover what is still outstanding.`;
   }
