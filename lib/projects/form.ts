@@ -6,15 +6,15 @@ import { optionalCentsInput, zeroedCentsInput } from "@/lib/forms/cents";
 import { requiredChoice } from "@/lib/forms/choice";
 import { readFields } from "@/lib/forms/form-data";
 import { overrideRateCents } from "@/lib/forms/rate";
-import {
-  BLANK_THRESHOLD_FIELDS,
-  THRESHOLD_FIELD_NAMES,
-  thresholdFormFields,
-} from "@/lib/forms/threshold";
 import { collect, hasFieldError, type ParseResult } from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
 import { requiredText } from "@/lib/forms/text";
-import { thresholdFieldResults } from "@/lib/forms/threshold";
+import {
+  BLANK_THRESHOLD_FIELDS,
+  THRESHOLD_FIELD_NAMES,
+  thresholdFieldResults,
+  thresholdFormFields,
+} from "@/lib/forms/threshold";
 import { movedThresholds } from "@/lib/thresholds/column";
 import type { ThresholdOverrides } from "@/lib/thresholds/resolve";
 
