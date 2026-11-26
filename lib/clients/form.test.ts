@@ -41,6 +41,7 @@ describe("parseClientForm", () => {
     expect(result).toEqual({
       ok: true,
       value: {
+        ...NO_THRESHOLD_OVERRIDES,
         name: "Ada Lovelace",
         email: "ada@example.com",
         company: "Analytical Engines",
@@ -56,6 +57,7 @@ describe("parseClientForm", () => {
     expect(result).toEqual({
       ok: true,
       value: {
+        ...NO_THRESHOLD_OVERRIDES,
         name: "Ada Lovelace",
         email: null,
         company: null,
@@ -219,6 +221,7 @@ describe("clientFormFields", () => {
     expect(reparsed).toEqual({
       ok: true,
       value: {
+        ...NO_THRESHOLD_OVERRIDES,
         name: stored.name,
         email: stored.email,
         company: stored.company,
@@ -239,6 +242,7 @@ describe("clientFormFields", () => {
     expect(parseClientForm(clientFormFields(stored))).toEqual({
       ok: true,
       value: {
+        ...NO_THRESHOLD_OVERRIDES,
         name: stored.name,
         email: null,
         company: null,

@@ -60,6 +60,7 @@ describe("createClientAction", () => {
     ).rejects.toThrow("NEXT_REDIRECT:/clients");
 
     expect(created).toHaveBeenCalledWith({
+      ...NO_THRESHOLD_OVERRIDES,
       name: "Ada Lovelace",
       email: null,
       company: null,

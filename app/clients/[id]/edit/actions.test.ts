@@ -64,6 +64,7 @@ describe("updateClientAction", () => {
     ).rejects.toThrow("NEXT_REDIRECT:/clients");
 
     expect(saved).toHaveBeenCalledWith(CLIENT_ID, {
+      ...NO_THRESHOLD_OVERRIDES,
       name: "Ada King",
       email: null,
       company: null,

@@ -7,6 +7,7 @@ import { optionalRateCents } from "@/lib/forms/rate";
 import {
   BLANK_THRESHOLD_FIELDS,
   THRESHOLD_FIELD_NAMES,
+  thresholdFieldResults,
   thresholdFormFields,
 } from "@/lib/forms/threshold";
 import { collect, type FieldErrors, type ParseResult } from "@/lib/forms/result";
@@ -102,10 +103,20 @@ export function parseClientForm(
       max: CLIENT_FIELD_LIMITS.notes,
     }),
     defaultRate: optionalRateCents(fields.defaultRate),
+    // Five more results, keyed by the same names the inputs carry, so a bad
+    // figure is reported under the box it was typed into. Spread rather than
+    // listed one by one: the five validations are identical apart from their
+    // bounds, and the bounds come off the spec.
+    ...thresholdFieldResults(fields),
   });
 
   if (!parsed.ok) return parsed;
 
+  // The thresholds travel in `rest` untouched: the parse keys them by setting,
+  // which is what the data layer's input is keyed by, so a blank box reaches
+  // `thresholdColumns` as the explicit null that clears the column. Absent
+  // would leave the old figure in place, which is the one thing a form clearing
+  // a setting must not do.
   const { defaultRate, ...rest } = parsed.value;
   return { ok: true, value: { ...rest, defaultRateCents: defaultRate } };
 }
