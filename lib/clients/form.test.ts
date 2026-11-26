@@ -143,6 +143,55 @@ describe("readClientFields", () => {
   });
 });
 
+/**
+ * The thresholds a client's projects are judged by, through the form that sets
+ * them. The chain itself is `lib/thresholds/resolve.ts`; what is checked here
+ * is that what a person types reaches it — and, the half that is easy to get
+ * wrong, that clearing a box reaches it as the explicit null that puts the
+ * client back on Keel's defaults.
+ */
+describe("parseClientForm thresholds", () => {
+  it("carries a typed threshold through to the write", () => {
+    const result = parseClientForm(fields({ nearlySpentPercent: "70" }));
+
+    expect(result).toEqual({
+      ok: true,
+      value: expect.objectContaining({ nearlySpentPercent: 70 }),
+    });
+  });
+
+  it("carries a cleared box through as the null that restores the default", () => {
+    const result = parseClientForm(fields({ nearlySpentPercent: "" }));
+
+    expect(result).toEqual({
+      ok: true,
+      value: expect.objectContaining({ nearlySpentPercent: null }),
+    });
+  });
+
+  it("leaves the other four alone when one is set", () => {
+    const result = parseClientForm(fields({ paceShiftPercent: "30" }));
+    if (!result.ok) throw new Error("expected the form to be accepted");
+
+    expect(result.value).toMatchObject({
+      ...NO_THRESHOLD_OVERRIDES,
+      paceShiftPercent: 30,
+    });
+  });
+
+  it("reports a bad figure under the box it was typed into", () => {
+    expect(errorsFrom({ recentRateWindowDays: "1" })).toEqual({
+      recentRateWindowDays: "Recent pace window must be between 2 and 90.",
+    });
+  });
+
+  it("refuses the form without writing when a threshold is out of range", () => {
+    expect(parseClientForm(fields({ nearlySpentPercent: "150" })).ok).toBe(
+      false,
+    );
+  });
+});
+
 describe("CLIENT_FIELD_NAMES", () => {
   // The form focuses `firstErrorField(state, CLIENT_FIELD_NAMES)` after a
   // rejection. Walked in the wrong order it skips past an error the user can
@@ -157,6 +206,15 @@ describe("CLIENT_FIELD_NAMES", () => {
     const state = rejectedFormState(EMPTY_CLIENT_FIELDS, errors);
 
     expect(firstErrorField(state, CLIENT_FIELD_NAMES)).toBe("company");
+  });
+
+  it("walks the thresholds after the fields every client needs", () => {
+    const state = rejectedFormState(
+      EMPTY_CLIENT_FIELDS,
+      errorsFrom({ notes: "b".repeat(2001), nearlySpentPercent: "150" }),
+    );
+
+    expect(firstErrorField(state, CLIENT_FIELD_NAMES)).toBe("notes");
   });
 
   it("puts the name above every other field", () => {
