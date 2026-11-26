@@ -1277,3 +1277,105 @@ excuses.
   paragraph, the same decision the burn panel's problems take. A weak-basis
   project genuinely has that much wrong with it, and folding them into one box
   would make the list shorter without making any of it less true.
+
+## Day 038 ran across two days, and this is the second half
+
+Day 038 — thresholds configurable per client and per project, falling back to
+sensible defaults — was started on 2026-11-25 in 51 commits
+(`1cbf7e3..339b610`) and pushed without the box in `ROADMAP.md` being ticked,
+so the workflow picked Day 038 again on 2026-11-26.
+
+The first run built everything below the form: the spec in
+`lib/thresholds/settings.ts`, the chain in `resolve.ts`, the column guard, the
+two tables' columns and their migration, the classifiers taking their figures
+as arguments, the coherence checks, the words, and the per-field parse in
+`lib/forms/threshold.ts`. `npm run verify` was green on arrival — 182 files,
+4908 tests — and nothing was half-written.
+
+What it had not reached was a form. Five columns on two tables that no page
+could set are not a configurable threshold, and `describe.ts` had a table's
+worth of sentences with no table. So the second run is the form layer, the two
+fieldsets, the panel that says what is in force, and the tests that walk the
+whole path: 35 commits, no rebuilding.
+
+## Three states, two spellings, one name (Day 038)
+
+The decision the form layer rests on is that a threshold box has **three**
+answers, not two: a figure, a blank meaning "inherit", and nothing else. Zero
+is not an answer — every setting is bounded at one or above, because a
+threshold of nothing flags every project or none — which is why these boxes do
+not reuse the money fields, where a zero override is a real decision to bill
+nothing.
+
+Three consequences, each of which is a place this could have gone wrong
+quietly:
+
+- **The input names are the spec's keys.** `THRESHOLD_FIELD_NAMES` *is*
+  `THRESHOLD_KEYS`, so the submitted field, the error key, the column and the
+  spec entry are one spelling. A separate naming scheme would be a fourth list
+  to keep in step, and the failure mode is silent: a field read under a name
+  nothing submits looks like a blank box, which is a legal answer meaning
+  "inherit", so the setting would simply stop saving.
+- **A blank box reaches the patch as an explicit null.** Absent means "do not
+  touch this column" to the data layer, so a form that omitted a cleared
+  setting would redirect as though the clearance had stuck while the row kept
+  yesterday's figure. `movedThresholds` is the one place that decides a stored
+  NULL and a submitted blank are the same answer — without that, every save of
+  every project would write five columns to no effect and reorder a list sorted
+  by `updatedAt`.
+- **The round trip is tested rather than assumed.** `thresholdFormFields`
+  renders what `optionalThresholdSetting` accepts back unchanged, for every
+  setting and at both ends of its range, because the expensive bug here is an
+  untouched Save resetting a client's agreed tolerance to the defaults with
+  nothing on screen having said so.
+
+## Why the project form does not quote the client's figure
+
+Both forms render the same fieldset and differ by one prop: a client's empty
+box falls to Keel's default, a project's falls to its client first. The hint
+says which, and only the client form gets a placeholder.
+
+That asymmetry is deliberate. A placeholder promises what you get if you leave
+the box alone, and on the project form that is whichever client the picker
+three fields above is on — a figure this form cannot read and which can change
+under it without a round trip. Printing the default there would be a number the
+project would not actually be judged by, which is worse than printing nothing.
+
+## Left alone deliberately (Day 038)
+
+- **A crossed pair is reported, not refused.** Typing a "far ahead" gap below
+  the "ahead" gap passes both boxes, because each figure is legal on its own and
+  the pair can be split across the two rows — one inherited, one overridden —
+  where no form can see both halves. `coherence.ts` reports it on the panel
+  instead, quoting both figures and where each came from. A form rule would
+  catch the case where somebody types both on the same page and miss the case
+  that matters.
+- **An out-of-range stored figure is still applied.** A row hand-edited to a
+  watch threshold of 400% classifies its project at 400% and the panel says the
+  setting is unusable above the table. Repairing it silently would make the one
+  project nobody could debug: a verdict reached at the defaults while its own
+  settings page showed something else.
+- **The client form sends all five thresholds on every save.** The project form
+  narrows to what moved, because `updateProject` treats an empty patch as a
+  no-op; `updateClient` has never diffed — the action already sends the name,
+  email, company, notes and rate whether or not they changed — so narrowing
+  the thresholds alone would be a rule that applied to five columns out of ten.
+
+## What the Day 038 reviews found
+
+`/code-review` on the day's diff found two nits and no correctness bugs. The
+real one: `describeNearlySpentSetting` handled a threshold of exactly the whole
+contract and not one past it, so a hand-edited 120% rendered "which leaves
+-20% to cover whatever is still outstanding" — the first render site of that
+sentence is this day's panel, so the path was newly visible. It now says the
+flag is unreachable rather than quoting a negative share. The other was a
+duplicated import.
+
+`/security-review` came back clean. The day adds a form field group and a
+read-only panel: every value is an integer guarded twice — once for the person
+typing and once on the way into the column — nothing reaches a query fragment
+as a string, no object key comes from `FormData` (both parses rest-spread over
+`collect`'s own literal keys, so `__proto__` or `archivedAt` cannot be
+smuggled into an insert), and the one new URL is built from a joined row id
+through `encodeURIComponent`. No server action was added or changed; what a
+POST endpoint without accounts owes Phase 8 is unchanged and already recorded.
