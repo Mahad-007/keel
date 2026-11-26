@@ -166,6 +166,49 @@ describe("a project's rate override", () => {
   });
 });
 
+/**
+ * A project's own thresholds, which override whatever its client agreed. The
+ * chain is tested in `lib/thresholds/resolve.ts`; what matters here is that a
+ * figure typed on this form becomes the project's own setting and that an empty
+ * box stays the client's.
+ */
+describe("a project's thresholds", () => {
+  it("carries a typed figure through as the project's own setting", () => {
+    const result = parse({ nearlySpentPercent: "70" });
+    expect(result.ok && result.value.nearlySpentPercent).toBe(70);
+  });
+
+  it("leaves an untouched box as inheritance from the client", () => {
+    const result = parse({});
+    expect(result.ok && result.value.nearlySpentPercent).toBeNull();
+  });
+
+  it("sets one setting without touching the other four", () => {
+    const result = parse({ recentRateWindowDays: "7" });
+    if (!result.ok) throw new Error("expected the form to be accepted");
+    expect(result.value).toMatchObject({
+      ...NO_THRESHOLD_OVERRIDES,
+      recentRateWindowDays: 7,
+    });
+  });
+
+  it("reports a figure out of range under its own box", () => {
+    expect(errors({ paceShiftPercent: "100" }).paceShiftPercent).toBe(
+      "Pace change must be between 1 and 99.",
+    );
+  });
+
+  it("is laid out after the fields every project needs", () => {
+    const keys = Object.keys(
+      errors({ name: "", nearlySpentPercent: "0" }),
+    );
+    expect(PROJECT_FIELD_NAMES.filter((name) => keys.includes(name))).toEqual([
+      "name",
+      "nearlySpentPercent",
+    ]);
+  });
+});
+
 describe("a form with several problems", () => {
   it("comes back with every one of them, not just the first", () => {
     expect(
