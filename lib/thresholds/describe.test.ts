@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   describeNearlySpentSetting,
+  describeThresholdBlank,
   formatThresholdValue,
   remainingContractPercent,
   THRESHOLD_SOURCE_LABEL,
+  thresholdFieldHint,
   thresholdLine,
   thresholdProblemSentences,
 } from "./describe";
@@ -170,5 +172,54 @@ describe("thresholdProblemSentences", () => {
     expect(sentences).toHaveLength(2);
     expect(sentences[0]).toContain("Contract nearly spent");
     expect(sentences[1]).toContain("merely watched");
+  });
+});
+
+describe("describeThresholdBlank", () => {
+  it("quotes the default a client's empty box falls to", () => {
+    expect(describeThresholdBlank("nearlySpentPercent", "default")).toBe(
+      "Leave blank to use Keel's default of 80%.",
+    );
+  });
+
+  /**
+   * A project's blank box is one rung lower, and the sentence has to say so: a
+   * reader clearing a figure here is handing the decision to the client they
+   * agreed it with, not to this repo.
+   */
+  it("names the client first for a project's empty box", () => {
+    expect(describeThresholdBlank("nearlySpentPercent", "client")).toBe(
+      "Leave blank to use the client's setting, or Keel's default of 80%.",
+    );
+  });
+
+  it("quotes the figure in the setting's own unit", () => {
+    expect(describeThresholdBlank("recentRateWindowDays", "default")).toBe(
+      "Leave blank to use Keel's default of 14 days.",
+    );
+  });
+
+  it("quotes a figure for every setting in the spec", () => {
+    for (const key of THRESHOLD_KEYS) {
+      const { fallback, unit } = THRESHOLD_SETTINGS[key];
+      const figure = unit === "days" ? `${fallback} days` : `${fallback}%`;
+      expect(describeThresholdBlank(key, "default")).toContain(figure);
+    }
+  });
+});
+
+describe("thresholdFieldHint", () => {
+  it("says what the setting does, then what an empty box does", () => {
+    expect(thresholdFieldHint("nearlySpentPercent", "client")).toBe(
+      "The share of the contract value at which a project is flagged as worth watching. Leave blank to use the client's setting, or Keel's default of 80%.",
+    );
+  });
+
+  it("carries both halves for every setting", () => {
+    for (const key of THRESHOLD_KEYS) {
+      const hint = thresholdFieldHint(key, "default");
+      expect(hint).toContain(THRESHOLD_SETTINGS[key].hint);
+      expect(hint).toContain("Leave blank");
+    }
   });
 });
