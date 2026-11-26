@@ -20,7 +20,13 @@ export type TextFieldProps = {
   error?: string;
   defaultValue?: string;
   type?: "text" | "email";
-  inputMode?: "text" | "email" | "decimal";
+  /**
+   * `numeric` is for the fields that take a whole number and nothing else —
+   * the thresholds — and it is not the same keyboard as `decimal`: a setting
+   * with a decimal point in it is refused, so offering the key is an invitation
+   * to be rejected.
+   */
+  inputMode?: "text" | "email" | "decimal" | "numeric";
   autoComplete?: string;
   placeholder?: string;
   maxLength?: number;
