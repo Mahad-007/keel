@@ -57,7 +57,7 @@ as an atomic commit and what does not.
 - [x] **Day 035** — Burn-down over time: a stored daily snapshot of burned value per project, plus a backfill for existing data.
 - [x] **Day 036** — Burn-down chart on the project page, rendered server-side as inline SVG with no client charting library.
 - [x] **Day 037** — Projected completion: extrapolate from the burn rate to an expected overage, with confidence caveats surfaced honestly in the UI.
-- [ ] **Day 038** — Configurable thresholds per client and per project, falling back to sensible defaults, with the resolution logic tested.
+- [x] **Day 038** — Configurable thresholds per client and per project, falling back to sensible defaults, with the resolution logic tested.
 - [ ] **Day 039** — A portfolio view at `/health` ranking every active project by scope risk.
 - [ ] **Day 040** — Alerting rules: persist which projects have already been flagged so the same warning is not repeated every day.
 - [ ] **Day 041** — Weekly digest generation: a pure function producing a summary of at-risk projects, tested against fixtures.
