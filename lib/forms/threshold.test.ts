@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 
+import { collect } from "./result";
+
 import { THRESHOLD_KEYS, THRESHOLD_SETTINGS } from "@/lib/thresholds/settings";
 
 import {
   BLANK_THRESHOLD_FIELDS,
   optionalThresholdSetting,
   THRESHOLD_FIELD_NAMES,
+  thresholdFieldResults,
   thresholdFormFields,
   thresholdInput,
 } from "./threshold";
@@ -222,5 +225,60 @@ describe("thresholdFormFields", () => {
         value: row[key],
       });
     }
+  });
+});
+
+describe("thresholdFieldResults", () => {
+  it("answers for every setting, whether it was typed in or not", () => {
+    const results = thresholdFieldResults({
+      ...BLANK_THRESHOLD_FIELDS,
+      nearlySpentPercent: "70",
+    });
+    expect(Object.keys(results).sort()).toEqual([...THRESHOLD_KEYS].sort());
+    expect(results.nearlySpentPercent).toEqual({ ok: true, value: 70 });
+    expect(results.paceShiftPercent).toEqual({ ok: true, value: null });
+  });
+
+  /**
+   * The reason this hands back results rather than values: a reader who
+   * mistyped two of the five is told about both, each under its own box, rather
+   * than discovering the second one after fixing the first.
+   */
+  it("reports a message per bad box through collect", () => {
+    const parsed = collect(
+      thresholdFieldResults({
+        ...BLANK_THRESHOLD_FIELDS,
+        nearlySpentPercent: "120",
+        recentRateWindowDays: "1",
+      }),
+    );
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) throw new Error("expected the submission to be rejected");
+    expect(Object.keys(parsed.errors).sort()).toEqual([
+      "nearlySpentPercent",
+      "recentRateWindowDays",
+    ]);
+    expect(parsed.errors.recentRateWindowDays).toBe(
+      "Recent pace window must be between 2 and 90.",
+    );
+  });
+
+  it("yields a value per setting when every box is good", () => {
+    const parsed = collect(
+      thresholdFieldResults({
+        ...BLANK_THRESHOLD_FIELDS,
+        aheadOfDeliveryPercent: "15",
+      }),
+    );
+    expect(parsed).toEqual({
+      ok: true,
+      value: {
+        nearlySpentPercent: null,
+        aheadOfDeliveryPercent: 15,
+        farAheadOfDeliveryPercent: null,
+        recentRateWindowDays: null,
+        paceShiftPercent: null,
+      },
+    });
   });
 });
