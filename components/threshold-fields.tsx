@@ -31,7 +31,6 @@ export function ThresholdFields({
   fields,
   errors,
   inherits,
-  scope,
 }: {
   /** What is in the boxes: the stored settings, or what was just submitted. */
   fields: ThresholdFormFields;
@@ -43,8 +42,6 @@ export function ThresholdFields({
   errors: FieldErrors<ThresholdFieldName>;
   /** Which rung an empty box falls to, which is the one thing the two differ by. */
   inherits: ThresholdInheritance;
-  /** Which form on the page these belong to, when there is more than one. */
-  scope?: string;
 }) {
   return (
     <fieldset className="mt-3 flex flex-col gap-5 border-t border-zinc-200 pt-6 dark:border-zinc-800">
@@ -83,7 +80,6 @@ export function ThresholdFields({
           }
           defaultValue={fields[key]}
           error={errors[key]}
-          scope={scope}
         />
       ))}
     </fieldset>
