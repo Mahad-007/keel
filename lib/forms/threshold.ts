@@ -145,3 +145,29 @@ export function thresholdFormFields(
   }
   return fields;
 }
+
+/**
+ * All five boxes parsed at once, as the per-field results `collect` takes.
+ *
+ * Results rather than values, and keyed by field name, so a form spreads this
+ * into its own `collect` call and gets five messages beside the five boxes they
+ * belong to. The alternative — parsing the group here and returning one result
+ * for the lot — would report "one of your thresholds is wrong" and leave the
+ * reader to find out which.
+ *
+ * Driven off `THRESHOLD_KEYS`, which is what makes a sixth setting validated by
+ * both forms the day it joins the spec. A form that listed the five calls
+ * itself would be two lists to keep in step with a third.
+ */
+export function thresholdFieldResults(
+  fields: ThresholdFormFields,
+): Record<ThresholdFieldName, FieldResult<number | null>> {
+  const results = {} as Record<
+    ThresholdFieldName,
+    FieldResult<number | null>
+  >;
+  for (const key of THRESHOLD_KEYS) {
+    results[key] = optionalThresholdSetting(key, fields[key]);
+  }
+  return results;
+}
