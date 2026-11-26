@@ -8,6 +8,7 @@ import {
   THRESHOLD_SOURCE_LABEL,
   thresholdFieldHint,
   thresholdLine,
+  thresholdLines,
   thresholdProblemSentences,
 } from "./describe";
 import {
@@ -221,5 +222,46 @@ describe("thresholdFieldHint", () => {
       expect(hint).toContain(THRESHOLD_SETTINGS[key].hint);
       expect(hint).toContain("Leave blank");
     }
+  });
+});
+
+describe("thresholdLines", () => {
+  it("has a row for every setting, in the spec's order", () => {
+    const lines = thresholdLines(DEFAULT_THRESHOLDS);
+
+    expect(lines.map((line) => line.label)).toEqual(
+      THRESHOLD_KEYS.map((key) => THRESHOLD_SETTINGS[key].label),
+    );
+  });
+
+  it("agrees with the single-setting line for every key", () => {
+    const resolved = resolveThresholds({ nearlySpentPercent: 70 }, null);
+
+    expect(thresholdLines(resolved)).toEqual(
+      THRESHOLD_KEYS.map((key) => thresholdLine(key, resolved[key])),
+    );
+  });
+
+  /**
+   * The provenance is what a reader acts on, so a row must carry the source of
+   * its own figure and not of the one above it.
+   */
+  it("keeps each figure with the row it came from", () => {
+    const lines = thresholdLines(
+      resolveThresholds(
+        { nearlySpentPercent: 70 },
+        { recentRateWindowDays: 7 },
+      ),
+    );
+
+    expect(lines[0]).toMatchObject({
+      value: "70%",
+      source: "Set on this project",
+    });
+    expect(lines[3]).toMatchObject({
+      value: "7 days",
+      source: "From the client",
+    });
+    expect(lines[4]).toMatchObject({ source: "Keel's default" });
   });
 });
