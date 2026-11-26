@@ -71,6 +71,7 @@ describe("createProjectAction", () => {
     ).rejects.toThrow("NEXT_REDIRECT:/projects/prj_engine");
 
     expect(created).toHaveBeenCalledWith({
+      ...NO_THRESHOLD_OVERRIDES,
       clientId: "cli_ada",
       name: "Engine rewrite",
       contractValueCents: 1_200_000,

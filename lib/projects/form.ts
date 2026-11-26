@@ -14,6 +14,8 @@ import {
 import { collect, hasFieldError, type ParseResult } from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
 import { requiredText } from "@/lib/forms/text";
+import { thresholdFieldResults } from "@/lib/forms/threshold";
+import type { ThresholdOverrides } from "@/lib/thresholds/resolve";
 
 /**
  * The project form, from submitted strings to something the data layer will
@@ -95,7 +97,16 @@ export function readProjectFields(formData: FormData): ProjectFormFields {
 export type ProjectFormValue = Pick<
   NewProjectInput,
   "clientId" | "name" | "contractValueCents" | "rateCents"
->;
+> &
+  /**
+   * Every threshold, including the ones nobody typed: null is the instruction
+   * that clears the column, and a project with a cleared column is judged by
+   * its client again. `Required` rather than the partial the data layer takes,
+   * because a form always has an answer for all five — a box on screen that was
+   * left empty is an answer, and the one thing it must not reach a patch as is
+   * "absent", which would leave yesterday's figure in the row.
+   */
+  Required<ThresholdOverrides>;
 
 /**
  * `clientIds` is the set the form actually offered. Validating against it
@@ -120,11 +131,15 @@ export function parseProjectForm(
     }),
     contractValue: optionalAmountCents(fields.contractValue),
     rateOverride: overrideRateCents(fields.rateOverride),
+    // Keyed by setting, which is also what the inputs are named and what the
+    // columns are called, so a bad figure is reported under its own box.
+    ...thresholdFieldResults(fields),
   });
 
   if (!parsed.ok) return parsed;
 
-  const { client, name, contractValue, rateOverride } = parsed.value;
+  const { client, name, contractValue, rateOverride, ...thresholds } =
+    parsed.value;
   return {
     ok: true,
     value: {
@@ -135,6 +150,10 @@ export function parseProjectForm(
       // NULL instead of leaving the old figure in place: the data layer reads
       // an absent key as "do not touch this column".
       rateCents: rateOverride,
+      // The five settings, under the names the columns carry. What is left
+      // after the four named fields above is exactly the thresholds, so a
+      // setting added to the spec reaches the write without this line moving.
+      ...thresholds,
     },
   };
 }

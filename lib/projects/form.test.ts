@@ -234,6 +234,7 @@ describe("projectFormFields", () => {
       expect(result).toEqual({
         ok: true,
         value: {
+          ...NO_THRESHOLD_OVERRIDES,
           clientId: stored.clientId,
           name: stored.name,
           contractValueCents: stored.contractValueCents,
