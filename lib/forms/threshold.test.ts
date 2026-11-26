@@ -6,6 +6,7 @@ import {
   BLANK_THRESHOLD_FIELDS,
   optionalThresholdSetting,
   THRESHOLD_FIELD_NAMES,
+  thresholdFormFields,
   thresholdInput,
 } from "./threshold";
 
@@ -173,5 +174,53 @@ describe("BLANK_THRESHOLD_FIELDS", () => {
     expect(() => {
       BLANK_THRESHOLD_FIELDS.nearlySpentPercent = "70";
     }).toThrow();
+  });
+});
+
+describe("thresholdFormFields", () => {
+  it("renders a row's settings as the figures somebody typed", () => {
+    expect(thresholdFormFields({ nearlySpentPercent: 70 }).nearlySpentPercent).toBe(
+      "70",
+    );
+  });
+
+  it("renders an unset column as an empty box", () => {
+    expect(
+      thresholdFormFields({ nearlySpentPercent: null }).nearlySpentPercent,
+    ).toBe("");
+  });
+
+  it("renders a key the row has not got as an empty box", () => {
+    expect(thresholdFormFields({}).nearlySpentPercent).toBe("");
+  });
+
+  it("offers a box for every setting, from a row that holds one", () => {
+    expect(thresholdFormFields({ paceShiftPercent: 30 })).toEqual({
+      ...BLANK_THRESHOLD_FIELDS,
+      paceShiftPercent: "30",
+    });
+  });
+
+  /**
+   * The round trip an edit form rests on. Opening a row and saving it untouched
+   * has to write the row back as it was — not turn an inherited setting into an
+   * explicit one, and not the reverse, which would silently move a client's
+   * agreed tolerance onto their project or off it.
+   */
+  it("round-trips every setting a row can hold", () => {
+    const row = {
+      nearlySpentPercent: 70,
+      aheadOfDeliveryPercent: null,
+      farAheadOfDeliveryPercent: 40,
+      recentRateWindowDays: 7,
+      paceShiftPercent: null,
+    };
+    const fields = thresholdFormFields(row);
+    for (const key of THRESHOLD_KEYS) {
+      expect(optionalThresholdSetting(key, fields[key])).toEqual({
+        ok: true,
+        value: row[key],
+      });
+    }
   });
 });
