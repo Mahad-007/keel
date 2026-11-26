@@ -2,7 +2,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { INITIAL_CLIENT_FORM_STATE } from "@/lib/clients/form";
+import {
+  EMPTY_CLIENT_FIELDS,
+  INITIAL_CLIENT_FORM_STATE,
+} from "@/lib/clients/form";
 import { updateClient } from "@/lib/data/clients";
 import { NO_THRESHOLD_OVERRIDES } from "@/lib/thresholds/resolve";
 
@@ -120,6 +123,7 @@ describe("updateClientAction", () => {
     });
 
     expect(state.fields).toEqual({
+      ...EMPTY_CLIENT_FIELDS,
       name: "",
       email: "ada@example.com",
       company: "Analytical Engines",

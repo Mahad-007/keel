@@ -4,6 +4,11 @@ import { EMAIL_MAX_LENGTH, optionalEmail } from "@/lib/forms/email";
 import { readFields } from "@/lib/forms/form-data";
 import { zeroedCentsInput } from "@/lib/forms/cents";
 import { optionalRateCents } from "@/lib/forms/rate";
+import {
+  BLANK_THRESHOLD_FIELDS,
+  THRESHOLD_FIELD_NAMES,
+  thresholdFormFields,
+} from "@/lib/forms/threshold";
 import { collect, type FieldErrors, type ParseResult } from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
 import { optionalText, requiredText } from "@/lib/forms/text";
@@ -29,6 +34,11 @@ export const CLIENT_FIELD_NAMES = [
   "email",
   "defaultRate",
   "notes",
+  // Last, because they are the only fields on this form that most clients
+  // never need: a client with no thresholds set is judged by Keel's defaults,
+  // which is the right answer until somebody has an opinion. A reader filling
+  // in a new client reaches the name, the rate and the notes first.
+  ...THRESHOLD_FIELD_NAMES,
 ] as const;
 
 export type ClientFieldName = (typeof CLIENT_FIELD_NAMES)[number];
@@ -58,6 +68,7 @@ export const EMPTY_CLIENT_FIELDS: ClientFormFields = {
   email: "",
   defaultRate: "",
   notes: "",
+  ...BLANK_THRESHOLD_FIELDS,
 };
 
 export type ClientFormState = FormState<ClientFieldName>;
@@ -115,6 +126,11 @@ export function clientFormFields(client: Client): ClientFormFields {
     email: client.email ?? "",
     defaultRate: zeroedCentsInput(client.defaultRateCents),
     notes: client.notes ?? "",
+    // The five thresholds, each rendered as the figure somebody typed or as an
+    // empty box meaning "use Keel's default". Spread from the row rather than
+    // listed, so a setting added to the spec is prefilled here rather than
+    // silently cleared by the next save of this form.
+    ...thresholdFormFields(client),
   };
 }
 

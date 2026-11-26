@@ -28,13 +28,15 @@ function errorsFrom(overrides: Partial<ClientFormFields>): ClientFieldErrors {
 
 describe("parseClientForm", () => {
   it("accepts a fully filled form and converts the rate to cents", () => {
-    const result = parseClientForm({
-      name: "  Ada Lovelace ",
-      email: " ada@example.com",
-      company: "Analytical Engines ",
-      notes: " Pays on time. ",
-      defaultRate: "$150.00",
-    });
+    const result = parseClientForm(
+      fields({
+        name: "  Ada Lovelace ",
+        email: " ada@example.com",
+        company: "Analytical Engines ",
+        notes: " Pays on time. ",
+        defaultRate: "$150.00",
+      }),
+    );
 
     expect(result).toEqual({
       ok: true,
@@ -132,10 +134,8 @@ describe("readClientFields", () => {
     form.set("id", "cli_smuggled");
 
     expect(readClientFields(form)).toEqual({
+      ...EMPTY_CLIENT_FIELDS,
       name: "Ada",
-      email: "",
-      company: "",
-      notes: "",
       defaultRate: "150",
     });
   });
@@ -186,6 +186,7 @@ function client(overrides: Partial<Client> = {}): Client {
 describe("clientFormFields", () => {
   it("fills every field from the stored client", () => {
     expect(clientFormFields(client())).toEqual({
+      ...EMPTY_CLIENT_FIELDS,
       name: "Ada Lovelace",
       email: "ada@example.com",
       company: "Analytical Engines",
