@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   hasUsableThresholds,
   isThresholdValue,
+  movedThresholds,
   thresholdColumn,
   thresholdColumns,
 } from "./column";
+import { NO_THRESHOLD_OVERRIDES } from "./resolve";
 import { THRESHOLD_KEYS, THRESHOLD_SETTINGS } from "./settings";
 
 const NEARLY_SPENT = THRESHOLD_SETTINGS.nearlySpentPercent;
@@ -138,5 +140,65 @@ describe("hasUsableThresholds", () => {
       expect(hasUsableThresholds(bad)).toBe(false);
       expect(() => thresholdColumns(bad)).toThrow();
     }
+  });
+});
+
+describe("movedThresholds", () => {
+  it("is empty for a form nobody touched", () => {
+    const row = { nearlySpentPercent: 70, recentRateWindowDays: 7 };
+
+    expect(movedThresholds(row, { ...row })).toEqual({});
+  });
+
+  it("carries only the setting that changed", () => {
+    expect(
+      movedThresholds(
+        { nearlySpentPercent: 70, paceShiftPercent: 30 },
+        { nearlySpentPercent: 60, paceShiftPercent: 30 },
+      ),
+    ).toEqual({ nearlySpentPercent: 60 });
+  });
+
+  it("carries a cleared setting as the null that restores inheritance", () => {
+    expect(
+      movedThresholds({ nearlySpentPercent: 70 }, { nearlySpentPercent: null }),
+    ).toEqual({ nearlySpentPercent: null });
+  });
+
+  it("carries a setting typed onto a row that had none", () => {
+    expect(
+      movedThresholds({ nearlySpentPercent: null }, { nearlySpentPercent: 70 }),
+    ).toEqual({ nearlySpentPercent: 70 });
+  });
+
+  /**
+   * A stored NULL and a submitted blank are the same instruction, so the pair
+   * is not a change. Read as different values, every save of every project
+   * would write five columns to no effect and reorder a list sorted by
+   * `updatedAt`.
+   */
+  it("reads an absent key and an explicit null as the same answer", () => {
+    expect(movedThresholds({}, { nearlySpentPercent: null })).toEqual({});
+    expect(movedThresholds({ nearlySpentPercent: null }, {})).toEqual({});
+  });
+
+  it("reports every setting that moved, not just the first", () => {
+    expect(
+      movedThresholds(
+        { ...NO_THRESHOLD_OVERRIDES },
+        {
+          ...NO_THRESHOLD_OVERRIDES,
+          nearlySpentPercent: 70,
+          paceShiftPercent: 30,
+        },
+      ),
+    ).toEqual({ nearlySpentPercent: 70, paceShiftPercent: 30 });
+  });
+
+  /** Nothing is validated here: the guard runs when the patch is written. */
+  it("carries a figure out of range rather than dropping it", () => {
+    expect(movedThresholds({}, { nearlySpentPercent: 400 })).toEqual({
+      nearlySpentPercent: 400,
+    });
   });
 });
