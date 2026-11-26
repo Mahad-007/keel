@@ -4,7 +4,11 @@ import {
   type ThresholdProblem,
 } from "./coherence";
 import { PERCENT_WHOLE } from "./scale";
-import { THRESHOLD_SETTINGS, type ThresholdKey } from "./settings";
+import {
+  THRESHOLD_KEYS,
+  THRESHOLD_SETTINGS,
+  type ThresholdKey,
+} from "./settings";
 import type {
   ResolvedThreshold,
   ResolvedThresholds,
@@ -112,6 +116,20 @@ export function thresholdLine(
     source: THRESHOLD_SOURCE_LABEL[resolved.source],
     hint: setting.hint,
   };
+}
+
+/**
+ * Every setting in force, in the spec's order, as the rows a table renders.
+ *
+ * The call a panel makes, for the reason `resolveThresholds` is the call a page
+ * makes: five lines assembled from one resolution cannot disagree with each
+ * other, and a component walking the keys itself would be a second place that
+ * decides what order the settings are read in.
+ */
+export function thresholdLines(
+  resolved: ResolvedThresholds,
+): readonly ThresholdLine[] {
+  return THRESHOLD_KEYS.map((key) => thresholdLine(key, resolved[key]));
 }
 
 /**
