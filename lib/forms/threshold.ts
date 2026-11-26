@@ -1,4 +1,8 @@
-import { THRESHOLD_SETTINGS, type ThresholdKey } from "@/lib/thresholds/settings";
+import {
+  THRESHOLD_KEYS,
+  THRESHOLD_SETTINGS,
+  type ThresholdKey,
+} from "@/lib/thresholds/settings";
 
 import { invalid, valid, type FieldResult } from "./result";
 
@@ -77,3 +81,42 @@ export function optionalThresholdSetting(
 export function thresholdInput(value: number | null): string {
   return value === null ? "" : String(value);
 }
+
+/**
+ * The five boxes a form lays out, in the spec's own order.
+ *
+ * The input names are the setting keys themselves, which is the decision that
+ * makes the rest of this file short: the submitted field, the error key, the
+ * column and the spec entry are all spelled the same, so `readFields` and
+ * `collect` need no translation table between them. A separate naming scheme —
+ * `threshold_nearly_spent` on the input, `nearlySpentPercent` in the spec —
+ * would be a fourth place to keep in step and the one nothing would catch,
+ * because a field read under a name nothing submits reads as a blank box, which
+ * is a legal answer meaning "inherit".
+ */
+export const THRESHOLD_FIELD_NAMES = THRESHOLD_KEYS;
+
+/** One of the five threshold inputs, by the name it is submitted under. */
+export type ThresholdFieldName = ThresholdKey;
+
+/** Every threshold box as submitted, untrimmed. */
+export type ThresholdFormFields = Record<ThresholdFieldName, string>;
+
+/**
+ * Five empty boxes: a form that has not been filled in, which is every client
+ * and every project until somebody disagrees with a default.
+ *
+ * Built from `THRESHOLD_KEYS` rather than written out, so the day a sixth
+ * setting is added the blank form grows a box instead of a hole — a key missing
+ * from here is a field `readFields` never reads and a value the parse never
+ * sees.
+ *
+ * Frozen, because both forms spread it into their own blanks and a caller that
+ * mutated it would prefill every new client in the process with somebody's
+ * typing.
+ */
+export const BLANK_THRESHOLD_FIELDS: ThresholdFormFields = Object.freeze(
+  Object.fromEntries(
+    THRESHOLD_KEYS.map((key) => [key, ""]),
+  ) as ThresholdFormFields,
+);
