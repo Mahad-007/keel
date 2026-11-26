@@ -26,6 +26,7 @@ import { ScopeHealthBanner } from "./scope-health-banner";
 import { DuplicateSection } from "./duplicate-section";
 import { StatusHistory } from "./status-history";
 import { StatusSection } from "./status-section";
+import { ThresholdsPanel } from "./thresholds-panel";
 
 /**
  * One row of the record: a label and the fact under it.
@@ -205,6 +206,17 @@ export function OverviewPanel({
         readings={readings}
         today={today}
         settings={paceSettings(thresholds)}
+      />
+      {/*
+        The figures every verdict above was reached at, under all of them. Last
+        of the four panels because it is the working rather than a reading: a
+        reader arrives wanting to know what is true, and only asks what it was
+        measured against once they disagree with it. The same order the page
+        keeps elsewhere — the conclusion first, the basis after.
+      */}
+      <ThresholdsPanel
+        clientName={project.clientName}
+        thresholds={thresholds}
       />
       {/*
         History before the controls, for the same reason the archive sits at
