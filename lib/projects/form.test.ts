@@ -330,6 +330,42 @@ describe("projectFormChanges", () => {
     });
   });
 
+  it("carries a threshold somebody typed onto the project", () => {
+    expect(resubmitted(project(), { nearlySpentPercent: "70" })).toEqual({
+      nearlySpentPercent: 70,
+    });
+  });
+
+  /**
+   * Clearing the box is an instruction — judge this project by its client
+   * again — so it has to reach the patch as an explicit null. Omitted, the
+   * column would keep yesterday's figure while the form redirected as though
+   * the clearance had stuck.
+   */
+  it("carries a cleared threshold as the null that restores inheritance", () => {
+    expect(
+      resubmitted(project({ nearlySpentPercent: 70 }), {
+        nearlySpentPercent: "",
+      }),
+    ).toEqual({ nearlySpentPercent: null });
+  });
+
+  it("leaves the four thresholds an edit did not touch out of the patch", () => {
+    expect(
+      resubmitted(project({ nearlySpentPercent: 70, paceShiftPercent: 30 }), {
+        paceShiftPercent: "40",
+      }),
+    ).toEqual({ paceShiftPercent: 40 });
+  });
+
+  it("counts a configured project resubmitted untouched as no change", () => {
+    expect(
+      resubmitted(
+        project({ nearlySpentPercent: 70, recentRateWindowDays: 7 }),
+      ),
+    ).toEqual({});
+  });
+
   it("counts a retyped value that parses the same as no change", () => {
     expect(resubmitted(project({ contractValueCents: 1_200_000 }), {
       contractValue: "$12,000",
