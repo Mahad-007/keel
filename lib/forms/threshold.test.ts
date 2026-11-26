@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { THRESHOLD_KEYS, THRESHOLD_SETTINGS } from "@/lib/thresholds/settings";
 
-import { optionalThresholdSetting, thresholdInput } from "./threshold";
+import {
+  BLANK_THRESHOLD_FIELDS,
+  optionalThresholdSetting,
+  THRESHOLD_FIELD_NAMES,
+  thresholdInput,
+} from "./threshold";
 
 function rejection(key: Parameters<typeof optionalThresholdSetting>[0], input: string): string {
   const result = optionalThresholdSetting(key, input);
@@ -129,5 +134,44 @@ describe("thresholdInput", () => {
         });
       }
     }
+  });
+});
+
+describe("THRESHOLD_FIELD_NAMES", () => {
+  /**
+   * The names are the spec's keys, which is what lets `readFields` and
+   * `collect` key a submitted box, an error message and a column the same way.
+   * A field name that drifted from its key would read as a blank box —
+   * "inherit" — rather than as a bug, so the drift would be silent and the
+   * setting simply would not save.
+   */
+  it("is the spec's own keys, in the spec's own order", () => {
+    expect(THRESHOLD_FIELD_NAMES).toEqual(THRESHOLD_KEYS);
+  });
+});
+
+describe("BLANK_THRESHOLD_FIELDS", () => {
+  it("has an empty box for every setting in the spec", () => {
+    expect(Object.keys(BLANK_THRESHOLD_FIELDS).sort()).toEqual(
+      [...THRESHOLD_KEYS].sort(),
+    );
+    for (const key of THRESHOLD_KEYS) {
+      expect(BLANK_THRESHOLD_FIELDS[key]).toBe("");
+    }
+  });
+
+  /** Every box of an untouched form parses, and every one of them inherits. */
+  it("parses as five settings nobody has set", () => {
+    for (const key of THRESHOLD_KEYS) {
+      expect(optionalThresholdSetting(key, BLANK_THRESHOLD_FIELDS[key])).toEqual(
+        { ok: true, value: null },
+      );
+    }
+  });
+
+  it("cannot be edited by the forms that spread it", () => {
+    expect(() => {
+      BLANK_THRESHOLD_FIELDS.nearlySpentPercent = "70";
+    }).toThrow();
   });
 });
