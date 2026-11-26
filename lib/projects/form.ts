@@ -15,6 +15,7 @@ import { collect, hasFieldError, type ParseResult } from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
 import { requiredText } from "@/lib/forms/text";
 import { thresholdFieldResults } from "@/lib/forms/threshold";
+import { movedThresholds } from "@/lib/thresholds/column";
 import type { ThresholdOverrides } from "@/lib/thresholds/resolve";
 
 /**
@@ -239,5 +240,10 @@ export function projectFormChanges(
     changes.contractValueCents = value.contractValueCents;
   }
   if (value.rateCents !== current.rateCents) changes.rateCents = value.rateCents;
+  // The five settings, compared the same way and for the same reason, in the
+  // one function that knows a stored NULL and a blank box are the same answer.
+  // `Object.assign` rather than a spread of a readonly type, which would not
+  // let the patch be built a key at a time.
+  Object.assign(changes, movedThresholds(current, value));
   return changes;
 }
