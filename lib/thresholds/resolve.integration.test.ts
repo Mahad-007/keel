@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
+import {
+  EMPTY_CLIENT_FIELDS,
+  parseClientForm,
+  type ClientFormFields,
+} from "@/lib/clients/form";
 import { createClient, updateClient } from "@/lib/data/clients";
 import {
   createProject,
@@ -8,6 +13,12 @@ import {
 } from "@/lib/data/projects";
 import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
+import {
+  EMPTY_PROJECT_FIELDS,
+  parseProjectForm,
+  projectFormChanges,
+  type ProjectFormFields,
+} from "@/lib/projects/form";
 
 import { resolveJoinedThresholds, type ThresholdOverrides } from "./resolve";
 import { THRESHOLD_SETTINGS } from "./settings";
@@ -160,5 +171,116 @@ describe("the thresholds in force on a stored project", () => {
       value: 70,
       source: "client",
     });
+  });
+});
+
+/**
+ * The same chain, entered where a person enters it: strings in a form.
+ *
+ * The three steps above this are the ones a page takes, and they start from
+ * numbers somebody has already decided. What a reader actually does is type
+ * "70" into a box, and between that and a figure in force sit the parse, the
+ * column guard, the join and the resolution — four modules that each read a
+ * blank box as something, and only one answer ("inherit") is right.
+ *
+ * The failure this catches is the one that would look like a working feature: a
+ * setting typed, a form that redirects, and a project still judged by Keel's
+ * default.
+ */
+describe("a threshold typed into a form", () => {
+  /** What the client form yields for a client with one setting typed in. */
+  function typedOnClient(fields: Partial<ClientFormFields>) {
+    const parsed = parseClientForm({
+      ...EMPTY_CLIENT_FIELDS,
+      name: "Harbour Works",
+      ...fields,
+    });
+    if (!parsed.ok) throw new Error("expected the client form to be accepted");
+    return parsed.value;
+  }
+
+  /** The same for a project, which needs a client to be filed under. */
+  function typedOnProject(
+    clientId: string,
+    fields: Partial<ProjectFormFields>,
+  ) {
+    const parsed = parseProjectForm(
+      {
+        ...EMPTY_PROJECT_FIELDS,
+        client: clientId,
+        name: "Engine rewrite",
+        ...fields,
+      },
+      [clientId],
+    );
+    if (!parsed.ok) throw new Error("expected the project form to be accepted");
+    return parsed.value;
+  }
+
+  it("reaches the figure the project is judged by", async () => {
+    const client = await createClient(
+      typedOnClient({ nearlySpentPercent: "70" }),
+      db,
+    );
+    const project = await createProject(
+      typedOnProject(client.id, {}),
+      db,
+    );
+
+    const joined = await getProjectWithClient(project.id, db);
+    expect(joined === null ? null : resolveJoinedThresholds(joined)).toMatchObject(
+      { nearlySpentPercent: { value: 70, source: "client" } },
+    );
+  });
+
+  it("overrides the client when the figure is typed on the project", async () => {
+    const client = await createClient(
+      typedOnClient({ nearlySpentPercent: "70" }),
+      db,
+    );
+    const project = await createProject(
+      typedOnProject(client.id, { nearlySpentPercent: "60" }),
+      db,
+    );
+
+    const joined = await getProjectWithClient(project.id, db);
+    expect(joined === null ? null : resolveJoinedThresholds(joined)).toMatchObject(
+      { nearlySpentPercent: { value: 60, source: "project" } },
+    );
+  });
+
+  /**
+   * Clearing the box on an edit, through the patch the action builds. The
+   * column has to end up NULL rather than keeping yesterday's figure, or the
+   * form redirects as though the clearance stuck and the project goes on being
+   * judged by a setting nothing shows.
+   */
+  it("goes back to the client when the box is cleared on an edit", async () => {
+    const client = await createClient(
+      typedOnClient({ nearlySpentPercent: "70" }),
+      db,
+    );
+    const stored = await createProject(
+      typedOnProject(client.id, { nearlySpentPercent: "60" }),
+      db,
+    );
+
+    const cleared = typedOnProject(client.id, { nearlySpentPercent: "" });
+    await updateProject(stored.id, projectFormChanges(stored, cleared), db);
+
+    const joined = await getProjectWithClient(stored.id, db);
+    expect(joined === null ? null : resolveJoinedThresholds(joined)).toMatchObject(
+      { nearlySpentPercent: { value: 70, source: "client" } },
+    );
+  });
+
+  it("never reaches a column with a figure the form refuses", async () => {
+    const refused = parseClientForm({
+      ...EMPTY_CLIENT_FIELDS,
+      name: "Harbour Works",
+      nearlySpentPercent: "400",
+    });
+
+    expect(refused.ok).toBe(false);
   });
 });
