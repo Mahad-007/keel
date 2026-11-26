@@ -1,3 +1,4 @@
+import type { ThresholdOverrides } from "@/lib/thresholds/resolve";
 import {
   THRESHOLD_KEYS,
   THRESHOLD_SETTINGS,
@@ -120,3 +121,27 @@ export const BLANK_THRESHOLD_FIELDS: ThresholdFormFields = Object.freeze(
     THRESHOLD_KEYS.map((key) => [key, ""]),
   ) as ThresholdFormFields,
 );
+
+/**
+ * A stored row as the five boxes that describe it.
+ *
+ * The group's half of `thresholdInput`, and the reason both exist: an edit form
+ * opens on what is stored and has to render it as strings the parse accepts
+ * back unchanged, or saving an untouched form rewrites the row. Here that means
+ * a NULL column renders empty and an empty box parses back to NULL — "inherit"
+ * on the way out and on the way in — so a client who has agreed nothing stays
+ * that way through a save that only touched their email.
+ *
+ * Takes a partial row, so it is satisfied by a stored client, a stored project
+ * and a literal in a test alike. An absent key is rendered the same as a NULL
+ * one, because the resolution reads them the same.
+ */
+export function thresholdFormFields(
+  row: ThresholdOverrides,
+): ThresholdFormFields {
+  const fields = {} as ThresholdFormFields;
+  for (const key of THRESHOLD_KEYS) {
+    fields[key] = thresholdInput(row[key] ?? null);
+  }
+  return fields;
+}
