@@ -4,7 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { projectClientOptions } from "@/lib/clients/picker";
 import { createProject } from "@/lib/data/projects";
-import { INITIAL_PROJECT_FORM_STATE } from "@/lib/projects/form";
+import {
+  EMPTY_PROJECT_FIELDS,
+  INITIAL_PROJECT_FORM_STATE,
+} from "@/lib/projects/form";
 import { NO_THRESHOLD_OVERRIDES } from "@/lib/thresholds/resolve";
 
 import { createProjectAction } from "./actions";
@@ -88,10 +91,10 @@ describe("a project form that is rejected", () => {
       contractValue: "Contract value must be an amount, like 150 or 150.00.",
     });
     expect(state.fields).toEqual({
+      ...EMPTY_PROJECT_FIELDS,
       client: "",
       name: "",
       contractValue: "lots",
-      rateOverride: "",
     });
     expect(state.formError).toBeNull();
     expect(created).not.toHaveBeenCalled();
@@ -189,7 +192,7 @@ describe("a project that cannot be written", () => {
       "Could not save the project. Nothing was written — try again.",
     );
     expect(state.errors).toEqual({});
-    expect(state.fields).toEqual(values);
+    expect(state.fields).toEqual({ ...EMPTY_PROJECT_FIELDS, ...values });
     expect(redirect).not.toHaveBeenCalled();
   });
 });

@@ -34,6 +34,7 @@ describe("readProjectFields", () => {
     );
 
     expect(fields).toEqual({
+      ...EMPTY_PROJECT_FIELDS,
       client: "cli_ada",
       name: "Engine rewrite",
       contractValue: "12000",
@@ -206,6 +207,7 @@ function project(fields: Partial<Project> = {}): Project {
 describe("projectFormFields", () => {
   it("prefills every field from the stored row", () => {
     expect(projectFormFields(project())).toEqual({
+      ...EMPTY_PROJECT_FIELDS,
       client: "cli_ada",
       name: "Engine rewrite",
       contractValue: "12000.00",

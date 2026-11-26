@@ -6,6 +6,11 @@ import { optionalCentsInput, zeroedCentsInput } from "@/lib/forms/cents";
 import { requiredChoice } from "@/lib/forms/choice";
 import { readFields } from "@/lib/forms/form-data";
 import { overrideRateCents } from "@/lib/forms/rate";
+import {
+  BLANK_THRESHOLD_FIELDS,
+  THRESHOLD_FIELD_NAMES,
+  thresholdFormFields,
+} from "@/lib/forms/threshold";
 import { collect, hasFieldError, type ParseResult } from "@/lib/forms/result";
 import { initialFormState, type FormState } from "@/lib/forms/state";
 import { requiredText } from "@/lib/forms/text";
@@ -39,6 +44,10 @@ export const PROJECT_FIELD_NAMES = [
   "name",
   "contractValue",
   "rateOverride",
+  // Last, for the reason they are last on a client: most projects are judged
+  // by whatever their client agreed, and a reader setting one up should reach
+  // the name and the price before the five boxes they can leave alone.
+  ...THRESHOLD_FIELD_NAMES,
 ] as const;
 
 export type ProjectFieldName = (typeof PROJECT_FIELD_NAMES)[number];
@@ -62,6 +71,7 @@ export const EMPTY_PROJECT_FIELDS: ProjectFormFields = {
   name: "",
   contractValue: "",
   rateOverride: "",
+  ...BLANK_THRESHOLD_FIELDS,
 };
 
 export type ProjectFormState = FormState<ProjectFieldName>;
@@ -146,6 +156,10 @@ export function projectFormFields(project: Project): ProjectFormFields {
     name: project.name,
     contractValue: zeroedCentsInput(project.contractValueCents),
     rateOverride: optionalCentsInput(project.rateCents),
+    // The project's own settings, each rendered as the figure somebody typed or
+    // as an empty box — which here means "whatever my client is set to", one
+    // rung further up the chain than a client's blank box.
+    ...thresholdFormFields(project),
   };
 }
 
