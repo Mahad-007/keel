@@ -211,3 +211,57 @@ export function gapCell(gap: number | null): string {
 export function burnedCell(summary: BurnSummary): string {
   return hasValuedBurn(summary) ? formatCents(summary.burnedCents) : NO_FIGURE;
 }
+
+/**
+ * What a project with nothing wrong is told, when both axes were read.
+ *
+ * A clause rather than a blank cell. A row whose verdict column says "On
+ * track" and whose reason column says nothing has not explained itself: the
+ * reader cannot tell a project that was measured on both axes and cleared from
+ * one the page gave up on, and those are the two things this whole page exists
+ * to keep apart. The clause names both comparisons, and the columns beside it
+ * say what they came out at.
+ */
+export const ON_TRACK_CLAUSE =
+  "Inside the price agreed and tracking the work delivered.";
+
+/**
+ * What a project cleared on the money alone is told.
+ *
+ * The money axis stands on its own — the classifier says so, and clears a
+ * project on it whether or not anybody sized the work — so the verdict is
+ * sound and the clause has to not overclaim it. "On the money alone" is the
+ * honest half; the caveat beside it says which field would buy the other half.
+ */
+export const ON_TRACK_ON_MONEY_CLAUSE =
+  "Inside the price agreed, on the money alone.";
+
+/**
+ * What a flagged project is told when no comparison carried the figures to
+ * explain itself.
+ *
+ * Not reachable from `assessScopeCreep`: a `watch` or an `over` is the worst
+ * of its own reasons, so a flagged verdict without reasons cannot come out of
+ * a whole assessment. It is written because the type allows it and the
+ * alternative at this spot is worse — the obvious fallback is the on-track
+ * clause, which would put "Inside the price agreed" in the reason column of a
+ * row whose verdict column reads "Over scope". A row that says the figures are
+ * missing is wrong about one thing; a row that clears a flagged project is
+ * wrong about the only thing that matters.
+ */
+export const UNEXPLAINED_FLAG_CLAUSE =
+  "Flagged, with no comparison able to explain itself. The project has the figures.";
+
+/**
+ * What a project the classifier would not judge is told when even the gap
+ * could not be named.
+ *
+ * Also not reachable: a withheld verdict is withheld because
+ * `readConsumedShare` found no share, and every one of the three ways to get
+ * there puts a blind spot about the money on the assessment. It exists so the
+ * reason column is never empty, which is the one thing it must never be —
+ * "Not assessed" with nothing beside it is the coloured dot this page was
+ * built to replace.
+ */
+export const UNEXPLAINED_GAP_CLAUSE =
+  "No verdict could be reached, and nothing on the project says why.";
