@@ -116,6 +116,18 @@ describe("compareRisk", () => {
     expect(compareRisk(measured, unmeasured)).toBeLessThan(0);
   });
 
+  it("puts a healthy project above one that has not begun", () => {
+    expect(
+      compareRisk(row({ band: "healthy" }), row({ band: "unstarted" })),
+    ).toBeLessThan(0);
+  });
+
+  it("puts an unassessed project above one that has not begun", () => {
+    expect(
+      compareRisk(row({ band: "unassessed" }), row({ band: "unstarted" })),
+    ).toBeLessThan(0);
+  });
+
   it("ranks unassessed projects by the hours nobody could value", () => {
     const many = row({ band: "unassessed", loggedMinutes: 4_800 });
     const few = row({ band: "unassessed", loggedMinutes: 20 });
@@ -153,9 +165,10 @@ describe("compareRisk", () => {
 });
 
 describe("rankedPortfolio", () => {
-  it("puts the four bands in order", () => {
+  it("puts the five bands in order", () => {
     const rows = [
       row({ id: "prj_h", band: "healthy" }),
+      row({ id: "prj_n", band: "unstarted" }),
       row({ id: "prj_u", band: "unassessed" }),
       row({ id: "prj_o", band: "over" }),
       row({ id: "prj_w", band: "watch" }),
@@ -166,6 +179,7 @@ describe("rankedPortfolio", () => {
       "prj_w",
       "prj_u",
       "prj_h",
+      "prj_n",
     ]);
   });
 
