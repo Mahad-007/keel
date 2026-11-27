@@ -1,7 +1,9 @@
 import {
+  formatSharePoints,
   NOT_ASSESSED_HEADLINE,
   SCOPE_HEALTH_HEADLINE,
 } from "@/lib/projects/scope-health";
+import { formatSharePercent } from "@/lib/projects/scope-summary";
 import type { CreepBlindSpot, CreepReason } from "@/lib/scope-creep";
 
 import { UNASSESSED_BAND, type RiskBand } from "./band";
@@ -139,4 +141,53 @@ export function firstBlindSpotClause(
 ): string | null {
   const [first] = blindSpots;
   return first === undefined ? null : BLIND_SPOT_CLAUSE[first];
+}
+
+/**
+ * What a figure that could not be read is printed as: an en dash.
+ *
+ * Not "0%", which is a measurement and would be the single most reassuring
+ * thing this page could say about a project whose burn nobody could value.
+ * Not "n/a", which says the page has no opinion when the page has a specific
+ * one. A dash says there is no figure here, and the clause at the end of the
+ * row says why there is not — which is the arrangement that keeps the columns
+ * scannable without leaving the absence unexplained.
+ *
+ * The same en dash the timesheet uses for a cell with nothing in it, because a
+ * reader should only have to learn one mark for "no figure".
+ */
+export const NO_FIGURE = "\u2013";
+
+/**
+ * A share of something, as a column reads it, or a dash where there is none.
+ *
+ * `formatSharePercent` for the figure, so the consumed share on this row and
+ * the consumed share on the project's own burn panel round the same way. A
+ * reader who scans the portfolio and clicks through must not find 80% become
+ * 79%.
+ *
+ * Null is the ordinary case rather than an error, on both columns it serves: a
+ * project with no price has no consumed share, and one with nothing estimated
+ * has no delivered share. Each is a row this page exists to show.
+ */
+export function shareCell(share: number | null): string {
+  return share === null ? NO_FIGURE : formatSharePercent(share);
+}
+
+/**
+ * The gap between the two shares, as a column reads it, or a dash.
+ *
+ * `formatSharePoints`, which prints points rather than a percent — the two
+ * shares either side of it are already percentages, and a third one between
+ * them would read as a share of the contract rather than the distance between
+ * the other two.
+ *
+ * It prints a negative gap as readily as a positive one, which is new here:
+ * the classifier never flags a project whose delivery is ahead of its burn, so
+ * the banner never shows one. A portfolio lists the healthy projects too, and
+ * most of them are ahead — "-12 points" on a row that reads On track is the
+ * figure that says why.
+ */
+export function gapCell(gap: number | null): string {
+  return gap === null ? NO_FIGURE : formatSharePoints(gap);
 }
