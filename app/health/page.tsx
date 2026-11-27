@@ -8,7 +8,7 @@ import {
 } from "@/lib/data/projects";
 import { timeTotalsByProject } from "@/lib/data/time-entries";
 import { buildPortfolio } from "@/lib/health/portfolio";
-import { HEALTH_TITLE } from "@/lib/health/route";
+import { HEALTH_TITLE, PORTFOLIO_STATUS } from "@/lib/health/route";
 import { describePortfolio } from "@/lib/health/words";
 import { PROJECTS_PATH } from "@/lib/projects/query";
 
@@ -43,7 +43,7 @@ export default async function HealthPage() {
     the predicate is cheaper than the rows it leaves out.
   */
   const [projects, totals, lines, statusCounts] = await Promise.all([
-    listProjectsWithClient({ status: "active" }),
+    listProjectsWithClient({ status: PORTFOLIO_STATUS }),
     timeTotalsByProject(),
     scopeLinesByProject(),
     countProjectsByStatus(),

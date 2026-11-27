@@ -1,3 +1,5 @@
+import type { ProjectStatus } from "@/lib/projects/status";
+
 /**
  * Where the portfolio lives, and what it is called.
  *
@@ -28,3 +30,26 @@ export const HEALTH_PATH = "/health";
  * heading nobody reads twice.
  */
 export const HEALTH_TITLE = "Health";
+
+/**
+ * The one status the portfolio ranks.
+ *
+ * Active, and only active. The milestone says every active project, and the
+ * reason it says that rather than every project is what the page is for: it
+ * answers "what should I do about the work in flight this week", and the three
+ * other statuses have nothing in flight.
+ *
+ * A draft has not been agreed, so there is no contract for a burn to be a
+ * share of and no promise anybody is failing to keep. A paused engagement is
+ * deliberately not accruing hours, so its gap cannot widen while it sits
+ * there — ranking it would put a decision somebody has already taken among the
+ * ones they have not. A closed project has whatever it ended up costing, which
+ * is a fact for the next quote rather than a problem to catch while there is
+ * still budget in the bank.
+ *
+ * Named here, beside the path, rather than written into the page's query. Its
+ * second reader is the integration test, which has to ask the same question
+ * the page asks or it is testing a different page — and the day a filter lands
+ * on this view, this is the constant that becomes a default.
+ */
+export const PORTFOLIO_STATUS: ProjectStatus = "active";

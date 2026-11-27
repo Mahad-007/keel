@@ -11,6 +11,7 @@ import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
 
 import { buildPortfolio } from "./portfolio";
+import { PORTFOLIO_STATUS } from "./route";
 import type { PortfolioRow } from "./row";
 
 /**
@@ -49,7 +50,7 @@ async function activeProject(
   contractValueCents: number,
 ): Promise<string> {
   const project = await createProject(
-    { clientId, name, status: "active", contractValueCents },
+    { clientId, name, status: PORTFOLIO_STATUS, contractValueCents },
     db,
   );
   return project.id;
@@ -91,7 +92,7 @@ async function agreeScope(
  */
 async function portfolio(): Promise<PortfolioRow[]> {
   const [projects, totals, lines] = await Promise.all([
-    listProjectsWithClient({ status: "active" }, db),
+    listProjectsWithClient({ status: PORTFOLIO_STATUS }, db),
     timeTotalsByProject(db),
     scopeLinesByProject(db),
   ]);
