@@ -1,6 +1,7 @@
 import type { ProjectScopeLine, ScopeLine } from "@/lib/scope";
 import type { LoggedTotals, ProjectLoggedTotals } from "@/lib/time/rollup";
 
+import { isFlaggedBand, RISK_BANDS, type RiskBand } from "./band";
 import { rankedPortfolio } from "./rank";
 import { portfolioRow, type HealthProject, type PortfolioRow } from "./row";
 
@@ -112,4 +113,37 @@ export function buildPortfolio(
       ),
     ),
   );
+}
+
+/**
+ * How many rows sit in each band.
+ *
+ * Every band is present, even at nought, so a caller reading one does not have
+ * to tell a band with nothing in it from a band it has misspelled. The same
+ * arrangement `countProjectsByStatus` makes, and for the same reason.
+ *
+ * Built off `RISK_BANDS`, so a fifth band is counted the day it is added
+ * rather than the day somebody notices it was left out of a summary.
+ */
+export function countByBand(
+  rows: readonly PortfolioRow[],
+): Record<RiskBand, number> {
+  const counts = Object.fromEntries(
+    RISK_BANDS.map((band) => [band, 0]),
+  ) as Record<RiskBand, number>;
+
+  for (const row of rows) counts[row.band] += 1;
+  return counts;
+}
+
+/**
+ * How many of the rows the classifier actually flagged.
+ *
+ * `over` and `watch`, and not the unassessed ones — which is the distinction
+ * `isFlaggedBand` exists for. A count that included them would say the studio
+ * has five problems when it has three problems and two forms to fill in, and
+ * those are different sentences with different things to do about them.
+ */
+export function flaggedCount(rows: readonly PortfolioRow[]): number {
+  return rows.filter((row) => isFlaggedBand(row.band)).length;
 }

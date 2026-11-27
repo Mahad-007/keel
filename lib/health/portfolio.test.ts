@@ -4,7 +4,12 @@ import type { ProjectScopeLine } from "@/lib/scope";
 import { NO_THRESHOLD_OVERRIDES } from "@/lib/thresholds/resolve";
 import type { ProjectLoggedTotals } from "@/lib/time/rollup";
 
-import { buildPortfolio, groupByProject } from "./portfolio";
+import {
+  buildPortfolio,
+  countByBand,
+  flaggedCount,
+  groupByProject,
+} from "./portfolio";
 import type { HealthProject } from "./row";
 
 describe("groupByProject", () => {
@@ -195,5 +200,85 @@ describe("buildPortfolio", () => {
     expect(buildPortfolio([], [totals("prj_a", 10)], scope("prj_a", 2, 1))).toEqual(
       [],
     );
+  });
+});
+
+describe("countByBand", () => {
+  it("counts every band, including the ones with nothing in them", () => {
+    const rows = buildPortfolio(
+      [project("prj_fine"), project("prj_over")],
+      [totals("prj_fine", 20), totals("prj_over", 120)],
+      [...scope("prj_fine", 4, 2), ...scope("prj_over", 4, 1)],
+    );
+
+    expect(countByBand(rows)).toEqual({
+      over: 1,
+      watch: 0,
+      unassessed: 0,
+      healthy: 1,
+    });
+  });
+
+  it("counts nothing at all for an empty portfolio", () => {
+    expect(countByBand([])).toEqual({
+      over: 0,
+      watch: 0,
+      unassessed: 0,
+      healthy: 0,
+    });
+  });
+
+  it("adds up to the number of rows", () => {
+    const rows = buildPortfolio(
+      [
+        project("prj_fine"),
+        project("prj_over"),
+        project("prj_unpriced", { contractValueCents: 0 }),
+      ],
+      [
+        totals("prj_fine", 20),
+        totals("prj_over", 120),
+        totals("prj_unpriced", 5),
+      ],
+      scope("prj_fine", 4, 2),
+    );
+
+    const counted = Object.values(countByBand(rows)).reduce((a, b) => a + b, 0);
+    expect(counted).toBe(rows.length);
+  });
+});
+
+describe("flaggedCount", () => {
+  it("counts the projects a comparison came out badly for", () => {
+    const rows = buildPortfolio(
+      [project("prj_over"), project("prj_watch"), project("prj_fine")],
+      [
+        totals("prj_over", 120),
+        totals("prj_watch", 85),
+        totals("prj_fine", 20),
+      ],
+      [
+        ...scope("prj_over", 4, 1),
+        ...scope("prj_watch", 4, 3),
+        ...scope("prj_fine", 4, 2),
+      ],
+    );
+
+    expect(flaggedCount(rows)).toBe(2);
+  });
+
+  it("does not count an unassessed project as flagged", () => {
+    const rows = buildPortfolio(
+      [project("prj_unpriced", { contractValueCents: 0 })],
+      [totals("prj_unpriced", 90)],
+      scope("prj_unpriced", 4, 1),
+    );
+
+    expect(rows[0].band).toBe("unassessed");
+    expect(flaggedCount(rows)).toBe(0);
+  });
+
+  it("counts nothing in an empty portfolio", () => {
+    expect(flaggedCount([])).toBe(0);
   });
 });
