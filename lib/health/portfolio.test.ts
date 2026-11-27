@@ -4,12 +4,7 @@ import type { ProjectScopeLine } from "@/lib/scope";
 import { NO_THRESHOLD_OVERRIDES } from "@/lib/thresholds/resolve";
 import type { ProjectLoggedTotals } from "@/lib/time/rollup";
 
-import {
-  buildPortfolio,
-  countByBand,
-  flaggedCount,
-  groupByProject,
-} from "./portfolio";
+import { buildPortfolio, countByBand, groupByProject } from "./portfolio";
 import type { HealthProject } from "./row";
 
 describe("groupByProject", () => {
@@ -247,40 +242,5 @@ describe("countByBand", () => {
 
     const counted = Object.values(countByBand(rows)).reduce((a, b) => a + b, 0);
     expect(counted).toBe(rows.length);
-  });
-});
-
-describe("flaggedCount", () => {
-  it("counts the projects a comparison came out badly for", () => {
-    const rows = buildPortfolio(
-      [project("prj_over"), project("prj_watch"), project("prj_fine")],
-      [
-        totals("prj_over", 120),
-        totals("prj_watch", 85),
-        totals("prj_fine", 20),
-      ],
-      [
-        ...scope("prj_over", 4, 1),
-        ...scope("prj_watch", 4, 3),
-        ...scope("prj_fine", 4, 2),
-      ],
-    );
-
-    expect(flaggedCount(rows)).toBe(2);
-  });
-
-  it("does not count an unassessed project as flagged", () => {
-    const rows = buildPortfolio(
-      [project("prj_unpriced", { contractValueCents: 0 })],
-      [totals("prj_unpriced", 90)],
-      scope("prj_unpriced", 4, 1),
-    );
-
-    expect(rows[0].band).toBe("unassessed");
-    expect(flaggedCount(rows)).toBe(0);
-  });
-
-  it("counts nothing in an empty portfolio", () => {
-    expect(flaggedCount([])).toBe(0);
   });
 });

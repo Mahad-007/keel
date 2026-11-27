@@ -1,7 +1,7 @@
 import type { ProjectScopeLine, ScopeLine } from "@/lib/scope";
 import type { LoggedTotals, ProjectLoggedTotals } from "@/lib/time/rollup";
 
-import { isFlaggedBand, RISK_BANDS, type RiskBand } from "./band";
+import { RISK_BANDS, type RiskBand } from "./band";
 import { rankedPortfolio } from "./rank";
 import { portfolioRow, type HealthProject, type PortfolioRow } from "./row";
 
@@ -134,16 +134,4 @@ export function countByBand(
 
   for (const row of rows) counts[row.band] += 1;
   return counts;
-}
-
-/**
- * How many of the rows the classifier actually flagged.
- *
- * `over` and `watch`, and not the unassessed ones — which is the distinction
- * `isFlaggedBand` exists for. A count that included them would say the studio
- * has five problems when it has three problems and two forms to fill in, and
- * those are different sentences with different things to do about them.
- */
-export function flaggedCount(rows: readonly PortfolioRow[]): number {
-  return rows.filter((row) => isFlaggedBand(row.band)).length;
 }
