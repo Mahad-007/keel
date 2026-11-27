@@ -27,6 +27,7 @@ import {
   markTimeEntryBilled,
   projectTimeTotals,
   projectTimeTotalsThrough,
+  timeTotalsByProject,
   updateTimeEntry,
 } from "./time-entries";
 
@@ -641,6 +642,116 @@ describe("dailyProjectTimeTotals", () => {
         billableMinutes: 60,
       },
     ]);
+  });
+});
+
+describe("timeTotalsByProject", () => {
+  /** A second engagement, so the grouping has two projects to keep apart. */
+  async function secondProject(): Promise<string> {
+    const otherClient = await createClient({ name: "Other Co" }, db);
+    const other = await createProject(
+      { clientId: otherClient.id, name: "Elsewhere" },
+      db,
+    );
+    return other.id;
+  }
+
+  it("totals each project's whole history into one row", async () => {
+    await createTimeEntry({ projectId, minutes: 90, workedOn: "2026-10-14" }, db);
+    await createTimeEntry({ projectId, minutes: 30, workedOn: "2026-10-20" }, db);
+
+    expect(await timeTotalsByProject(db)).toEqual([
+      {
+        projectId,
+        entryCount: 2,
+        loggedMinutes: 120,
+        billableMinutes: 120,
+      },
+    ]);
+  });
+
+  it("keeps each project's minutes to itself", async () => {
+    const otherId = await secondProject();
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    await createTimeEntry(
+      { projectId: otherId, minutes: 600, workedOn: "2026-10-14" },
+      db,
+    );
+
+    const totals = await timeTotalsByProject(db);
+
+    expect(totals).toHaveLength(2);
+    expect(
+      totals.find((total) => total.projectId === projectId)?.loggedMinutes,
+    ).toBe(60);
+    expect(
+      totals.find((total) => total.projectId === otherId)?.loggedMinutes,
+    ).toBe(600);
+  });
+
+  it("counts written-off minutes in the logged figure and not the billable", async () => {
+    await createTimeEntry(
+      { projectId, minutes: 60, workedOn: "2026-10-14", billable: false },
+      db,
+    );
+    await createTimeEntry({ projectId, minutes: 30, workedOn: "2026-10-14" }, db);
+
+    expect(await timeTotalsByProject(db)).toEqual([
+      {
+        projectId,
+        entryCount: 2,
+        loggedMinutes: 90,
+        billableMinutes: 30,
+      },
+    ]);
+  });
+
+  it("agrees with the single-project total", async () => {
+    await secondProject();
+    await createTimeEntry({ projectId, minutes: 90, workedOn: "2026-10-14" }, db);
+    await createTimeEntry(
+      { projectId, minutes: 45, workedOn: "2026-10-15", billable: false },
+      db,
+    );
+
+    const mine = (await timeTotalsByProject(db)).find(
+      (total) => total.projectId === projectId,
+    );
+
+    expect({
+      entryCount: mine?.entryCount,
+      loggedMinutes: mine?.loggedMinutes,
+      billableMinutes: mine?.billableMinutes,
+    }).toEqual(await projectTimeTotals(projectId, db));
+  });
+
+  it("leaves out a project nothing has been logged against", async () => {
+    const otherId = await secondProject();
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+
+    const totals = await timeTotalsByProject(db);
+
+    expect(totals.map((total) => total.projectId)).toEqual([projectId]);
+    expect(totals.some((total) => total.projectId === otherId)).toBe(false);
+  });
+
+  it("comes back empty when nothing has been logged at all", async () => {
+    expect(await timeTotalsByProject(db)).toEqual([]);
+  });
+
+  it("returns the projects in a stable order between reads", async () => {
+    const otherId = await secondProject();
+    await createTimeEntry({ projectId, minutes: 60, workedOn: "2026-10-14" }, db);
+    await createTimeEntry(
+      { projectId: otherId, minutes: 60, workedOn: "2026-10-14" },
+      db,
+    );
+
+    const first = (await timeTotalsByProject(db)).map((t) => t.projectId);
+    const second = (await timeTotalsByProject(db)).map((t) => t.projectId);
+
+    expect(first).toEqual(second);
+    expect(first).toEqual([...first].sort());
   });
 });
 
