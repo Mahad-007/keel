@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { clientEditPath } from "@/lib/clients/detail";
 import type { ProjectWithClient } from "@/lib/data/projects";
 import { formatDate } from "@/lib/dates";
 import { projectPath } from "@/lib/projects/detail";
@@ -66,7 +67,7 @@ export function ProjectsTable({
             </td>
             <td className="py-2.5 pr-6 text-zinc-700 dark:text-zinc-300">
               <Link
-                href={`/clients/${project.clientId}/edit`}
+                href={clientEditPath(project.clientId)}
                 className="underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-900 dark:decoration-zinc-700 dark:hover:decoration-zinc-100"
               >
                 {project.clientName}

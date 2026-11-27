@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { clientEditPath } from "@/lib/clients/detail";
 import type { PortfolioRow } from "@/lib/health/row";
 import {
   PORTFOLIO_CAPTION,
@@ -86,7 +87,7 @@ export function PortfolioTable({ rows }: { rows: readonly PortfolioRow[] }) {
               </th>
               <td className="py-2.5 pr-6 text-zinc-700 dark:text-zinc-300">
                 <Link
-                  href={`/clients/${row.project.clientId}/edit`}
+                  href={clientEditPath(row.project.clientId)}
                   className="underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-900 dark:decoration-zinc-700 dark:hover:decoration-zinc-100"
                 >
                   {row.project.clientName}

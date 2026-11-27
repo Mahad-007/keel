@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { CaveatNote } from "@/components/form";
+import { clientEditPath } from "@/lib/clients/detail";
 import { projectEditPath } from "@/lib/projects/detail";
 import {
   describeNearlySpentSetting,
@@ -177,7 +178,7 @@ export function ThresholdsPanel({
         </Link>{" "}
         or{" "}
         <Link
-          href={`/clients/${encodeURIComponent(clientId)}/edit`}
+          href={clientEditPath(clientId)}
           className="underline underline-offset-4 hover:text-zinc-900 dark:hover:text-zinc-100"
         >
           for {clientName}
