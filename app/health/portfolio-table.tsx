@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { clientEditPath } from "@/lib/clients/detail";
+import { ClientLink } from "@/components/client-link";
 import type { PortfolioRow } from "@/lib/health/row";
 import {
   PORTFOLIO_CAPTION,
@@ -86,23 +86,11 @@ export function PortfolioTable({ rows }: { rows: readonly PortfolioRow[] }) {
                 </Link>
               </th>
               <td className="py-2.5 pr-6 text-zinc-700 dark:text-zinc-300">
-                <Link
-                  href={clientEditPath(row.project.clientId)}
-                  className="underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-900 dark:decoration-zinc-700 dark:hover:decoration-zinc-100"
-                >
-                  {row.project.clientName}
-                </Link>
-                {/*
-                  An archived client keeps their active projects — the work is
-                  still happening — but the name on its own would read as a
-                  live client. Saying so here explains why they are missing
-                  from the client book, as the projects list does.
-                */}
-                {row.project.clientArchivedAt !== null && (
-                  <span className="ml-1.5 text-xs text-zinc-500 dark:text-zinc-500">
-                    (archived)
-                  </span>
-                )}
+                <ClientLink
+                  id={row.project.clientId}
+                  name={row.project.clientName}
+                  archivedAt={row.project.clientArchivedAt}
+                />
               </td>
               <td className="py-2.5 pr-6 text-right tabular-nums text-zinc-700 dark:text-zinc-300">
                 {reading.burned}
