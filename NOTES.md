@@ -1379,3 +1379,73 @@ as a string, no object key comes from `FormData` (both parses rest-spread over
 smuggled into an insert), and the one new URL is built from a joined row id
 through `encodeURIComponent`. No server action was added or changed; what a
 POST endpoint without accounts owes Phase 8 is unchanged and already recorded.
+
+## Where a project with no verdict goes (Day 039)
+
+The classifier has four answers and `/health` has to sort all of them, which
+means naming the two things an absent verdict can be. `lib/health/band.ts`
+holds the order and the argument; this is the short version.
+
+`over`, `watch`, `unassessed`, `healthy`, `unstarted`.
+
+- **`unassessed` above `healthy`** because a withheld verdict is not a clean
+  bill of health. The project that gets one has hours logged and no rate to
+  value them, or no price to measure them against — the engagement nobody is
+  watching. `classifyScopeCreep` returns null rather than `healthy` precisely
+  so the two cannot collapse, and a ranking that sorted them together would
+  undo that at the last step.
+- **`unassessed` below both flags** because a flagged project is a known
+  problem and an unassessed one is an unknown. The first three rows of the page
+  should be the three engagements measurably in trouble.
+- **`unstarted` last of all**, below even the healthy ones. Every project
+  created this morning is unassessable — no price, no hours, no scope — so
+  without this band a fresh studio would read as five findings above the work
+  that is actually failing. The project page already refuses to show a verdict
+  for this case; `hasScopeHealthToShow` is the predicate, and `riskBand` asks
+  the same one rather than having a second opinion about what a new project is.
+  The portfolio cannot refuse to list it, because the milestone is every active
+  project, so it ranks it where there is nothing to do about it.
+
+Within a band: consumed share first, then the gap, then the hours. The money
+axis leads because it is the one figure every assessed row has — the classifier
+withholds a verdict without it — and the hours are what rank `unassessed`,
+where both shares are null by construction. Eighty unvalued hours is a bigger
+hole than twenty minutes of them.
+
+## Three studio-wide reads, and what they owe Phase 8 (Day 039)
+
+`timeTotalsByProject` and `scopeLinesByProject` join `dailyTimeTotalsByProject`
+and `burnSnapshotDaysByProject` on the list of reads with no project in their
+predicate to scope by owner. Day 084 has to put an owner in front of all four.
+The projects read is scoped by status rather than by owner, which is the same
+gap every list page has and is recorded under Day 004.
+
+They exist because the alternative is a round trip per row. A studio with forty
+open engagements would otherwise spend forty queries to print forty lines, and
+the page would get slower the more work there was to worry about.
+
+`scopeLinesByProject` deliberately reads rows rather than aggregating in SQL.
+Six counts would be six expressions to keep in step with the six functions in
+`lib/scope.ts` that already mean them — and the portfolio's verdict has to be
+the verdict the project page reaches, which it can only be if it is reached
+from the same code. Three integers per deliverable across a studio's whole
+scope is a few hundred rows.
+
+## Left alone deliberately (Day 039)
+
+- **No sorting, filtering or paging.** The order is the ranking, and a column
+  somebody could sort by would be a page that no longer answers the question it
+  exists to answer. If a studio ever has enough active projects for this to
+  matter, the right answer is probably a cut-off rather than a page control.
+- **No colour on the verdict.** A banner is one box competing with a page of
+  figures and earns its amber; a column of eleven coloured cells is a column
+  nobody reads a word of, and the word is the point. Weight marks the flagged
+  rows, taken from the band rather than from any figure.
+- **No projection column.** Day 037's forecast needs a burn-down series per
+  project, which is a fifth studio-wide read and a reconstruction per row. The
+  verdict and the gap are what rank a project; the expected overage is what a
+  reader opens one to find out.
+- **An unstarted row still prints `$0.00` burned.** Nothing has been logged, so
+  nothing has been burned, and that is a measurement rather than a gap —
+  `hasValuedBurn` says so. The three share columns are dashes, because none of
+  those three could be read.
