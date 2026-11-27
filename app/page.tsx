@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { HEALTH_PATH } from "@/lib/health/route";
 import { readProgress } from "@/lib/progress";
 
 /**
@@ -23,6 +24,7 @@ const BUILT: { href: string; name: string; note: string }[] = [
   { href: "/projects", name: "Projects", note: "Every engagement, filterable by status and sortable by date." },
   { href: "/time", name: "Timesheet", note: "A week of the studio's work, a row per project and a column per day." },
   { href: "/time/entries", name: "Time log", note: "Every logged stretch of work, filtered by dates, client, project and billing, and exportable as CSV." },
+  { href: HEALTH_PATH, name: "Health", note: "Every active project ranked by how far its burn has run ahead of the work delivered." },
 ];
 
 export default function Home() {
