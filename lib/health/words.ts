@@ -1,3 +1,6 @@
+import type { BurnSummary } from "@/lib/burn";
+import { formatCents } from "@/lib/money";
+import { hasValuedBurn } from "@/lib/projects/burn-summary";
 import {
   formatSharePoints,
   NOT_ASSESSED_HEADLINE,
@@ -190,4 +193,21 @@ export function shareCell(share: number | null): string {
  */
 export function gapCell(gap: number | null): string {
   return gap === null ? NO_FIGURE : formatSharePoints(gap);
+}
+
+/**
+ * What the hours have cost, as a column reads it, or a dash.
+ *
+ * `hasValuedBurn` rather than a test on the figure, which is the whole point
+ * of the function: an unvalued burn is honestly nought cents — the arithmetic
+ * is minutes times a rate of nothing — and printing "$0.00" beside eighty
+ * logged hours is the single most reassuring thing this page could get wrong.
+ * The same predicate the burn panel asks, so the two cannot disagree about
+ * what a nought means.
+ *
+ * A valued burn of nought is printed as $0.00, because that is a measurement:
+ * the rate is set and nobody has logged anything yet.
+ */
+export function burnedCell(summary: BurnSummary): string {
+  return hasValuedBurn(summary) ? formatCents(summary.burnedCents) : NO_FIGURE;
 }
