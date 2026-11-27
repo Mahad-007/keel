@@ -49,6 +49,27 @@ export type ScopeLine = EstimatedLine & {
 };
 
 /**
+ * A scope line carrying the project it was agreed for.
+ *
+ * Every function in this file reads one project's list, because that is how a
+ * scope list is read — one engagement at a time, in the order the two parties
+ * agreed. A portfolio is the one caller that needs all of them at once, and it
+ * needs them in a single query rather than one per project: forty engagements
+ * is forty round trips to print forty lines, and the page would get slower the
+ * more work there was to worry about.
+ *
+ * So the id rides on the line, the same arrangement `ProjectLoggedTotals` and
+ * `ProjectBurnDay` make, and the caller files the lines under their projects.
+ * Nothing in this file takes one — the totals here have no business knowing
+ * which project they are of — which is why this is a type and not a second set
+ * of functions.
+ */
+export type ProjectScopeLine = ScopeLine & {
+  /** The project the line belongs to. */
+  readonly projectId: string;
+};
+
+/**
  * Everything the scope list was estimated at, in whole minutes.
  *
  * A plain sum, with no opinion about the lines in it. Zeroes are added as
