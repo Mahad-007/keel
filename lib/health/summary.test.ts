@@ -85,6 +85,32 @@ describe("describePortfolio", () => {
     expect(describePortfolio(rows)).not.toContain("on track");
   });
 
+  it("counts the projects nobody has begun", () => {
+    const rows = [row("healthy"), row("unstarted"), row("unstarted")];
+
+    expect(describePortfolio(rows)).toBe("3 active projects: 2 not started.");
+  });
+
+  it("does not call a studio of new projects on track", () => {
+    expect(describePortfolio([row("unstarted")])).toBe(
+      "1 active project: 1 not started.",
+    );
+  });
+
+  it("counts the bands in rank order, worst first", () => {
+    const rows = [
+      row("unstarted"),
+      row("healthy"),
+      row("unassessed"),
+      row("watch"),
+      row("over"),
+    ];
+
+    expect(describePortfolio(rows)).toBe(
+      "5 active projects: 1 over scope, 1 worth watching, 1 not assessed, 1 not started.",
+    );
+  });
+
   it("says so when there is no active work at all", () => {
     expect(describePortfolio([])).toBe("No active projects.");
   });
