@@ -1,3 +1,8 @@
+import type { ProjectScopeLine, ScopeLine } from "@/lib/scope";
+import type { LoggedTotals, ProjectLoggedTotals } from "@/lib/time/rollup";
+
+import { rankedPortfolio } from "./rank";
+import { portfolioRow, type HealthProject, type PortfolioRow } from "./row";
 
 /**
  * The whole portfolio, assembled from three studio-wide reads.
@@ -10,6 +15,24 @@
  * the engagement burning its budget reads as untouched while a quiet one reads
  * as over.
  */
+
+/**
+ * What a project with no time logged against it is valued at.
+ *
+ * Neither studio-wide read returns a row for a project it has nothing for —
+ * `GROUP BY` has no group for a project nobody has logged against — so the
+ * assembly supplies the absence rather than dropping the project. Dropping it
+ * would be the wrong answer twice over: a brand-new engagement belongs on the
+ * list, and so does one with a price, a scope list and nobody working on it.
+ *
+ * Frozen and shared rather than built per project, so a row cannot be handed a
+ * totals object another row could have mutated.
+ */
+export const NO_TIME_LOGGED: LoggedTotals = Object.freeze({
+  entryCount: 0,
+  loggedMinutes: 0,
+  billableMinutes: 0,
+});
 
 /**
  * Rows carrying a project id, filed under it.
@@ -37,3 +60,56 @@ export function groupByProject<T extends { readonly projectId: string }>(
   return grouped;
 }
 
+/**
+ * What a project with no scope list is assessed against: nothing agreed.
+ *
+ * The scope read's counterpart to `NO_TIME_LOGGED`, and frozen for the same
+ * reason — every project without a list is handed the same array, and one that
+ * could be pushed to would give a project somebody else's deliverables.
+ */
+const NO_SCOPE_AGREED: readonly ScopeLine[] = Object.freeze([]);
+
+/**
+ * The portfolio: every project given, assessed and ranked worst first.
+ *
+ * Takes the projects rather than deciding which ones to show. Which projects
+ * belong on this page is a question about the studio — the active ones — and
+ * it is answered by the query, where it can be answered in SQL. A filter here
+ * would be a second opinion about it, applied after the rows had been read.
+ *
+ * Totals and lines are matched by id and default to nothing, so a project
+ * neither read mentions is still ranked: it comes out as nothing burned
+ * against whatever it was agreed for, which is what it is.
+ *
+ * Totals and lines naming a project that is not in the list are ignored,
+ * along with everything in them. The page passes every active project and
+ * every project's time, so that is the ordinary case rather than an error —
+ * a closed engagement's hours have no row to go in, and a portfolio that
+ * invented one would be listing the projects it was asked to leave out.
+ */
+export function buildPortfolio(
+  projects: readonly HealthProject[],
+  totals: readonly ProjectLoggedTotals[],
+  lines: readonly ProjectScopeLine[],
+): PortfolioRow[] {
+  /*
+    One row per project, so a plain index rather than a grouping. A second row
+    for the same project cannot come out of a `GROUP BY` on its id; if one ever
+    did, the later would win, which is the same thing a grouping's first-wins
+    would be — arbitrary — and not worth a branch that cannot be reached.
+  */
+  const totalsByProject = new Map(
+    totals.map((total) => [total.projectId, total] as const),
+  );
+  const linesByProject = groupByProject(lines);
+
+  return rankedPortfolio(
+    projects.map((project) =>
+      portfolioRow(
+        project,
+        totalsByProject.get(project.id) ?? NO_TIME_LOGGED,
+        linesByProject.get(project.id) ?? NO_SCOPE_AGREED,
+      ),
+    ),
+  );
+}
