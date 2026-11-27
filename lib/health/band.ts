@@ -89,13 +89,32 @@ export const UNSTARTED_BAND = "unstarted" as const satisfies RiskBand;
  * The verdicts pass straight through, because the bands are named after them
  * on purpose: a reader who has met "Over scope" on a project page meets the
  * same word at the top of the portfolio, and the two cannot drift because they
- * are the same value. Only the absence is translated.
+ * are the same value. Only the absence is translated, and it is translated two
+ * ways.
  *
- * Total over the classifier's four answers, so there is no fifth outcome for a
+ * `assessable` is whether there is anything on this project for a verdict to
+ * have been about: a price agreed, an hour logged, or a line of scope written
+ * down. It is `hasScopeHealthToShow` at the call site, which is the banner's
+ * own rule — so a row the project page would show no verdict for is a row this
+ * page ranks last, and the two agree about what a new project is by sharing
+ * the predicate rather than by each having an opinion.
+ *
+ * It is only ever consulted for a withheld verdict, which is not a coincidence
+ * worth relying on but is worth stating: a project with no price and no hours
+ * has no consumed share, and a project with no consumed share has no verdict.
+ * The condition is written the other way round anyway — a verdict wins over
+ * the predicate — so a reading that disagreed could not produce a row ranked
+ * `unstarted` while its own page argued it was over scope.
+ *
+ * Total over the classifier's four answers, so there is no sixth outcome for a
  * page to render nothing for.
  */
-export function riskBand(health: ScopeHealth | null): RiskBand {
-  return health ?? UNASSESSED_BAND;
+export function riskBand(
+  health: ScopeHealth | null,
+  assessable: boolean,
+): RiskBand {
+  if (health !== null) return health;
+  return assessable ? UNASSESSED_BAND : UNSTARTED_BAND;
 }
 
 /**

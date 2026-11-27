@@ -27,7 +27,7 @@ import {
 describe("riskBandLabel", () => {
   it("calls a verdict what the project banner calls it", () => {
     for (const health of SCOPE_HEALTH) {
-      expect(riskBandLabel(riskBand(health))).toBe(
+      expect(riskBandLabel(riskBand(health, true))).toBe(
         SCOPE_HEALTH_HEADLINE[health],
       );
     }

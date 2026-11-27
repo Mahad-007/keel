@@ -1,5 +1,6 @@
 import { summariseBurn, type BurnSummary } from "@/lib/burn";
 import { assessProjectCreep } from "@/lib/projects/creep-readings";
+import { hasScopeHealthToShow } from "@/lib/projects/scope-health";
 import { resolveJoinedRate, type JoinedRate } from "@/lib/rates";
 import type { ScopeLine } from "@/lib/scope";
 import type { CreepAssessment } from "@/lib/scope-creep";
@@ -111,5 +112,18 @@ export function portfolioRow(
     creepThresholds(resolveJoinedThresholds(project)),
   );
 
-  return { project, burn, assessment, band: riskBand(assessment.health) };
+  return {
+    project,
+    burn,
+    assessment,
+    /*
+      `hasScopeHealthToShow` is the banner's rule for whether an engagement has
+      got far enough to be worth a verdict, and it is asked here rather than
+      spelled out so the two pages cannot come to disagree about what a new
+      project is. A project it says no to has no verdict either way; what it
+      decides is whether the absence is a gap to chase or a row that has not
+      started.
+    */
+    band: riskBand(assessment.health, hasScopeHealthToShow(burn, lines.length)),
+  };
 }

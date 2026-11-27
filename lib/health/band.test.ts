@@ -8,21 +8,33 @@ import {
   riskBandRank,
   RISK_BANDS,
   UNASSESSED_BAND,
+  UNSTARTED_BAND,
 } from "./band";
 
 describe("riskBand", () => {
   it("passes a verdict straight through", () => {
     for (const health of SCOPE_HEALTH) {
-      expect(riskBand(health)).toBe(health);
+      expect(riskBand(health, true)).toBe(health);
     }
   });
 
   it("names a withheld verdict rather than dropping it", () => {
-    expect(riskBand(null)).toBe(UNASSESSED_BAND);
+    expect(riskBand(null, true)).toBe(UNASSESSED_BAND);
+  });
+
+  it("calls a project with nothing to assess not started", () => {
+    expect(riskBand(null, false)).toBe(UNSTARTED_BAND);
+  });
+
+  it("lets a verdict win over a project that looks unstarted", () => {
+    expect(riskBand("over", false)).toBe("over");
   });
 
   it("answers a band for every verdict the classifier can reach", () => {
-    const bands = [...SCOPE_HEALTH, null].map(riskBand);
+    const bands = [...SCOPE_HEALTH, null].flatMap((health) => [
+      riskBand(health, true),
+      riskBand(health, false),
+    ]);
 
     expect(bands.every((band) => RISK_BANDS.includes(band))).toBe(true);
   });
@@ -41,6 +53,16 @@ describe("riskBandRank", () => {
 
   it("ranks a withheld verdict above a healthy one", () => {
     expect(riskBandRank(UNASSESSED_BAND)).toBeLessThan(riskBandRank("healthy"));
+  });
+
+  it("ranks an engagement that has not begun below a healthy one", () => {
+    expect(riskBandRank(UNSTARTED_BAND)).toBeGreaterThan(
+      riskBandRank("healthy"),
+    );
+  });
+
+  it("ranks an unstarted project last of all", () => {
+    expect(riskBandRank(UNSTARTED_BAND)).toBe(RISK_BANDS.length - 1);
   });
 
   it("ranks a withheld verdict below both flagged bands", () => {
@@ -69,9 +91,13 @@ describe("isFlaggedBand", () => {
     expect(isFlaggedBand(UNASSESSED_BAND)).toBe(false);
   });
 
+  it("does not count an unstarted project as flagged", () => {
+    expect(isFlaggedBand(UNSTARTED_BAND)).toBe(false);
+  });
+
   it("agrees with the classifier about which verdicts are findings", () => {
     const flagged = SCOPE_HEALTH.filter((health: ScopeHealth) =>
-      isFlaggedBand(riskBand(health)),
+      isFlaggedBand(riskBand(health, true)),
     );
 
     expect(flagged).toEqual(["watch", "over"]);
