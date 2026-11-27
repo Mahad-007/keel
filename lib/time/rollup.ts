@@ -85,6 +85,24 @@ export type LoggedTotals = {
 };
 
 /**
+ * One project's totals, carrying which project they are.
+ *
+ * The shape a studio-wide total comes back in: a portfolio has to value every
+ * active engagement at once, and a query per project is what turns one page
+ * into a round trip per row. `ProjectBurnDay` is the same arrangement a day at
+ * a time, and this is it for the whole of a project's history.
+ *
+ * The id is on the totals rather than the totals being handed back in a map
+ * keyed by it, so the row the query produces satisfies the type as it stands
+ * and a caller that wants a lookup builds one. A map crossing a module
+ * boundary is a map every caller has to agree about the key of.
+ */
+export type ProjectLoggedTotals = LoggedTotals & {
+  /** The project the three figures were logged against. */
+  readonly projectId: string;
+};
+
+/**
  * Logged time set against an estimate: the difference, and the share.
  *
  * Both, because they say different things at different sizes. Twenty minutes
