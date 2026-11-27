@@ -33,10 +33,10 @@ describe("riskBandRank", () => {
     expect(riskBandRank("over")).toBe(0);
   });
 
-  it("ranks the four bands worst first with no ties", () => {
+  it("ranks the five bands worst first with no ties", () => {
     const ranks = RISK_BANDS.map(riskBandRank);
 
-    expect(ranks).toEqual([0, 1, 2, 3]);
+    expect(ranks).toEqual([0, 1, 2, 3, 4]);
   });
 
   it("ranks a withheld verdict above a healthy one", () => {

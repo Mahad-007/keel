@@ -12,7 +12,7 @@ function row(band: RiskBand): PortfolioRow {
     project: { id: "prj_1", name: "Site rebuild" } as HealthProject,
     burn: { loggedMinutes: 0 } as PortfolioRow["burn"],
     assessment: {
-      health: band === "unassessed" ? null : band,
+      health: band === "unassessed" || band === "unstarted" ? null : band,
       reasons: [],
       blindSpots: [],
       consumedShare: null,

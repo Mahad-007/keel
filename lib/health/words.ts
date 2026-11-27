@@ -13,6 +13,7 @@ import {
   isFlaggedBand,
   RISK_BANDS,
   UNASSESSED_BAND,
+  UNSTARTED_BAND,
   type RiskBand,
 } from "./band";
 import { countByBand } from "./portfolio";
@@ -56,6 +57,14 @@ export const RISK_BAND_LABELS: Record<RiskBand, string> = {
   watch: SCOPE_HEALTH_HEADLINE.watch,
   [UNASSESSED_BAND]: NOT_ASSESSED_HEADLINE,
   healthy: SCOPE_HEALTH_HEADLINE.healthy,
+  /*
+    Borrowed from nowhere, because the banner has no word for it: the project
+    page renders no verdict at all for an engagement that has not begun, which
+    is a choice a table cannot make. "Not started" rather than "Not assessed"
+    — the distinction is the whole reason the band exists, and two rows reading
+    the same would undo it.
+  */
+  [UNSTARTED_BAND]: "Not started",
 };
 
 /**
@@ -410,6 +419,7 @@ export const RISK_BAND_PHRASES: Record<RiskBand, string> = {
   watch: "worth watching",
   [UNASSESSED_BAND]: "not assessed",
   healthy: "on track",
+  [UNSTARTED_BAND]: "not started",
 };
 
 /**

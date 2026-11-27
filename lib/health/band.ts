@@ -38,11 +38,27 @@ import type { ScopeHealth } from "@/lib/scope-creep";
  *     that says "fill in a field and I will tell you" is the next thing to do,
  *     not the first.
  *
- * `healthy` is last, which is where most of a working studio's projects are.
+ * `healthy` is fourth, which is where most of a working studio's projects are.
  * A portfolio read top-down is then the list of things to do, and it runs out
  * rather than ending.
+ *
+ * `unstarted` is last, below even the healthy ones, and it is the other
+ * argument in this module. An engagement with no price, no hours and no scope
+ * list is a row somebody created this morning: it has no verdict, like an
+ * unassessed project, and ranking it with those would put every new project at
+ * the top of the page above the engagements that are failing. That is the
+ * banner's own judgement — `hasScopeHealthToShow` refuses to render a verdict
+ * for this case at all — and the portfolio cannot refuse, because the milestone
+ * is every active project. So it ranks it last instead: nothing to assess, and
+ * nothing to do about it until somebody agrees a price or logs an hour.
  */
-export const RISK_BANDS = ["over", "watch", "unassessed", "healthy"] as const;
+export const RISK_BANDS = [
+  "over",
+  "watch",
+  "unassessed",
+  "healthy",
+  "unstarted",
+] as const;
 
 /** Where one project sits in the order. */
 export type RiskBand = (typeof RISK_BANDS)[number];
@@ -56,6 +72,16 @@ export type RiskBand = (typeof RISK_BANDS)[number];
  * band that sorts last by accident.
  */
 export const UNASSESSED_BAND = "unassessed" as const satisfies RiskBand;
+
+/**
+ * The band for an engagement that has not begun.
+ *
+ * Named for the same reason `UNASSESSED_BAND` is: it is the second band that
+ * is not also a `ScopeHealth`, so it is the second one a comparison against a
+ * verdict has to spell out, and a misspelling of it would be a band that sorts
+ * wherever `indexOf` puts a string it cannot find.
+ */
+export const UNSTARTED_BAND = "unstarted" as const satisfies RiskBand;
 
 /**
  * Which band a verdict puts a project in.
@@ -79,7 +105,8 @@ export function riskBand(health: ScopeHealth | null): RiskBand {
  * The question a count asks — "three of eleven active projects are flagged" —
  * and it is not the same as "not healthy": an unassessed project has not been
  * flagged, it has been skipped, and counting it as a finding would overstate
- * what the page knows. `over` and `watch` are findings; the other two are not.
+ * what the page knows. `over` and `watch` are findings; the other three are
+ * not.
  *
  * Written as "neither of the two that are not findings" rather than as a list
  * of the two that are, so a fourth verdict added to the classifier counts as a
@@ -88,7 +115,11 @@ export function riskBand(health: ScopeHealth | null): RiskBand {
  * quietly folded in with the projects that are fine.
  */
 export function isFlaggedBand(band: RiskBand): boolean {
-  return band !== UNASSESSED_BAND && band !== "healthy";
+  return (
+    band !== UNASSESSED_BAND &&
+    band !== UNSTARTED_BAND &&
+    band !== "healthy"
+  );
 }
 
 /**

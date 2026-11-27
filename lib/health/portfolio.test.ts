@@ -216,6 +216,7 @@ describe("countByBand", () => {
       watch: 0,
       unassessed: 0,
       healthy: 1,
+      unstarted: 0,
     });
   });
 
@@ -225,6 +226,7 @@ describe("countByBand", () => {
       watch: 0,
       unassessed: 0,
       healthy: 0,
+      unstarted: 0,
     });
   });
 
