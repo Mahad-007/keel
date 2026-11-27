@@ -12,6 +12,7 @@ import {
   ON_TRACK_ON_MONEY_CLAUSE,
   portfolioReading,
   REASON_CLAUSE,
+  UNSTARTED_CLAUSE,
 } from "./words";
 
 /**
@@ -161,12 +162,71 @@ describe("portfolioReading", () => {
     expect(read.gap).toBe(NO_FIGURE);
   });
 
+  it("calls a project nobody has begun not started", () => {
+    const read = reading(
+      { ...PROJECT, contractValueCents: 0 },
+      { entryCount: 0, loggedMinutes: 0, billableMinutes: 0 },
+      [],
+    );
+
+    expect(read.verdict).toBe("Not started");
+    expect(read.reason).toBe(UNSTARTED_CLAUSE);
+    expect(read.caveat).toBeNull();
+  });
+
+  it("assesses a project with a price and no hours rather than calling it new", () => {
+    const read = reading(
+      PROJECT,
+      { entryCount: 0, loggedMinutes: 0, billableMinutes: 0 },
+      [],
+    );
+
+    expect(read.verdict).toBe("On track");
+  });
+
+  it("assesses a project with hours and no price rather than calling it new", () => {
+    const read = reading(
+      { ...PROJECT, contractValueCents: 0 },
+      logged(20),
+      [],
+    );
+
+    expect(read.verdict).toBe("Not assessed");
+  });
+
+  it("assesses a project with a scope list and nothing else", () => {
+    const read = reading(
+      { ...PROJECT, contractValueCents: 0 },
+      { entryCount: 0, loggedMinutes: 0, billableMinutes: 0 },
+      scope(3, 0),
+    );
+
+    expect(read.verdict).toBe("Not assessed");
+  });
+
+  it("dashes every figure on a project that has not begun", () => {
+    const read = reading(
+      { ...PROJECT, contractValueCents: 0 },
+      { entryCount: 0, loggedMinutes: 0, billableMinutes: 0 },
+      [],
+    );
+
+    expect(read.consumed).toBe(NO_FIGURE);
+    expect(read.delivered).toBe(NO_FIGURE);
+    expect(read.gap).toBe(NO_FIGURE);
+  });
+
   it("never leaves the reason column empty", () => {
     const rows = [
       reading(PROJECT, logged(80), scope(4, 1)),
       reading(PROJECT, logged(30), scope(4, 1)),
       reading(PROJECT, logged(0), []),
       reading({ ...PROJECT, contractValueCents: 0 }, logged(10), []),
+      reading(
+        { ...PROJECT, contractValueCents: 0 },
+        { entryCount: 0, loggedMinutes: 0, billableMinutes: 0 },
+        [],
+      ),
     ];
 
     for (const read of rows) expect(read.reason).not.toBe("");
