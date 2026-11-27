@@ -2,7 +2,11 @@ import {
   NOT_ASSESSED_HEADLINE,
   SCOPE_HEALTH_HEADLINE,
 } from "@/lib/projects/scope-health";
-import type { CreepReason } from "@/lib/scope-creep";
+import {
+  CREEP_BLIND_SPOTS,
+  type CreepBlindSpot,
+  type CreepReason,
+} from "@/lib/scope-creep";
 
 import { UNASSESSED_BAND, type RiskBand } from "./band";
 
@@ -88,3 +92,64 @@ export const REASON_CLAUSE: Record<CreepReason, string> = {
   "contract-nearly-spent": "The contract is nearly spent.",
   "burn-ahead-of-delivery": "Burn is ahead of the work delivered.",
 };
+
+/**
+ * What the verdict could not see, in a clause.
+ *
+ * `BLIND_SPOT_SENTENCE` is the banner's version, and every one of those is two
+ * sentences: the consequence, then the form that fixes it. That is right on a
+ * project page, where the reader has already decided to look at this
+ * engagement and the fix is a tab away.
+ *
+ * On a portfolio row it would be a paragraph per line, eleven lines deep, and
+ * the eleven paragraphs would be mostly the same words. So these say the
+ * missing fact and stop. The project name beside them is the link to the form,
+ * which is the only part of the banner's second sentence that was ever doing
+ * work here.
+ *
+ * The three about the money each end a verdict outright, and they are the only
+ * clause an unassessed row ever shows — a withheld verdict is withheld for one
+ * of those three reasons and no other. The five about the scope ride under a
+ * verdict that stands, saying what it was reached without.
+ *
+ * A record over every blind spot, so a ninth one is a compile error in the one
+ * file that has to have words for it.
+ */
+export const BLIND_SPOT_CLAUSE: Record<CreepBlindSpot, string> = {
+  "no-contract-value": "No contract value is set, so there is nothing for the hours to be a share of.",
+  "burn-not-valued": "Hours are logged and no rate values them, so the burn cannot be read.",
+  "burn-below-zero": "The rate values the hours below zero, so the burn runs backwards.",
+  "scope-not-estimated": "Nothing is estimated, so how much of the work is done cannot be read.",
+  "scope-estimates-invalid": "An estimate is below zero, so the delivered share is not a reading of completion.",
+  "scope-partly-estimated": "Some lines carry no estimate, so the delivered share is the best case.",
+  "scope-delivery-unsized": "A line is delivered with no estimate, so completion cannot be bounded.",
+  "scope-too-coarse": "The scope is one line, so it reads as nothing delivered until it is signed off.",
+};
+
+/**
+ * The first thing the verdict could not see, or nothing at all.
+ *
+ * One clause rather than all of them, because a row has a line. The
+ * classifier's order puts the money gap first and the scope gap after, which
+ * is the order of what to do about it — so the first is the one to show, and
+ * the one left out is the one a reader finds on the project.
+ *
+ * Takes the list rather than the assessment, so a caller holding one blind
+ * spot can ask about it, and so the degenerate case — none at all, which is
+ * most projects — is answered without building anything.
+ */
+export function firstBlindSpotClause(
+  blindSpots: readonly CreepBlindSpot[],
+): string | null {
+  const [first] = blindSpots;
+  return first === undefined ? null : BLIND_SPOT_CLAUSE[first];
+}
+
+/**
+ * Every blind spot the classifier can report, in the classifier's own order.
+ *
+ * Here so a test can walk the list the codes come from rather than a list
+ * written out beside the clauses — which would still pass the day a ninth
+ * blind spot arrived with no words for it.
+ */
+export const BLIND_SPOTS_IN_ORDER: readonly CreepBlindSpot[] = CREEP_BLIND_SPOTS;
