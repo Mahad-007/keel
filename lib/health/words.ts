@@ -9,7 +9,13 @@ import {
 import { formatSharePercent } from "@/lib/projects/scope-summary";
 import type { CreepBlindSpot, CreepReason } from "@/lib/scope-creep";
 
-import { isFlaggedBand, UNASSESSED_BAND, type RiskBand } from "./band";
+import {
+  isFlaggedBand,
+  RISK_BANDS,
+  UNASSESSED_BAND,
+  type RiskBand,
+} from "./band";
+import { countByBand } from "./portfolio";
 import type { PortfolioRow } from "./row";
 
 /**
@@ -384,4 +390,69 @@ export function portfolioReading(row: PortfolioRow): PortfolioReading {
     delivered: shareCell(assessment.deliveredShare),
     gap: gapCell(assessment.gap),
   };
+}
+
+/**
+ * What a band is called inside a sentence, as opposed to in a column heading.
+ *
+ * Lower case and read as a predicate — "2 over scope" rather than "2 Over
+ * scope" — because the summary above the table is a sentence and a heading
+ * dropped into one reads like a bug. The same arrangement
+ * `PROJECT_SORT_COLUMN_PHRASES` makes beside its labels, and for the same
+ * reason: lowercasing the label at the call site works until a label has a
+ * proper noun in it.
+ *
+ * The words are the labels' words, so the sentence over the table and the
+ * column in it cannot come to call one finding two things.
+ */
+export const RISK_BAND_PHRASES: Record<RiskBand, string> = {
+  over: "over scope",
+  watch: "worth watching",
+  [UNASSESSED_BAND]: "not assessed",
+  healthy: "on track",
+};
+
+/**
+ * How many projects the page is about, counted so the number reads as a
+ * sentence.
+ *
+ * "1 active project" rather than "1 active projects", which is the whole of
+ * it. Named because the phrase appears in the summary and in two empty states,
+ * and three spellings of it is three places for the singular to be wrong.
+ */
+export function countActiveProjects(total: number): string {
+  return total === 1 ? "1 active project" : `${total} active projects`;
+}
+
+/**
+ * What the portfolio adds up to, in one line above the table.
+ *
+ * The figure a reader wants before they read a single row: whether there is
+ * anything to do today. A page of eleven rows whose summary says none are
+ * flagged is a page somebody can close, and that is worth saying at the top
+ * rather than leaving them to scan a column for it.
+ *
+ * The bands are counted in rank order and the empty ones are left out, so the
+ * sentence is as short as the news is good. `healthy` is always left out: it is
+ * the remainder, and "2 over scope, 9 on track" of eleven makes a reader do
+ * arithmetic to check nothing is missing. What is left in is every band that
+ * is a thing to do — which includes the unassessed ones, counted separately
+ * from the flagged ones because a form to fill in is not a finding.
+ *
+ * "all on track" rather than "none flagged" where every row is clear, because
+ * none-flagged would also be true of a studio whose every project is
+ * unassessed — which is the one case this sentence must not be able to
+ * describe as fine.
+ */
+export function describePortfolio(rows: readonly PortfolioRow[]): string {
+  const total = countActiveProjects(rows.length);
+  if (rows.length === 0) return "No active projects.";
+
+  const counts = countByBand(rows);
+  const parts = RISK_BANDS.filter(
+    (band) => band !== "healthy" && counts[band] > 0,
+  ).map((band) => `${counts[band]} ${RISK_BAND_PHRASES[band]}`);
+
+  if (parts.length === 0) return `${total}, all on track.`;
+  return `${total}: ${parts.join(", ")}.`;
 }
