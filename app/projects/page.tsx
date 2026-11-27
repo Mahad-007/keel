@@ -5,6 +5,7 @@ import {
   countProjectsByStatus,
   listProjectsWithClient,
 } from "@/lib/data/projects";
+import { HEALTH_PATH } from "@/lib/health/route";
 import {
   ALL_STATUSES,
   describeProjectsShown,
@@ -66,6 +67,19 @@ export default async function ProjectsPage({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-4">
+          {/*
+            The portfolio is the other way to read these rows: this page is
+            every engagement in the order they were set up, and that one is the
+            active ones ranked by how far their burn has run ahead of the work.
+            First of the three, because it is the question somebody opens the
+            projects list already asking.
+          */}
+          <Link
+            href={HEALTH_PATH}
+            className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Health
+          </Link>
           <Link
             href={TIMESHEET_PATH}
             className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
