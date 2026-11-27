@@ -22,7 +22,10 @@ import {
 } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
 import { editRefusedByInvoice, isBilled } from "@/lib/time/billing";
-import type { LoggedTotals } from "@/lib/time/rollup";
+import type {
+  LoggedTotals,
+  ProjectLoggedTotals,
+} from "@/lib/time/rollup";
 
 import {
   deliverableProject,
@@ -451,6 +454,53 @@ export async function projectTimeTotalsThrough(
     ),
     database,
   );
+}
+
+/**
+ * What every project's time comes to, one row each, in one grouped query.
+ *
+ * The read the portfolio is built from. Its question is about the studio
+ * rather than about an engagement — which of everything open is in trouble —
+ * and the obvious shape, list the projects and ask each for its totals, is a
+ * round trip per row. A studio with forty open engagements would spend forty
+ * queries to print forty lines, and the page would get slower the more work
+ * there was to worry about.
+ *
+ * Grouped on the project id, which is the leading column of the
+ * `project_id, worked_on` index, so the grouping comes off the index rather
+ * than out of a sort.
+ *
+ * A project with nothing logged against it does not come back at all, because
+ * `GROUP BY` has no group for it. That is the same absence
+ * `dailyTimeTotalsByProject` reports and it means the same thing — no rows —
+ * so a caller pairs this with its project list and reads a missing project as
+ * nought. Filling the gaps here would mean reading the projects table too,
+ * which is a join this query has no other use for.
+ *
+ * Unscoped, like `dailyTimeTotalsByProject` and for the same reason: the
+ * question has no project in its predicate to scope. Day 084 has to put an
+ * owner in front of it, and it is recorded in `NOTES.md` with the others.
+ *
+ * Ordered by project id so the result is stable between reads. Nothing
+ * downstream depends on the order — the portfolio ranks for itself — but a
+ * list that comes back differently each time is a list whose tests pass by
+ * luck.
+ */
+export async function timeTotalsByProject(
+  database: Database = db,
+): Promise<ProjectLoggedTotals[]> {
+  const rows = await database
+    .select({ projectId: timeEntries.projectId, ...LOGGED_TOTALS_COLUMNS })
+    .from(timeEntries)
+    .groupBy(timeEntries.projectId)
+    .orderBy(asc(timeEntries.projectId));
+
+  return rows.map((row) => ({
+    projectId: row.projectId,
+    entryCount: Number(row.entryCount),
+    loggedMinutes: Number(row.loggedMinutes),
+    billableMinutes: Number(row.billableMinutes),
+  }));
 }
 
 /**
