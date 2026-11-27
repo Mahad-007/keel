@@ -575,6 +575,31 @@ export const PORTFOLIO_COLUMNS = {
  * It says the order, which is the one fact about this table that is not
  * visible from any single row: a reader who cannot scan the whole column has
  * no way to tell that the first row is the worst one rather than the newest.
+ *
+ * Built from `PORTFOLIO_COLUMNS` rather than naming the columns again, which
+ * is the whole reason that record exists. A caption that spelled the headings
+ * out would be a caption that went on describing six columns the day a seventh
+ * arrived — and it already had: it enumerated four of the seven and left the
+ * gap out, which is the column the sentence after it is about.
+ *
+ * Lower-cased, because the headings are capitalised for a column and this is a
+ * sentence. The same conversion `RISK_BAND_PHRASES` makes, done here rather
+ * than by a second record, because a column heading is one word and a band
+ * label is three — there is no proper noun in a column name to be ruined by
+ * folding it.
  */
-export const PORTFOLIO_CAPTION =
-  "Every active project, worst first: what its hours have cost, the share of its contract that has gone, the share of its work delivered, and the verdict.";
+export const PORTFOLIO_CAPTION = [
+  "Every active project, worst first, one row each:",
+  [
+    PORTFOLIO_COLUMNS.project,
+    PORTFOLIO_COLUMNS.client,
+    PORTFOLIO_COLUMNS.burned,
+    PORTFOLIO_COLUMNS.consumed,
+    PORTFOLIO_COLUMNS.delivered,
+    PORTFOLIO_COLUMNS.gap,
+    PORTFOLIO_COLUMNS.verdict,
+  ]
+    .map((column) => column.toLowerCase())
+    .join(", "),
+  "— where the gap is the share consumed less the share delivered, in points.",
+].join(" ");

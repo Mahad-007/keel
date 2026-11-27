@@ -18,6 +18,8 @@ import {
   firstBlindSpotClause,
   gapCell,
   NO_FIGURE,
+  PORTFOLIO_CAPTION,
+  PORTFOLIO_COLUMNS,
   REASON_CLAUSE,
   RISK_BAND_LABELS,
   riskBandLabel,
@@ -143,5 +145,21 @@ describe("gapCell", () => {
 
   it("does not print an unreadable gap as no gap at all", () => {
     expect(gapCell(null)).not.toBe(gapCell(0));
+  });
+});
+
+describe("PORTFOLIO_CAPTION", () => {
+  it("names every column of the table", () => {
+    for (const column of Object.values(PORTFOLIO_COLUMNS)) {
+      expect(PORTFOLIO_CAPTION.toLowerCase()).toContain(column.toLowerCase());
+    }
+  });
+
+  it("says the order, which no single row shows", () => {
+    expect(PORTFOLIO_CAPTION).toContain("worst first");
+  });
+
+  it("says what the gap is, since it is the one column the page introduces", () => {
+    expect(PORTFOLIO_CAPTION).toContain("in points");
   });
 });
