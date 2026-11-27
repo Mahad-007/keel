@@ -55,7 +55,7 @@ export type RiskBand = (typeof RISK_BANDS)[number];
  * against a verdict has to special-case, and a misspelling of it would be a
  * band that sorts last by accident.
  */
-export const UNASSESSED_BAND: RiskBand = "unassessed";
+export const UNASSESSED_BAND = "unassessed" as const satisfies RiskBand;
 
 /**
  * Which band a verdict puts a project in.
