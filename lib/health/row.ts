@@ -1,9 +1,16 @@
-import type { BurnSummary } from "@/lib/burn";
-import type { JoinedRate } from "@/lib/rates";
+import { summariseBurn, type BurnSummary } from "@/lib/burn";
+import { assessProjectCreep } from "@/lib/projects/creep-readings";
+import { resolveJoinedRate, type JoinedRate } from "@/lib/rates";
+import type { ScopeLine } from "@/lib/scope";
 import type { CreepAssessment } from "@/lib/scope-creep";
-import type { JoinedThresholds } from "@/lib/thresholds/resolve";
+import { creepThresholds } from "@/lib/thresholds/creep";
+import {
+  resolveJoinedThresholds,
+  type JoinedThresholds,
+} from "@/lib/thresholds/resolve";
+import type { LoggedTotals } from "@/lib/time/rollup";
 
-import type { RiskBand } from "./band";
+import { riskBand, type RiskBand } from "./band";
 
 /**
  * One line of the portfolio: a project, what its hours came to, and the
@@ -73,3 +80,36 @@ export type PortfolioRow = {
   /** Where the row sits in the order. */
   readonly band: RiskBand;
 };
+
+/**
+ * Assess one project for the portfolio: the join, its totals, its scope list.
+ *
+ * The three reads the page makes, turned into one row. Nothing here decides
+ * anything — the rate, the thresholds and the verdict all come from the
+ * modules that own them — and that is the point: this function exists so the
+ * three are put together in one place, by name, rather than at a call site
+ * where the two resolutions could be handed each other's row.
+ *
+ * `totals` rather than a burn summary, because the price and the rate are on
+ * the project and the summary is where the three meet. A caller that built the
+ * summary itself would be a caller free to value an engagement at its client's
+ * rate while the project overrode it.
+ */
+export function portfolioRow(
+  project: HealthProject,
+  totals: LoggedTotals,
+  lines: readonly ScopeLine[],
+): PortfolioRow {
+  const burn = summariseBurn(
+    totals,
+    project.contractValueCents,
+    resolveJoinedRate(project),
+  );
+  const assessment = assessProjectCreep(
+    burn,
+    lines,
+    creepThresholds(resolveJoinedThresholds(project)),
+  );
+
+  return { project, burn, assessment, band: riskBand(assessment.health) };
+}
