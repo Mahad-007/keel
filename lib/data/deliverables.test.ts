@@ -14,6 +14,7 @@ import {
   listDeliverables,
   moveDeliverable,
   reorderDeliverables,
+  scopeLinesByProject,
   setDeliverableStatus,
   updateDeliverable,
 } from "./deliverables";
@@ -220,6 +221,93 @@ describe("listDeliverables", () => {
     const list = await listDeliverables(projectId, db);
 
     expect(list.map((row) => row.title)).toEqual(["Ours"]);
+  });
+});
+
+describe("scopeLinesByProject", () => {
+  /** A second engagement, so the grouping has two projects to keep apart. */
+  async function secondProject(): Promise<string> {
+    const clientId = (await createClient({ name: "Beam Ltd" }, db)).id;
+    return (await createProject({ clientId, name: "Other" }, db)).id;
+  }
+
+  it("carries each line's project, estimate and status and nothing else", async () => {
+    await createDeliverable(
+      {
+        projectId,
+        title: "Discovery",
+        description: "Interviews and an audit.",
+        estimatedMinutes: 480,
+        status: "done",
+      },
+      db,
+    );
+
+    expect(await scopeLinesByProject(db)).toEqual([
+      { projectId, estimatedMinutes: 480, status: "done" },
+    ]);
+  });
+
+  it("keeps each project's lines in the order they were agreed", async () => {
+    const other = await secondProject();
+    await createDeliverable({ projectId, title: "A", estimatedMinutes: 60 }, db);
+    await createDeliverable({ projectId, title: "B", estimatedMinutes: 120 }, db);
+    await createDeliverable(
+      { projectId: other, title: "C", estimatedMinutes: 30 },
+      db,
+    );
+
+    const lines = await scopeLinesByProject(db);
+
+    expect(
+      lines
+        .filter((line) => line.projectId === projectId)
+        .map((line) => line.estimatedMinutes),
+    ).toEqual([60, 120]);
+    expect(
+      lines
+        .filter((line) => line.projectId === other)
+        .map((line) => line.estimatedMinutes),
+    ).toEqual([30]);
+  });
+
+  it("groups each project's lines together", async () => {
+    const other = await secondProject();
+    await createDeliverable({ projectId, title: "Ours" }, db);
+    await createDeliverable({ projectId: other, title: "Theirs" }, db);
+    await createDeliverable({ projectId, title: "Ours again" }, db);
+
+    const ids = (await scopeLinesByProject(db)).map((line) => line.projectId);
+
+    expect(new Set(ids).size).toBe(2);
+    expect(ids).toEqual([...ids].sort());
+  });
+
+  it("agrees with the single-project read, line for line", async () => {
+    await secondProject();
+    await createDeliverable({ projectId, title: "A", estimatedMinutes: 60 }, db);
+    await createDeliverable(
+      { projectId, title: "B", estimatedMinutes: 0, status: "started" },
+      db,
+    );
+
+    const across = (await scopeLinesByProject(db)).filter(
+      (line) => line.projectId === projectId,
+    );
+    const one = await listDeliverables(projectId, db);
+
+    expect(across.map((line) => line.estimatedMinutes)).toEqual(
+      one.map((row) => row.estimatedMinutes),
+    );
+    expect(across.map((line) => line.status)).toEqual(
+      one.map((row) => row.status),
+    );
+  });
+
+  it("comes back empty when no project has any scope written down", async () => {
+    await secondProject();
+
+    expect(await scopeLinesByProject(db)).toEqual([]);
   });
 });
 
