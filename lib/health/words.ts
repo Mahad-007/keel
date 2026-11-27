@@ -269,6 +269,23 @@ export const UNEXPLAINED_FLAG_CLAUSE =
   "Flagged, with no comparison able to explain itself. The project has the figures.";
 
 /**
+ * What an engagement nobody has begun is told.
+ *
+ * Not the blind spots, which is the point. A project created this morning has
+ * no contract value and no estimates, so the classifier reports both — and two
+ * clauses telling a reader to go and fill in the fields they have not reached
+ * yet is the row that teaches them to stop reading this column. The project
+ * page refuses to render a verdict at all for this case; the table cannot
+ * refuse, so it says the one thing that is actually news.
+ *
+ * It names the three fields that would start the assessment, in the order they
+ * ordinarily arrive, because a reader who wants this row to say something has
+ * to do one of them and any one will do.
+ */
+export const UNSTARTED_CLAUSE =
+  "Nothing agreed, logged or scoped yet, so there is nothing to assess.";
+
+/**
  * What a project the classifier would not judge is told when even the gap
  * could not be named.
  *
@@ -350,6 +367,8 @@ export function rowReason(row: PortfolioRow): string {
       : REASON_CLAUSE[worst];
   }
 
+  if (row.band === UNSTARTED_BAND) return UNSTARTED_CLAUSE;
+
   if (row.band === UNASSESSED_BAND) {
     return firstBlindSpotClause(assessment.blindSpots) ?? UNEXPLAINED_GAP_CLAUSE;
   }
@@ -367,11 +386,18 @@ export function rowReason(row: PortfolioRow): string {
  * has a verdict has none. On an unassessed row the first one is already the
  * reason, so this is the next — which is the scope half, when there is one.
  *
- * At most one either way, because a row has a line. A project with two things
+ * On an unstarted row, nothing. Every blind spot such a project has is a
+ * consequence of it being new, which its reason has already said in one line
+ * — and the two or three the classifier reports would be the longest row on
+ * the page belonging to the engagement with least to say.
+ *
+ * At most one otherwise, because a row has a line. A project with two things
  * missing has them both on its own page, where there is room for the sentence
  * that names the form as well.
  */
 export function rowCaveat(row: PortfolioRow): string | null {
+  if (row.band === UNSTARTED_BAND) return null;
+
   const { blindSpots } = row.assessment;
   const rest = row.band === UNASSESSED_BAND ? blindSpots.slice(1) : blindSpots;
   return firstBlindSpotClause(rest);
