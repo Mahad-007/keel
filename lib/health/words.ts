@@ -2,11 +2,7 @@ import {
   NOT_ASSESSED_HEADLINE,
   SCOPE_HEALTH_HEADLINE,
 } from "@/lib/projects/scope-health";
-import {
-  CREEP_BLIND_SPOTS,
-  type CreepBlindSpot,
-  type CreepReason,
-} from "@/lib/scope-creep";
+import type { CreepBlindSpot, CreepReason } from "@/lib/scope-creep";
 
 import { UNASSESSED_BAND, type RiskBand } from "./band";
 
@@ -144,12 +140,3 @@ export function firstBlindSpotClause(
   const [first] = blindSpots;
   return first === undefined ? null : BLIND_SPOT_CLAUSE[first];
 }
-
-/**
- * Every blind spot the classifier can report, in the classifier's own order.
- *
- * Here so a test can walk the list the codes come from rather than a list
- * written out beside the clauses — which would still pass the day a ninth
- * blind spot arrived with no words for it.
- */
-export const BLIND_SPOTS_IN_ORDER: readonly CreepBlindSpot[] = CREEP_BLIND_SPOTS;
