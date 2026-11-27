@@ -379,6 +379,41 @@ export function rowReason(row: PortfolioRow): string {
 }
 
 /**
+ * Why the gap column is a dash on a project whose two shares both read.
+ *
+ * The one null gap the dash convention does not otherwise cover.
+ * `readCreepGap` answers nothing once every line of the scope is delivered,
+ * and that is right — there is no undelivered work for the burn to be ahead
+ * of, so a gap would be the overspend told twice, once wrongly. But it is the
+ * only way to get a dash in that column with a percentage either side of it,
+ * and it reports no blind spot, so without this clause the row would show
+ * "83%", "100%", "–" and say nothing about the dash.
+ *
+ * Which is the opposite of the news. A project that finished its whole list is
+ * the one row on this page where a missing figure is good: the work is done,
+ * and whatever the money came to is what the engagement cost rather than a
+ * leak still widening.
+ */
+export const SCOPE_ALL_DELIVERED_CLAUSE =
+  "Every line of the scope is delivered, so there is no undelivered work for the burn to be ahead of.";
+
+/**
+ * Whether this row's gap is missing because the work is finished.
+ *
+ * `readCreepGap` answers null two ways: either share unreadable, or the whole
+ * scope delivered. The first always carries a blind spot — a share this file
+ * sees as null is a share the classifier refused, and it says why — so a null
+ * gap with both shares present can only be the second. Inferred rather than
+ * carried on the assessment, because `scopeDelivered` is a reading of the
+ * scope list rather than a part of the verdict, and the inference is sound in
+ * the one direction it is used.
+ */
+function finishedWithoutAGap(row: PortfolioRow): boolean {
+  const { consumedShare, deliveredShare, gap } = row.assessment;
+  return gap === null && consumedShare !== null && deliveredShare !== null;
+}
+
+/**
  * What the verdict could not see, beyond whatever the reason already said.
  *
  * On an assessed row that is the first blind spot, and it can only be a scope
@@ -391,12 +426,17 @@ export function rowReason(row: PortfolioRow): string {
  * — and the two or three the classifier reports would be the longest row on
  * the page belonging to the engagement with least to say.
  *
+ * On a finished row, why the gap column is empty, ahead of any blind spot. The
+ * dash is the thing on that row a reader cannot account for, and a clause
+ * about how far to trust the delivered share would leave it unaccounted for.
+ *
  * At most one otherwise, because a row has a line. A project with two things
  * missing has them both on its own page, where there is room for the sentence
  * that names the form as well.
  */
 export function rowCaveat(row: PortfolioRow): string | null {
   if (row.band === UNSTARTED_BAND) return null;
+  if (finishedWithoutAGap(row)) return SCOPE_ALL_DELIVERED_CLAUSE;
 
   const { blindSpots } = row.assessment;
   const rest = row.band === UNASSESSED_BAND ? blindSpots.slice(1) : blindSpots;

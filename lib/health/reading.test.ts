@@ -12,6 +12,7 @@ import {
   ON_TRACK_ON_MONEY_CLAUSE,
   portfolioReading,
   REASON_CLAUSE,
+  SCOPE_ALL_DELIVERED_CLAUSE,
   UNSTARTED_CLAUSE,
 } from "./words";
 
@@ -160,6 +161,63 @@ describe("portfolioReading", () => {
 
     expect(read.verdict).toBe("Over scope");
     expect(read.gap).toBe(NO_FIGURE);
+  });
+
+  it("says why the gap is missing on a project that finished its list", () => {
+    const read = reading(PROJECT, logged(120), scope(4, 4));
+
+    expect(read.consumed).toBe("120%");
+    expect(read.delivered).toBe("100%");
+    expect(read.caveat).toBe(SCOPE_ALL_DELIVERED_CLAUSE);
+  });
+
+  it("explains a finished row's dash before how far to trust its share", () => {
+    const read = reading(PROJECT, logged(120), [
+      { estimatedMinutes: 600, status: "done" },
+      { estimatedMinutes: 900, status: "done" },
+    ]);
+
+    expect(read.gap).toBe(NO_FIGURE);
+    expect(read.caveat).toBe(SCOPE_ALL_DELIVERED_CLAUSE);
+  });
+
+  it("blames an unreadable delivered share rather than a finished list", () => {
+    const read = reading(PROJECT, logged(120), [
+      { estimatedMinutes: 600, status: "done" },
+      { estimatedMinutes: 0, status: "done" },
+    ]);
+
+    expect(read.delivered).toBe(NO_FIGURE);
+    expect(read.caveat).toBe(BLIND_SPOT_CLAUSE["scope-delivery-unsized"]);
+  });
+
+  it("does not claim a finished list where a share could not be read", () => {
+    const read = reading({ ...PROJECT, contractValueCents: 0 }, logged(10), scope(4, 4));
+
+    expect(read.gap).toBe(NO_FIGURE);
+    expect(read.caveat).not.toBe(SCOPE_ALL_DELIVERED_CLAUSE);
+  });
+
+  it("caveats every dashed gap on a row whose verdict stands", () => {
+    /*
+      An unassessed or unstarted row explains its own dashes in the reason
+      column, so the caveat is free to say the next thing. A row that reached a
+      verdict has spent that column on the verdict, which leaves the caveat as
+      the only place a missing gap can be accounted for.
+    */
+    const standing = [
+      reading(PROJECT, logged(120), scope(4, 4)),
+      reading(PROJECT, logged(30), []),
+      reading(PROJECT, logged(80), [
+        { estimatedMinutes: 600, status: "done" },
+        { estimatedMinutes: 0, status: "done" },
+      ]),
+    ];
+
+    for (const read of standing) {
+      expect(read.gap).toBe(NO_FIGURE);
+      expect(read.caveat).not.toBeNull();
+    }
   });
 
   it("calls a project nobody has begun not started", () => {
