@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { createClient } from "@/lib/data/clients";
+import { archiveClient, createClient } from "@/lib/data/clients";
 import {
   createDeliverable,
   scopeLinesByProject,
 } from "@/lib/data/deliverables";
-import { createProject, listProjectsWithClient } from "@/lib/data/projects";
+import {
+  createProject,
+  listProjectsWithClient,
+  transitionProject,
+} from "@/lib/data/projects";
 import { createTimeEntry, timeTotalsByProject } from "@/lib/data/time-entries";
 import type { Database } from "@/lib/db";
 import { createTestDb } from "@/lib/db/testing";
@@ -179,7 +183,7 @@ describe("the portfolio over stored rows", () => {
       {
         clientId: unrated.id,
         name: "Unpriced hours",
-        status: "active",
+        status: PORTFOLIO_STATUS,
         contractValueCents: 1_000_000,
       },
       db,
@@ -201,7 +205,7 @@ describe("the portfolio over stored rows", () => {
       {
         clientId: strict.id,
         name: "Watched early",
-        status: "active",
+        status: PORTFOLIO_STATUS,
         contractValueCents: 1_000_000,
       },
       db,
@@ -223,6 +227,61 @@ describe("the portfolio over stored rows", () => {
     expect(row.project.id).toBe(id);
     expect(row.project.clientName).toBe("Harbour Works");
     expect(row.project.clientArchivedAt).toBeNull();
+  });
+
+  it("ranks a brand-new engagement below the ones it can read", async () => {
+    const started = await activeProject("Running", 1_000_000);
+    const fresh = await createProject(
+      { clientId, name: "Just set up", status: PORTFOLIO_STATUS },
+      db,
+    );
+    await logHours(started, 20);
+    await agreeScope(started, 4, 2);
+
+    const rows = await portfolio();
+
+    expect(rows.map((row) => row.project.id)).toEqual([started, fresh.id]);
+    expect(rows[1].band).toBe("unstarted");
+  });
+
+  it("marks an engagement whose client is off the books", async () => {
+    const archived = await createClient(
+      { name: "Gone Co", defaultRateCents: 10_000 },
+      db,
+    );
+    await archiveClient(archived.id, db);
+    const project = await createProject(
+      {
+        clientId: archived.id,
+        name: "Still running",
+        status: PORTFOLIO_STATUS,
+        contractValueCents: 1_000_000,
+      },
+      db,
+    );
+    await logHours(project.id, 20);
+
+    const [row] = await portfolio();
+
+    expect(row.project.id).toBe(project.id);
+    expect(row.project.clientArchivedAt).not.toBeNull();
+  });
+
+  it("leaves a paused engagement out of the ranking", async () => {
+    const active = await activeProject("Running", 1_000_000);
+    const paused = await createProject(
+      {
+        clientId,
+        name: "On hold",
+        status: PORTFOLIO_STATUS,
+        contractValueCents: 1_000_000,
+      },
+      db,
+    );
+    await logHours(paused.id, 200);
+    await transitionProject(paused.id, "paused", {}, db);
+
+    expect((await portfolio()).map((row) => row.project.id)).toEqual([active]);
   });
 
   it("holds nothing for a studio with no active engagements", async () => {
