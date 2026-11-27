@@ -63,10 +63,17 @@ export default async function HealthPage() {
             The summary before the table, because whether there is anything to
             do today is the thing a reader wants before they read a single row
             — and on a good day it is the only line they need.
+
+            Left off when there is no table, because the panel below says the
+            same thing with the reason attached. "No active projects." above
+            "No active projects." is one sentence twice, and the second is the
+            one worth reading — the same arrangement the timesheet keeps.
           */}
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            {describePortfolio(rows)}
-          </p>
+          {rows.length === 0 ? null : (
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+              {describePortfolio(rows)}
+            </p>
+          )}
         </div>
         {/*
           The projects list is the other way to read the same engagements: this
