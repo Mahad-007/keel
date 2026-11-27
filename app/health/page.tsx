@@ -8,7 +8,7 @@ import {
 } from "@/lib/data/projects";
 import { timeTotalsByProject } from "@/lib/data/time-entries";
 import { buildPortfolio } from "@/lib/health/portfolio";
-import { HEALTH_PATH, HEALTH_TITLE } from "@/lib/health/route";
+import { HEALTH_TITLE } from "@/lib/health/route";
 import { describePortfolio } from "@/lib/health/words";
 import { PROJECTS_PATH } from "@/lib/projects/query";
 
