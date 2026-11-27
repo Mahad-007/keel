@@ -456,3 +456,49 @@ export function describePortfolio(rows: readonly PortfolioRow[]): string {
   if (parts.length === 0) return `${total}, all on track.`;
   return `${total}: ${parts.join(", ")}.`;
 }
+
+/**
+ * What the seven columns of the portfolio are called.
+ *
+ * "Consumed" and "Delivered" are the burn panel's and the scope panel's own
+ * words for the same two shares, so a reader who has learned them on a project
+ * does not have to learn them again here. "Gap" is the one word this page
+ * introduces, and the column it heads prints points rather than a percent for
+ * exactly that reason — it is a distance between the two columns to its left
+ * rather than a share of anything.
+ *
+ * "Verdict" rather than "Status", which is taken: a project's status is
+ * draft, active, paused or closed, and this column is nothing to do with it.
+ * A reader who saw "Status" here would reasonably expect "Active" in every
+ * row.
+ *
+ * "Burned" rather than "Spent", matching the burn panel. The money has been
+ * consumed by the work; "spent" reads like an expense somebody authorised.
+ *
+ * One object rather than seven strings in the markup, so the headings and the
+ * caption that describes them cannot drift apart.
+ */
+export const PORTFOLIO_COLUMNS = {
+  project: "Project",
+  client: "Client",
+  burned: "Burned",
+  consumed: "Consumed",
+  delivered: "Delivered",
+  gap: "Gap",
+  verdict: "Verdict",
+} as const;
+
+/**
+ * What the table is, for a reader who cannot see its shape.
+ *
+ * A caption rather than a paragraph above the table, so it is read as part of
+ * the table by anything navigating by region — and visually hidden, because
+ * the summary line above already says what the page is and a second sentence
+ * saying it again is the kind of thing a sighted reader learns to skip past.
+ *
+ * It says the order, which is the one fact about this table that is not
+ * visible from any single row: a reader who cannot scan the whole column has
+ * no way to tell that the first row is the worst one rather than the newest.
+ */
+export const PORTFOLIO_CAPTION =
+  "Every active project, worst first: what its hours have cost, the share of its contract that has gone, the share of its work delivered, and the verdict.";
