@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  formatSharePoints,
   NOT_ASSESSED_HEADLINE,
   SCOPE_HEALTH_HEADLINE,
 } from "@/lib/projects/scope-health";
+import { formatSharePercent } from "@/lib/projects/scope-summary";
 import {
   CREEP_BLIND_SPOTS,
   CREEP_REASONS,
@@ -14,9 +16,12 @@ import { RISK_BANDS, riskBand, UNASSESSED_BAND } from "./band";
 import {
   BLIND_SPOT_CLAUSE,
   firstBlindSpotClause,
+  gapCell,
+  NO_FIGURE,
   REASON_CLAUSE,
   RISK_BAND_LABELS,
   riskBandLabel,
+  shareCell,
 } from "./words";
 
 describe("riskBandLabel", () => {
@@ -100,5 +105,43 @@ describe("firstBlindSpotClause", () => {
     expect(
       firstBlindSpotClause(["no-contract-value", "scope-not-estimated"]),
     ).toBe(BLIND_SPOT_CLAUSE["no-contract-value"]);
+  });
+});
+
+describe("shareCell", () => {
+  it("prints a share the way the burn panel prints it", () => {
+    expect(shareCell(0.8)).toBe(formatSharePercent(0.8));
+    expect(shareCell(1.63)).toBe("163%");
+  });
+
+  it("prints a share that could not be read as a dash", () => {
+    expect(shareCell(null)).toBe(NO_FIGURE);
+  });
+
+  it("does not print an unreadable share as nothing consumed", () => {
+    expect(shareCell(null)).not.toBe(shareCell(0));
+  });
+
+  it("prints a tiny share as something rather than nothing", () => {
+    expect(shareCell(0.001)).toBe("less than 1%");
+  });
+});
+
+describe("gapCell", () => {
+  it("prints a gap in points the way the banner does", () => {
+    expect(gapCell(0.65)).toBe(formatSharePoints(0.65));
+    expect(gapCell(0.65)).toBe("65 points");
+  });
+
+  it("prints a delivery ahead of the burn as a negative gap", () => {
+    expect(gapCell(-0.12)).toBe("-12 points");
+  });
+
+  it("prints a gap that could not be read as a dash", () => {
+    expect(gapCell(null)).toBe(NO_FIGURE);
+  });
+
+  it("does not print an unreadable gap as no gap at all", () => {
+    expect(gapCell(null)).not.toBe(gapCell(0));
   });
 });
