@@ -4,41 +4,8 @@ import type { ProjectScopeLine } from "@/lib/scope";
 import { NO_THRESHOLD_OVERRIDES } from "@/lib/thresholds/resolve";
 import type { ProjectLoggedTotals } from "@/lib/time/rollup";
 
-import { buildPortfolio, countByBand, groupByProject } from "./portfolio";
+import { buildPortfolio, countByBand } from "./portfolio";
 import type { HealthProject } from "./row";
-
-describe("groupByProject", () => {
-  it("files each row under the project it names", () => {
-    const grouped = groupByProject([
-      { projectId: "prj_a", value: 1 },
-      { projectId: "prj_b", value: 2 },
-    ]);
-
-    expect(grouped.get("prj_a")).toEqual([{ projectId: "prj_a", value: 1 }]);
-    expect(grouped.get("prj_b")).toEqual([{ projectId: "prj_b", value: 2 }]);
-  });
-
-  it("keeps several rows for one project in the order they arrived", () => {
-    const grouped = groupByProject([
-      { projectId: "prj_a", value: 1 },
-      { projectId: "prj_b", value: 9 },
-      { projectId: "prj_a", value: 2 },
-      { projectId: "prj_a", value: 3 },
-    ]);
-
-    expect(grouped.get("prj_a")?.map((row) => row.value)).toEqual([1, 2, 3]);
-  });
-
-  it("has no group for a project no row mentions", () => {
-    const grouped = groupByProject([{ projectId: "prj_a", value: 1 }]);
-
-    expect(grouped.get("prj_b")).toBeUndefined();
-  });
-
-  it("groups nothing out of an empty list", () => {
-    expect(groupByProject([]).size).toBe(0);
-  });
-});
 
 /**
  * A $10,000 engagement billing at $100 an hour, with nothing configured — so

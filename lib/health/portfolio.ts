@@ -1,3 +1,4 @@
+import { groupByProject } from "@/lib/group";
 import type { ProjectScopeLine, ScopeLine } from "@/lib/scope";
 import type { LoggedTotals, ProjectLoggedTotals } from "@/lib/time/rollup";
 
@@ -34,32 +35,6 @@ export const NO_TIME_LOGGED: LoggedTotals = Object.freeze({
   loggedMinutes: 0,
   billableMinutes: 0,
 });
-
-/**
- * Rows carrying a project id, filed under it.
- *
- * One pass over the list rather than a lookup per project, which is the
- * difference between assembling a portfolio in linear time and in quadratic.
- *
- * Many rows per project, which is why it is this and not a plain `Map` from
- * the id to the row: a scope list is as many lines as the two parties agreed,
- * and a totals row is one per project only because the query grouped it that
- * way. The two are indexed differently below for exactly that reason.
- *
- * The order within each group is the order the rows arrived in, so a scope
- * list filed here still reads in the positions the two parties agreed.
- */
-export function groupByProject<T extends { readonly projectId: string }>(
-  rows: readonly T[],
-): Map<string, T[]> {
-  const grouped = new Map<string, T[]>();
-  for (const row of rows) {
-    const group = grouped.get(row.projectId);
-    if (group === undefined) grouped.set(row.projectId, [row]);
-    else group.push(row);
-  }
-  return grouped;
-}
 
 /**
  * What a project with no scope list is assessed against: nothing agreed.

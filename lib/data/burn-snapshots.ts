@@ -13,6 +13,7 @@ import type {
 import { summariseBurn } from "@/lib/burn";
 import { utcCalendarDate } from "@/lib/dates";
 import { db, type Database } from "@/lib/db";
+import { groupByProject } from "@/lib/group";
 import { burnSnapshots, type BurnSnapshot } from "@/lib/db/schema";
 import { newId } from "@/lib/id";
 import { resolveJoinedRate } from "@/lib/rates";
@@ -686,30 +687,6 @@ export async function backfillProjectBurn(
     },
     { behavior: "immediate" },
   );
-}
-
-/**
- * Rows that each name a project, gathered by the project they name, in the
- * order the projects first appear.
- *
- * The studio-wide backfill reads two unscoped lists and has to walk them one
- * project at a time; a `filter` per project per list is the quadratic way to
- * do that, and a studio's history is the one place in the app where the lists
- * are long enough for it to matter.
- *
- * The order the query returned is kept, so a run writes projects in a settled
- * order and an interrupted one has written whole projects.
- */
-function groupByProject<T extends { readonly projectId: string }>(
-  rows: readonly T[],
-): Map<string, T[]> {
-  const grouped = new Map<string, T[]>();
-  for (const row of rows) {
-    const mine = grouped.get(row.projectId);
-    if (mine === undefined) grouped.set(row.projectId, [row]);
-    else mine.push(row);
-  }
-  return grouped;
 }
 
 /** Adds up one figure of a list of results. */
