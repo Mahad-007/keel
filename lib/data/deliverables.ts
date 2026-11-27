@@ -16,7 +16,10 @@ import {
   type DeliverableStatus,
 } from "@/lib/deliverables/status";
 import { newId } from "@/lib/id";
-import { negativeEstimateCount } from "@/lib/scope";
+import {
+  negativeEstimateCount,
+  type ProjectScopeLine,
+} from "@/lib/scope";
 
 import { findProject } from "./belonging";
 import {
@@ -185,6 +188,52 @@ export async function listDeliverables(
     .from(deliverables)
     .where(eq(deliverables.projectId, projectId))
     .orderBy(...IN_ORDER);
+}
+
+/**
+ * Every project's scope lines, as much of each as a verdict reads, in one
+ * query.
+ *
+ * The read the portfolio is built from, and the counterpart of
+ * `timeTotalsByProject`. A scope verdict needs six facts about a project's
+ * list — how many lines, how many unsized, how many of those delivered, how
+ * many estimates below zero, how much of the estimate is done, and whether all
+ * of it is — and every one of them is a count over the same rows. Asking for
+ * them per project is a round trip per row of the page.
+ *
+ * Three columns rather than the whole row, which is the difference between
+ * this and `listDeliverables`. A portfolio never shows a deliverable: it shows
+ * what the list adds up to, and `ProjectScopeLine` is exactly the part
+ * `lib/scope.ts` reads. A title and a description per line, across every
+ * engagement a studio has ever run, is a page's worth of prose crossing the
+ * wire so that nothing can print it.
+ *
+ * Counted here in rows rather than aggregated in SQL on purpose. Six aggregates
+ * is six expressions to keep in step with the six functions in `lib/scope.ts`
+ * that already mean them — and the portfolio's verdict has to be the same
+ * verdict the project page reaches, which it can only be if it is reached from
+ * the same code. The rows are three integers-worth each and a studio's whole
+ * scope is a few hundred of them.
+ *
+ * Ordered by project and then by the agreed positions, so each project's lines
+ * arrive together and in the order the two parties agreed — the same
+ * `IN_ORDER` the single-project read uses, with the project leading it. A
+ * caller walks the result once to file them.
+ *
+ * Unscoped, like the two studio-wide time reads, and listed in `NOTES.md` with
+ * them: there is no project in the predicate for Day 084 to scope by owner.
+ */
+export async function scopeLinesByProject(
+  database: Database = db,
+): Promise<ProjectScopeLine[]> {
+  return database
+    .select({
+      projectId: deliverables.projectId,
+      estimatedMinutes: deliverables.estimatedMinutes,
+      status: deliverables.status,
+    })
+    .from(deliverables)
+    .orderBy(asc(deliverables.projectId), ...IN_ORDER);
 }
 
 /**
