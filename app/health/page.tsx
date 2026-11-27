@@ -108,33 +108,40 @@ export default async function HealthPage() {
         reader arrives wanting to know what is true and only asks how it was
         worked out once they disagree with a row — the same order the project
         page keeps, conclusion first and basis after.
+
+        Only where there is a table. These two paragraphs explain three columns
+        and a verdict, and above an empty panel they would be explaining
+        columns that are not on screen — while the panel itself has already
+        said what the page is for, in the two lines that case needs.
       */}
-      <section
-        aria-labelledby="health-basis"
-        className="mt-10 max-w-prose border-t border-zinc-200 pt-6 dark:border-zinc-800"
-      >
-        <h2
-          id="health-basis"
-          className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
+      {rows.length === 0 ? null : (
+        <section
+          aria-labelledby="health-basis"
+          className="mt-10 max-w-prose border-t border-zinc-200 pt-6 dark:border-zinc-800"
         >
-          How this is worked out
-        </h2>
-        <p className="mt-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-          Consumed is every logged hour valued at the project&rsquo;s rate — its
-          own, else its client&rsquo;s — as a share of the contract value.
-          Delivered is the estimate on the lines marked done as a share of the
-          whole estimate. The gap between them is the figure that matters: high
-          burn against low delivery is an engagement that will miss by a mile,
-          and on the day it happens there is still budget in the bank and
-          nothing overdue.
-        </p>
-        <p className="mt-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-          Each project is judged at its own thresholds, else its
-          client&rsquo;s, else the app&rsquo;s defaults. A project whose burn
-          cannot be read is not called healthy — it is listed above the ones
-          that are, with the field that would settle it.
-        </p>
-      </section>
+          <h2
+            id="health-basis"
+            className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
+          >
+            How this is worked out
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+            Consumed is every logged hour valued at the project&rsquo;s rate —
+            its own, else its client&rsquo;s — as a share of the contract value.
+            Delivered is the estimate on the lines marked done as a share of the
+            whole estimate. The gap between them is the figure that matters:
+            high burn against low delivery is an engagement that will miss by a
+            mile, and on the day it happens there is still budget in the bank
+            and nothing overdue.
+          </p>
+          <p className="mt-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+            Each project is judged at its own thresholds, else its
+            client&rsquo;s, else the app&rsquo;s defaults. A project whose burn
+            cannot be read is not called healthy — it is listed above the ones
+            that are, with the field that would settle it.
+          </p>
+        </section>
+      )}
     </main>
   );
 }
