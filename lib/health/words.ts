@@ -2,6 +2,7 @@ import {
   NOT_ASSESSED_HEADLINE,
   SCOPE_HEALTH_HEADLINE,
 } from "@/lib/projects/scope-health";
+import type { CreepReason } from "@/lib/scope-creep";
 
 import { UNASSESSED_BAND, type RiskBand } from "./band";
 
@@ -56,3 +57,34 @@ export const RISK_BAND_LABELS: Record<RiskBand, string> = {
 export function riskBandLabel(band: RiskBand): string {
   return RISK_BAND_LABELS[band];
 }
+
+/**
+ * What flagged a project, in a clause with no figures in it.
+ *
+ * The banner's sentences quote the two shares, because a banner is the only
+ * thing on its page that reaches a conclusion and a reader has nowhere else to
+ * find them. A portfolio row has the shares in columns an inch to the right,
+ * so quoting them here would print the same percentage twice on one line and
+ * make the row twice as tall to do it.
+ *
+ * What is left is the comparison, named. "Burn is far ahead of the work
+ * delivered" beside 90%, 25% and 65 points is the whole argument: the clause
+ * says which two figures were set against each other, the columns say what
+ * they came out at, and a reader who disagrees knows which one to go and look
+ * at. That is the same deal the banner offers, laid out sideways.
+ *
+ * Present tense and no trailing consequence, unlike the banner. A row is read
+ * in a scan down a column of them, and "so somebody has to decide whether to
+ * keep logging hours" is a clause nobody reads eleven times — it belongs on the
+ * project, which is one click away and says it.
+ *
+ * A record over every reason rather than a chain of conditions, so a fifth
+ * comparison added to the classifier is a compile error here rather than a row
+ * with an empty cell where the reason should be.
+ */
+export const REASON_CLAUSE: Record<CreepReason, string> = {
+  "contract-overspent": "Burn has passed the contract value.",
+  "burn-far-ahead-of-delivery": "Burn is far ahead of the work delivered.",
+  "contract-nearly-spent": "The contract is nearly spent.",
+  "burn-ahead-of-delivery": "Burn is ahead of the work delivered.",
+};
