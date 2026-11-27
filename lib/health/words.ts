@@ -9,7 +9,8 @@ import {
 import { formatSharePercent } from "@/lib/projects/scope-summary";
 import type { CreepBlindSpot, CreepReason } from "@/lib/scope-creep";
 
-import { UNASSESSED_BAND, type RiskBand } from "./band";
+import { isFlaggedBand, UNASSESSED_BAND, type RiskBand } from "./band";
+import type { PortfolioRow } from "./row";
 
 /**
  * The words the portfolio is read in.
@@ -265,3 +266,122 @@ export const UNEXPLAINED_FLAG_CLAUSE =
  */
 export const UNEXPLAINED_GAP_CLAUSE =
   "No verdict could be reached, and nothing on the project says why.";
+
+/**
+ * One row of the portfolio, as a component reads it.
+ *
+ * Eight fields, every one of them a string already decided, plus the band for
+ * the one thing a component is allowed to branch on. The same arrangement
+ * `ScopeHealthBanner` makes, and for the same reason: a table cell that
+ * decided its own words from a share would be a second classifier, and it
+ * would be the one a reader believed.
+ *
+ * `reason` and `caveat` are two fields rather than one because they answer
+ * different questions. The reason is why this row is where it is; the caveat
+ * is what the verdict could not see, which is about the verdict rather than
+ * about the project. A reader scanning the column reads the reasons and stops;
+ * one who has decided to do something reads the caveat under it.
+ *
+ * `project` and `client` are not here. The row holds the project, and a name
+ * needs a link rather than a string — which is the component's business, and
+ * the one thing on the row that is.
+ */
+export type PortfolioReading = {
+  /** Where the row sits in the order. Tone and grouping only. */
+  readonly band: RiskBand;
+  /** The verdict, in the words the project banner uses. */
+  readonly verdict: string;
+  /** Why the row is where it is, in one clause with no figures in it. */
+  readonly reason: string;
+  /** What the verdict could not see, or nothing. Usually nothing. */
+  readonly caveat: string | null;
+  /** What the hours have cost, or a dash. */
+  readonly burned: string;
+  /** The share of the contract the burn has eaten, or a dash. */
+  readonly consumed: string;
+  /** The share of the estimated work that is done, or a dash. */
+  readonly delivered: string;
+  /** The distance between the two, in points, or a dash. */
+  readonly gap: string;
+};
+
+/**
+ * Why this row is where it is, in one clause.
+ *
+ * Three cases, and keeping them apart is the whole of this function:
+ *
+ *   - **Flagged.** The worst reason, which the classifier has already put
+ *     first. A reader who reads one clause should have been told the worst
+ *     thing.
+ *   - **Healthy.** The clause that says both comparisons were made, or the one
+ *     that says only the money could be — which depends on whether there was a
+ *     delivered share, not on whether the verdict stood.
+ *   - **Unassessed.** The money gap that withheld the verdict, which is always
+ *     the first blind spot on the assessment: a verdict is withheld exactly
+ *     when `readConsumedShare` found nothing, and all three ways to get there
+ *     push a money blind spot before any scope one.
+ *
+ * The two unreachable fallbacks are explained where they are defined. Neither
+ * can be produced by `assessScopeCreep`; both are here so this function is
+ * total and the reason column is never empty.
+ */
+export function rowReason(row: PortfolioRow): string {
+  const { assessment } = row;
+
+  if (isFlaggedBand(row.band)) {
+    const [worst] = assessment.reasons;
+    return worst === undefined
+      ? UNEXPLAINED_FLAG_CLAUSE
+      : REASON_CLAUSE[worst];
+  }
+
+  if (row.band === UNASSESSED_BAND) {
+    return firstBlindSpotClause(assessment.blindSpots) ?? UNEXPLAINED_GAP_CLAUSE;
+  }
+
+  return assessment.deliveredShare === null
+    ? ON_TRACK_ON_MONEY_CLAUSE
+    : ON_TRACK_CLAUSE;
+}
+
+/**
+ * What the verdict could not see, beyond whatever the reason already said.
+ *
+ * On an assessed row that is the first blind spot, and it can only be a scope
+ * one: a money blind spot is exactly what withholds a verdict, so a row that
+ * has a verdict has none. On an unassessed row the first one is already the
+ * reason, so this is the next — which is the scope half, when there is one.
+ *
+ * At most one either way, because a row has a line. A project with two things
+ * missing has them both on its own page, where there is room for the sentence
+ * that names the form as well.
+ */
+export function rowCaveat(row: PortfolioRow): string | null {
+  const { blindSpots } = row.assessment;
+  const rest = row.band === UNASSESSED_BAND ? blindSpots.slice(1) : blindSpots;
+  return firstBlindSpotClause(rest);
+}
+
+/**
+ * One row, read.
+ *
+ * The call a component makes, so every string on a line came from one reading
+ * of one project. The pieces stay exported because each is worth testing on
+ * its own, but nothing that renders a row should be asking for them one at a
+ * time — the point of the reading is that the verdict, the clause under it and
+ * the three figures beside it are all about the same assessment.
+ */
+export function portfolioReading(row: PortfolioRow): PortfolioReading {
+  const { assessment, burn } = row;
+
+  return {
+    band: row.band,
+    verdict: riskBandLabel(row.band),
+    reason: rowReason(row),
+    caveat: rowCaveat(row),
+    burned: burnedCell(burn),
+    consumed: shareCell(assessment.consumedShare),
+    delivered: shareCell(assessment.deliveredShare),
+    gap: gapCell(assessment.gap),
+  };
+}
