@@ -85,6 +85,28 @@ export type LoggedTotals = {
 };
 
 /**
+ * Three figures of nothing: no entries, no minutes, none of them billable.
+ *
+ * What a caller with no totals to hand reads instead of building a literal.
+ * Two had one of their own — the project page, whose other four tabs never
+ * run the query the overview needs, and the portfolio, where a project nobody
+ * has logged against gets no row back from a `GROUP BY` — and a third will
+ * want it the day a fourth page totals something.
+ *
+ * Here rather than beside either of them, because the two copies were the
+ * same three fields with two explanations, and the shape they are nothing of
+ * is defined on the line above.
+ *
+ * Frozen and shared rather than built per call, so a caller handed it cannot
+ * mutate the stand-in another caller is about to read.
+ */
+export const NO_TIME_LOGGED: LoggedTotals = Object.freeze({
+  entryCount: 0,
+  loggedMinutes: 0,
+  billableMinutes: 0,
+});
+
+/**
  * One project's totals, carrying which project they are.
  *
  * The shape a studio-wide total comes back in: a portfolio has to value every

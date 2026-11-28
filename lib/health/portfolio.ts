@@ -1,6 +1,6 @@
 import { groupByProject } from "@/lib/group";
 import type { ProjectScopeLine, ScopeLine } from "@/lib/scope";
-import type { LoggedTotals, ProjectLoggedTotals } from "@/lib/time/rollup";
+import { NO_TIME_LOGGED, type ProjectLoggedTotals } from "@/lib/time/rollup";
 
 import { RISK_BANDS, type RiskBand } from "./band";
 import { rankedPortfolio } from "./rank";
@@ -18,23 +18,15 @@ import { portfolioRow, type HealthProject, type PortfolioRow } from "./row";
  * as over.
  */
 
-/**
- * What a project with no time logged against it is valued at.
- *
- * Neither studio-wide read returns a row for a project it has nothing for —
- * `GROUP BY` has no group for a project nobody has logged against — so the
- * assembly supplies the absence rather than dropping the project. Dropping it
- * would be the wrong answer twice over: a brand-new engagement belongs on the
- * list, and so does one with a price, a scope list and nobody working on it.
- *
- * Frozen and shared rather than built per project, so a row cannot be handed a
- * totals object another row could have mutated.
- */
-export const NO_TIME_LOGGED: LoggedTotals = Object.freeze({
-  entryCount: 0,
-  loggedMinutes: 0,
-  billableMinutes: 0,
-});
+/*
+  `NO_TIME_LOGGED` is what a project with no time logged against it is valued
+  at, and it comes from `lib/time/rollup.ts` beside the shape it is nothing of.
+  Neither studio-wide read returns a row for a project it has nothing for —
+  `GROUP BY` has no group for a project nobody has logged against — so the
+  assembly supplies the absence rather than dropping the project. Dropping it
+  would be the wrong answer twice over: a brand-new engagement belongs on the
+  list, and so does one with a price, a scope list and nobody working on it.
+*/
 
 /**
  * What a project with no scope list is assessed against: nothing agreed.

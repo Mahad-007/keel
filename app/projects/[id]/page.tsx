@@ -20,7 +20,7 @@ import { utcCalendarDate } from "@/lib/dates";
 import { parseProjectTabParam } from "@/lib/projects/detail";
 import { PROJECT_TAB_LABELS } from "@/lib/projects/tabs";
 import { chosenSnapshot, readSnapshotParam } from "@/lib/snapshots/selection";
-import type { LoggedTotals } from "@/lib/time/rollup";
+import { NO_TIME_LOGGED } from "@/lib/time/rollup";
 
 import { OverviewPanel } from "./overview-panel";
 import { ProjectHeader } from "./project-header";
@@ -38,21 +38,6 @@ export const dynamic = "force-dynamic";
 
 /** Ties the panel below the tabs to the heading that names it. */
 const TAB_HEADING_ID = "project-tab-heading";
-
-/**
- * What the other four tabs hand the overview's burn summary instead of a
- * query: nothing logged.
- *
- * The totals are only read on the tab that shows them, so the other branches
- * of the read need a value of the same shape. A frozen constant rather than a
- * literal per branch, so the stand-in cannot drift into saying something — and
- * it is never rendered, because the panel that would read it is not on screen.
- */
-const NO_TIME_LOGGED: LoggedTotals = Object.freeze({
-  entryCount: 0,
-  loggedMinutes: 0,
-  billableMinutes: 0,
-});
 
 /**
  * The page and its title both need the project, and Next calls
