@@ -1380,6 +1380,24 @@ smuggled into an insert), and the one new URL is built from a joined row id
 through `encodeURIComponent`. No server action was added or changed; what a
 POST endpoint without accounts owes Phase 8 is unchanged and already recorded.
 
+## Day 039 ran twice, for the reason Days 037 and 038 did
+
+Day 039 — the portfolio at `/health`, ranking every active project by scope
+risk — was built on 2026-11-27 in 61 commits (`62b67c8..8f86e08`) and pushed.
+The box in `ROADMAP.md` was never ticked, so the workflow picked Day 039 again
+on 2026-11-28.
+
+`npm run verify` was green on arrival — 193 files, 5126 tests — and the
+milestone was whole: `lib/health/{band,rank,row,portfolio,words,route}.ts`, the
+two studio-wide reads behind them, the page, the table, the verdict cell, the
+two empty states, and the sections below already written. Nothing was
+half-built and nothing needed rebuilding.
+
+What the first run had not reached was the end of the day: the review. So the
+second run is `/code-review` over the whole range, a security pass over the
+surface it adds, and the fixes — 7 commits, recorded at the bottom of this
+file rather than here.
+
 ## Where a project with no verdict goes (Day 039)
 
 The classifier has four answers and `/health` has to sort all of them, which
@@ -1452,3 +1470,48 @@ scope is a few hundred rows.
   nothing has been burned, and that is a measurement rather than a gap —
   `hasValuedBurn` says so. The three share columns are dashes, because none of
   those three could be read.
+
+## What the Day 039 review found
+
+Four things, each fixed in its own commit, and none of them in the arithmetic
+— the band, the order and the readings held up against `lib/scope-creep.ts`
+line by line.
+
+- **Two spellings of one sentence.** "No active projects." was typed into
+  `describePortfolio` and into the heading of the panel that replaces the
+  table, so softening one would have left the other behind. `NO_ACTIVE_PROJECTS`
+  says it once. The count above it is also only built once there is something
+  to count — it was being formatted before the guard that returns without it.
+- **Two frozen `LoggedTotals` of nothing.** The project page had one for the
+  four tabs that never run the totals query; the portfolio had one for a
+  project no `GROUP BY` returns a row for. Same three fields, two
+  explanations. It now lives in `lib/time/rollup.ts` beside the shape it is
+  nothing of.
+- **A false claim under the ranking.** Rung four was argued, here and in
+  `rank.ts`, on "both shares are null by construction" inside `unassessed`.
+  The consumed share and the gap are; the delivered share is not — a withheld
+  verdict costs the money axis and leaves the scope one standing. The claim
+  was true of the two figures that rank and false as written, which is the
+  kind of wrong that survives because the code is right. Two tests in
+  `rank.test.ts` pin what it was about: delivery is not a rung, so the hours
+  still decide and two rows differing only in delivery tie.
+- **Three client links still pasting the id into the path.**
+  `clientEditPath` landed in the first run to be the one escaped spelling of
+  it, and the two client-book lists and the project header had not been swept
+  onto it. The header took the shared `ClientLink` and with it the "(archived)"
+  marker it had been missing since Day 004 — archiving a client does not close
+  their projects, so an engagement for a client off the books is still
+  running, and the name on its own read as live.
+
+The security pass found nothing to fix, which is what the shape of the day
+predicts. It adds no server action, no form and no validation. `/health` reads
+no route param and no search param, so no user-controlled value reaches it.
+Both new reads are query-builder calls with no predicate at all, so there is
+nothing to inject into and nothing to scope wrongly. Every figure on the page
+is rendered as a React text node; nothing on it is built as markup. The one
+security-shaped change the day makes runs the right way — three unescaped path
+interpolations removed, two of them outside the new page.
+
+What it does add is two more unscoped reads. That is a Phase 8 debt rather
+than a hole, because there is no owner on any row yet; they are listed with
+the other two above.
