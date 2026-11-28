@@ -43,6 +43,7 @@ function row(
     clientName?: string;
     band?: RiskBand;
     consumedShare?: number | null;
+    deliveredShare?: number | null;
     gap?: number | null;
     loggedMinutes?: number;
   } = {},
@@ -61,7 +62,7 @@ function row(
       reasons: [],
       blindSpots: [],
       consumedShare: fields.consumedShare ?? null,
-      deliveredShare: null,
+      deliveredShare: fields.deliveredShare ?? null,
       gap: fields.gap ?? null,
       thresholds: DEFAULT_CREEP_THRESHOLDS,
     },
@@ -133,6 +134,35 @@ describe("compareRisk", () => {
     const few = row({ band: "unassessed", loggedMinutes: 20 });
 
     expect(compareRisk(many, few)).toBeLessThan(0);
+  });
+
+  /*
+    A withheld verdict costs the money axis and leaves the scope axis alone, so
+    an unassessed project whose scope was sized does have a delivered share.
+    It is not a rung of the order — there is no consumed share to set it
+    against, which is the whole reason the verdict was withheld — so the hours
+    still decide, and the row with more of them still comes first.
+  */
+  it("does not rank an unassessed project by its delivered share", () => {
+    const sized = row({
+      band: "unassessed",
+      deliveredShare: 0.9,
+      loggedMinutes: 20,
+    });
+    const unsized = row({
+      band: "unassessed",
+      deliveredShare: null,
+      loggedMinutes: 4_800,
+    });
+
+    expect(compareRisk(unsized, sized)).toBeLessThan(0);
+  });
+
+  it("ties two unassessed projects that differ only in delivery", () => {
+    const some = row({ id: "prj_1", band: "unassessed", deliveredShare: 0.2 });
+    const most = row({ id: "prj_1", band: "unassessed", deliveredShare: 0.8 });
+
+    expect(compareRisk(some, most)).toBe(0);
   });
 
   it("falls back to the client name when every figure ties", () => {
