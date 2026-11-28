@@ -590,11 +590,13 @@ export const PORTFOLIO_COLUMNS = {
  * visible from any single row: a reader who cannot scan the whole column has
  * no way to tell that the first row is the worst one rather than the newest.
  *
- * Built from `PORTFOLIO_COLUMNS` rather than naming the columns again, which
- * is the whole reason that record exists. A caption that spelled the headings
- * out would be a caption that went on describing six columns the day a seventh
- * arrived — and it already had: it enumerated four of the seven and left the
- * gap out, which is the column the sentence after it is about.
+ * Read straight off `PORTFOLIO_COLUMNS`, which is the whole reason that record
+ * exists: the headings in the markup and the sentence describing them come
+ * from one list, in one order, and an eighth column joins both at once. A
+ * caption that named the columns itself would be a caption that went on
+ * describing seven the day an eighth arrived — and it already had, twice: it
+ * enumerated four of the seven and left the gap out, which is the column the
+ * sentence after it is about, and then it listed all seven by hand.
  *
  * Lower-cased, because the headings are capitalised for a column and this is a
  * sentence. The same conversion `RISK_BAND_PHRASES` makes, done here rather
@@ -604,15 +606,7 @@ export const PORTFOLIO_COLUMNS = {
  */
 export const PORTFOLIO_CAPTION = [
   "Every active project, worst first, one row each:",
-  [
-    PORTFOLIO_COLUMNS.project,
-    PORTFOLIO_COLUMNS.client,
-    PORTFOLIO_COLUMNS.burned,
-    PORTFOLIO_COLUMNS.consumed,
-    PORTFOLIO_COLUMNS.delivered,
-    PORTFOLIO_COLUMNS.gap,
-    PORTFOLIO_COLUMNS.verdict,
-  ]
+  Object.values(PORTFOLIO_COLUMNS)
     .map((column) => column.toLowerCase())
     .join(", "),
   "— where the gap is the share consumed less the share delivered, in points.",
