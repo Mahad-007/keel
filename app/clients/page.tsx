@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { clientEditPath } from "@/lib/clients/detail";
 import { listClients } from "@/lib/data/clients";
 import { formatDate } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
@@ -87,7 +88,7 @@ function ClientsTable({ clients }: { clients: Client[] }) {
           >
             <td className="py-2.5 pr-6 font-medium text-zinc-900 dark:text-zinc-100">
               <Link
-                href={`/clients/${client.id}/edit`}
+                href={clientEditPath(client.id)}
                 className="underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-900 dark:decoration-zinc-700 dark:hover:decoration-zinc-100"
               >
                 {client.name}
