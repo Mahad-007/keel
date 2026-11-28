@@ -1409,8 +1409,11 @@ holds the order and the argument; this is the short version.
 Within a band: consumed share first, then the gap, then the hours. The money
 axis leads because it is the one figure every assessed row has — the classifier
 withholds a verdict without it — and the hours are what rank `unassessed`,
-where both shares are null by construction. Eighty unvalued hours is a bigger
-hole than twenty minutes of them.
+where the consumed share and the gap are both null by construction. The
+delivered share can be read on such a row, because a withheld verdict costs
+the money axis and leaves the scope one; nothing ranks on it, because there is
+no burn to set it against. Eighty unvalued hours is a bigger hole than twenty
+minutes of them.
 
 ## Three studio-wide reads, and what they owe Phase 8 (Day 039)
 

@@ -23,10 +23,11 @@ import type { PortfolioRow } from "./row";
  * engagement nobody can measure in among the ones measured as fine.
  *
  * Last within its band rather than last overall, because the band has already
- * said how much the absence costs. Inside `unassessed` every row is null on
- * both figures, so this does nothing there and the comparison falls through to
- * the hours — which is the figure that means something about a project nothing
- * else could be read for.
+ * said how much the absence costs. Inside `unassessed` both of them are null
+ * on every row — a verdict is withheld exactly when the consumed share cannot
+ * be read, and a gap needs that share — so this does nothing there and the
+ * comparison falls through to the hours, which is the figure that means
+ * something about a project nothing else could be read for.
  */
 export function compareWorseFirst(
   left: number | null,
@@ -62,9 +63,12 @@ export function compareWorseFirst(
  * places between reloads are rows a reader loses their place in.
  *
  *   4. **Hours logged, most first.** The figure that ranks `unassessed`, where
- *      both shares are null by construction. Eighty unvalued hours is a bigger
- *      hole than twenty minutes of them, and it is the only exposure a project
- *      with no rate and no price can be measured by.
+ *      the two rungs above are null by construction. Such a row may well have
+ *      a delivered share — a withheld verdict costs the money axis and leaves
+ *      the scope one — but nothing ranks on delivery alone, because there is
+ *      no burn to set it against. Eighty unvalued hours is a bigger hole than
+ *      twenty minutes of them, and it is the only exposure a project with no
+ *      rate and no price can be measured by.
  *   5. **The client, then the project, by name.** `compareNames` as everywhere
  *      else, so two identical readings read alphabetically rather than in
  *      whatever order the query returned.
