@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ClientLink } from "@/components/client-link";
 import type { ProjectWithClient } from "@/lib/data/projects";
 import { projectEditPath } from "@/lib/projects/detail";
 import { describeProjectLifecycle } from "@/lib/projects/lifecycle";
@@ -15,6 +16,10 @@ import { ProjectStatusBadge } from "../status-badge";
  * the question "what rate do they bill at" coming up, and the client page is
  * where that is answered. It points at the edit page because that is the only
  * client page there is; a read-only client view arrives later.
+ *
+ * Whether the client is still on the books is said here, because archiving one
+ * does not close their projects: an engagement for a client who is off the
+ * books is still running, and a name on its own would read as live.
  *
  * The status sits opposite the name rather than beside it: it is the fact that
  * changes, and a reader coming back to a project they know is looking for what
@@ -50,12 +55,20 @@ export function ProjectHeader({ project }: { project: ProjectWithClient }) {
           </h1>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             for{" "}
-            <Link
-              href={`/clients/${project.clientId}/edit`}
-              className="text-zinc-900 underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-900 dark:text-zinc-100 dark:decoration-zinc-700 dark:hover:decoration-zinc-100"
-            >
-              {project.clientName}
-            </Link>
+            {/*
+              The same cell the projects list and the portfolio print, so a
+              client who has been archived reads as archived wherever their
+              name appears beside their work. The span carries the colour:
+              the name is the one thing on this line a reader is looking for,
+              and the note beside it keeps its own quieter grey.
+            */}
+            <span className="text-zinc-900 dark:text-zinc-100">
+              <ClientLink
+                id={project.clientId}
+                name={project.clientName}
+                archivedAt={project.clientArchivedAt}
+              />
+            </span>
           </p>
         </div>
         <div className="shrink-0 pt-1 text-right">
