@@ -493,12 +493,26 @@ export const RISK_BAND_PHRASES: Record<RiskBand, string> = {
  * sentence.
  *
  * "1 active project" rather than "1 active projects", which is the whole of
- * it. Named because the phrase appears in the summary and in two empty states,
- * and three spellings of it is three places for the singular to be wrong.
+ * it. Its own function because the plural is the kind of thing that is right
+ * in the one place it was written and wrong in the next, and because a count
+ * of projects is worth testing without a portfolio to count.
  */
 export function countActiveProjects(total: number): string {
   return total === 1 ? "1 active project" : `${total} active projects`;
 }
+
+/**
+ * What a studio with no work in flight is told.
+ *
+ * One spelling, read twice: the summary answers with it when there are no rows
+ * to describe, and the panel that stands in for the table uses it as its
+ * heading. The same sentence typed in both places is the sort of thing that
+ * stays in step until somebody softens one of them.
+ *
+ * A full stop, because it is a sentence in the summary's position. The panel
+ * headings in this app end in one too, which is why it can be shared at all.
+ */
+export const NO_ACTIVE_PROJECTS = "No active projects.";
 
 /**
  * What the portfolio adds up to, in one line above the table.
@@ -521,9 +535,9 @@ export function countActiveProjects(total: number): string {
  * describe as fine.
  */
 export function describePortfolio(rows: readonly PortfolioRow[]): string {
-  const total = countActiveProjects(rows.length);
-  if (rows.length === 0) return "No active projects.";
+  if (rows.length === 0) return NO_ACTIVE_PROJECTS;
 
+  const total = countActiveProjects(rows.length);
   const counts = countByBand(rows);
   const parts = RISK_BANDS.filter(
     (band) => band !== "healthy" && counts[band] > 0,

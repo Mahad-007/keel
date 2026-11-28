@@ -1,4 +1,5 @@
 import { EmptyPanel } from "@/components/empty-panel";
+import { NO_ACTIVE_PROJECTS } from "@/lib/health/words";
 import { NEW_PROJECT_PATH, PROJECTS_PATH } from "@/lib/projects/query";
 
 /**
@@ -39,7 +40,7 @@ export function NoProjectsToRank() {
 export function NothingActiveToRank() {
   return (
     <EmptyPanel
-      heading="No active projects."
+      heading={NO_ACTIVE_PROJECTS}
       action={{ href: PROJECTS_PATH, label: "All projects" }}
     >
       <p>
